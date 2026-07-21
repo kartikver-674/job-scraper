@@ -7,7 +7,7 @@ import apply_config as cfg
 class TestApplyConfig(unittest.TestCase):
     def test_core_defaults(self):
         self.assertEqual(cfg.MIN_SCORE, 10)
-        self.assertEqual(cfg.MODEL, "gemini-2.5-flash")
+        self.assertEqual(cfg.MODEL, "gemini-2.0-flash")
         self.assertTrue(cfg.DRY_RUN_DEFAULT)
         self.assertEqual(cfg.SMTP_HOST, "smtp.gmail.com")
         self.assertEqual(cfg.SMTP_PORT, 587)

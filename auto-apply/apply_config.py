@@ -31,7 +31,10 @@ PER_RUN_CAP = 5           # default cap; --limit overrides
 SEND_DELAY_SECONDS = 20   # delay between sends on --send
 
 # --- Tailoring -------------------------------------------------------------
-MODEL = "gemini-2.5-flash"
+# gemini-2.5-flash 404s ("no longer available to new users") for this API key.
+# Use gemini-2.0-flash: a pinned, GA flash model this key can call. (The
+# gemini-flash-latest alias is also callable but tends to hit transient 503s.)
+MODEL = "gemini-2.0-flash"
 DRY_RUN_DEFAULT = True
 
 # --- Applicant contact block (used in the email signature) -----------------
