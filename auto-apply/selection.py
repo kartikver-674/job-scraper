@@ -49,3 +49,19 @@ def select_candidates(rows, min_score, applied_keys, limit):
     if limit is not None:
         picked = picked[:limit]
     return picked
+
+
+def select_linkedin_candidates(rows, min_score, applied_keys, limit):
+    """Filter to LinkedIn jobs, above-threshold, not-yet-applied; keep order; apply limit."""
+    picked = []
+    for row in rows:
+        if (row.get("source_site") or "").strip().lower() != "linkedin":
+            continue
+        if _score(row) < min_score:
+            continue
+        if job_key(row) in applied_keys:
+            continue
+        picked.append(row)
+    if limit is not None:
+        picked = picked[:limit]
+    return picked

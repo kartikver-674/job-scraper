@@ -39,3 +39,44 @@ python auto-apply/apply.py --send --limit 2
 - Idempotent: `applications.csv` tracks every job by its `apply_url`; re-runs never
   duplicate drafts or re-send.
 - Tests: `python -m unittest discover -s auto-apply/tests -t auto-apply -v`
+
+## Phase 2 — LinkedIn Easy Apply autofill (userscript)
+
+Auto-fills the LinkedIn Easy Apply modal from a résumé-grounded answer bank.
+**It never submits — you review and click Submit.** No new Python deps.
+
+### Setup (once)
+1. Ensure `GROQ_API_KEY=gsk_...` is in the repo-root `.env` (free key from
+   https://console.groq.com — powers the LLM fallback for novel free-text
+   questions). Without it, tiers 1–2 still work and unknowns are flagged.
+2. Install the **Tampermonkey** browser extension.
+3. Generate the userscript:
+   ```
+   python auto-apply/build_userscript.py
+   ```
+   This writes `auto-apply/linkedin-easyapply.user.js` (gitignored — it embeds
+   your key + résumé). Open that file in Tampermonkey (dashboard → Utilities →
+   Import, or drag it in) to install.
+
+### Each session
+1. Build the shortlist of top LinkedIn jobs not yet applied to:
+   ```
+   python auto-apply/linkedin_shortlist.py
+   open auto-apply/shortlist.html
+   ```
+2. Click a job → LinkedIn opens → click **Easy Apply**.
+3. Click the floating **⚡ Autofill** button. Fields fill in four tiers:
+   keyword bank → templated free-text → Groq LLM → **⚠ flagged** (red outline)
+   for anything not truthfully answerable.
+4. **Review every field**, fix any flagged ones, then click **Submit yourself**.
+
+### After editing answers
+Edit `answers.yaml` (facts) or `build_userscript.py` (`BANK_PATTERNS` /
+`FREE_TEXT`), then re-run `python auto-apply/build_userscript.py` and re-import
+into Tampermonkey.
+
+### Notes
+- Dedup: the shortlist excludes jobs already in `applications.csv`; LinkedIn also
+  badges applied jobs "Applied ✓".
+- Grounding: answers come only from `answers.yaml` / `ME` / résumé; the LLM is
+  told to reply `FLAG` (→ flagged) rather than invent anything.

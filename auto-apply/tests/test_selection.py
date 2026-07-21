@@ -70,6 +70,27 @@ class TestSelection(unittest.TestCase):
     def test_load_applied_keys_missing_file(self):
         self.assertEqual(selection.load_applied_keys("/no/such.csv"), set())
 
+    def test_select_linkedin_filters_source_score_and_applied(self):
+        rows = [
+            {"score": "30", "source_site": "linkedin", "apply_url": "u_li1", "title": "FS", "company": "A"},
+            {"score": "5",  "source_site": "linkedin", "apply_url": "u_li2", "title": "FS", "company": "B"},
+            {"score": "40", "source_site": "naukri",   "apply_url": "u_nk1", "title": "FS", "company": "C"},
+            {"score": "22", "source_site": "LinkedIn", "apply_url": "u_li3", "title": "FS", "company": "D"},
+            {"score": "25", "source_site": "linkedin", "apply_url": "u_done", "title": "FS", "company": "E"},
+        ]
+        picked = selection.select_linkedin_candidates(
+            rows, min_score=10, applied_keys={"u_done"}, limit=None)
+        urls = [r["apply_url"] for r in picked]
+        self.assertEqual(urls, ["u_li1", "u_li3"])  # li2 below score, nk1 wrong source, done already applied
+
+    def test_select_linkedin_respects_limit(self):
+        rows = [
+            {"score": "30", "source_site": "linkedin", "apply_url": "a"},
+            {"score": "20", "source_site": "linkedin", "apply_url": "b"},
+        ]
+        picked = selection.select_linkedin_candidates(rows, 10, set(), limit=1)
+        self.assertEqual([r["apply_url"] for r in picked], ["a"])
+
     def test_non_numeric_score_treated_as_zero(self):
         """Test that non-numeric scores are safely degraded to 0 without crashing."""
         rows = [

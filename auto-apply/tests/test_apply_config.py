@@ -28,5 +28,18 @@ class TestApplyConfig(unittest.TestCase):
         self.assertTrue(result is None or os.path.exists(result))
 
 
+class TestPhase2Config(unittest.TestCase):
+    def test_phase2_knobs_exist(self):
+        self.assertTrue(cfg.USERSCRIPT_OUT.endswith("linkedin-easyapply.user.js"))
+        self.assertTrue(cfg.SHORTLIST_OUT.endswith("shortlist.html"))
+        self.assertTrue(cfg.USERSCRIPT_TEMPLATE.endswith("userscript_template.js"))
+        self.assertEqual(cfg.GROQ_MODEL, "llama-3.3-70b-versatile")
+        self.assertTrue(cfg.GROQ_ENDPOINT.startswith("https://api.groq.com/"))
+
+    def test_paths_are_absolute(self):
+        for p in (cfg.USERSCRIPT_OUT, cfg.SHORTLIST_OUT, cfg.USERSCRIPT_TEMPLATE):
+            self.assertTrue(os.path.isabs(p))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -17,3 +17,7 @@ auto-apply/review_queue.csv
 auto-apply/applications.csv
 auto-apply/resume/resume.txt
 auto-apply/resume/resume.pdf
+
+# Phase 2: generated userscript (embeds Groq key + résumé) and shortlist
+auto-apply/linkedin-easyapply.user.js
+auto-apply/shortlist.html
