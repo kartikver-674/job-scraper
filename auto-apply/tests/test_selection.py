@@ -70,6 +70,23 @@ class TestSelection(unittest.TestCase):
     def test_load_applied_keys_missing_file(self):
         self.assertEqual(selection.load_applied_keys("/no/such.csv"), set())
 
+    def test_non_numeric_score_treated_as_zero(self):
+        """Test that non-numeric scores are safely degraded to 0 without crashing."""
+        rows = [
+            _row("", "Full Stack Developer", "EmptyScoreCo", "empty@example.com", "u_empty"),
+            _row("N/A", "Full Stack Engineer", "NACo", "na@example.com", "u_na"),
+        ]
+        path = self._csv(rows)
+        jobs = selection.load_jobs(path)
+
+        # With min_score=10, both should be filtered out (score 0 < 10)
+        picked = selection.select_candidates(jobs, min_score=10, applied_keys=set(), limit=None)
+        self.assertEqual(picked, [])
+
+        # With min_score=0, both should be included (score 0 >= 0)
+        picked = selection.select_candidates(jobs, min_score=0, applied_keys=set(), limit=None)
+        self.assertEqual(len(picked), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
