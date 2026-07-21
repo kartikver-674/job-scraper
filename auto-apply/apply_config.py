@@ -51,6 +51,16 @@ ME = {
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
 
+# --- Phase 2: LinkedIn Easy Apply autofill userscript ----------------------
+# Generated .user.js embeds the Groq key + résumé text -> gitignored.
+USERSCRIPT_TEMPLATE = os.path.join(AUTO_APPLY_DIR, "userscript_template.js")
+USERSCRIPT_OUT = os.path.join(AUTO_APPLY_DIR, "linkedin-easyapply.user.js")
+SHORTLIST_OUT = os.path.join(AUTO_APPLY_DIR, "shortlist.html")
+# LLM fallback for novel free-text questions (Gemini key has zero quota; Groq
+# free tier verified working 2026-07-21). Key comes from .env GROQ_API_KEY.
+GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
 # --- Channels --------------------------------------------------------------
 CHANNELS = {"email": True}  # Phase-2 channels intentionally absent
 
