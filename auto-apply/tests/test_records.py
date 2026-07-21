@@ -50,6 +50,25 @@ class TestRecords(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["status"], "sent")
 
+    def test_append_review_row_is_idempotent(self):
+        row = {"job_key": "k1", "to": "hr@co.com", "subject": "S",
+               "draft_path": "/d/k1.md", "status": "draft"}
+        records.append_review_row(self.queue, row)
+        records.append_review_row(self.queue, row)
+        rows = records.read_review_rows(self.queue)
+        self.assertEqual(len(rows), 1)
+
+    def test_upsert_application_update_preserves_company_and_title(self):
+        records.upsert_application(self.apps, "k1", "Jinrai", "FSD", "email", "drafted")
+        records.upsert_application(self.apps, "k1", "DIFFERENT_CO", "DIFFERENT_TITLE", "email", "sent")
+        import csv
+        with open(self.apps, encoding="utf-8", newline="") as f:
+            rows = list(csv.DictReader(f))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["status"], "sent")
+        self.assertEqual(rows[0]["company"], "Jinrai")
+        self.assertEqual(rows[0]["title"], "FSD")
+
 
 if __name__ == "__main__":
     unittest.main()
