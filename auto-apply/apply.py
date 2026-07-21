@@ -80,6 +80,9 @@ def run_send(cfg, *, limit, delay, confirm_fn, send_fn):
             continue
         # Re-read the body from the draft file (source of truth the user reviewed).
         body = _read_body_from_draft(row.get("draft_path", ""))
+        if not body.strip():
+            print(f"  skipped (empty draft body): {row['to']}")
+            continue
         send_fn(row["to"], row["subject"], body)
         records.set_review_status(cfg.REVIEW_QUEUE, row["job_key"], "sent")
         records.upsert_application(cfg.APPLICATIONS_LOG, row["job_key"], "", "",
@@ -99,7 +102,7 @@ def _read_body_from_draft(draft_path):
     with open(draft_path, encoding="utf-8") as f:
         text = f.read()
     parts = text.split("\n---\n")
-    return parts[1].strip() if len(parts) >= 2 else text
+    return parts[1].strip() if len(parts) >= 2 else ""
 
 
 # --- real wiring (not unit-tested; exercised manually) ---------------------
@@ -112,6 +115,12 @@ def _real_tailor(client, model):
 
 
 def _interactive_confirm(row):
+    body = _read_body_from_draft(row.get("draft_path"))
+    preview = body[:300]
+    truncated = " (truncated)" if len(body) > 300 else ""
+    print(f"To: {row['to']}")
+    print(f"Subject: {row['subject']}")
+    print(f"Body preview{truncated}:\n{preview}\n")
     ans = input(f"Send to {row['to']} — subject '{row['subject']}'? [y/N] ").strip().lower()
     return ans == "y"
 

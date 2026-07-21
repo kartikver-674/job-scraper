@@ -70,11 +70,17 @@ class TestSend(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
         self.cfg = _make_cfg(self.tmp)
-        # Seed one approved queue row + a drafted application.
+        # Seed one approved queue row + a drafted application, backed by a real
+        # draft file (with proper --- fences) so the empty-body guard doesn't
+        # skip it.
+        self.draft_path = records.write_draft_md(
+            self.cfg.DRAFTS_DIR, "u_jinrai", "career@jinraitech.com",
+            "Application: Full Stack Developer",
+            "Dear Hiring Team, grounded body.", "Node/React from résumé.")
         records.append_review_row(self.cfg.REVIEW_QUEUE, {
             "job_key": "u_jinrai", "to": "career@jinraitech.com",
             "subject": "Application: Full Stack Developer",
-            "draft_path": "/d/u_jinrai.md", "status": "approved"})
+            "draft_path": self.draft_path, "status": "approved"})
         records.upsert_application(self.cfg.APPLICATIONS_LOG, "u_jinrai",
                                    "Jinrai", "Full Stack Developer", "email", "drafted")
 
@@ -95,6 +101,50 @@ class TestSend(unittest.TestCase):
         self.assertEqual(n, 0)
         self.assertEqual(sent, [])
         self.assertEqual(records.read_review_rows(self.cfg.REVIEW_QUEUE)[0]["status"], "approved")
+
+    def test_send_skips_and_does_not_mark_sent_when_draft_body_missing(self):
+        # A separate approved row pointing at a draft_path that does not exist
+        # on disk (e.g. deleted/moved draft, or one that never had fences).
+        queue_path = os.path.join(self.tmp, "review_queue_missing.csv")
+        records.append_review_row(queue_path, {
+            "job_key": "u_missing", "to": "career@jinraitech.com",
+            "subject": "Application: Full Stack Developer",
+            "draft_path": os.path.join(self.tmp, "does_not_exist.md"),
+            "status": "approved"})
+        cfg2 = _make_cfg(self.tmp)
+        cfg2.REVIEW_QUEUE = queue_path
+
+        sent = []
+        n = apply.run_send(cfg2, limit=5, delay=0,
+                           confirm_fn=lambda row: True,
+                           send_fn=lambda to, subject, body: sent.append(to))
+        self.assertEqual(n, 0)
+        self.assertEqual(sent, [])
+        self.assertEqual(
+            records.read_review_rows(cfg2.REVIEW_QUEUE)[0]["status"], "approved")
+
+
+class TestReadBodyFromDraft(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def test_missing_path_returns_empty_string(self):
+        self.assertEqual(apply._read_body_from_draft(""), "")
+        self.assertEqual(
+            apply._read_body_from_draft(os.path.join(self.tmp, "nope.md")), "")
+
+    def test_no_fences_returns_empty_string_not_whole_file(self):
+        path = os.path.join(self.tmp, "no_fences.md")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("# Draft application\n\n**To:** x@y.com\n\n"
+                    "**Subject:** hi\n\nNo fences here at all.\n")
+        self.assertEqual(apply._read_body_from_draft(path), "")
+
+    def test_well_formed_draft_extracts_body(self):
+        path = records.write_draft_md(
+            self.tmp, "job1", "x@y.com", "Subject line",
+            "This is the body.", "notes")
+        self.assertEqual(apply._read_body_from_draft(path), "This is the body.")
 
 
 if __name__ == "__main__":
