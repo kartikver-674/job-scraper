@@ -19,6 +19,8 @@
   const GROQ_MODEL = /*__GROQ_MODEL__*/;
   const GROQ_ENDPOINT = /*__GROQ_ENDPOINT__*/;
   const ME = /*__ME__*/;
+  const DEBUG = true;  // set false to silence the [autofill] console logs
+  const log = (...a) => { if (DEBUG) console.log("[autofill]", ...a); };
 
   const norm = (s) => (s || "").toLowerCase();
 
@@ -58,20 +60,44 @@
     if (el.parentElement) el.parentElement.appendChild(note);
   }
 
+  function txt(node) { return node && node.innerText ? node.innerText.trim() : ""; }
+
   function labelFor(el) {
+    // 1. aria-labelledby -> resolve referenced nodes
+    const lb = el.getAttribute("aria-labelledby");
+    if (lb) {
+      const t = lb.split(/\s+/).map((id) => document.getElementById(id)).filter(Boolean)
+        .map(txt).join(" ").trim();
+      if (t) return t;
+    }
+    // 2. <label for=id>
     if (el.id) {
       const lab = document.querySelector('label[for="' + CSS.escape(el.id) + '"]');
-      if (lab) return lab.innerText;
+      if (txt(lab)) return txt(lab);
     }
+    // 3. known form-element group classes
     const group = el.closest(
-      "[data-test-form-element], .fb-dash-form-element, fieldset, .jobs-easy-apply-form-element"
-    ) || el.parentElement;
+      "[data-test-form-element], .fb-dash-form-element, .jobs-easy-apply-form-element, fieldset"
+    );
     if (group) {
       const lab = group.querySelector("label, legend");
-      if (lab) return lab.innerText;
-      return group.innerText;
+      if (txt(lab)) return txt(lab);
     }
-    return el.getAttribute("aria-label") || el.name || "";
+    // 4. walk a few ancestors looking for a single label (LinkedIn wraps each
+    //    field in a plain <div><label>…</label><input></div> with no stable class)
+    let g = el.parentElement;
+    for (let i = 0; i < 4 && g; i++, g = g.parentElement) {
+      const labs = g.querySelectorAll("label, legend");
+      if (labs.length === 1 && txt(labs[0])) return txt(labs[0]);
+    }
+    return el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.name || "";
+  }
+
+  // LinkedIn's Easy Apply modal is a native <dialog> (obfuscated classes, no
+  // role=dialog). Target the open dialog — the button must be a child of it since
+  // showModal() makes everything outside the dialog inert (focus trap / top layer).
+  function findModal() {
+    return document.querySelector("dialog[open]") || document.querySelector("dialog");
   }
 
   function jobContext() {
@@ -136,41 +162,78 @@
     setValue(el, value);
   }
 
+  function alreadyFilled(el) {
+    if (el.tagName === "INPUT" && (el.type === "radio" || el.type === "checkbox")) return false;
+    if (el.tagName === "SELECT") {
+      const t = (el.options[el.selectedIndex] || {}).text || "";
+      return !!el.value && !/^\s*(select|choose)\b/i.test(t);  // real option chosen
+    }
+    return !!(el.value && el.value.trim());  // text/tel/textarea already has a value
+  }
+
   async function fillField(el, ctx) {
     if (el.type === "file" || el.type === "hidden" || el.disabled) return;
+    if (alreadyFilled(el)) { log("skip filled", el.tagName); return; }  // leave LinkedIn's prefills alone
     const label = labelFor(el);
+    const desc = el.tagName + "[type=" + (el.type || "-") + "] label=" + JSON.stringify((label || "").slice(0, 70));
     const bank = bankAnswer(label);
-    if (bank !== null) return applyAnswer(el, bank);        // tier 1
+    if (bank !== null) { log("tier1 BANK  ", desc, "->", bank); return applyAnswer(el, bank); }
     if (el.tagName === "TEXTAREA") {
       const tmpl = freeTextAnswer(label, ctx);              // tier 2
-      if (tmpl !== null) return applyAnswer(el, tmpl);
+      if (tmpl !== null) { log("tier2 TMPL  ", desc); return applyAnswer(el, tmpl); }
       const llm = await groqAnswer(label, ctx);             // tier 3
-      if (llm !== null) return applyAnswer(el, llm);
+      if (llm !== null) { log("tier3 GROQ  ", desc); return applyAnswer(el, llm); }
     }
+    log("tier4 FLAG  ", desc);
     flag(el);                                               // tier 4
   }
 
   async function autofill() {
-    const modal = document.querySelector(".jobs-easy-apply-modal, [data-test-modal]") || document;
+    const modal = findModal();
+    const root = modal || document;
     const ctx = jobContext();
-    for (const el of modal.querySelectorAll("input, select, textarea")) {
+    const fields = root.querySelectorAll("input, select, textarea");
+    log("modal found:", !!modal, "| fields:", fields.length, "| ctx:", ctx.title, "/", ctx.company);
+    for (const el of fields) {
       await fillField(el, ctx);
     }
+    log("done");
     // Intentionally never clicks Submit/Next — the user reviews and submits.
   }
 
-  function addButton() {
-    if (document.getElementById("aa-autofill-btn")) return;
-    const btn = document.createElement("button");
-    btn.id = "aa-autofill-btn";
-    btn.textContent = "⚡ Autofill";
-    btn.style.cssText =
-      "position:fixed;bottom:20px;right:20px;z-index:99999;padding:10px 14px;" +
-      "background:#0a66c2;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;";
-    btn.onclick = autofill;
-    document.body.appendChild(btn);
+  // The button must be a CHILD of the modal — LinkedIn's Easy Apply dialog is a
+  // focus trap that swallows clicks on outside (body-level) elements. When a modal
+  // is open we place it absolutely inside the modal (next to the ✕); otherwise it
+  // floats on the page.
+  const BTN_IN_MODAL =
+    "position:absolute;top:14px;right:60px;z-index:2147483647;padding:8px 12px;" +
+    "background:#0a66c2;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;";
+  const BTN_ON_PAGE =
+    "position:fixed;top:14px;right:20px;z-index:2147483647;padding:8px 12px;" +
+    "background:#0a66c2;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;";
+
+  function ensureButton() {
+    const modal = findModal();
+    const host = modal || document.body;
+    let btn = document.getElementById("aa-autofill-btn");
+    if (btn && btn.parentElement === host) return;  // already correctly placed
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = "aa-autofill-btn";
+      btn.type = "button";
+      btn.textContent = "⚡ Autofill";
+      btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); autofill(); });
+    }
+    if (modal) {
+      if (getComputedStyle(modal).position === "static") modal.style.position = "relative";
+      btn.style.cssText = BTN_IN_MODAL;
+    } else {
+      btn.style.cssText = BTN_ON_PAGE;
+    }
+    host.appendChild(btn);  // moving into the modal makes it a focus-trap child
   }
 
-  new MutationObserver(addButton).observe(document.body, { childList: true, subtree: true });
-  addButton();
+  new MutationObserver(ensureButton).observe(document.body, { childList: true, subtree: true });
+  ensureButton();
+  log("userscript loaded on", location.href, "| bank entries:", BANK.length);
 })();

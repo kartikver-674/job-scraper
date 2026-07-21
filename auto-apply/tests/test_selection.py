@@ -83,6 +83,17 @@ class TestSelection(unittest.TestCase):
         urls = [r["apply_url"] for r in picked]
         self.assertEqual(urls, ["u_li1", "u_li3"])  # li2 below score, nk1 wrong source, done already applied
 
+    def test_select_all_candidates_any_source(self):
+        rows = [
+            {"score": "30", "source_site": "linkedin", "apply_url": "a"},
+            {"score": "20", "source_site": "naukri", "apply_url": "b"},
+            {"score": "5", "source_site": "indeed", "apply_url": "c"},   # below score
+            {"score": "40", "source_site": "indeed", "apply_url": ""},   # no apply_url
+            {"score": "25", "source_site": "naukri", "apply_url": "d"},  # already applied
+        ]
+        picked = selection.select_all_candidates(rows, 10, {"d"}, limit=None)
+        self.assertEqual([r["apply_url"] for r in picked], ["a", "b"])
+
     def test_select_linkedin_respects_limit(self):
         rows = [
             {"score": "30", "source_site": "linkedin", "apply_url": "a"},

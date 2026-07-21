@@ -22,7 +22,7 @@ class TestRenderHtml(unittest.TestCase):
 
     def test_empty_shows_message(self):
         out = ls.render_html([])
-        self.assertIn("No LinkedIn jobs", out)
+        self.assertIn("No jobs above threshold", out)
 
 
 if __name__ == "__main__":

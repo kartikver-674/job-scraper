@@ -42,7 +42,7 @@ DRY_RUN_DEFAULT = True
 ME = {
     "name": "Kartik Verma",
     "email": "kartikverma674@gmail.com",
-    "phone": "",
+    "phone": "9518069412",
     "linkedin": "",
     "github": "",
 }
@@ -69,7 +69,7 @@ def latest_input_csv():
     """Return INPUT_CSV if set, else the newest output/jobs_combined_*.csv (or None)."""
     if INPUT_CSV:
         return INPUT_CSV
-    matches = glob.glob(os.path.join(OUTPUT_DIR, "jobs_combined_*.csv"))
+    matches = glob.glob(os.path.join(OUTPUT_DIR, "jobs_combined*.csv"))
     if not matches:
         return None
     return max(matches, key=os.path.getmtime)

@@ -80,3 +80,7 @@ into Tampermonkey.
   badges applied jobs "Applied ✓".
 - Grounding: answers come only from `answers.yaml` / `ME` / résumé; the LLM is
   told to reply `FLAG` (→ flagged) rather than invent anything.
+
+
+Linkedin = .venv/bin/python auto-apply/linkedin_shortlist.py
+open auto-apply/shortlist.html

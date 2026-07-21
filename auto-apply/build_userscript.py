@@ -24,8 +24,13 @@ from resume_parser import load_resume
 # answers.yaml -- nothing is invented; unmatched questions are flagged.
 BANK_PATTERNS = [
     (["notice"], "notice_period"),
+    # Salary: "current" and "expected" are distinct facts. No bare "salary"
+    # catch-all -> an ambiguous salary question flags instead of guessing wrong.
     (["expected", "ctc"], "expected_ctc"),
-    (["salary"], "expected_ctc"),
+    (["expected", "salary"], "expected_ctc"),
+    (["current", "ctc"], "current_ctc"),
+    (["current", "salary"], "current_ctc"),
+    (["phone"], "phone"),
     (["current", "location"], "current_location"),
     (["relocat"], "willing_to_relocate"),
     (["authoriz"], "work_authorization"),
