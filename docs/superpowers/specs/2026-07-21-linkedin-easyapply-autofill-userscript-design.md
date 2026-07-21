@@ -119,9 +119,11 @@ modal and submits.
 Reuses `selection.py` (`load_jobs`, `job_key`, `load_applied_keys`) with a LinkedIn
 selector (add `select_linkedin_candidates`, or generalize `select_candidates` with a
 predicate) filtering `source_site == "linkedin"`, `score >= MIN_SCORE`, not in
-`applications.csv`. Writes `auto-apply/shortlist.html`: a ranked, clickable list (title,
-company, score, location, `apply_url`). This is the "top links clickable" surface — the
-user opens jobs top-down.
+`applications.csv`. Writes `auto-apply/shortlist.html`: a ranked list where each job is a real clickable
+`<a href="{apply_url}" target="_blank">` anchor (showing title, company, score, location)
+that opens the LinkedIn posting in a new browser tab on click — no copy-paste. Opened via
+`open auto-apply/shortlist.html`. This is the "top links clickable" surface — the user
+opens jobs top-down.
 
 ### Config knobs (add to `apply_config.py`)
 
