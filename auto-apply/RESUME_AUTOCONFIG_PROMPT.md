@@ -14,7 +14,7 @@ file.
 
 You are tailoring this repo's job-scraper configuration to my résumé. The scraper
 (`scraper.py`) reads `config.py` to decide **which** jobs to fetch and **how** to rank them.
-Right now `config.py` is hand-tuned for a specific person (a full-stack React/Node developer).
+Right now `config.py` is hand-tuned for a specific person.
 Re-tune it for me, based on my résumé, using your judgment.
 
 Do this:
