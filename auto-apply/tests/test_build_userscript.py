@@ -16,7 +16,7 @@ class TestBuildBank(unittest.TestCase):
         pairs = {tuple(e["keywords"]): e["answer"] for e in bank}
         self.assertEqual(pairs[("notice",)], "30 days")
         self.assertEqual(pairs[("expected", "ctc")], "12 LPA")
-        self.assertEqual(pairs[("years", "experience")], "2")
+        self.assertEqual(pairs[("years", "react")], "2")
 
     def test_skips_missing_facts(self):
         bank = bu.build_bank({"notice_period": "30 days"})

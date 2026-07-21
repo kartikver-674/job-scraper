@@ -30,7 +30,13 @@ BANK_PATTERNS = [
     (["relocat"], "willing_to_relocate"),
     (["authoriz"], "work_authorization"),
     (["work", "permit"], "work_authorization"),
-    (["years", "experience"], "years_experience"),
+    (["years", "react"], "years_experience"),
+    (["years", "node"], "years_experience"),
+    (["years", "javascript"], "years_experience"),
+    (["years", "typescript"], "years_experience"),
+    (["years", "mongo"], "years_experience"),
+    (["total", "experience"], "years_experience"),
+    (["overall", "experience"], "years_experience"),
 ]
 
 # Free-text templates: keywords -> template with {company}/{title} slots filled

@@ -70,10 +70,6 @@ class TestSelection(unittest.TestCase):
     def test_load_applied_keys_missing_file(self):
         self.assertEqual(selection.load_applied_keys("/no/such.csv"), set())
 
-    def _row_src(self, score, title, company, url, source):
-        return (f'{score},"node, react",True,{title},{company},India,False,'
-                f'1-3 Yrs,,,,{source},{url},2026-07-20\n')
-
     def test_select_linkedin_filters_source_score_and_applied(self):
         rows = [
             {"score": "30", "source_site": "linkedin", "apply_url": "u_li1", "title": "FS", "company": "A"},

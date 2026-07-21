@@ -106,7 +106,7 @@
         onload: (r) => {
           try {
             const txt = JSON.parse(r.responseText).choices[0].message.content.trim();
-            resolve(txt === "FLAG" ? null : txt);
+            resolve(/\bflag\b/i.test(txt) ? null : txt);
           } catch (e) { resolve(null); }
         },
         onerror: () => resolve(null),
@@ -116,16 +116,21 @@
 
   function applyAnswer(el, value) {
     if (el.tagName === "SELECT") {
-      const opt = Array.from(el.options).find(
-        (o) => norm(o.text).includes(norm(value)) || norm(value).includes(norm(o.text))
-      );
+      const opt = Array.from(el.options).find((o) => {
+        const t = norm(o.text).trim();
+        return t && (t.includes(norm(value)) || norm(value).includes(t));
+      });
       if (opt) setValue(el, opt.value); else flag(el);
       return;
     }
     if (el.type === "radio" || el.type === "checkbox") {
       const lab = labelFor(el);
       const wantYes = /^(yes|true)$/i.test(value);
-      if (norm(lab).includes(norm(value)) || (wantYes && norm(lab).includes("yes"))) el.click();
+      if (norm(lab).includes(norm(value)) || (wantYes && norm(lab).includes("yes"))) {
+        el.click();
+      } else {
+        flag(el);
+      }
       return;
     }
     setValue(el, value);
