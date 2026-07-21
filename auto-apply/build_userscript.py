@@ -15,6 +15,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import apply_config as cfg
+from answers import load_answers
+from resume_parser import load_resume
+
 # Seed keyword patterns -> the answers.yaml key that answers them. All lowercase
 # keywords must appear in a question label to match. Values come only from
 # answers.yaml -- nothing is invented; unmatched questions are flagged.
@@ -70,3 +74,37 @@ def render_userscript(template, bank, free_text, resume_text,
     for token, value in replacements.items():
         out = out.replace(token, value)
     return out
+
+
+def _read_env_key(name):
+    """Read a KEY=value from the repo-root .env (secrets are not in apply_config)."""
+    env_path = os.path.join(cfg.REPO_ROOT, ".env")
+    if not os.path.exists(env_path):
+        return ""
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith(name + "="):
+                return line.split("=", 1)[1].strip()
+    return ""
+
+
+def generate():
+    answers = load_answers(cfg.ANSWERS_FILE)
+    resume_text = load_resume(cfg.RESUME_PDF, cfg.RESUME_TXT)
+    groq_key = os.environ.get("GROQ_API_KEY") or _read_env_key("GROQ_API_KEY")
+    if not groq_key:
+        print("WARNING: GROQ_API_KEY not set — LLM fallback (tier 3) disabled.")
+    with open(cfg.USERSCRIPT_TEMPLATE, "r", encoding="utf-8") as f:
+        template = f.read()
+    out = render_userscript(
+        template, build_bank(answers), FREE_TEXT, resume_text,
+        groq_key, cfg.GROQ_MODEL, cfg.GROQ_ENDPOINT, cfg.ME,
+    )
+    with open(cfg.USERSCRIPT_OUT, "w", encoding="utf-8") as f:
+        f.write(out)
+    return cfg.USERSCRIPT_OUT
+
+
+if __name__ == "__main__":
+    print("Wrote " + generate())
