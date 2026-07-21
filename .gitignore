@@ -9,3 +9,11 @@ __pycache__/
 *.pyc
 venv/
 .venv/
+.superpowers/sdd
+
+# Auto-apply generated artifacts
+auto-apply/drafts/
+auto-apply/review_queue.csv
+auto-apply/applications.csv
+auto-apply/resume/resume.txt
+auto-apply/resume/resume.pdf
