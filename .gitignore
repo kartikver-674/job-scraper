@@ -4,6 +4,10 @@
 # Output files
 output/
 
+# Scratch logs + OS cruft
+scratch_*.log
+.DS_Store
+
 # Python
 __pycache__/
 *.pyc

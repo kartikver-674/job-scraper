@@ -61,21 +61,25 @@ SEARCH = {
 # Flip "enabled" to toggle. indeed + naukri on by default (best India signal);
 # linkedin available but off. Per-site input differences are handled by the
 # adapters in scraper.py (build_input) — the SEARCH matrix maps onto each one.
+# Order matters: sites run top-to-bottom, so cheapest-first means a mid-run stop
+# (e.g. account usage cap) loses only the expensive tail. LinkedIn (~$0.001/result)
+# and Indeed (~$0.09/run) run before Naukri (~$0.50/run minimum).
 SITES = {
+    # LinkedIn is cheap (~$0.001/result) but needs a numeric geoId for location
+    # (see LINKEDIN_GEO_IDS). "Delhi / NCR" isn't a LinkedIn geo; use "India" for
+    # broad coverage or a specific city.
+    "linkedin": {"enabled": True,  "actor": "curious_coder/linkedin-jobs-scraper",
+                 "locations": ["India", "Remote"]},
     "indeed":   {"enabled": True,  "actor": "misceres/indeed-scraper"},
     # Naukri has a ~$0.50 MINIMUM charge per run, so pulling only a few results is
     # wasteful. results_per_run overrides SEARCH["max_results"] to pull more per
     # run and amortize the floor; "locations" overrides SEARCH["locations"] with a
     # FEW broad regions ("Delhi / NCR" = id 9508 covers Delhi+Gurgaon+Noida in one
     # run). So naukri does few large runs; control keyword count with --limit.
+    # Runs LAST — it's the priciest, so a cap sacrifices only its remaining combos.
     "naukri":   {"enabled": True,  "actor": "muhammetakkurtt/naukri-job-scraper",
                  "results_per_run": 50,
                  "locations": ["Delhi / NCR", "Remote"]},
-    # LinkedIn is cheap (~$0.001/result) but needs a numeric geoId for location
-    # (see LINKEDIN_GEO_IDS). "Delhi / NCR" isn't a LinkedIn geo; use "India" for
-    # broad coverage or a specific city. Off by default; enable to include.
-    "linkedin": {"enabled": True,  "actor": "curious_coder/linkedin-jobs-scraper",
-                 "locations": ["India", "Remote"]},
 }
 
 # LinkedIn job search filters by numeric geoId, not city name (a bare location name
@@ -243,7 +247,7 @@ SETTINGS = {
     # results). Your $5 free credit is therefore ~1000 results total. max_spend_usd
     # below stops launching new runs once the run's cumulative cost hits it, so a
     # sweep self-limits well under the free tier.
-    "max_spend_usd": 5.00,          # stop launching new actor runs once cumulative cost hits this ($USD)
+    "max_spend_usd": None,          # None = no cap (cost headroom + backup API key available); set a $ value to self-limit
     "max_searches_per_site": None,  # cap (keyword x location) combos per site (None = full sweep; --limit overrides)
     "confirm_above_runs": 12,       # if planned actor runs exceed this, ask before spending (skip with --yes)
     "test_max_results": 5,          # max_results used by --test

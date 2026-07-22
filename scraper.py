@@ -33,6 +33,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
@@ -629,7 +630,26 @@ def scrape_search(client, site_key, actor_id, search):
     # NOTE: results are bounded by the actor's OWN input cap (maxItemsPerSearch /
     # maxJobs / count). We do NOT pass call(max_items=...) because on actors with a
     # per-run minimum charge it errors ("less than allowed minimum of $0.50").
-    run = client.actor(actor_id).call(run_input=run_input)
+    # Launch non-blocking, then poll with a wall-clock deadline. We deliberately
+    # AVOID .call()/.wait_for_finish(): both long-poll with timeout='no_timeout',
+    # which hangs FOREVER when a TCP socket half-dies (the run finishes on Apify's
+    # side but the client never receives the response — observed wedging the whole
+    # sweep at 0% CPU on an idle ESTABLISHED connection). Plain .get() uses a
+    # bounded 5s HTTP timeout + retries, so a stalled poll raises and the caller's
+    # per-search try/except moves on. run_timeout also caps the actor server-side.
+    # ponytail: fixed 6-min deadline / 5s poll; raise if a legit pull runs longer.
+    run = client.actor(actor_id).start(
+        run_input=run_input, run_timeout=timedelta(minutes=5))
+    rc = client.run(run.id)
+    deadline = time.monotonic() + 360
+    while time.monotonic() < deadline:
+        time.sleep(5)
+        run = rc.get()
+        if run is None or run.status not in ("READY", "RUNNING"):
+            break
+    else:
+        rc.abort()          # deadline blown — stop the run server-side
+        run = rc.get()
     if run is None or run.status != "SUCCEEDED":
         status = getattr(run, "status", "NO RUN")
         raise RuntimeError(f"run status {status}")
@@ -817,6 +837,15 @@ def main():
     spent = 0.0
     budget = SETTINGS["max_spend_usd"]
 
+    # Resume ledger: one "site|keyword|location" per completed combo. Lets a rerun
+    # (e.g. after an account hits its usage cap) skip what's already scraped and
+    # only pay for what's left. Delete output/.done_combos to force a full re-scrape.
+    done_path = os.path.join(SETTINGS["output_dir"], ".done_combos")
+    done = set()
+    if os.path.exists(done_path):
+        with open(done_path) as fh:
+            done = {ln.strip() for ln in fh if ln.strip()}
+
     # --- Paid Apify sites (checkpoint after every search so a stop never loses data) ---
     if plans:
         client = ApifyClient(_require_token())
@@ -827,16 +856,23 @@ def main():
             actor_id = SITES[site_key]["actor"]
             print(f"\n{site_key} ({actor_id})")
             for i, search in enumerate(plan, 1):
+                label = f"{search['keywords']} @ {search['location']}"
+                combo_key = f"{site_key}|{search['keywords']}|{search['location']}"
+                if combo_key in done:
+                    print(f"  [{i}/{len(plan)}] {label:<46} — skip (done)")
+                    continue
                 if budget is not None and spent >= budget:
                     print(f"  ⚠ spend cap ${budget:.2f} reached (${spent:.2f}) — stopping.")
                     stopped_early = True
                     break
-                label = f"{search['keywords']} @ {search['location']}"
                 try:
                     rows, cost = scrape_search(client, site_key, actor_id, search)
                     spent += cost
                     raw_rows.extend(rows)
                     write_outputs(finalize(raw_rows), csv_path, json_path)  # checkpoint
+                    with open(done_path, "a") as fh:                        # mark done
+                        fh.write(combo_key + "\n")
+                    done.add(combo_key)
                     print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
                           f"(${cost:.3f}, ${spent:.2f} total)")
                 except Exception as exc:  # isolate failures per search
