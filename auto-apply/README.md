@@ -84,3 +84,31 @@ into Tampermonkey.
 
 Linkedin = .venv/bin/python auto-apply/linkedin_shortlist.py
 open auto-apply/shortlist.html
+
+## Shareable job shortlist (for yourself or a friend)
+
+`linkedin_shortlist.py` writes `shortlist.html` — a self-contained, theme-aware
+page (no external assets, no secrets) listing every ranked job (all sources) as
+a clickable row: match score, title, company, location, source. It's a complete
+standalone document — open it in any browser or send the file to anyone (email,
+WhatsApp, AirDrop); it needs no server and carries no secrets.
+
+### For yourself
+```
+python auto-apply/linkedin_shortlist.py "Your Name"   # name is optional
+open auto-apply/shortlist.html
+```
+
+### For someone else (their résumé → their shortlist)
+The scoring lives in `config.py` and is tuned per person, so retune it first:
+
+1. Drop their résumé at `auto-apply/resume/resume.pdf`.
+2. Retune `config.py` to that résumé: paste `auto-apply/RESUME_AUTOCONFIG_PROMPT.md`
+   into a fresh Claude Code window at the repo root (Claude reads the PDF and edits
+   which skills/titles to search + rank — it asks you for locations, CTC, etc.).
+3. Fetch + build in one step (⚠ `--scrape` uses Apify credits):
+   ```
+   python auto-apply/make_shortlist.py --scrape "Their Name"
+   ```
+   (Omit `--scrape` to just rebuild the HTML from the latest CSV, free.)
+4. Send them `auto-apply/shortlist.html` — it opens in any browser, no setup.
