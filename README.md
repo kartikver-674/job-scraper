@@ -53,7 +53,35 @@ Everything that decides *what* is pulled and *how* it is ranked lives in
 | `FEEDS` | free remote-job feeds (Remote OK, We Work Remotely) |
 | `LOCATION_HINTS` | location whitelist for free sources; **empty = allow all** |
 | `SCORING` | skill weights, full-stack bonus, penalties, hard drops |
-| `SETTINGS` | freshness, pay floor, spend caps, output |
+| `SETTINGS` | freshness, pay floor, remote/visa/EOR filters, spend caps, output |
+
+## International-remote signals
+
+`enrich.py` reads four things out of text the sources already return — no extra
+requests — and they appear as columns whether or not you filter on them:
+
+| Column | Values |
+|---|---|
+| `remote_scope` | `worldwide` · `remote` (scope unstated) · `restricted` (geo-locked) · `hybrid` · `onsite` · blank (not stated) |
+| `remote_regions` | recognized regions that gate eligibility, e.g. `US, Canada` |
+| `visa` | `yes` · `no` (an explicit refusal) · blank |
+| `eor` | employer-of-record providers named, e.g. `Deel`, `EOR`, `contractor` |
+| `timezones` | overlap requirements as stated, e.g. `overlap with CET` |
+
+`remote_scope` is decided from the location first, and a location that still
+names somewhere specific after the remote wording is stripped
+(`New York, NY (HQ), Remote`) is treated as geo-locked. Job-description prose is
+only consulted when the location is silent, because benefits sections that list
+per-country perks read like eligibility rules and are not.
+
+The matching filters in `SETTINGS` all **default to off** — a blank signal means
+"the posting didn't say", never "no":
+
+```python
+"remote_scopes": ["worldwide", "remote"],   # drop onsite/hybrid/geo-locked
+"drop_no_visa": True,                       # drop only explicit refusals
+"require_eor": True,                        # keep only jobs naming an EOR path
+```
 
 ## Adding a source
 

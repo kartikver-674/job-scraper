@@ -9,8 +9,11 @@ Pipeline:
     3. Score each job against the resume (config.SCORING): weighted skills, a
        full-stack bonus for frontend+backend overlap, and hard down-ranking /
        filtering of wrong-seniority, off-stack, and Salesforce/CRM roles.
-    4. Filter on freshness and on compensation, annualized in USD so Indian LPA
-       and international salaries compare on one axis (comp_max_usd).
+    4. Enrich with the signals that decide whether a remote job is reachable
+       from here — remote scope, visa sponsorship, employer-of-record, timezone
+       overlap (enrich.py) — then filter on freshness, on compensation
+       annualized in USD so Indian LPA and international salaries compare on one
+       axis (comp_max_usd), and optionally on those signals.
     5. De-duplicate on company + title — NOT location, which is the field that
        varies most across sources for the same posting (job_key).
     6. Sort by score (highest first) and write a timestamped CSV + JSON.
@@ -49,6 +52,7 @@ import urllib.parse
 from collections import Counter
 from datetime import datetime, timedelta
 
+import enrich
 import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
@@ -78,7 +82,8 @@ FIELD_KEYS = {
 # Final CSV / JSON columns, in order (exactly as requested).
 OUTPUT_COLUMNS = [
     "score", "matched_skills", "is_fullstack", "title", "company", "location",
-    "remote?", "experience_required", "salary", "hr_email", "hr_phone",
+    "remote?", "remote_scope", "remote_regions", "visa", "eor", "timezones",
+    "experience_required", "salary", "hr_email", "hr_phone",
     "source_site", "apply_url", "date_posted",
 ]
 
@@ -209,7 +214,6 @@ BACKEND_PATTERNS  = [_compile(t) for t in SCORING["backend_terms"]]
 FULLSTACK_TITLE_PATTERNS = [_compile(t) for t in SCORING["fullstack_title_terms"]]
 DROP_PATTERNS = {t: _compile(t) for t in SCORING["drop_terms"]}
 
-REMOTE_PATTERN = re.compile(r"(?<![a-z0-9])(remote|work from home|wfh|anywhere)(?![a-z0-9])")
 # Any "<n> years/yrs" mention (optionally "n+" or "n-m"); we read the leading n.
 YEARS_PATTERN = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:years|yrs)")
 
@@ -223,9 +227,13 @@ def _required_experience_floor(text):
 
 
 def is_remote(row):
-    hay = " ".join([row.get("Location", ""), row.get("Title", ""),
-                    row.get("Description", "")]).lower()
-    return bool(REMOTE_PATTERN.search(hay))
+    """True when the job can be worked from elsewhere at all.
+
+    Delegates to enrich.remote_scope rather than matching the bare word
+    "remote", which fired on "this role is not remote" and on "hybrid, with
+    occasional remote days".
+    """
+    return row.get("remote_scope") in enrich.REMOTE_SCOPES
 
 
 # --- Freshness (posted-date) filter ----------------------------------------
@@ -404,6 +412,7 @@ def score_job(row):
     row["score"] = score
     row["matched_skills"] = ", ".join(dict.fromkeys(matched))  # dedup, preserve order
     row["is_fullstack"] = is_fullstack
+    enrich.enrich(row)          # remote_scope / remote_regions / visa / eor / timezones
     row["remote?"] = is_remote(row)
     email, phone = extract_contacts((row.get("Description") or "") + "\n"
                                     + (row.get("Title") or ""))
@@ -715,6 +724,11 @@ def to_output(row):
         "company": row.get("Company", ""),
         "location": row.get("Location", ""),
         "remote?": row.get("remote?", False),
+        "remote_scope": row.get("remote_scope", ""),
+        "remote_regions": row.get("remote_regions", ""),
+        "visa": row.get("visa", ""),
+        "eor": row.get("eor", ""),
+        "timezones": row.get("timezones", ""),
         "experience_required": row.get("Experience", ""),
         "salary": row.get("Salary", ""),
         "hr_email": row.get("hr_email", ""),
@@ -750,9 +764,28 @@ def finalize(raw_rows):
         low_salary = len(scored) - len(paid)
         scored = paid
 
+    # International-remote filters. All default to off: these read messy prose,
+    # so an unset signal means "not stated" and must never be treated as a no.
+    unreachable = 0
+    if SETTINGS["remote_scopes"]:
+        ok = [r for r in scored if r.get("remote_scope") in SETTINGS["remote_scopes"]]
+        unreachable = len(scored) - len(ok)
+        scored = ok
+    no_visa = 0
+    if SETTINGS["drop_no_visa"]:
+        ok = [r for r in scored if r.get("visa") != "no"]   # only an EXPLICIT refusal
+        no_visa = len(scored) - len(ok)
+        scored = ok
+    no_eor = 0
+    if SETTINGS["require_eor"]:
+        ok = [r for r in scored if r.get("eor")]
+        no_eor = len(scored) - len(ok)
+        scored = ok
+
     scored.sort(key=lambda r: r["score"], reverse=True)
     unique = dedupe(scored)  # sorted first, so highest-scored duplicate wins
-    LAST_STATS.update(stale=stale, low_salary=low_salary, kept=len(unique))
+    LAST_STATS.update(stale=stale, low_salary=low_salary, kept=len(unique),
+                      unreachable=unreachable, no_visa=no_visa, no_eor=no_eor)
     return [to_output(r) for r in unique]
 
 
@@ -774,6 +807,13 @@ def print_summary(pulled, after_dedupe, out_rows):
         filters.append(f"{LAST_STATS.get('stale', 0)} stale (>{SETTINGS['max_age_days']}d)")
     if SETTINGS["min_comp_usd"] is not None:
         filters.append(f"{LAST_STATS.get('low_salary', 0)} below ${SETTINGS['min_comp_usd']:,.0f}/yr")
+    if SETTINGS["remote_scopes"]:
+        filters.append(f"{LAST_STATS.get('unreachable', 0)} not "
+                       f"{'/'.join(SETTINGS['remote_scopes'])}")
+    if SETTINGS["drop_no_visa"]:
+        filters.append(f"{LAST_STATS.get('no_visa', 0)} refuse visa sponsorship")
+    if SETTINGS["require_eor"]:
+        filters.append(f"{LAST_STATS.get('no_eor', 0)} no EOR path")
     if filters:
         print(f"Filtered out:       {', '.join(filters)}")
     print(f"After scoring/filter+dedupe: {after_dedupe}")

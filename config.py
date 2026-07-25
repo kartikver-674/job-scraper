@@ -264,6 +264,22 @@ SETTINGS = {
     # Raise this to ~40000+ once the sweep is weighted toward international remote.
     "min_comp_usd": 6000,        # None to disable
 
+    # International-remote filters, from the signals enrich.py reads out of the
+    # job text (visible as the remote_scope / visa / eor / timezones columns
+    # whether or not you filter on them). ALL DEFAULT TO OFF: these read messy
+    # prose, so a blank signal means "the posting didn't say", never "no", and
+    # switching one on WILL drop jobs that simply forgot to mention it.
+    #
+    # remote_scopes: keep only these scopes. Values, most to least reachable:
+    #   "worldwide"  explicitly hire from anywhere
+    #   "remote"     remote, no geography stated
+    #   "restricted" remote but geo-locked (check the remote_regions column)
+    #   "hybrid" / "onsite" / "" (not stated)
+    # For remote roles workable from India, start with ["worldwide", "remote"].
+    "remote_scopes": None,       # e.g. ["worldwide", "remote", "restricted"]
+    "drop_no_visa": False,       # drop only jobs that EXPLICITLY refuse to sponsor
+    "require_eor": False,        # keep only jobs naming an employer-of-record path
+
     # Cost guards ("prove it cheaply first")
     # NOTE: misceres/indeed-scraper measured at ~$0.03 per 5 results (~$5 / 1000
     # results). Your $5 free credit is therefore ~1000 results total. max_spend_usd
