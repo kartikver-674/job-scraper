@@ -24,4 +24,7 @@ auto-apply/resume/resume.pdf
 
 # Phase 2: generated userscript (embeds Groq key + résumé) and shortlist
 auto-apply/linkedin-easyapply.user.js
-auto-apply/shortlist.html
+# Glob, not just shortlist.html: shortlists are generated per person
+# (shortlist-<name>.html via --out), and each one is a named individual's job
+# search. Generated + personal = never committed.
+auto-apply/shortlist*.html

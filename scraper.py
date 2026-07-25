@@ -36,6 +36,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from collections import Counter
 from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
@@ -835,6 +836,7 @@ def main():
 
     raw_rows = []
     spent = 0.0
+    failures = []   # (site, label, reason) per failed search — reported at the end
     budget = SETTINGS["max_spend_usd"]
 
     # Resume ledger: one "site|keyword|location" per completed combo. Lets a rerun
@@ -876,8 +878,28 @@ def main():
                     print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
                           f"(${cost:.3f}, ${spent:.2f} total)")
                 except Exception as exc:  # isolate failures per search
+                    failures.append((site_key, label, str(exc)))
                     print(f"  [{i}/{len(plan)}] {label:<46} ! {exc}")
         print(f"\nTotal Apify spend this run: ${spent:.2f}")
+        # Per-search try/except means a sweep can fail almost entirely and still
+        # exit 0 with a normal-looking summary — the usual cause is an Apify
+        # account hitting "Monthly usage hard limit exceeded" partway through, which
+        # then fails EVERY remaining search. Say so loudly, or the run reads as
+        # complete when it isn't. (Rerunning resumes from output/.done_combos, so
+        # nothing already scraped is paid for twice.)
+        if failures:
+            planned = sum(len(p) for p in plans.values())
+            print(f"\n⚠ {len(failures)} of {planned} searches FAILED — this sweep is INCOMPLETE.")
+            reasons = Counter(reason for _, _, reason in failures)
+            for reason, count in reasons.most_common(3):
+                print(f"    {count:>3}x {reason[:96]}")
+            if any("usage hard limit" in r.lower() or "monthly usage" in r.lower()
+                   for r in reasons):
+                print("    → Apify credit exhausted. Add APIFY_TOKEN_2 to .env and rerun with:")
+                print('      APIFY_TOKEN="$(grep -E \'^APIFY_TOKEN_2=\' .env | cut -d= -f2-)" '
+                      f"python scraper.py --site {site_key} --yes")
+            print("    Rerun to retry only the failed combos (output/.done_combos "
+                  "skips what succeeded).")
 
     # --- Free company career sites (Greenhouse / Lever) ---
     if run_ats:
