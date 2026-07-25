@@ -30,6 +30,7 @@ python scraper.py --test          # tiny real paid run (indeed, 1 combo)
 python scraper.py                 # everything (confirms before a large sweep)
 
 python scraper.py --profile remote_intl --site free    # a different search
+python scraper.py --only-new                          # skip what earlier runs reported
 ```
 
 Output: `output/jobs_<timestamp>.csv` + `.json`, ranked best-first (or
@@ -83,6 +84,25 @@ Everything that decides *what* is pulled and *how* it is ranked lives in
 | `LOCATION_HINTS` | location whitelist for free sources; **empty = allow all** |
 | `SCORING` | skill weights, full-stack bonus, penalties, seniority tiers |
 | `SETTINGS` | freshness, pay floor, remote/visa/EOR filters, spend caps, output |
+
+## Only showing what's new
+
+Running every ~2 weeks against a 14–21 day freshness window means about a week of
+postings overlap with the previous run, so a chunk of each report is jobs you
+already dismissed. `--only-new` suppresses them:
+
+```bash
+python scraper.py --only-new
+```
+
+Every posting a run reports is appended to `output/[profile/]seen.tsv` (one line:
+date, identity key, title, company) whether or not you use the flag, so the
+ledger is always ready for the next sweep. Identity is the same company+title key
+as de-duplication, so one job seen on three sources is one ledger entry.
+
+The file is plain TSV, not a database — 26 runs a year is a few thousand lines and
+the only question ever asked of it is "have I seen this key". Delete it to start
+over; delete individual lines to resurface specific jobs.
 
 ## Seniority: two tiers, because a title is not a requirement
 

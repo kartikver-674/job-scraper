@@ -795,6 +795,49 @@ def finalize(raw_rows):
     return [to_output(r) for r in unique]
 
 
+# ---------------------------------------------------------------------------
+# Seen ledger — postings already reported by an earlier run
+# ---------------------------------------------------------------------------
+# A sweep every ~2 weeks against a 21-day freshness window means roughly a week
+# of postings overlap with the previous run, so a third of each report is jobs
+# already reviewed and dismissed. This is deliberately a flat TSV and not a
+# database: 26 runs a year is a few thousand rows, and there is no query here
+# beyond "have I seen this key".
+def _seen_key(row):
+    key = job_key(row)
+    return "|".join(key) if key else ""
+
+
+def load_seen():
+    """{key: first_seen_date} from previous runs. Missing file -> {}."""
+    path = os.path.join(SETTINGS["output_dir"], "seen.tsv")
+    if not os.path.exists(path):
+        return {}
+    seen = {}
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) >= 2 and parts[1]:
+                seen.setdefault(parts[1], parts[0])
+    return seen
+
+
+def record_seen(out_rows, seen, today):
+    """Append keys this run reported that the ledger didn't already have."""
+    os.makedirs(SETTINGS["output_dir"], exist_ok=True)
+    path = os.path.join(SETTINGS["output_dir"], "seen.tsv")
+    new = []
+    for row in out_rows:
+        key = _seen_key(row)
+        if key and key not in seen:
+            seen[key] = today
+            new.append((today, key, row.get("title", ""), row.get("company", "")))
+    with open(path, "a", encoding="utf-8") as fh:
+        for entry in new:
+            fh.write("\t".join(str(f).replace("\t", " ") for f in entry) + "\n")
+    return len(new)
+
+
 def write_outputs(out_rows, csv_path, json_path):
     os.makedirs(SETTINGS["output_dir"], exist_ok=True)
     with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
@@ -820,6 +863,8 @@ def print_summary(pulled, after_dedupe, out_rows):
         filters.append(f"{LAST_STATS.get('no_visa', 0)} refuse visa sponsorship")
     if SETTINGS["require_eor"]:
         filters.append(f"{LAST_STATS.get('no_eor', 0)} no EOR path")
+    if "already_seen" in LAST_STATS:
+        filters.append(f"{LAST_STATS['already_seen']} already reported (--only-new)")
     if filters:
         print(f"Filtered out:       {', '.join(filters)}")
     print(f"After scoring/filter+dedupe: {after_dedupe}")
@@ -859,6 +904,9 @@ def parse_args():
     p.add_argument("--profile", metavar="NAME",
                    help="Use profiles/NAME.py to override config; "
                         "writes to output/NAME/.")
+    p.add_argument("--only-new", action="store_true",
+                   help="Report only postings no earlier run reported "
+                        "(uses output/[profile/]seen.tsv).")
     return p.parse_args()
 
 
@@ -921,6 +969,12 @@ def demo():
     senior = sj("Senior React Developer", "2 years of React experience.")
     assert senior["score"] == plain["score"] + SCORING["soft_penalty"]  # kept, lower
     assert sj("Senior React Developer", "8+ years of React required.") is None
+
+    # Seen ledger: the same posting from two sources must collapse to ONE key,
+    # or --only-new would keep re-reporting it.
+    assert _seen_key({"title": "Backend Engineer", "company": "Acme Ltd"}) == \
+        _seen_key({"Title": "Engineer, Backend", "Company": "Acme"})
+    assert _seen_key({}) == ""                    # no identity -> never suppressed
 
     # location_allowed reads config.LOCATION_HINTS, so exercise both branches by
     # swapping the module global rather than by shipping a second parameter.
@@ -996,6 +1050,25 @@ def main():
     csv_path = os.path.join(SETTINGS["output_dir"], f"jobs_{stamp}.csv")
     json_path = os.path.join(SETTINGS["output_dir"], f"jobs_{stamp}.json")
 
+    # Loaded ONCE, before anything is written: --only-new must filter against
+    # what EARLIER runs reported, and the ledger is appended to only at the end.
+    seen = load_seen()
+    if args.only_new and seen:
+        print(f"--only-new: {len(seen)} postings already reported by earlier runs\n")
+
+    def emit(rows):
+        """finalize + optional new-only filter + write. Used for checkpoints too,
+        so an interrupted sweep leaves a correct file behind."""
+        out = finalize(rows)
+        if args.only_new:
+            before = len(out)
+            out = [r for r in out if _seen_key(r) not in seen]
+            # Reported in the summary: without it, "0 jobs" reads as a broken
+            # sweep rather than "everything here was already reviewed".
+            LAST_STATS["already_seen"] = before - len(out)
+        write_outputs(out, csv_path, json_path)
+        return out
+
     raw_rows = []
     spent = 0.0
     failures = []   # (site, label, reason) per failed search — reported at the end
@@ -1039,7 +1112,7 @@ def main():
                     rows, cost = scrape_search(client, site_key, actor_id, search)
                     spent += cost
                     raw_rows.extend(rows)
-                    write_outputs(finalize(raw_rows), csv_path, json_path)  # checkpoint
+                    emit(raw_rows)                                # checkpoint
                     with open(done_path, "a") as fh:                        # mark done
                         fh.write(combo_key + "\n")
                     done.add(combo_key)
@@ -1073,19 +1146,23 @@ def main():
     if run_free:
         print("\nfree sources (company boards + remote feeds)")
         raw_rows.extend(fetch_free())
-        write_outputs(finalize(raw_rows), csv_path, json_path)  # checkpoint
+        emit(raw_rows)                                          # checkpoint
 
     pulled = len(raw_rows)
     if pulled == 0:
         sys.exit("\nNo jobs scraped — nothing to write.")
 
-    out_rows = finalize(raw_rows)
-    write_outputs(out_rows, csv_path, json_path)
+    out_rows = emit(raw_rows)
 
     print_summary(pulled, len(out_rows), out_rows)
+    # Recorded only once the run has actually produced its report, so a crash
+    # mid-sweep can't mark jobs as already-reviewed that you never saw.
+    added = record_seen(out_rows, seen, today)
     print(f"\nWrote {len(out_rows)} ranked jobs to:")
     print(f"  {csv_path}")
     print(f"  {json_path}")
+    print(f"  seen.tsv: +{added} new ({len(seen)} known)"
+          + ("" if args.only_new else "  — next run: --only-new to skip these"))
 
 
 if __name__ == "__main__":
