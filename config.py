@@ -152,10 +152,17 @@ FEEDS = {
 # EMPTY = allow every location, which is the right default now that the target
 # is international remote — remote/visa/comp filters do the narrowing instead of
 # a country whitelist. An empty job location is always kept.
-# To go back to India-only, put the old list back:
-#   ["india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "bengaluru",
-#    "bangalore", "hyderabad", "pune", "mumbai", "chennai", "kolkata", "remote"]
+# To go back to India-only, copy HOME_LOCATION_HINTS below into this list.
 LOCATION_HINTS = []
+
+# Where YOU are. Not a filter — this is how a company board is checked for
+# whether the employer hires in your country at all
+# (SETTINGS["keep_restricted_if_hires_home"]).
+HOME_LOCATION_HINTS = [
+    "india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "bengaluru",
+    "bangalore", "hyderabad", "pune", "mumbai", "chennai", "kolkata",
+    "ahmedabad",
+]
 
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
 # we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
@@ -259,6 +266,10 @@ SCORING = {
 
     "drop_penalty": -15,   # hard drops, when drop_excluded is False
     "soft_penalty": -4,    # soft title match: sinks it, never removes it
+
+    # Per hour of timezone gap beyond enrich.TZ_FREE_HOURS. Down-ranks rather
+    # than drops, because a wide gap is a cost to weigh, not a disqualifier.
+    "timezone_gap_penalty": -1.5,
 }
 
 
@@ -295,6 +306,21 @@ SETTINGS = {
     "remote_scopes": None,       # e.g. ["worldwide", "remote", "restricted"]
     "drop_no_visa": False,       # drop only jobs that EXPLICITLY refuse to sponsor
     "require_eor": False,        # keep only jobs naming an employer-of-record path
+
+    # Rescue geo-locked roles at employers who demonstrably hire where you are.
+    # A company posting ANY job in HOME_LOCATION_HINTS has an entity or EOR there,
+    # so its "US Remote" listing is worth an application; one with none is a dead
+    # end whatever the wording. Measured: Postman 12/114 India jobs, OpenAI 9/753,
+    # Druva 11/31 -> yes. Linear 0/25, Ramp 0/118 -> no. Costs nothing: those rows
+    # are already fetched. Only ATS boards can answer it (a feed gives us no
+    # company board), so feed rows are always "" and never rescued.
+    "keep_restricted_if_hires_home": True,
+
+    # Timezone distance from home, used to down-rank roles you couldn't sustain.
+    # 5.5 = IST. Gaps up to enrich.TZ_FREE_HOURS (5h) are free; beyond that each
+    # hour costs SCORING["timezone_gap_penalty"]. IST->CET is 4.5h (fine),
+    # IST->US-Pacific is 13.5h (why so many US companies won't hire from India).
+    "home_utc_offset": 5.5,      # None to skip timezone scoring entirely
 
     # Cost guards ("prove it cheaply first")
     # NOTE: misceres/indeed-scraper measured at ~$0.03 per 5 results (~$5 / 1000

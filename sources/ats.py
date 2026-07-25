@@ -58,8 +58,10 @@ ATS = {
 }
 
 # Internal schema every adapter must fill (scraper.py's normalized row shape).
+# hires_home is filled per BOARD, not per job — see fetch().
 BLANK = {"Title": "", "Company": "", "Location": "", "Salary": "",
-         "Experience": "", "Posted Date": "", "Job URL": "", "Description": ""}
+         "Experience": "", "Posted Date": "", "Job URL": "", "Description": "",
+         "hires_home": ""}
 
 
 def _date(value):
@@ -90,14 +92,28 @@ def _row(item, platform, token, company, spec):
     return row
 
 
-def fetch(platform, token, company, keep_title, keep_location):
+def fetch(platform, token, company, keep_title, keep_location, is_home=None):
     """All matching jobs from one company's board.
 
-    keep_title / keep_location are predicates supplied by the caller, so this
-    module stays ignorant of which titles or countries you care about.
+    keep_title / keep_location / is_home are predicates supplied by the caller,
+    so this module stays ignorant of which titles or countries you care about.
     """
     spec = ATS[platform]
     data = get_json(spec["url"].format(token=token))
     items = dig(data, spec["list"]) if spec["list"] else data
-    return [r for r in (_row(i, platform, token, company, spec) for i in (items or []))
+    rows = [_row(i, platform, token, company, spec) for i in (items or [])]
+
+    # Board-level signal, computed over the UNFILTERED board — this is the whole
+    # point and it is why it can't be derived per job. A company posting ANY role
+    # in your country demonstrably has an entity or EOR relationship there, so
+    # its geo-locked "US Remote" roles are worth pursuing; a company with none is
+    # a dead end however the posting is worded. Measured: Postman 12/114 India,
+    # OpenAI 9/753, Druva 11/31 -> yes; Linear 0/25, Ramp 0/118 -> no.
+    # Free: these rows are already fetched, and were previously just discarded.
+    if is_home is not None:
+        hires_home = "yes" if any(is_home(r["Location"]) for r in rows) else "no"
+        for row in rows:
+            row["hires_home"] = hires_home
+
+    return [r for r in rows
             if keep_title(r["Title"]) and keep_location(r["Location"])]

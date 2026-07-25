@@ -44,21 +44,25 @@ SITES = {
 # 2026-07-26; the India-focused boards from the default profile are dropped since
 # they post local roles.
 #
-# MEASURED: under remote_scopes below these boards currently yield ZERO rows —
-# Postman, Linear, Ramp and OpenAI all geo-lock their remote postings ("New York,
-# NY (HQ), Remote", "Europe"), so every row lands in "restricted". They are kept
-# because they cost nothing and become the most valuable source the moment you
-# add "restricted" to remote_scopes to review EOR/visa-worthy roles. If you never
-# do that, delete this block — the WWR/Remote OK feeds are carrying this profile.
+# These all geo-lock their remote postings ("New York, NY (HQ), Remote",
+# "Europe"), so every row lands in "restricted" and used to be filtered out
+# wholesale. SETTINGS["keep_restricted_if_hires_home"] now rescues the ones whose
+# employer demonstrably hires in India, which is what makes these boards earn
+# their place: OpenAI (9 India postings of 753) contributes 5 rescued roles
+# including the #3 overall result, Postman (12/114) and Druva (11/31) qualify too,
+# while Linear (0/25) and Ramp (0/118) correctly stay filtered.
+# Prefer GLOBAL companies with an India presence here — an India-only board
+# (PhonePe, Paytm) posts local roles and adds nothing to a remote sweep.
 ATS_BOARDS = {
     "greenhouse": {
-        "postman": "Postman",          # remote-first, hires globally
+        "postman": "Postman",          # 12/114 India -> hires_home yes
+        "druva": "Druva",              # 11/31  India -> hires_home yes
     },
     "lever": {},
     "ashby": {
-        "linear": "Linear",
-        "ramp": "Ramp",
-        "openai": "OpenAI",
+        "openai": "OpenAI",            # 9/753  India -> hires_home yes
+        "linear": "Linear",            # 0/25   India -> correctly filtered out
+        "ramp": "Ramp",                # 0/118  India -> correctly filtered out
     },
     "smartrecruiters": {},
 }

@@ -17,9 +17,14 @@ from . import ats, feeds
 FEED_FETCHERS = {"remoteok": feeds.remoteok, "wwr": feeds.wwr}
 
 
-def fetch_free(ats_boards, feed_cfg, keep_title, keep_location, log=print):
-    """Every configured free source. keep_title / keep_location are predicates
-    from the caller, so policy stays in config.py + scraper.py."""
+def fetch_free(ats_boards, feed_cfg, keep_title, keep_location, is_home=None,
+               log=print):
+    """Every configured free source. keep_title / keep_location / is_home are
+    predicates from the caller, so policy stays in config.py + scraper.py.
+
+    Only ATS boards can answer is_home — it needs a whole company board to look
+    at, which a feed doesn't give us. Feed rows keep hires_home = "" (unknown).
+    """
     rows = []
     for platform, boards in (ats_boards or {}).items():
         if platform not in ats.ATS:
@@ -27,9 +32,11 @@ def fetch_free(ats_boards, feed_cfg, keep_title, keep_location, log=print):
             continue
         for token, company in boards.items():
             try:
-                got = ats.fetch(platform, token, company, keep_title, keep_location)
+                got = ats.fetch(platform, token, company, keep_title, keep_location,
+                                is_home)
                 rows.extend(got)
-                log(f"  {platform:<16} {company:<22} {len(got):>4} jobs")
+                home = f" hires-home={got[0]['hires_home']}" if got else ""
+                log(f"  {platform:<16} {company:<22} {len(got):>4} jobs{home}")
             except Exception as exc:
                 log(f"  {platform:<16} {company:<22} ! {exc}")
     for name, cfg in (feed_cfg or {}).items():

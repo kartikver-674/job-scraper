@@ -245,9 +245,50 @@ def timezones(text):
     return "; ".join(list(hits)[:3])       # 3 is plenty; JDs repeat themselves
 
 
+# --- timezone distance -----------------------------------------------------
+# Representative UTC offsets. Coarse on purpose: the question is "is this a 3-hour
+# stretch or a 12-hour one", and DST or a country spanning zones never changes
+# that answer. Named zones beat regions when both appear.
+_ZONE_OFFSETS = {"utc": 0, "gmt": 0, "bst": 1, "cet": 1, "cest": 2, "eet": 2,
+                 "est": -5, "edt": -4, "cst": -6, "mst": -7, "pst": -8, "pdt": -7,
+                 "ist": 5.5, "sgt": 8, "jst": 9, "aest": 10}
+_REGION_OFFSETS = {"US": -6, "Canada": -6, "Americas": -5, "LATAM": -4,
+                   "UK": 0, "Ireland": 0, "Portugal": 0, "Europe": 1, "EU": 1,
+                   "EMEA": 1, "Germany": 1, "Netherlands": 1, "Spain": 1,
+                   "Poland": 1, "France": 1, "Italy": 1,
+                   "India": 5.5, "APAC": 8, "Singapore": 8, "Australia": 10}
+_ZONE_RE = re.compile(
+    r"(?<![a-z0-9])(" + "|".join(_ZONE_OFFSETS) + r")(?![a-z0-9])", re.I)
+_UTC_OFFSET_RE = re.compile(r"(?:utc|gmt)\s*([+-])\s*(\d{1,2})(?::(\d{2}))?", re.I)
+
+# Gaps up to this many hours are workable without real cost; a 5.5h IST->CET
+# stretch is a normal European remote arrangement, 12.5h to US Pacific is not.
+TZ_FREE_HOURS = 5.0
+
+
+def timezone_gap(regions_text, tz_text, home_offset):
+    """Hours between home and the CLOSEST plausible required timezone, or None
+    when the posting gives nothing to go on.
+
+    Closest, not average: a role open to "US or EMEA" is reachable on its EMEA
+    side, and scoring it by the US leg would bury a job you could actually take.
+    """
+    blob = f"{regions_text or ''} {tz_text or ''}"
+    offsets = [float(f"{m.group(2)}.{'5' if m.group(3) == '30' else '0'}")
+               * (1 if m.group(1) == "+" else -1)
+               for m in _UTC_OFFSET_RE.finditer(blob)]
+    offsets += [_ZONE_OFFSETS[m.group(1).lower()] for m in _ZONE_RE.finditer(blob)]
+    if not offsets:
+        offsets = [_REGION_OFFSETS[r] for r in (regions_text or "").split(", ")
+                   if r in _REGION_OFFSETS]
+    if not offsets:
+        return None
+    return min(abs(home_offset - o) for o in offsets)
+
+
 # --- one call for the pipeline ---------------------------------------------
-def enrich(row):
-    """Add the five signal fields to a normalized row, in place. Returns it."""
+def enrich(row, home_offset=None):
+    """Add the signal fields to a normalized row, in place. Returns it."""
     location = row.get("Location") or ""
     title = row.get("Title") or ""
     description = row.get("Description") or ""
@@ -262,6 +303,11 @@ def enrich(row):
     row["visa"] = visa(body)
     row["eor"] = eor(body)
     row["timezones"] = timezones(description)
+    row["tz_gap"] = ("" if home_offset is None else
+                     timezone_gap(row["remote_regions"], row["timezones"] + " " + location,
+                                  home_offset))
+    if row["tz_gap"] is None:
+        row["tz_gap"] = ""
     return row
 
 
@@ -333,6 +379,22 @@ def demo():
     assert "overlap" in timezones("Requires 4 hours of overlap with CET.").lower()
     assert timezones("UTC+2 preferred") == "UTC+2"
     assert timezones("No timing requirements listed.") == ""
+
+    # -- timezone distance from IST (5.5) ------------------------------------
+    IST = 5.5
+    assert timezone_gap("Europe", "", IST) == 4.5          # workable
+    assert timezone_gap("UK", "", IST) == 5.5
+    assert timezone_gap("US", "", IST) == 11.5             # brutal
+    assert timezone_gap("APAC", "", IST) == 2.5
+    assert timezone_gap("India", "", IST) == 0.0
+    assert timezone_gap("", "overlap with CET", IST) == 4.5
+    assert timezone_gap("", "UTC+2", IST) == 3.5
+    assert timezone_gap("", "", IST) is None               # nothing stated
+    # A named zone beats a region guess when both appear.
+    assert timezone_gap("US", "overlap with CET required", IST) == 4.5
+    # "US or EMEA" is reachable on its EMEA side, so score the CLOSEST leg —
+    # averaging or taking the worst would bury a job that is actually takeable.
+    assert timezone_gap("US, EMEA", "", IST) == 4.5
 
     # -- whole-row wiring ----------------------------------------------------
     row = enrich({"Location": "Anywhere in the World", "Title": "Backend Engineer",

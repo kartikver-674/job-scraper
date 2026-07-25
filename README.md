@@ -128,10 +128,29 @@ requests — and they appear as columns whether or not you filter on them:
 | Column | Values |
 |---|---|
 | `remote_scope` | `worldwide` · `remote` (scope unstated) · `restricted` (geo-locked) · `hybrid` · `onsite` · blank (not stated) |
+| `hires_home` | `yes` · `no` · blank — does this **employer** hire in your country at all? |
+| `tz_gap` | hours between your timezone and the closest one the role requires |
 | `remote_regions` | recognized regions that gate eligibility, e.g. `US, Canada` |
 | `visa` | `yes` · `no` (an explicit refusal) · blank |
 | `eor` | employer-of-record providers named, e.g. `Deel`, `EOR`, `contractor` |
 | `timezones` | overlap requirements as stated, e.g. `overlap with CET` |
+
+**`hires_home` is the most useful of these.** It's a property of the *employer*,
+not the posting: a company with any job listed in `HOME_LOCATION_HINTS`
+demonstrably has an entity or EOR relationship there, so its geo-locked "US
+Remote" role is worth an application, while a company with none is a dead end
+whatever the wording says. `keep_restricted_if_hires_home` uses it to rescue those
+roles from the `remote_scopes` filter. Measured: OpenAI (9 India postings of 753)
+and Postman (12/114) qualify; Linear (0/25) and Ramp (0/118) don't.
+
+It costs no extra requests — the rows were already fetched and previously thrown
+away. It needs a whole company board to compute, so **only ATS sources can answer
+it**; feed rows (Remote OK, WWR) are always blank and never rescued.
+
+`tz_gap` down-ranks rather than filters, and only past 5 hours
+(`enrich.TZ_FREE_HOURS`). From IST: Europe 4.5h is free, UK 5.5h costs almost
+nothing, US 11.5h costs ~10 points. A role open to "US or EMEA" is scored on its
+EMEA leg, since that's the side you could actually take.
 
 `remote_scope` is decided from the location first, and a location that still
 names somewhere specific after the remote wording is stripped
@@ -146,6 +165,9 @@ The matching filters in `SETTINGS` all **default to off** — a blank signal mea
 "remote_scopes": ["worldwide", "remote"],   # drop onsite/hybrid/geo-locked
 "drop_no_visa": True,                       # drop only explicit refusals
 "require_eor": True,                        # keep only jobs naming an EOR path
+"keep_restricted_if_hires_home": True,      # ...but rescue geo-locked roles at
+                                            # employers who hire in your country
+"home_utc_offset": 5.5,                     # IST; None to skip tz scoring
 ```
 
 ## Adding a source

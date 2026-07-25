@@ -58,7 +58,7 @@ import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
                     LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS,
-                    LOCATION_HINTS, ATS_TITLE_HINTS)
+                    LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS)
 
 # ---------------------------------------------------------------------------
 # Internal common schema (title-cased keys) produced by normalize(). The final
@@ -83,7 +83,8 @@ FIELD_KEYS = {
 # Final CSV / JSON columns, in order (exactly as requested).
 OUTPUT_COLUMNS = [
     "score", "matched_skills", "is_fullstack", "title", "company", "location",
-    "remote?", "remote_scope", "remote_regions", "visa", "eor", "timezones",
+    "remote?", "remote_scope", "hires_home", "tz_gap", "remote_regions",
+    "visa", "eor", "timezones",
     "experience_required", "salary", "hr_email", "hr_phone",
     "source_site", "apply_url", "date_posted",
 ]
@@ -188,9 +189,17 @@ def is_dev_title(title):
     return any(h in low for h in ATS_TITLE_HINTS)
 
 
+def is_home_location(loc):
+    """True if a location is in the country you're applying FROM. Used to ask a
+    company board "does this employer hire here at all", not to filter jobs."""
+    low = (loc or "").lower()
+    return any(h in low for h in HOME_LOCATION_HINTS)
+
+
 def fetch_free():
     """Every configured ATS board + feed. Free; per-board failures are isolated."""
-    rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed)
+    rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed,
+                              is_home_location)
     return [_truncate_desc(r) for r in rows]
 
 
@@ -418,8 +427,16 @@ def score_job(row):
     row["score"] = score
     row["matched_skills"] = ", ".join(dict.fromkeys(matched))  # dedup, preserve order
     row["is_fullstack"] = is_fullstack
-    enrich.enrich(row)          # remote_scope / remote_regions / visa / eor / timezones
+    enrich.enrich(row, SETTINGS["home_utc_offset"])   # remote/visa/eor/tz signals
     row["remote?"] = is_remote(row)
+
+    # Timezone distance: a down-rank, not a filter. A 13.5h gap to US Pacific is
+    # a real cost to weigh against the role, not a disqualification. Rounded so
+    # the score column stays integral.
+    if isinstance(row.get("tz_gap"), (int, float)):
+        over = row["tz_gap"] - enrich.TZ_FREE_HOURS
+        if over > 0:
+            row["score"] = round(row["score"] + SCORING["timezone_gap_penalty"] * over)
     email, phone = extract_contacts((row.get("Description") or "") + "\n"
                                     + (row.get("Title") or ""))
     row["hr_email"] = email
@@ -731,6 +748,8 @@ def to_output(row):
         "location": row.get("Location", ""),
         "remote?": row.get("remote?", False),
         "remote_scope": row.get("remote_scope", ""),
+        "hires_home": row.get("hires_home", ""),
+        "tz_gap": row.get("tz_gap", ""),
         "remote_regions": row.get("remote_regions", ""),
         "visa": row.get("visa", ""),
         "eor": row.get("eor", ""),
@@ -772,9 +791,20 @@ def finalize(raw_rows):
 
     # International-remote filters. All default to off: these read messy prose,
     # so an unset signal means "not stated" and must never be treated as a no.
-    unreachable = 0
+    unreachable = rescued = 0
     if SETTINGS["remote_scopes"]:
-        ok = [r for r in scored if r.get("remote_scope") in SETTINGS["remote_scopes"]]
+        def reachable(row):
+            if row.get("remote_scope") in SETTINGS["remote_scopes"]:
+                return True
+            # A geo-locked role at an employer who demonstrably hires in your
+            # country is worth an application — they already have the entity or
+            # EOR that makes it possible. This is the rule that turns a pile of
+            # useless "restricted" rows into a usable shortlist.
+            return bool(SETTINGS["keep_restricted_if_hires_home"]
+                        and row.get("remote_scope") == "restricted"
+                        and row.get("hires_home") == "yes")
+        ok = [r for r in scored if reachable(r)]
+        rescued = sum(1 for r in ok if r.get("remote_scope") not in SETTINGS["remote_scopes"])
         unreachable = len(scored) - len(ok)
         scored = ok
     no_visa = 0
@@ -791,7 +821,8 @@ def finalize(raw_rows):
     scored.sort(key=lambda r: r["score"], reverse=True)
     unique = dedupe(scored)  # sorted first, so highest-scored duplicate wins
     LAST_STATS.update(stale=stale, low_salary=low_salary, kept=len(unique),
-                      unreachable=unreachable, no_visa=no_visa, no_eor=no_eor)
+                      unreachable=unreachable, rescued=rescued,
+                      no_visa=no_visa, no_eor=no_eor)
     return [to_output(r) for r in unique]
 
 
@@ -859,6 +890,9 @@ def print_summary(pulled, after_dedupe, out_rows):
     if SETTINGS["remote_scopes"]:
         filters.append(f"{LAST_STATS.get('unreachable', 0)} not "
                        f"{'/'.join(SETTINGS['remote_scopes'])}")
+        if LAST_STATS.get("rescued"):
+            filters.append(f"{LAST_STATS['rescued']} geo-locked but employer "
+                           f"hires at home (kept)")
     if SETTINGS["drop_no_visa"]:
         filters.append(f"{LAST_STATS.get('no_visa', 0)} refuse visa sponsorship")
     if SETTINGS["require_eor"]:
@@ -969,6 +1003,30 @@ def demo():
     senior = sj("Senior React Developer", "2 years of React experience.")
     assert senior["score"] == plain["score"] + SCORING["soft_penalty"]  # kept, lower
     assert sj("Senior React Developer", "8+ years of React required.") is None
+
+    # Timezone gap down-ranks but never removes, and only past the free window.
+    near = sj("React Developer", "Remote across Europe. 2 years experience.")
+    far = sj("React Developer", "Remote in the US. 2 years experience.")
+    assert near is not None and far is not None
+    assert near["tz_gap"] == 4.5 and far["tz_gap"] == 11.5
+    assert near["score"] > far["score"], (near["score"], far["score"])
+    # 4.5h is inside TZ_FREE_HOURS, so the near role pays nothing at all.
+    assert near["score"] == sj("React Developer", "2 years experience.")["score"]
+
+    # A geo-locked role is rescued only when the EMPLOYER hires at home.
+    orig = SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"]
+    SETTINGS["remote_scopes"] = ["worldwide"]
+    SETTINGS["keep_restricted_if_hires_home"] = True
+    try:
+        base = {"Title": "React Developer", "Description": "2 years experience.",
+                "Location": "New York, NY (HQ), Remote"}
+        assert len(finalize([dict(base, Company="A", hires_home="yes")])) == 1
+        assert len(finalize([dict(base, Company="B", hires_home="no")])) == 0
+        assert len(finalize([dict(base, Company="C", hires_home="")])) == 0  # feeds
+        SETTINGS["keep_restricted_if_hires_home"] = False
+        assert len(finalize([dict(base, Company="A", hires_home="yes")])) == 0
+    finally:
+        SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"] = orig
 
     # Seen ledger: the same posting from two sources must collapse to ONE key,
     # or --only-new would keep re-reporting it.
