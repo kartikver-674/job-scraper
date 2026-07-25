@@ -212,7 +212,8 @@ PENALTY_PATTERNS = {t: (p, _compile(t)) for t, p in SCORING["penalty_terms"].ite
 FRONTEND_PATTERNS = [_compile(t) for t in SCORING["frontend_terms"]]
 BACKEND_PATTERNS  = [_compile(t) for t in SCORING["backend_terms"]]
 FULLSTACK_TITLE_PATTERNS = [_compile(t) for t in SCORING["fullstack_title_terms"]]
-DROP_PATTERNS = {t: _compile(t) for t in SCORING["drop_terms"]}
+HARD_DROP_PATTERNS = {t: _compile(t) for t in SCORING["hard_drop_terms"]}
+SOFT_DROP_PATTERNS = {t: _compile(t) for t in SCORING["soft_drop_terms"]}
 
 # Any "<n> years/yrs" mention (optionally "n+" or "n-m"); we read the leading n.
 YEARS_PATTERN = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:years|yrs)")
@@ -371,18 +372,20 @@ def score_job(row):
     text = (title + "\n" + (row.get("Description") or "") + "\n"
             + (row.get("Experience") or "")).lower()
 
-    # --- Hard-filter checks (seniority in title, or over-experience anywhere) ---
-    excluded = False
-    for term, pat in DROP_PATTERNS.items():
-        if pat.search(title):
-            excluded = True
-            break
+    # --- Hard filters: unreachable title, or more experience than we have -----
+    # A title is a LABEL; the years the text demands are the requirement. So only
+    # hard_drop_terms (manager/principal/staff/...) and a stated experience floor
+    # over the threshold remove a job. "Senior"/"Lead" are handled below as a
+    # down-rank, because title inflation would otherwise delete reachable roles.
+    excluded = any(pat.search(title) for pat in HARD_DROP_PATTERNS.values())
     floor = _required_experience_floor(text)
     if floor is not None and floor > SETTINGS["max_experience_years"]:
         excluded = True
 
     if excluded and SETTINGS["drop_excluded"]:
         return None
+
+    soft_seniority = any(pat.search(title) for pat in SOFT_DROP_PATTERNS.values())
 
     # --- Positive skill matches ---
     score = 0
@@ -405,7 +408,9 @@ def score_job(row):
         if pat.search(text):
             score += penalty
 
-    # --- Keep-but-penalize path for excluded roles ---
+    # --- Down-ranks that keep the job in the list ---
+    if soft_seniority:
+        score += SCORING["soft_penalty"]
     if excluded:  # only reached when drop_excluded is False
         score += SCORING["drop_penalty"]
 
@@ -897,6 +902,18 @@ def demo():
     # Nothing to key on -> no identity, so rows are never collapsed into each other.
     assert job_key({}) is None
     assert len(dedupe([{}, {}])) == 2
+
+    # Two-tier seniority: an inflated title label must not delete a role whose
+    # stated requirement is within reach, but a genuinely senior one still goes.
+    sj = lambda t, d="": score_job({"Title": t, "Description": d})   # noqa: E731
+    assert sj("Engineering Manager") is None                     # hard drop
+    assert sj("Staff Software Engineer") is None
+    assert sj("Principal Architect") is None
+    assert sj("Senior React Developer", "2 years of React experience.") is not None
+    plain = sj("React Developer", "2 years of React experience.")
+    senior = sj("Senior React Developer", "2 years of React experience.")
+    assert senior["score"] == plain["score"] + SCORING["soft_penalty"]  # kept, lower
+    assert sj("Senior React Developer", "8+ years of React required.") is None
 
     # location_allowed reads config.LOCATION_HINTS, so exercise both branches by
     # swapping the module global rather than by shipping a second parameter.

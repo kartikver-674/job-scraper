@@ -52,8 +52,24 @@ Everything that decides *what* is pulled and *how* it is ranked lives in
 | `ATS_BOARDS` | free company career boards, `{platform: {token: "Name"}}` |
 | `FEEDS` | free remote-job feeds (Remote OK, We Work Remotely) |
 | `LOCATION_HINTS` | location whitelist for free sources; **empty = allow all** |
-| `SCORING` | skill weights, full-stack bonus, penalties, hard drops |
+| `SCORING` | skill weights, full-stack bonus, penalties, seniority tiers |
 | `SETTINGS` | freshness, pay floor, remote/visa/EOR filters, spend caps, output |
+
+## Seniority: two tiers, because a title is not a requirement
+
+`SETTINGS["max_experience_years"]` is the real gate — it reads the years the job
+text actually demands. The title lists only handle labelling:
+
+- `SCORING["hard_drop_terms"]` (manager, principal, staff, architect, …) —
+  removed outright.
+- `SCORING["soft_drop_terms"]` (senior, sr, lead) — **never removed**, only
+  down-ranked by `soft_penalty`, so `max_experience_years` decides on the stated
+  requirement instead.
+
+Title inflation is why: on a live sweep, hard-dropping "Senior"/"Lead" deleted 13
+of 28 reachable remote roles whose own JDs asked for ≤3 years (Twilio, Datadog,
+Proxify, Lemon.io, A.Team). Set `drop_excluded: False` to keep hard drops too,
+ranked to the bottom.
 
 ## International-remote signals
 

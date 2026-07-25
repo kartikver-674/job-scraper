@@ -233,16 +233,27 @@ SCORING = {
         "lightning web component": -12, "crm developer": -12, "crm": -6,
     },
 
-    # -- Hard filters (wrong seniority / too much experience) -----------------
-    # If any drop_term appears in the TITLE, the job is removed entirely (unless
-    # SETTINGS["drop_excluded"] is False, in which case drop_penalty is applied
-    # instead). Over-experience is detected separately from the text (see
-    # SETTINGS["max_experience_years"]).
-    "drop_terms": [
-        "senior", "sr", "lead", "principal", "staff",
-        "manager", "architect",
+    # -- Seniority filters ----------------------------------------------------
+    # Two tiers, because a job TITLE is a label and not a requirement. The real
+    # experience gate is SETTINGS["max_experience_years"], which reads the years
+    # actually demanded by the text; these lists only handle the title.
+    #
+    # hard_drop_terms: never a fit at this experience level whatever the JD says.
+    # Removed entirely (or penalized, if SETTINGS["drop_excluded"] is False).
+    "hard_drop_terms": [
+        "principal", "staff", "manager", "architect", "director",
+        "head of", "vp", "chief",
     ],
-    "drop_penalty": -15,   # used only when drop_excluded is False
+    # soft_drop_terms: usually inflated titling, especially in international
+    # remote, where "Senior" routinely means 3-4 years. NEVER dropped — only
+    # down-ranked, so max_experience_years decides on the stated requirement
+    # instead. Measured on a live sweep: hard-dropping these deleted 13 of 28
+    # reachable remote roles whose JDs asked for <= 3 years (Twilio, Datadog,
+    # Proxify, Lemon.io, A.Team).
+    "soft_drop_terms": ["senior", "sr", "lead"],
+
+    "drop_penalty": -15,   # hard drops, when drop_excluded is False
+    "soft_penalty": -4,    # soft title match: sinks it, never removes it
 }
 
 
