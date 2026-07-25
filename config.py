@@ -20,6 +20,11 @@ Sections below:
     2. SITES    — which boards to scrape (toggle here)
     3. SCORING  — resume-based relevance weights, full-stack bonus, exclude/down-rank
     4. SETTINGS — filtering thresholds, cost guards, output knobs
+    5. PROFILES — named overlays, so one scraper serves several people/searches
+
+Everything here is the DEFAULT profile. To run a different search without
+editing this file, put the keys you want to change in profiles/<name>.py and run
+`python scraper.py --profile <name>` — see section 5.
 """
 
 # ===========================================================================
@@ -309,3 +314,109 @@ SETTINGS = {
                                  # boilerplate). Description isn't an output column — this
                                  # only bounds pathological sizes, it doesn't limit scoring.
 }
+
+
+# ===========================================================================
+# 5. PROFILES — named overlays so one scraper serves several people/searches
+# ===========================================================================
+# A profile is profiles/<name>.py defining ONLY the keys it wants to change:
+#
+#     SEARCH   = {"role_keywords": [...], "locations": [...]}
+#     SETTINGS = {"remote_scopes": ["worldwide", "remote"]}
+#
+# Merge is one level deep: each top-level dict is .update()d, so a profile that
+# sets SCORING["skill_weights"] replaces the whole stack while leaving
+# penalty_terms alone. That is almost always what you want — a different person
+# has a different stack, not extra terms bolted onto this one.
+#
+# Named profiles also get their own output/<name>/ directory, so two people's
+# sweeps stop landing in the same folder (which is why output/ currently has
+# hand-made archive-* subdirectories). The default profile keeps plain output/,
+# so existing tooling and auto-apply/ are unaffected.
+#
+#     python scraper.py --profile srishti
+#     JOB_PROFILE=srishti python scraper.py        # equivalent
+#
+# NOTE: the name is read HERE, at config import time, straight from sys.argv —
+# not from parsed arguments. scraper.py precompiles its regex tables from SCORING
+# at module level, so a profile applied any later would be silently ignored by
+# the scoring layer. That is the one thing about this design worth remembering.
+import os
+import sys
+
+OVERLAYABLE = ("SEARCH", "SITES", "SCORING", "SETTINGS", "ATS_BOARDS", "FEEDS")
+
+
+def _selected_profile(argv=None, env=None):
+    """Profile name from --profile NAME / --profile=NAME, else $JOB_PROFILE."""
+    argv = sys.argv if argv is None else argv
+    env = os.environ if env is None else env
+    for i, arg in enumerate(argv):
+        if arg == "--profile" and i + 1 < len(argv):
+            return argv[i + 1]
+        if arg.startswith("--profile="):
+            return arg.split("=", 1)[1]
+    return env.get("JOB_PROFILE") or ""
+
+
+def _overlay(module, target=None):
+    """Apply one profile module's dicts onto the config globals. Returns the
+    names it changed, for the run banner."""
+    target = globals() if target is None else target
+    changed = []
+    for name in OVERLAYABLE:
+        override = getattr(module, name, None)
+        if not override:
+            continue
+        target[name].update(override)
+        changed.append(name)
+    return changed
+
+
+PROFILE = _selected_profile()
+PROFILE_CHANGED = []
+if PROFILE:
+    import importlib
+    try:
+        _module = importlib.import_module(f"profiles.{PROFILE}")
+    except ImportError as exc:
+        # Loud, not silent: falling back to the default profile would quietly run
+        # someone else's search and cost real money doing it.
+        _available = sorted(
+            f.removesuffix(".py")
+            for f in os.listdir(os.path.join(os.path.dirname(__file__), "profiles"))
+            if f.endswith(".py") and not f.startswith("_"))
+        sys.exit(f"Unknown profile '{PROFILE}' ({exc}). "
+                 f"Available: {', '.join(_available) or '(none)'}")
+    PROFILE_CHANGED = _overlay(_module)
+    # Keep each person's sweeps apart unless the profile picks its own directory.
+    if "SETTINGS" not in PROFILE_CHANGED or "output_dir" not in getattr(_module, "SETTINGS", {}):
+        SETTINGS["output_dir"] = os.path.join("output", PROFILE)
+
+
+def demo():
+    """Self-check for the overlay rules. `python config.py` — offline."""
+    assert _selected_profile(["scraper.py"], {}) == ""
+    assert _selected_profile(["s", "--profile", "bob"], {}) == "bob"
+    assert _selected_profile(["s", "--profile=bob"], {}) == "bob"
+    assert _selected_profile(["s"], {"JOB_PROFILE": "bob"}) == "bob"
+    assert _selected_profile(["s", "--profile", "bob"], {"JOB_PROFILE": "eve"}) == "bob"
+    assert _selected_profile(["s", "--profile"], {}) == ""       # no value, no crash
+
+    # One level deep: the named sub-dict is REPLACED, its siblings survive.
+    class Fake:
+        SCORING = {"skill_weights": {"go": 9}}
+        SETTINGS = {"min_comp_usd": 40000}
+    target = {"SCORING": {"skill_weights": {"react": 5}, "penalty_terms": {"php": -6}},
+              "SETTINGS": {"min_comp_usd": 6000, "max_age_days": 14},
+              "SEARCH": {}, "SITES": {}, "ATS_BOARDS": {}, "FEEDS": {}}
+    changed = _overlay(Fake, target)
+    assert target["SCORING"]["skill_weights"] == {"go": 9}         # replaced
+    assert target["SCORING"]["penalty_terms"] == {"php": -6}       # untouched sibling
+    assert target["SETTINGS"] == {"min_comp_usd": 40000, "max_age_days": 14}
+    assert sorted(changed) == ["SCORING", "SETTINGS"]
+    print(f"demo ok (active profile: {PROFILE or 'default'})")
+
+
+if __name__ == "__main__":
+    demo()

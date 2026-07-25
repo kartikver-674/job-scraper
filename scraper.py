@@ -52,6 +52,7 @@ import urllib.parse
 from collections import Counter
 from datetime import datetime, timedelta
 
+import config
 import enrich
 import sources
 from sources._http import strip_html as _strip_html
@@ -852,6 +853,12 @@ def parse_args():
                    help="Skip the free sources (ATS boards + feeds) even if configured.")
     p.add_argument("--demo", action="store_true",
                    help="Run the offline self-check (no network, no cost) and exit.")
+    # Declared so --help documents it and it isn't rejected as unknown, but the
+    # VALUE is read in config.py at import time — the scoring tables are
+    # precompiled at module level, long before this runs. See config.py section 5.
+    p.add_argument("--profile", metavar="NAME",
+                   help="Use profiles/NAME.py to override config; "
+                        "writes to output/NAME/.")
     return p.parse_args()
 
 
@@ -935,6 +942,10 @@ def main():
     if args.demo:
         demo()
         return
+    if config.PROFILE:
+        print(f"Profile:   {config.PROFILE} "
+              f"(overrides {', '.join(config.PROFILE_CHANGED) or 'nothing'}) "
+              f"-> {SETTINGS['output_dir']}/\n")
     enabled = resolve_sites(args)
 
     plans = {site_key: plan_for_site(site_key, args) for site_key in enabled}

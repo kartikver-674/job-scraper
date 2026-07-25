@@ -28,9 +28,38 @@ python scraper.py --site free     # free sources only — zero cost
 python scraper.py --dry-run       # print the paid plan, spend nothing
 python scraper.py --test          # tiny real paid run (indeed, 1 combo)
 python scraper.py                 # everything (confirms before a large sweep)
+
+python scraper.py --profile remote_intl --site free    # a different search
 ```
 
-Output: `output/jobs_<timestamp>.csv` + `.json`, ranked best-first.
+Output: `output/jobs_<timestamp>.csv` + `.json`, ranked best-first (or
+`output/<profile>/` for a named profile).
+
+## Profiles
+
+One scraper, several searches. A profile is `profiles/<name>.py` listing **only**
+the config keys it changes; anything omitted falls through to `config.py`:
+
+```python
+# profiles/srishti.py
+SEARCH   = {"role_keywords": ["Data Analyst"], "locations": ["Remote"]}
+SETTINGS = {"remote_scopes": ["worldwide", "remote"], "min_comp_usd": 30000}
+```
+
+```bash
+python scraper.py --profile srishti     # -> output/srishti/
+JOB_PROFILE=srishti python scraper.py    # equivalent
+python merge_jobs.py --profile srishti   # merges that profile's files
+```
+
+Merging is one level deep — a profile setting `SCORING["skill_weights"]` replaces
+the whole stack but leaves `penalty_terms` alone. An unknown profile name is a
+hard error, never a silent fall back to the default (which would run someone
+else's search and spend real money doing it).
+
+Ships with `remote_intl`: international remote roles workable from India, free
+sources only, `remote_scopes` restricted to worldwide/unstated, `min_comp_usd`
+raised to 30000.
 
 Related tools:
 

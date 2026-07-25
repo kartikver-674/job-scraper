@@ -2,7 +2,10 @@
 
 Reuses scraper.dedupe()/job_key() rather than keeping a second copy of the
 dedupe rule — the two drifting apart is how the same job ends up in the merged
-file twice. Run after a sweep: python merge_jobs.py
+file twice. Run after a sweep:
+
+    python merge_jobs.py                      # merges output/
+    python merge_jobs.py --profile srishti     # merges output/srishti/
 """
 import csv
 import glob
@@ -10,9 +13,12 @@ import json
 import os
 import sys
 
+from config import SETTINGS
 from scraper import dedupe
 
-OUT_DIR = "output"
+# Honors --profile, so a merge can't silently pick up the default profile's files
+# while you're working on someone else's sweep.
+OUT_DIR = SETTINGS["output_dir"]
 
 
 def merge_rows(rows):
