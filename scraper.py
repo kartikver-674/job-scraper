@@ -1,18 +1,28 @@
 """
-Apify full-stack job scraper -> ranked CSV + JSON.
+Job aggregator -> ranked CSV + JSON. Free sources + paid Apify actors.
 
 Pipeline:
     1. Build a search plan = role_keywords x locations (from config.SEARCH).
-    2. Run one Apify actor per (enabled site, search combo); normalize every result
-       into a common schema (per-site input differences handled by build_input).
+    2. Pull jobs from two families, both normalized into one common schema:
+         free  — company ATS boards + public remote feeds, via sources/ (no cost)
+         paid  — one Apify actor run per (enabled site, search combo)
     3. Score each job against the resume (config.SCORING): weighted skills, a
        full-stack bonus for frontend+backend overlap, and hard down-ranking /
        filtering of wrong-seniority, off-stack, and Salesforce/CRM roles.
-    4. Cross-site de-duplicate on normalized title + company + location.
-    5. Sort by score (highest first) and write a timestamped CSV + JSON.
+    4. Filter on freshness and on compensation, annualized in USD so Indian LPA
+       and international salaries compare on one axis (comp_max_usd).
+    5. De-duplicate on company + title — NOT location, which is the field that
+       varies most across sources for the same posting (job_key).
+    6. Sort by score (highest first) and write a timestamped CSV + JSON.
+
+Adding a source never means editing this file: a new ATS platform is a dict
+entry in sources/ats.py, a new feed is a function in sources/feeds.py, and a new
+company or board token is one line in config.ATS_BOARDS.
 
 Usage:
     pip install -r requirements.txt
+    python scraper.py --demo                    # offline self-check, no network
+    python scraper.py --site free               # free sources only, zero cost
     python scraper.py --dry-run                 # print the plan, spend nothing
     python scraper.py --test                    # tiny: 1 keyword x 1 location, indeed only
     python scraper.py --site indeed --limit 3   # one site, first 3 combos
@@ -20,31 +30,30 @@ Usage:
 
 Flags:
     --dry-run        Show the planned searches + per-site actor inputs; no actor runs.
+    --demo           Offline self-check of comp parsing + dedupe identity; exit.
     --test           Smallest possible real run (first keyword x first location, indeed).
-    --site NAME      Restrict to a single site (overrides SITES toggles for this run).
+    --site NAME      One site only: indeed/naukri/linkedin, or ats/feeds/free.
     --limit N        Cap (keyword x location) combos per site to N.
+    --no-free        Skip the free sources.
     --yes            Skip the "large sweep" confirmation prompt.
 """
 
 import argparse
 import csv
-import html
 import json
 import os
 import re
 import sys
 import time
 import urllib.parse
-import urllib.request
 from collections import Counter
 from datetime import datetime, timedelta
 
-from dotenv import load_dotenv
-from apify_client import ApifyClient
-
+import sources
+from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
-                    LINKEDIN_GEO_IDS, GREENHOUSE_COMPANIES, LEVER_COMPANIES,
-                    INDIA_LOCATION_HINTS, ATS_TITLE_HINTS)
+                    LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS,
+                    LOCATION_HINTS, ATS_TITLE_HINTS)
 
 # ---------------------------------------------------------------------------
 # Internal common schema (title-cased keys) produced by normalize(). The final
@@ -102,15 +111,6 @@ def _pick(item, keys):
     return ""
 
 
-_TAG_RE = re.compile(r"<[^>]+>")
-
-
-def _strip_html(s):
-    # Unescape entities first (Greenhouse returns HTML-entity-encoded content),
-    # then drop tags and collapse whitespace.
-    return re.sub(r"\s+", " ", _TAG_RE.sub(" ", html.unescape(s or ""))).strip()
-
-
 def _truncate_desc(row):
     limit = SETTINGS["description_max"]
     if len(row["Description"]) > limit:
@@ -159,100 +159,33 @@ def normalize(item, source):
 
 
 # ===========================================================================
-# Company career sites via ATS APIs (Greenhouse / Lever) — free, stdlib only
+# Free sources (company ATS boards + public remote feeds) — see sources/
 # ===========================================================================
-def _http_get_json(url, timeout=25):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 job-scraper"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8", "replace"))
+# The adapters live in sources/; scraper.py only supplies the two policy
+# predicates below, so widening coverage never means editing this file.
+def location_allowed(loc):
+    """Keep a job whose location mentions a config.LOCATION_HINTS entry.
 
-
-def is_india_location(loc):
-    """Careers pages list global roles; keep only India-relevant (or unspecified)
-    ones so we don't flood the results with overseas jobs."""
-    if not loc:
-        return True  # unspecified -> keep, scoring will sort it out
+    Empty hints = allow everything (the default now that the target is
+    international remote). An unspecified location is always kept — scoring and
+    the remote/comp filters sort it out.
+    """
+    if not LOCATION_HINTS or not loc:
+        return True
     low = loc.lower()
-    return any(h in low for h in INDIA_LOCATION_HINTS)
+    return any(h in low for h in LOCATION_HINTS)
 
 
 def is_dev_title(title):
-    """ATS returns all roles; keep only software/dev-looking titles."""
+    """Free sources return a whole board; keep only software/dev-looking titles."""
     low = (title or "").lower()
     return any(h in low for h in ATS_TITLE_HINTS)
 
 
-def normalize_greenhouse(job, token, company_name):
-    loc = (job.get("location") or {}).get("name", "")
-    return _truncate_desc({
-        "Source": f"greenhouse:{token}",
-        "Title": job.get("title", ""),
-        "Company": company_name,
-        "Location": loc,
-        "Salary": "",
-        "Experience": "",
-        "Posted Date": (job.get("updated_at") or job.get("first_published") or "")[:10],
-        "Job URL": job.get("absolute_url", ""),
-        "Description": _strip_html(job.get("content", "")),  # HTML-entity encoded
-    })
-
-
-def fetch_greenhouse(token, company_name):
-    """Greenhouse public board API (free). content=true includes descriptions."""
-    url = f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true"
-    data = _http_get_json(url)
-    return [normalize_greenhouse(j, token, company_name)
-            for j in data.get("jobs", [])
-            if is_dev_title(j.get("title", ""))
-            and is_india_location((j.get("location") or {}).get("name", ""))]
-
-
-def normalize_lever(job, token, company_name):
-    cats = job.get("categories") or {}
-    posted = ""
-    if job.get("createdAt"):
-        try:
-            posted = datetime.fromtimestamp(job["createdAt"] / 1000).strftime("%Y-%m-%d")
-        except (ValueError, OSError, TypeError):
-            posted = ""
-    desc = job.get("descriptionPlain") or _strip_html(job.get("description", ""))
-    return _truncate_desc({
-        "Source": f"lever:{token}",
-        "Title": job.get("text", ""),
-        "Company": company_name,
-        "Location": cats.get("location", ""),
-        "Salary": "",
-        "Experience": cats.get("commitment", ""),
-        "Posted Date": posted,
-        "Job URL": job.get("hostedUrl", "") or job.get("applyUrl", ""),
-        "Description": desc,
-    })
-
-
-def fetch_lever(token, company_name):
-    """Lever public postings API (free)."""
-    url = f"https://api.lever.co/v0/postings/{token}?mode=json"
-    data = _http_get_json(url)  # returns a list
-    return [normalize_lever(j, token, company_name)
-            for j in data
-            if is_dev_title(j.get("text", ""))
-            and is_india_location((j.get("categories") or {}).get("location", ""))]
-
-
-def fetch_ats():
-    """Fetch all configured Greenhouse + Lever companies. Free; failures per
-    company are isolated (a wrong token / removed board just logs and continues)."""
-    rows = []
-    sources = ([("greenhouse", t, n) for t, n in GREENHOUSE_COMPANIES.items()]
-               + [("lever", t, n) for t, n in LEVER_COMPANIES.items()])
-    for ats, token, name in sources:
-        try:
-            fetched = fetch_greenhouse(token, name) if ats == "greenhouse" else fetch_lever(token, name)
-            rows.extend(fetched)
-            print(f"  {ats:<10} {name:<22} {len(fetched):>3} India jobs")
-        except Exception as exc:
-            print(f"  {ats:<10} {name:<22} ! {exc}")
-    return rows
+def fetch_free():
+    """Every configured ATS board + feed. Free; per-board failures are isolated."""
+    rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed)
+    return [_truncate_desc(r) for r in rows]
 
 
 # ===========================================================================
@@ -327,40 +260,80 @@ def is_recent(date_str, max_age_days):
     return (datetime.now() - d).days <= max_age_days
 
 
-# --- Salary filter ---------------------------------------------------------
-def salary_max_lpa(text):
-    """Best-effort MAX salary in LPA (lakhs per annum). Returns None when there's
-    no disclosed/parseable figure (so we never filter on a guess)."""
-    t = (text or "").lower()
-    if not t or any(x in t for x in ("not disclosed", "not specified", "unpaid",
-                                     "competitive", "as per", "negotiable")):
-        return None
-    tc = t.replace(",", "")
-    nums = [float(x) for x in re.findall(r"\d+(?:\.\d+)?", tc)]
-    nums = [n for n in nums if n > 0]
-    if not nums:
-        return None
-    mx = max(nums)
-    if "crore" in tc or re.search(r"\bcr\b", tc):
-        return mx * 100.0                       # 1 crore = 100 LPA
-    if any(u in tc for u in ("lakh", "lac", "lpa")) or re.search(r"\bl\b", tc):
-        return mx                               # already in lakhs
-    if any(u in tc for u in ("month", "/mo", "monthly", "p.m", "per month", "a month")):
-        return mx * 12.0 / 100000.0             # monthly rupees -> LPA
-    if mx >= 100000:                            # big number -> annual rupees
-        return mx / 100000.0
-    if mx >= 10000:                             # 10k–100k -> most likely monthly rupees
-        return mx * 12.0 / 100000.0
-    if mx <= 100:                               # small bare number -> assume lakhs (Indian norm)
-        return mx
-    return None
+# --- Compensation filter (multi-currency) ----------------------------------
+# Annualized and converted to USD so an 18 LPA India role and a $180k US remote
+# role land on the same axis. The previous version assumed rupees, which meant
+# "$220,000 a year" parsed as 2.2 LPA and got DROPPED by the salary floor — i.e.
+# the filter silently deleted the best-paying international roles.
+#
+# Rates are a hardcoded snapshot ON PURPOSE: this feeds a coarse above/below-floor
+# filter, and an FX API would be a dependency plus a network failure mode for a
+# number that only needs to be right to ~5%. Refresh occasionally.
+USD_PER = {"USD": 1.0, "EUR": 1.08, "GBP": 1.27, "CAD": 0.73, "AUD": 0.65,
+           "SGD": 0.74, "CHF": 1.12, "AED": 0.27, "INR": 0.0114, "JPY": 0.0064}
+
+# Longest / most specific markers first: "us$" and "c$" must win over bare "$".
+_CURRENCY_TOKENS = [
+    ("us$", "USD"), ("usd", "USD"), ("c$", "CAD"), ("cad", "CAD"),
+    ("a$", "AUD"), ("aud", "AUD"), ("s$", "SGD"), ("sgd", "SGD"),
+    ("₹", "INR"), ("inr", "INR"), ("rs.", "INR"), ("rs ", "INR"),
+    ("€", "EUR"), ("eur", "EUR"), ("£", "GBP"), ("gbp", "GBP"),
+    ("chf", "CHF"), ("aed", "AED"), ("¥", "JPY"), ("jpy", "JPY"), ("$", "USD"),
+]
+# Indian scale words: "12-18 LPA" means 12-18 *lakh*, with the scale in the unit
+# rather than on the digits.
+_SCALE_WORDS = [("crore", 1e7), ("lakh", 1e5), ("lac", 1e5), ("lpa", 1e5)]
+_SUFFIX = {"k": 1e3, "m": 1e6, "l": 1e5, "lakh": 1e5, "lac": 1e5,
+           "cr": 1e7, "crore": 1e7}
+# Value -> pay periods per year. 2080 = 40h x 52w.
+_PERIODS = [("hour", 2080), ("hourly", 2080), ("/hr", 2080), ("/h", 2080),
+            ("day", 260), ("week", 52),
+            ("month", 12), ("monthly", 12), ("/mo", 12), ("p.m", 12),
+            ("annum", 1), ("year", 1), ("yearly", 1), ("/yr", 1)]
+_UNDISCLOSED = ("not disclosed", "not specified", "unpaid", "competitive",
+                "as per", "negotiable", "depending on experience", "doe")
+_NUM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(k|m|l|lakh|lac|cr|crore)?", re.I)
 
 
-def salary_ok(salary_text, min_ctc_lpa):
-    mx = salary_max_lpa(salary_text)
-    if mx is None:
-        return True                             # undisclosed -> keep
-    return mx >= min_ctc_lpa
+def comp_max_usd(text):
+    """Best-effort MAX annual compensation in USD, or None.
+
+    None means "don't filter on this": undisclosed, unparseable, or — critically
+    — no identifiable currency. A bare "50000-80000 per month" could be rupees
+    or dollars, an order of magnitude apart, so we fail OPEN and keep the job
+    rather than guess and delete it.
+    """
+    t = (text or "").strip().lower()
+    if not t or any(x in t for x in _UNDISCLOSED):
+        return None
+    currency = next((c for tok, c in _CURRENCY_TOKENS if tok in t), None)
+    scale = next((s for w, s in _SCALE_WORDS if w in t), None)
+    if scale is None and re.search(r"(?<![a-z])cr(?![a-z])", t):
+        scale = 1e7
+    if scale and currency is None:
+        currency = "INR"            # lakh/crore wording is rupees by definition
+    if currency is None:
+        return None                 # no currency -> no guess -> no filtering
+    values = []
+    for m in _NUM_RE.finditer(t.replace(",", "")):
+        value = float(m.group(1))
+        if value <= 0:
+            continue
+        values.append(value * (_SUFFIX.get(m.group(2) or "") or scale or 1))
+    if not values:
+        return None
+    top = max(values)
+    per_year = next((p for word, p in _PERIODS if word in t), None)
+    if per_year is None:
+        # No stated period: a five-figure+ number is annual, a small one is an
+        # hourly rate.
+        per_year = 1 if top >= 10000 else (2080 if top <= 500 else 1)
+    return top * per_year * USD_PER[currency]
+
+
+def comp_ok(salary_text, min_usd):
+    top = comp_max_usd(salary_text)
+    return True if top is None else top >= min_usd
 
 
 # --- HR contact extraction (best-effort — only ~a few % of posts include it) ---
@@ -446,18 +419,69 @@ def _norm_key(value):
     return re.sub(r"[^a-z0-9]+", " ", (value or "").lower()).strip()
 
 
+# "Acme Technologies Pvt Ltd" and "Acme" are the same employer to a job board.
+_CORP_SUFFIX_RE = re.compile(
+    r"\s+(inc|llc|ltd|limited|corp|corporation|co|pvt|private|gmbh|bv|nv|ab|oy"
+    r"|as|sa|sas|srl|plc|group|holdings|technologies|technology|labs|software"
+    r"|solutions|systems)$")
+
+
+def _company_key(name):
+    key = _norm_key(name)
+    while True:                      # strip stacked suffixes, right to left
+        stripped = _CORP_SUFFIX_RE.sub("", key)
+        if stripped == key:
+            return key
+        key = stripped
+
+
+def _title_key(title):
+    """Order-insensitive title key: "Engineer, Backend" == "Backend Engineer"."""
+    return " ".join(sorted(_norm_key(title).split()))
+
+
+def _canonical_url(url):
+    """Host + path only — drops the UTM/tracking query that makes the same
+    posting look like several different URLs."""
+    if not url:
+        return ""
+    parts = urllib.parse.urlsplit(url.strip())
+    host = parts.netloc.lower().removeprefix("www.")
+    return (host + parts.path.rstrip("/")).lower()
+
+
+def job_key(row):
+    """Identity for de-duplication, or None when the row has nothing to key on.
+
+    Keyed on company + title and deliberately NOT on location: location is the
+    field that varies MOST across sources for exactly the jobs we care about, so
+    including it defeated the dedupe. One remote role listed on LinkedIn
+    ("Remote"), We Work Remotely ("Anywhere in the World") and the company's own
+    Ashby board ("Europe, Remote") used to produce three rows; now it produces
+    one. Falls back to the canonical URL when there's no company name.
+
+    Accepts both the internal schema ("Title") and the output schema ("title"),
+    so merge_jobs.py can share it instead of keeping a second copy.
+    """
+    company = _company_key(row.get("Company") or row.get("company"))
+    title = _title_key(row.get("Title") or row.get("title"))
+    if company and title:
+        return "ct", company, title
+    url = _canonical_url(row.get("Job URL") or row.get("apply_url"))
+    return ("url", url) if url else None
+
+
 def dedupe(rows):
-    """Drop duplicates keyed on normalized title + company + location.
-    Assumes rows are already sorted best-first, so the first seen (highest score)
-    wins."""
+    """Drop duplicate postings. Assumes rows are already sorted best-first, so
+    the first seen (highest score) wins."""
     seen = set()
     unique = []
     for row in rows:
-        key = (_norm_key(row.get("Title")), _norm_key(row.get("Company")),
-               _norm_key(row.get("Location")))
-        if key in seen:
-            continue
-        seen.add(key)
+        key = job_key(row)
+        if key is not None:
+            if key in seen:
+                continue
+            seen.add(key)
         unique.append(row)
     return unique
 
@@ -577,14 +601,18 @@ def build_search_plan(keywords, locations):
     return plan
 
 
+FREE_SITES = ("ats", "feeds", "free")   # pseudo-sites: no Apify actor, no cost
+
+
 def resolve_sites(args):
     """Which Apify sites to run, honoring --site / --test / SITES toggles.
-    'ats' is a pseudo-site (free company career sites), handled separately."""
+    The FREE_SITES pseudo-sites run no actors and are handled separately."""
     if args.site:
-        if args.site == "ats":
-            return []  # ATS-only run: no Apify sites
+        if args.site in FREE_SITES:
+            return []
         if args.site not in SITES:
-            sys.exit(f"Unknown site '{args.site}'. Choices: {', '.join(SITES)}, ats")
+            sys.exit(f"Unknown site '{args.site}'. "
+                     f"Choices: {', '.join(SITES)}, {', '.join(FREE_SITES)}")
         return [args.site]
     if args.test:
         return ["indeed"]
@@ -714,10 +742,11 @@ def finalize(raw_rows):
         stale = len(scored) - len(fresh)
         scored = fresh
 
-    # Salary: drop jobs whose disclosed MAX pay is below min_ctc_lpa.
+    # Compensation: drop jobs whose disclosed MAX annual pay (in USD) is below
+    # the floor. Unknown currency / undisclosed pay is kept — see comp_max_usd.
     low_salary = 0
-    if SETTINGS["min_ctc_lpa"] is not None:
-        paid = [r for r in scored if salary_ok(r.get("Salary"), SETTINGS["min_ctc_lpa"])]
+    if SETTINGS["min_comp_usd"] is not None:
+        paid = [r for r in scored if comp_ok(r.get("Salary"), SETTINGS["min_comp_usd"])]
         low_salary = len(scored) - len(paid)
         scored = paid
 
@@ -743,8 +772,8 @@ def print_summary(pulled, after_dedupe, out_rows):
     filters = []
     if SETTINGS["max_age_days"] is not None:
         filters.append(f"{LAST_STATS.get('stale', 0)} stale (>{SETTINGS['max_age_days']}d)")
-    if SETTINGS["min_ctc_lpa"] is not None:
-        filters.append(f"{LAST_STATS.get('low_salary', 0)} below {SETTINGS['min_ctc_lpa']} LPA")
+    if SETTINGS["min_comp_usd"] is not None:
+        filters.append(f"{LAST_STATS.get('low_salary', 0)} below ${SETTINGS['min_comp_usd']:,.0f}/yr")
     if filters:
         print(f"Filtered out:       {', '.join(filters)}")
     print(f"After scoring/filter+dedupe: {after_dedupe}")
@@ -768,17 +797,21 @@ def parse_args():
                    help="Print the plan + per-site inputs; run no actors (zero cost).")
     p.add_argument("--test", action="store_true",
                    help="Tiny real run: first keyword x first location, indeed only.")
-    p.add_argument("--site", help="Restrict to a single site: indeed/naukri/linkedin/ats.")
+    p.add_argument("--site", help="Restrict to one site: indeed/naukri/linkedin, "
+                                  "or ats/feeds/free for the free sources only.")
     p.add_argument("--limit", type=int, help="Cap (keyword x location) combos per site.")
     p.add_argument("--keywords", help="Comma-separated keywords to run instead of config's role_keywords.")
     p.add_argument("--yes", action="store_true",
                    help="Skip the confirmation prompt for large sweeps.")
-    p.add_argument("--no-ats", action="store_true",
-                   help="Skip company career sites (Greenhouse/Lever) even if configured.")
+    p.add_argument("--no-free", "--no-ats", dest="no_free", action="store_true",
+                   help="Skip the free sources (ATS boards + feeds) even if configured.")
+    p.add_argument("--demo", action="store_true",
+                   help="Run the offline self-check (no network, no cost) and exit.")
     return p.parse_args()
 
 
 def _require_token():
+    from dotenv import load_dotenv
     load_dotenv()
     token = os.getenv("APIFY_TOKEN")
     if not token:
@@ -786,27 +819,87 @@ def _require_token():
     return token
 
 
+def demo():
+    """Offline self-check for the logic that fails SILENTLY — currency parsing
+    and job identity. `python scraper.py --demo`, no network, no cost."""
+    usd = lambda t: (None if comp_max_usd(t) is None      # noqa: E731
+                     else round(comp_max_usd(t)))
+    # The regression that mattered: a US salary used to parse as 2.2 "LPA" and
+    # get dropped by the pay floor.
+    assert usd("$180,000 - $220,000 a year") == 220000
+    assert comp_ok("$180,000 - $220,000 a year", 6000) is True
+    assert usd("$150k - $190k") == 190000          # "k" suffix was missed entirely
+    assert usd("$75 - $95 an hour") == 197600      # 95 x 2080
+    assert usd("€90,000 per year") == 97200
+    assert usd("12-18 LPA") == 20520               # 18 lakh INR
+    assert usd("₹40,000 per month") == 5472        # 40k x 12 x 0.0114
+    assert usd("Not disclosed") is None
+    assert usd("") is None
+    assert usd("50,000 - 80,000 per month") is None    # no currency -> fail OPEN
+    assert comp_ok("50,000 - 80,000 per month", 6000) is True
+    assert comp_ok("₹3-4 LPA", 6000) is False          # genuinely below the floor
+
+    # One posting seen on three sources, each naming the location differently.
+    same = [{"Title": "Senior Backend Engineer", "Company": "Acme", "Location": "Remote"},
+            {"Title": "Engineer, Senior Backend", "Company": "Acme Inc.", "Location": "Worldwide"},
+            {"Title": "Senior Backend Engineer", "Company": "Acme Technologies Pvt Ltd",
+             "Location": "Europe, Remote"}]
+    assert len(dedupe(same)) == 1, dedupe(same)
+    # Genuinely different jobs at the same company must survive.
+    assert len(dedupe(same + [{"Title": "Frontend Engineer", "Company": "Acme",
+                               "Location": "Remote"}])) == 2
+    # Output-schema keys work too, so merge_jobs.py can share job_key.
+    assert job_key({"title": "Backend Engineer", "company": "Acme"}) == \
+        job_key({"Title": "Engineer Backend", "Company": "acme ltd"})
+    # No company -> fall back to the URL, tracking params stripped.
+    assert job_key({"Job URL": "https://WWW.x.com/jobs/1/?utm_source=a"}) == \
+        job_key({"apply_url": "https://x.com/jobs/1"})
+    # Nothing to key on -> no identity, so rows are never collapsed into each other.
+    assert job_key({}) is None
+    assert len(dedupe([{}, {}])) == 2
+
+    # location_allowed reads config.LOCATION_HINTS, so exercise both branches by
+    # swapping the module global rather than by shipping a second parameter.
+    global LOCATION_HINTS
+    original, LOCATION_HINTS = LOCATION_HINTS, []
+    try:
+        assert location_allowed("Berlin, Germany") is True      # no hints = allow all
+        LOCATION_HINTS = ["india", "remote"]
+        assert location_allowed("Berlin, Germany") is False
+        assert location_allowed("Pune, India") is True
+        assert location_allowed("") is True                     # unspecified -> keep
+    finally:
+        LOCATION_HINTS = original
+    print("demo ok")
+
+
 def main():
     args = parse_args()
+    if args.demo:
+        demo()
+        return
     enabled = resolve_sites(args)
 
     plans = {site_key: plan_for_site(site_key, args) for site_key in enabled}
     plans = {k: v for k, v in plans.items() if v}  # drop sites with empty plans
 
-    # ATS (free company career sites): on for full runs / --site ats, unless
-    # --no-ats or a specific Apify --site was requested.
-    run_ats = ((args.site == "ats" or args.site is None)
-               and not args.test and not args.no_ats
-               and bool(GREENHOUSE_COMPANIES or LEVER_COMPANIES))
+    # Free sources: on for full runs and for --site ats/feeds/free, unless
+    # --no-free or a specific Apify --site was requested.
+    n_boards = sum(len(b) for b in ATS_BOARDS.values())
+    n_feeds = sum(1 for c in FEEDS.values() if c.get("enabled"))
+    run_free = ((args.site in FREE_SITES or args.site is None)
+                and not args.test and not args.no_free
+                and bool(n_boards or n_feeds))
 
-    if not plans and not run_ats:
-        sys.exit("Nothing to run — no sites enabled and no ATS companies configured.")
+    if not plans and not run_free:
+        sys.exit("Nothing to run — no sites enabled and no free sources configured.")
 
     if plans:
         print_plan(plans)
-    if run_ats:
-        n = len(GREENHOUSE_COMPANIES) + len(LEVER_COMPANIES)
-        print(f"ATS (free): {n} company career sites (Greenhouse/Lever)\n")
+    if run_free:
+        print(f"Free sources: {n_boards} ATS boards "
+              f"({', '.join(k for k, v in ATS_BOARDS.items() if v)}) "
+              f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})\n")
 
     if args.dry_run:
         print("Sample actor inputs (first combo per site):")
@@ -814,9 +907,10 @@ def main():
             print(f"\n  {site_key}:")
             sample = build_input(site_key, effective_search(site_key, plan[0]))
             print("    " + json.dumps(sample, indent=2).replace("\n", "\n    "))
-        if run_ats:
-            print("\n  ats companies:", ", ".join(list(GREENHOUSE_COMPANIES.values())
-                                                   + list(LEVER_COMPANIES.values())))
+        if run_free:
+            for platform, boards in ATS_BOARDS.items():
+                if boards:
+                    print(f"\n  {platform}: {', '.join(boards.values())}")
         print("\n(dry run — no actors executed)")
         return
 
@@ -839,17 +933,23 @@ def main():
     failures = []   # (site, label, reason) per failed search — reported at the end
     budget = SETTINGS["max_spend_usd"]
 
-    # Resume ledger: one "site|keyword|location" per completed combo. Lets a rerun
-    # (e.g. after an account hits its usage cap) skip what's already scraped and
-    # only pay for what's left. Delete output/.done_combos to force a full re-scrape.
+    # Resume ledger: one "YYYY-MM-DD|site|keyword|location" per completed combo.
+    # Lets a rerun (e.g. after an account hits its usage cap) skip what's already
+    # scraped and only pay for what's left.
+    # The DATE is load-bearing: without it the ledger never expires, so the next
+    # day's sweep skipped every combo, scraped nothing, and still printed a
+    # normal-looking summary. Scoped to today, it resumes an interrupted run and
+    # gets out of the way tomorrow. Delete output/.done_combos to force a re-scrape.
+    today = datetime.now().strftime("%Y-%m-%d")
     done_path = os.path.join(SETTINGS["output_dir"], ".done_combos")
     done = set()
     if os.path.exists(done_path):
         with open(done_path) as fh:
-            done = {ln.strip() for ln in fh if ln.strip()}
+            done = {ln.strip() for ln in fh if ln.startswith(today)}
 
     # --- Paid Apify sites (checkpoint after every search so a stop never loses data) ---
     if plans:
+        from apify_client import ApifyClient
         client = ApifyClient(_require_token())
         stopped_early = False
         for site_key, plan in plans.items():
@@ -859,7 +959,7 @@ def main():
             print(f"\n{site_key} ({actor_id})")
             for i, search in enumerate(plan, 1):
                 label = f"{search['keywords']} @ {search['location']}"
-                combo_key = f"{site_key}|{search['keywords']}|{search['location']}"
+                combo_key = f"{today}|{site_key}|{search['keywords']}|{search['location']}"
                 if combo_key in done:
                     print(f"  [{i}/{len(plan)}] {label:<46} — skip (done)")
                     continue
@@ -901,10 +1001,10 @@ def main():
             print("    Rerun to retry only the failed combos (output/.done_combos "
                   "skips what succeeded).")
 
-    # --- Free company career sites (Greenhouse / Lever) ---
-    if run_ats:
-        print("\nats (company career sites — free)")
-        raw_rows.extend(fetch_ats())
+    # --- Free sources (company ATS boards + public remote feeds) ---
+    if run_free:
+        print("\nfree sources (company boards + remote feeds)")
+        raw_rows.extend(fetch_free())
         write_outputs(finalize(raw_rows), csv_path, json_path)  # checkpoint
 
     pulled = len(raw_rows)

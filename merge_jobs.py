@@ -1,33 +1,23 @@
 """Merge every output/jobs_*.json into one file, deduped and ranked by score.
 
-Same dedup key as scraper.py's dedupe() — normalized (title, company, location),
-highest score wins. Run after a sweep: python merge_jobs.py
+Reuses scraper.dedupe()/job_key() rather than keeping a second copy of the
+dedupe rule — the two drifting apart is how the same job ends up in the merged
+file twice. Run after a sweep: python merge_jobs.py
 """
 import csv
 import glob
 import json
 import os
-import re
 import sys
+
+from scraper import dedupe
 
 OUT_DIR = "output"
 
 
-def _norm_key(value):  # mirrors scraper._norm_key
-    return re.sub(r"[^a-z0-9]+", " ", (value or "").lower()).strip()
-
-
 def merge_rows(rows):
-    """Sort best-first, drop dups on normalized (title, company, location)."""
-    rows = sorted(rows, key=lambda r: r.get("score", 0), reverse=True)
-    seen, unique = set(), []
-    for r in rows:
-        key = (_norm_key(r.get("title")), _norm_key(r.get("company")),
-               _norm_key(r.get("location")))
-        if key not in seen:
-            seen.add(key)
-            unique.append(r)
-    return unique
+    """Sort best-first, then drop duplicate postings (highest score wins)."""
+    return dedupe(sorted(rows, key=lambda r: r.get("score", 0), reverse=True))
 
 
 def merge(files):
@@ -42,8 +32,10 @@ def demo():
     a = {"title": "Full Stack Dev", "company": "X", "location": "Delhi", "score": 5}
     b = {"title": "full-stack  dev", "company": "x", "location": "delhi", "score": 9}
     c = {"title": "React Dev", "company": "Y", "location": "Remote", "score": 7}
-    out = merge_rows([a, b, c])
-    assert [r["score"] for r in out] == [9, 7], out  # b beats a (dup), sorted desc
+    # Same job, different source, different location text — one row now, not two.
+    d = {"title": "Dev Full Stack", "company": "X Ltd", "location": "Worldwide", "score": 3}
+    out = merge_rows([a, b, c, d])
+    assert [r["score"] for r in out] == [9, 7], out  # b beats a and d, sorted desc
     print("demo ok")
 
 

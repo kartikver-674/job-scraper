@@ -101,42 +101,60 @@ LINKEDIN_GEO_IDS = {
 }
 
 # ---------------------------------------------------------------------------
-# Company career sites via ATS APIs (free — no Apify, no per-result cost)
+# FREE sources: company career boards (ATS) + public remote-job feeds
 # ---------------------------------------------------------------------------
-# Most companies host jobs on an ATS with a free public JSON API. Add companies
-# as {board_token: "Display Name"}. Find the token from the careers URL, e.g.
-#   boards.greenhouse.io/<token>   ->  GREENHOUSE_COMPANIES
-#   jobs.lever.co/<token>          ->  LEVER_COMPANIES
-# Only tokens that actually resolve are kept (verified by probing). ATS results
-# are filtered to India-relevant locations via INDIA_LOCATION_HINTS below.
-# Verified 2026-07-21 (tokens resolve + have India jobs). Add more freely.
-GREENHOUSE_COMPANIES = {
-    "phonepe": "PhonePe",
-    "groww": "Groww",
-    "postman": "Postman",
-    "druva": "Druva",
-    "slice": "Slice",
-}
-LEVER_COMPANIES = {
-    "paytm": "Paytm",
-    "meesho": "Meesho",
-    "mindtickle": "Mindtickle",
-    "hevodata": "Hevo Data",
-    "zeta": "Zeta",
-    "fampay": "FamPay",
-    "cred": "CRED",
+# No Apify, no per-result cost, stdlib HTTP only. These are the cheapest way to
+# widen coverage, so add liberally.
+#
+# ATS_BOARDS: {platform: {board_token: "Display Name"}}. The platform must have
+# an adapter in sources/ats.py's ATS table (adding one there is a dict entry).
+# Find a token from the careers URL:
+#   boards.greenhouse.io/<token>        -> greenhouse
+#   jobs.lever.co/<token>               -> lever
+#   jobs.ashbyhq.com/<token>            -> ashby
+#   careers.smartrecruiters.com/<Token> -> smartrecruiters  (case-sensitive)
+# Every token below was probed and resolves (2026-07-25).
+ATS_BOARDS = {
+    "greenhouse": {
+        "phonepe": "PhonePe", "groww": "Groww", "postman": "Postman",
+        "druva": "Druva", "slice": "Slice",
+    },
+    "lever": {
+        "paytm": "Paytm", "meesho": "Meesho", "mindtickle": "Mindtickle",
+        "hevodata": "Hevo Data", "zeta": "Zeta", "fampay": "FamPay",
+        "cred": "CRED",
+    },
+    # International / remote-friendly boards — the point of the free tier.
+    "ashby": {
+        "linear": "Linear", "ramp": "Ramp", "openai": "OpenAI",
+    },
+    "smartrecruiters": {},   # e.g. {"BoschGroup": "Bosch"}
 }
 
-# Keep an ATS job if its location mentions any of these (empty location is kept).
-INDIA_LOCATION_HINTS = [
-    "india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "bengaluru",
-    "bangalore", "hyderabad", "pune", "mumbai", "chennai", "kolkata",
-    "ahmedabad", "remote",
-]
+# Public remote-job feeds. One request each, no auth. Adapters live in
+# sources/feeds.py (registered in sources.FEED_FETCHERS).
+FEEDS = {
+    "remoteok": {"enabled": True},
+    "wwr": {"enabled": True, "categories": [
+        "remote-programming-jobs",
+        "remote-front-end-programming-jobs",
+        "remote-back-end-programming-jobs",
+        "remote-full-stack-programming-jobs",
+    ]},
+}
 
-# ATS APIs return a company's ENTIRE job list (finance, ops, HR, ...), so unlike
-# job boards we can't keyword-search. Keep only jobs whose TITLE looks like a
-# software/dev role (case-insensitive substring). Scoring then ranks within these.
+# Keep a free-source job only if its location mentions one of these.
+# EMPTY = allow every location, which is the right default now that the target
+# is international remote — remote/visa/comp filters do the narrowing instead of
+# a country whitelist. An empty job location is always kept.
+# To go back to India-only, put the old list back:
+#   ["india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "bengaluru",
+#    "bangalore", "hyderabad", "pune", "mumbai", "chennai", "kolkata", "remote"]
+LOCATION_HINTS = []
+
+# Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
+# we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
+# role (case-insensitive substring). Scoring then ranks within these.
 ATS_TITLE_HINTS = [
     "developer", "full stack", "fullstack", "full-stack", "frontend", "front end",
     "front-end", "backend", "back end", "back-end", "software engineer",
@@ -239,8 +257,12 @@ SETTINGS = {
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
     "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
-    "min_ctc_lpa": 5.2,          # if a job's MAX salary is DISCLOSED and below this (in LPA), drop it.
-                                 # Undisclosed/unparseable salary is always kept. None to disable.
+    # Minimum compensation, annualized and in USD, so an Indian LPA figure and a
+    # US/EU salary are compared on the same axis (see scraper.comp_max_usd).
+    # 6000 USD ~= the old 5.2 LPA floor. Undisclosed, unparseable, or
+    # unknown-currency pay is always KEPT — we never drop on a guess.
+    # Raise this to ~40000+ once the sweep is weighted toward international remote.
+    "min_comp_usd": 6000,        # None to disable
 
     # Cost guards ("prove it cheaply first")
     # NOTE: misceres/indeed-scraper measured at ~$0.03 per 5 results (~$5 / 1000
