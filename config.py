@@ -129,15 +129,30 @@ ATS_BOARDS = {
         "hevodata": "Hevo Data", "zeta": "Zeta", "fampay": "FamPay",
         "cred": "CRED",
     },
-    # International / remote-friendly boards — the point of the free tier.
+    # Global companies WITH an India presence — the combination that makes
+    # SETTINGS["keep_restricted_if_hires_home"] pay off, since their geo-locked
+    # remote roles become reachable. India-job counts probed 2026-07-26.
+    "greenhouse": {
+        "phonepe": "PhonePe", "groww": "Groww", "postman": "Postman",
+        "druva": "Druva", "slice": "Slice",
+        "gitlab": "GitLab",           # 30/187 India — an all-remote company
+        "databricks": "Databricks",   # 76/800
+        "twilio": "Twilio",           # 25/183
+        "mongodb": "MongoDB",         # 17/401
+        "elastic": "Elastic",         # 16/204
+        "datadog": "Datadog",         #  9/418
+        "cloudflare": "Cloudflare",   #  3/271
+    },
     "ashby": {
         "linear": "Linear", "ramp": "Ramp", "openai": "OpenAI",
+        "notion": "Notion",           #  5/127
     },
     "smartrecruiters": {},   # e.g. {"BoschGroup": "Bosch"}
 }
 
-# Public remote-job feeds. One request each, no auth. Adapters live in
-# sources/feeds.py (registered in sources.FEED_FETCHERS).
+# Public remote-job feeds. No auth, no cost. Adapters live in sources/feeds.py
+# (registered in sources.FEED_FETCHERS). The three structured JSON feeds below
+# are the only free source that reports PAY — the ATS boards never do.
 FEEDS = {
     "remoteok": {"enabled": True},
     "wwr": {"enabled": True, "categories": [
@@ -146,6 +161,12 @@ FEEDS = {
         "remote-back-end-programming-jobs",
         "remote-full-stack-programming-jobs",
     ]},
+    "remotive": {"enabled": True},
+    "jobicy": {"enabled": True, "count": 50},
+    # No category filter exists on this API, so it pages blind through ~96k
+    # mostly non-engineering jobs at 20 a time. Worth it for the exact UTC
+    # offsets it reports, but raise `pages` only if you want the requests.
+    "himalayas": {"enabled": True, "pages": 10},
 }
 
 # Keep a free-source job only if its location mentions one of these.

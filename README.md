@@ -80,7 +80,7 @@ Everything that decides *what* is pulled and *how* it is ranked lives in
 | `SEARCH` | role keywords x locations, experience, results per search |
 | `SITES` | which paid Apify actors run |
 | `ATS_BOARDS` | free company career boards, `{platform: {token: "Name"}}` |
-| `FEEDS` | free remote-job feeds (Remote OK, We Work Remotely) |
+| `FEEDS` | free remote-job feeds (Remote OK, WWR, Remotive, Jobicy, Himalayas) |
 | `LOCATION_HINTS` | location whitelist for free sources; **empty = allow all** |
 | `SCORING` | skill weights, full-stack bonus, penalties, seniority tiers |
 | `SETTINGS` | freshness, pay floor, remote/visa/EOR filters, spend caps, output |
@@ -169,6 +169,35 @@ The matching filters in `SETTINGS` all **default to off** — a blank signal mea
                                             # employers who hire in your country
 "home_utc_offset": 5.5,                     # IST; None to skip tz scoring
 ```
+
+## Sources
+
+All free, no credentials, no rate limits worth worrying about:
+
+| Source | Kind | Notes |
+|---|---|---|
+| Greenhouse / Lever / Ashby / SmartRecruiters | company boards | one dict entry per platform, one token per company |
+| We Work Remotely | RSS | best source of genuinely worldwide roles |
+| Remote OK | JSON | whole board in one request |
+| Remotive | JSON | software-dev category; **reports pay** |
+| Jobicy | JSON | engineering industry; **reports pay** |
+| Himalayas | JSON | **reports pay and exact UTC offsets** |
+
+The three structured feeds are the only free source that reports compensation —
+the ATS boards never do — which is what makes `min_comp_usd` do anything at all.
+Coverage is still thin (~3% of raw rows), so treat pay as a bonus signal.
+
+Himalayas has the best metadata and the worst access pattern: its API accepts no
+category or search filter and pages 20 at a time through ~96k mostly
+non-engineering jobs, so `FEEDS["himalayas"]["pages"]` bounds how hard we chase
+it. Its `timezoneRestrictions` come back as real UTC offsets, which beats
+inferring a zone from a region name.
+
+Probed and deliberately **not** included: `arbeitnow.com` (100 jobs → 5 remote →
+1 dev-titled, and that one onsite in Nuremberg), Workable (endpoint is live but
+every slug tried returned zero jobs, so the field names are unverified), and
+Workday (needs a POST body and a per-tenant hostname, so it can't be a row in
+the ATS table).
 
 ## Adding a source
 

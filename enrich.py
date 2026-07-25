@@ -277,7 +277,12 @@ def timezone_gap(regions_text, tz_text, home_offset):
     offsets = [float(f"{m.group(2)}.{'5' if m.group(3) == '30' else '0'}")
                * (1 if m.group(1) == "+" else -1)
                for m in _UTC_OFFSET_RE.finditer(blob)]
-    offsets += [_ZONE_OFFSETS[m.group(1).lower()] for m in _ZONE_RE.finditer(blob)]
+    # Blank out the explicit "UTC-8" spans before scanning for bare zone names:
+    # the "UTC" inside one otherwise matches the zone table as offset 0, and
+    # since we take the CLOSEST offset that spurious zero makes a 13.5h gap read
+    # as 5.5h — understating exactly the distances that should disqualify a role.
+    offsets += [_ZONE_OFFSETS[m.group(1).lower()]
+                for m in _ZONE_RE.finditer(_UTC_OFFSET_RE.sub(" ", blob))]
     if not offsets:
         offsets = [_REGION_OFFSETS[r] for r in (regions_text or "").split(", ")
                    if r in _REGION_OFFSETS]
@@ -302,7 +307,9 @@ def enrich(row, home_offset=None):
         "" if scope == "worldwide" else eligibility_regions(description))
     row["visa"] = visa(body)
     row["eor"] = eor(body)
-    row["timezones"] = timezones(description)
+    # A source that ships real timezone data (Himalayas reports UTC offsets)
+    # beats anything read out of prose, so never overwrite what it set.
+    row["timezones"] = row.get("timezones") or timezones(description)
     row["tz_gap"] = ("" if home_offset is None else
                      timezone_gap(row["remote_regions"], row["timezones"] + " " + location,
                                   home_offset))
@@ -389,6 +396,11 @@ def demo():
     assert timezone_gap("India", "", IST) == 0.0
     assert timezone_gap("", "overlap with CET", IST) == 4.5
     assert timezone_gap("", "UTC+2", IST) == 3.5
+    # Explicit offsets, as Himalayas reports them. The bare "UTC" inside these
+    # must NOT also count as offset 0 — that made a 13.5h gap read as 5.5h.
+    assert timezone_gap("", "UTC-8", IST) == 13.5
+    assert timezone_gap("", "UTC+5:30", IST) == 0.0          # half-hour zones
+    assert timezone_gap("", "UTC-10 UTC-9 UTC-8", IST) == 13.5
     assert timezone_gap("", "", IST) is None               # nothing stated
     # A named zone beats a region guess when both appear.
     assert timezone_gap("US", "overlap with CET required", IST) == 4.5

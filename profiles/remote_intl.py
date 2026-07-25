@@ -55,20 +55,29 @@ SITES = {
 # (PhonePe, Paytm) posts local roles and adds nothing to a remote sweep.
 ATS_BOARDS = {
     "greenhouse": {
-        "postman": "Postman",          # 12/114 India -> hires_home yes
-        "druva": "Druva",              # 11/31  India -> hires_home yes
+        "gitlab": "GitLab",            # 30/187 India — an all-remote company
+        "databricks": "Databricks",    # 76/800
+        "twilio": "Twilio",            # 25/183
+        "mongodb": "MongoDB",          # 17/401
+        "elastic": "Elastic",          # 16/204
+        "postman": "Postman",          # 12/114
+        "druva": "Druva",              # 11/31
+        "datadog": "Datadog",          #  9/418
+        "cloudflare": "Cloudflare",    #  3/271
     },
     "lever": {},
     "ashby": {
-        "openai": "OpenAI",            # 9/753  India -> hires_home yes
-        "linear": "Linear",            # 0/25   India -> correctly filtered out
-        "ramp": "Ramp",                # 0/118  India -> correctly filtered out
+        "openai": "OpenAI",            #  9/753 India -> hires_home yes
+        "notion": "Notion",            #  5/127
+        "linear": "Linear",            #  0/25  India -> correctly filtered out
+        "ramp": "Ramp",                #  0/118 India -> correctly filtered out
     },
     "smartrecruiters": {},
 }
 
-# Every WWR programming category — these feeds are the single best source of
-# genuinely worldwide remote roles, and they cost nothing.
+# The feeds are the single best source of genuinely worldwide remote roles, and
+# they cost nothing. remotive/jobicy/himalayas are also the ONLY free source that
+# reports pay, which is what makes min_comp_usd below do anything at all.
 FEEDS = {
     "remoteok": {"enabled": True},
     "wwr": {"enabled": True, "categories": [
@@ -77,6 +86,9 @@ FEEDS = {
         "remote-back-end-programming-jobs",
         "remote-full-stack-programming-jobs",
     ]},
+    "remotive": {"enabled": True},
+    "jobicy": {"enabled": True, "count": 50},
+    "himalayas": {"enabled": True, "pages": 15},   # unfiltered API: low yield/page
 }
 
 SETTINGS = {

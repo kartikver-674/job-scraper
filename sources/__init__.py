@@ -14,7 +14,16 @@ Self-check:
 from . import ats, feeds
 
 # A feed adapter is (cfg, keep_title, keep_location) -> [row].
-FEED_FETCHERS = {"remoteok": feeds.remoteok, "wwr": feeds.wwr}
+# Probed and REJECTED, so nobody re-adds it: arbeitnow.com — 100 jobs returned
+# 5 remote, of which 1 was dev-titled and that one was onsite in Nuremberg. A
+# German-market board; ~1% yield for this search.
+FEED_FETCHERS = {
+    "remoteok": feeds.remoteok,
+    "wwr": feeds.wwr,
+    "remotive": feeds.remotive,
+    "jobicy": feeds.jobicy,
+    "himalayas": feeds.himalayas,
+}
 
 
 def fetch_free(ats_boards, feed_cfg, keep_title, keep_location, is_home=None,

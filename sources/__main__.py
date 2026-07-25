@@ -61,20 +61,30 @@ def offline():
 
 
 def live():
+    """One real request per ATS platform and per feed."""
     probe = {"greenhouse": {"postman": "Postman"}, "lever": {"cred": "CRED"},
              "ashby": {"linear": "Linear"}, "smartrecruiters": {"BoschGroup": "Bosch"}}
-    rows = fetch_free(probe, {"remoteok": {"enabled": True},
-                             "wwr": {"enabled": True,
-                                     "categories": ["remote-programming-jobs"]}},
-                      YES, YES)
+    feed_cfg = {"remoteok": {"enabled": True},
+                "wwr": {"enabled": True, "categories": ["remote-programming-jobs"]},
+                "remotive": {"enabled": True},
+                "jobicy": {"enabled": True, "count": 20},
+                "himalayas": {"enabled": True, "pages": 1}}
+    rows = fetch_free(probe, feed_cfg, YES, YES)
     by_source = {}
     for r in rows:
         by_source[r["Source"].split(":")[0]] = by_source.get(r["Source"].split(":")[0], 0) + 1
     print(f"\nlive: {len(rows)} rows {by_source}")
-    assert len(by_source) == 6, f"a source returned nothing: {by_source}"
+    expected = set(probe) | set(feed_cfg)
+    missing = expected - set(by_source)
+    assert not missing, f"these sources returned nothing: {sorted(missing)}"
     blank = [r for r in rows if not r["Title"] or not r["Job URL"]]
     assert not blank, f"{len(blank)} rows missing title/url, e.g. {blank[0]}"
-    print("live ok")
+    # The structured feeds are the only free source of pay data — if none of
+    # them reports a salary, a field name has drifted and the pay filter is
+    # quietly filtering nothing.
+    paid = [r for r in rows if r["Salary"]]
+    assert paid, "no source reported pay; check the salary field maps in feeds.py"
+    print(f"live ok ({len(paid)} rows with pay)")
 
 
 if __name__ == "__main__":
