@@ -20,6 +20,11 @@ Sections below:
     2. SITES    — which boards to scrape (toggle here)
     3. SCORING  — resume-based relevance weights, full-stack bonus, exclude/down-rank
     4. SETTINGS — filtering thresholds, cost guards, output knobs
+    5. PROFILES — named overlays, so one scraper serves several people/searches
+
+Everything here is the DEFAULT profile. To run a different search without
+editing this file, put the keys you want to change in profiles/<name>.py and run
+`python scraper.py --profile <name>` — see section 5.
 """
 
 # ===========================================================================
@@ -68,8 +73,16 @@ SITES = {
     # LinkedIn is cheap (~$0.001/result) but needs a numeric geoId for location
     # (see LINKEDIN_GEO_IDS). "Delhi / NCR" isn't a LinkedIn geo; use "India" for
     # broad coverage or a specific city.
+    # remote_geo: which region a bare "Remote" location means. LinkedIn's f_WT=2
+    # filters workplace type WITHIN a geography — there is no worldwide remote
+    # search — so this has to be stated. It was hardcoded to India in the adapter,
+    # which silently made every remote sweep an India-remote sweep.
+    # remote_only: add f_WT=2 to EVERY search, so a list of countries becomes a
+    # list of remote-in-that-country searches. That is how a global remote sweep
+    # is expressed (see profiles/global_remote.py).
     "linkedin": {"enabled": True,  "actor": "curious_coder/linkedin-jobs-scraper",
-                 "locations": ["India", "Remote"]},
+                 "locations": ["India", "Remote"],
+                 "remote_geo": "India", "remote_only": False},
     "indeed":   {"enabled": True,  "actor": "misceres/indeed-scraper"},
     # Naukri has a ~$0.50 MINIMUM charge per run, so pulling only a few results is
     # wasteful. results_per_run overrides SEARCH["max_results"] to pull more per
@@ -82,61 +95,138 @@ SITES = {
                  "locations": ["Delhi / NCR", "Remote"]},
 }
 
-# LinkedIn job search filters by numeric geoId, not city name (a bare location name
-# is ignored → US results). "Remote" is special-cased in the adapter (f_WT=2).
+# LinkedIn job search filters by a numeric geoId, not a place name. A missing or
+# wrong geoId is NOT a soft failure: LinkedIn ignores the free-text location and
+# returns US results, so you pay full price for the wrong country. The adapter
+# therefore REFUSES to build a LinkedIn search with no geoId rather than guessing.
+#
+# Check any entry (or a raw id) for free, no auth, against LinkedIn's public
+# guest search — it reports where the jobs it returns actually are:
+#     python verify_geoids.py
+#     python verify_geoids.py 103644278
+#
 # NOTE: the actor requires count >= 10 per run.
-# VERIFIED (tested, return correct-location jobs): India, Delhi.
-# UNVERIFIED (best-effort — confirm by opening a LinkedIn jobs search in the browser
-# and copying geoId from the URL before relying on them):
 LINKEDIN_GEO_IDS = {
-    "India": "102713980",      # verified
-    "Delhi": "106187582",      # verified
-    "New Delhi": "106164932",  # unverified
-    "Gurgaon": "115884833", "Gurugram": "115884833",  # unverified
-    "Noida": "105598789",      # unverified
-    "Bengaluru": "105214831",  # unverified
-    "Hyderabad": "105556991",  # unverified
-    "Pune": "114806696",       # unverified
-    "Mumbai": "106164952",     # unverified
+    # --- countries, all VERIFIED 2026-07-26 via verify_geoids.py --------------
+    "United States": "103644278", "United Kingdom": "101165590",
+    "Canada": "101174742", "Ireland": "104738515",
+    "Germany": "101282230", "Netherlands": "102890719",
+    "France": "105015875", "Spain": "105646813", "Portugal": "100364837",
+    "Poland": "105072130", "Sweden": "105117694", "Switzerland": "106693272",
+    "Australia": "101452733", "New Zealand": "105490917",
+    "Singapore": "102454443", "United Arab Emirates": "104305776",
+    "Japan": "101355337", "Brazil": "106057199", "Mexico": "103323778",
+    "South Africa": "104035573",
+    "India": "102713980",
+
+    # --- Indian cities, all VERIFIED 2026-07-26 ------------------------------
+    "Delhi": "106187582",
+    "Gurgaon": "115884833", "Gurugram": "115884833",   # LinkedIn labels it Gurugram
+    "Bengaluru": "105214831",
+    "Hyderabad": "105556991",
+    "Pune": "114806696",
+    "Mumbai": "106164952",
+
+    # REMOVED after verification — left here so nobody re-adds them:
+    #   "New Delhi": "106164932"  -> returns Inner Mongolia, CHINA. Use "Delhi".
+    #   "Noida":     "105598789"  -> returns no job cards at all.
+    # Both were previously marked "unverified" and would have been billed in full.
 }
 
 # ---------------------------------------------------------------------------
-# Company career sites via ATS APIs (free — no Apify, no per-result cost)
+# FREE sources: company career boards (ATS) + public remote-job feeds
 # ---------------------------------------------------------------------------
-# Most companies host jobs on an ATS with a free public JSON API. Add companies
-# as {board_token: "Display Name"}. Find the token from the careers URL, e.g.
-#   boards.greenhouse.io/<token>   ->  GREENHOUSE_COMPANIES
-#   jobs.lever.co/<token>          ->  LEVER_COMPANIES
-# Only tokens that actually resolve are kept (verified by probing). ATS results
-# are filtered to India-relevant locations via INDIA_LOCATION_HINTS below.
-# Verified 2026-07-21 (tokens resolve + have India jobs). Add more freely.
-GREENHOUSE_COMPANIES = {
-    "phonepe": "PhonePe",
-    "groww": "Groww",
-    "postman": "Postman",
-    "druva": "Druva",
-    "slice": "Slice",
-}
-LEVER_COMPANIES = {
-    "paytm": "Paytm",
-    "meesho": "Meesho",
-    "mindtickle": "Mindtickle",
-    "hevodata": "Hevo Data",
-    "zeta": "Zeta",
-    "fampay": "FamPay",
-    "cred": "CRED",
+# No Apify, no per-result cost, stdlib HTTP only. These are the cheapest way to
+# widen coverage, so add liberally.
+#
+# ATS_BOARDS: {platform: {board_token: "Display Name"}}. The platform must have
+# an adapter in sources/ats.py's ATS table (adding one there is a dict entry).
+# Find a token from the careers URL:
+#   boards.greenhouse.io/<token>        -> greenhouse
+#   jobs.lever.co/<token>               -> lever
+#   jobs.ashbyhq.com/<token>            -> ashby
+#   careers.smartrecruiters.com/<Token> -> smartrecruiters  (case-sensitive)
+# Every token below was probed and resolves (2026-07-25).
+ATS_BOARDS = {
+    "greenhouse": {
+        "phonepe": "PhonePe", "groww": "Groww", "postman": "Postman",
+        "druva": "Druva", "slice": "Slice",
+    },
+    "lever": {
+        "paytm": "Paytm", "meesho": "Meesho", "mindtickle": "Mindtickle",
+        "hevodata": "Hevo Data", "zeta": "Zeta", "fampay": "FamPay",
+        "cred": "CRED",
+    },
+    # Global companies WITH an India presence — the combination that makes
+    # SETTINGS["keep_restricted_if_hires_home"] pay off, since their geo-locked
+    # remote roles become reachable. India-job counts probed 2026-07-26.
+    "greenhouse": {
+        "phonepe": "PhonePe", "groww": "Groww", "postman": "Postman",
+        "druva": "Druva", "slice": "Slice",
+        "gitlab": "GitLab",           # 30/187 India — an all-remote company
+        "databricks": "Databricks",   # 76/800
+        "twilio": "Twilio",           # 25/183
+        "mongodb": "MongoDB",         # 17/401
+        "elastic": "Elastic",         # 16/204
+        "datadog": "Datadog",         #  9/418
+        "cloudflare": "Cloudflare",   #  3/271
+        "stripe": "Stripe",           # 40/536, 121 dev roles
+        "netradyne": "Netradyne",     # 40/53 — India-heavy
+        "figma": "Figma",             #  3/174
+    },
+    # Probed 2026-07-26 and NOT resolvable, so nobody burns time re-trying:
+    # razorpay, zerodha, dream11, sharechat, unacademy, swiggy, zomato, flipkart,
+    # myntra, nykaa, lenskart, browserstack, chargebee, innovaccer, whatfix,
+    # moengage, hasura, atlan, upstox, cars24, zepto, porter, rapido, sprinklr,
+    # jupiter, navi, khatabook, smallcase, cleartax, scaler, turing, deel,
+    # posthog, replit and ~25 more. Only 5 of 61 candidates resolved: most Indian
+    # employers don't expose a public ATS API, they hire via Naukri or a custom
+    # portal. Free ATS expansion has hit diminishing returns.
+    "ashby": {
+        "linear": "Linear", "ramp": "Ramp", "openai": "OpenAI",
+        "notion": "Notion",           #  5/127
+    },
+    "smartrecruiters": {},   # e.g. {"BoschGroup": "Bosch"}
 }
 
-# Keep an ATS job if its location mentions any of these (empty location is kept).
-INDIA_LOCATION_HINTS = [
+# Public remote-job feeds. No auth, no cost. Adapters live in sources/feeds.py
+# (registered in sources.FEED_FETCHERS). The three structured JSON feeds below
+# are the only free source that reports PAY — the ATS boards never do.
+FEEDS = {
+    "remoteok": {"enabled": True},
+    "wwr": {"enabled": True, "categories": [
+        "remote-programming-jobs",
+        "remote-front-end-programming-jobs",
+        "remote-back-end-programming-jobs",
+        "remote-full-stack-programming-jobs",
+    ]},
+    "remotive": {"enabled": True},
+    "jobicy": {"enabled": True, "count": 50},
+    # No category filter exists on this API, so it pages blind through ~96k
+    # mostly non-engineering jobs at 20 a time. Worth it for the exact UTC
+    # offsets it reports, but raise `pages` only if you want the requests.
+    "himalayas": {"enabled": True, "pages": 10},
+}
+
+# Keep a free-source job only if its location mentions one of these.
+# EMPTY = allow every location, which is the right default now that the target
+# is international remote — remote/visa/comp filters do the narrowing instead of
+# a country whitelist. An empty job location is always kept.
+# To go back to India-only, copy HOME_LOCATION_HINTS below into this list.
+LOCATION_HINTS = []
+
+# Where YOU are. Not a filter — this is how a company board is checked for
+# whether the employer hires in your country at all
+# (SETTINGS["keep_restricted_if_hires_home"]).
+HOME_LOCATION_HINTS = [
     "india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "bengaluru",
     "bangalore", "hyderabad", "pune", "mumbai", "chennai", "kolkata",
-    "ahmedabad", "remote",
+    "ahmedabad",
 ]
 
-# ATS APIs return a company's ENTIRE job list (finance, ops, HR, ...), so unlike
-# job boards we can't keyword-search. Keep only jobs whose TITLE looks like a
-# software/dev role (case-insensitive substring). Scoring then ranks within these.
+# Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
+# we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
+# role (case-insensitive substring). Scoring then ranks within these.
 ATS_TITLE_HINTS = [
     "developer", "full stack", "fullstack", "full-stack", "frontend", "front end",
     "front-end", "backend", "back end", "back-end", "software engineer",
@@ -215,16 +305,31 @@ SCORING = {
         "lightning web component": -12, "crm developer": -12, "crm": -6,
     },
 
-    # -- Hard filters (wrong seniority / too much experience) -----------------
-    # If any drop_term appears in the TITLE, the job is removed entirely (unless
-    # SETTINGS["drop_excluded"] is False, in which case drop_penalty is applied
-    # instead). Over-experience is detected separately from the text (see
-    # SETTINGS["max_experience_years"]).
-    "drop_terms": [
-        "senior", "sr", "lead", "principal", "staff",
-        "manager", "architect",
+    # -- Seniority filters ----------------------------------------------------
+    # Two tiers, because a job TITLE is a label and not a requirement. The real
+    # experience gate is SETTINGS["max_experience_years"], which reads the years
+    # actually demanded by the text; these lists only handle the title.
+    #
+    # hard_drop_terms: never a fit at this experience level whatever the JD says.
+    # Removed entirely (or penalized, if SETTINGS["drop_excluded"] is False).
+    "hard_drop_terms": [
+        "principal", "staff", "manager", "architect", "director",
+        "head of", "vp", "chief",
     ],
-    "drop_penalty": -15,   # used only when drop_excluded is False
+    # soft_drop_terms: usually inflated titling, especially in international
+    # remote, where "Senior" routinely means 3-4 years. NEVER dropped — only
+    # down-ranked, so max_experience_years decides on the stated requirement
+    # instead. Measured on a live sweep: hard-dropping these deleted 13 of 28
+    # reachable remote roles whose JDs asked for <= 3 years (Twilio, Datadog,
+    # Proxify, Lemon.io, A.Team).
+    "soft_drop_terms": ["senior", "sr", "lead"],
+
+    "drop_penalty": -15,   # hard drops, when drop_excluded is False
+    "soft_penalty": -4,    # soft title match: sinks it, never removes it
+
+    # Per hour of timezone gap beyond enrich.TZ_FREE_HOURS. Down-ranks rather
+    # than drops, because a wide gap is a cost to weigh, not a disqualifier.
+    "timezone_gap_penalty": -1.5,
 }
 
 
@@ -239,8 +344,43 @@ SETTINGS = {
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
     "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
-    "min_ctc_lpa": 5.2,          # if a job's MAX salary is DISCLOSED and below this (in LPA), drop it.
-                                 # Undisclosed/unparseable salary is always kept. None to disable.
+    # Minimum compensation, annualized and in USD, so an Indian LPA figure and a
+    # US/EU salary are compared on the same axis (see scraper.comp_max_usd).
+    # 6000 USD ~= the old 5.2 LPA floor. Undisclosed, unparseable, or
+    # unknown-currency pay is always KEPT — we never drop on a guess.
+    # Raise this to ~40000+ once the sweep is weighted toward international remote.
+    "min_comp_usd": 6000,        # None to disable
+
+    # International-remote filters, from the signals enrich.py reads out of the
+    # job text (visible as the remote_scope / visa / eor / timezones columns
+    # whether or not you filter on them). ALL DEFAULT TO OFF: these read messy
+    # prose, so a blank signal means "the posting didn't say", never "no", and
+    # switching one on WILL drop jobs that simply forgot to mention it.
+    #
+    # remote_scopes: keep only these scopes. Values, most to least reachable:
+    #   "worldwide"  explicitly hire from anywhere
+    #   "remote"     remote, no geography stated
+    #   "restricted" remote but geo-locked (check the remote_regions column)
+    #   "hybrid" / "onsite" / "" (not stated)
+    # For remote roles workable from India, start with ["worldwide", "remote"].
+    "remote_scopes": None,       # e.g. ["worldwide", "remote", "restricted"]
+    "drop_no_visa": False,       # drop only jobs that EXPLICITLY refuse to sponsor
+    "require_eor": False,        # keep only jobs naming an employer-of-record path
+
+    # Rescue geo-locked roles at employers who demonstrably hire where you are.
+    # A company posting ANY job in HOME_LOCATION_HINTS has an entity or EOR there,
+    # so its "US Remote" listing is worth an application; one with none is a dead
+    # end whatever the wording. Measured: Postman 12/114 India jobs, OpenAI 9/753,
+    # Druva 11/31 -> yes. Linear 0/25, Ramp 0/118 -> no. Costs nothing: those rows
+    # are already fetched. Only ATS boards can answer it (a feed gives us no
+    # company board), so feed rows are always "" and never rescued.
+    "keep_restricted_if_hires_home": True,
+
+    # Timezone distance from home, used to down-rank roles you couldn't sustain.
+    # 5.5 = IST. Gaps up to enrich.TZ_FREE_HOURS (5h) are free; beyond that each
+    # hour costs SCORING["timezone_gap_penalty"]. IST->CET is 4.5h (fine),
+    # IST->US-Pacific is 13.5h (why so many US companies won't hire from India).
+    "home_utc_offset": 5.5,      # None to skip timezone scoring entirely
 
     # Cost guards ("prove it cheaply first")
     # NOTE: misceres/indeed-scraper measured at ~$0.03 per 5 results (~$5 / 1000
@@ -260,3 +400,132 @@ SETTINGS = {
                                  # boilerplate). Description isn't an output column — this
                                  # only bounds pathological sizes, it doesn't limit scoring.
 }
+
+
+# ===========================================================================
+# 5. PROFILES — named overlays so one scraper serves several people/searches
+# ===========================================================================
+# A profile is profiles/<name>.py defining ONLY the keys it wants to change:
+#
+#     SEARCH   = {"role_keywords": [...], "locations": [...]}
+#     SETTINGS = {"remote_scopes": ["worldwide", "remote"]}
+#
+# Merge is one level deep: each top-level dict is .update()d, so a profile that
+# sets SCORING["skill_weights"] replaces the whole stack while leaving
+# penalty_terms alone. That is almost always what you want — a different person
+# has a different stack, not extra terms bolted onto this one.
+#
+# Named profiles also get their own output/<name>/ directory, so two people's
+# sweeps stop landing in the same folder (which is why output/ currently has
+# hand-made archive-* subdirectories). The default profile keeps plain output/,
+# so existing tooling and auto-apply/ are unaffected.
+#
+#     python scraper.py --profile srishti
+#     JOB_PROFILE=srishti python scraper.py        # equivalent
+#
+# NOTE: the name is read HERE, at config import time, straight from sys.argv —
+# not from parsed arguments. scraper.py precompiles its regex tables from SCORING
+# at module level, so a profile applied any later would be silently ignored by
+# the scoring layer. That is the one thing about this design worth remembering.
+import os
+import sys
+
+OVERLAYABLE = ("SEARCH", "SITES", "SCORING", "SETTINGS", "ATS_BOARDS", "FEEDS")
+
+
+def _selected_profile(argv=None, env=None):
+    """Profile name from --profile NAME / --profile=NAME, else $JOB_PROFILE."""
+    argv = sys.argv if argv is None else argv
+    env = os.environ if env is None else env
+    for i, arg in enumerate(argv):
+        if arg == "--profile" and i + 1 < len(argv):
+            return argv[i + 1]
+        if arg.startswith("--profile="):
+            return arg.split("=", 1)[1]
+    return env.get("JOB_PROFILE") or ""
+
+
+def _overlay(module, target=None):
+    """Apply one profile module's dicts onto the config globals. Returns the
+    names it changed, for the run banner.
+
+    A profile that OMITS a name inherits it. A profile that sets it to {} clears
+    it — that is how a section is switched off. Those two cases have to be
+    distinguished by presence, not truthiness: skipping falsy overrides meant
+    `FEEDS = {}` silently inherited every default feed instead of disabling them,
+    and a profile ran 28 sources it had explicitly opted out of.
+    """
+    target = globals() if target is None else target
+    changed = []
+    for name in OVERLAYABLE:
+        if not hasattr(module, name):
+            continue
+        override = getattr(module, name)
+        if override:
+            target[name].update(override)
+        else:
+            target[name].clear()
+        changed.append(name)
+    return changed
+
+
+PROFILE = _selected_profile()
+PROFILE_CHANGED = []
+if PROFILE:
+    import importlib
+    try:
+        _module = importlib.import_module(f"profiles.{PROFILE}")
+    except ImportError as exc:
+        # Loud, not silent: falling back to the default profile would quietly run
+        # someone else's search and cost real money doing it.
+        _available = sorted(
+            f.removesuffix(".py")
+            for f in os.listdir(os.path.join(os.path.dirname(__file__), "profiles"))
+            if f.endswith(".py") and not f.startswith("_"))
+        sys.exit(f"Unknown profile '{PROFILE}' ({exc}). "
+                 f"Available: {', '.join(_available) or '(none)'}")
+    PROFILE_CHANGED = _overlay(_module)
+    # Keep each person's sweeps apart unless the profile picks its own directory.
+    if "SETTINGS" not in PROFILE_CHANGED or "output_dir" not in getattr(_module, "SETTINGS", {}):
+        SETTINGS["output_dir"] = os.path.join("output", PROFILE)
+
+
+def demo():
+    """Self-check for the overlay rules. `python config.py` — offline."""
+    assert _selected_profile(["scraper.py"], {}) == ""
+    assert _selected_profile(["s", "--profile", "bob"], {}) == "bob"
+    assert _selected_profile(["s", "--profile=bob"], {}) == "bob"
+    assert _selected_profile(["s"], {"JOB_PROFILE": "bob"}) == "bob"
+    assert _selected_profile(["s", "--profile", "bob"], {"JOB_PROFILE": "eve"}) == "bob"
+    assert _selected_profile(["s", "--profile"], {}) == ""       # no value, no crash
+
+    # One level deep: the named sub-dict is REPLACED, its siblings survive.
+    class Fake:
+        SCORING = {"skill_weights": {"go": 9}}
+        SETTINGS = {"min_comp_usd": 40000}
+    target = {"SCORING": {"skill_weights": {"react": 5}, "penalty_terms": {"php": -6}},
+              "SETTINGS": {"min_comp_usd": 6000, "max_age_days": 14},
+              "SEARCH": {}, "SITES": {}, "ATS_BOARDS": {}, "FEEDS": {}}
+    changed = _overlay(Fake, target)
+    assert target["SCORING"]["skill_weights"] == {"go": 9}         # replaced
+    assert target["SCORING"]["penalty_terms"] == {"php": -6}       # untouched sibling
+    assert target["SETTINGS"] == {"min_comp_usd": 40000, "max_age_days": 14}
+    assert sorted(changed) == ["SCORING", "SETTINGS"]
+
+    # Omitted = inherit, {} = switch off. Distinguished by presence, not
+    # truthiness — treating {} as "nothing to do" made a profile silently run
+    # every source it had opted out of.
+    class Off:
+        FEEDS = {}
+    target = {"SEARCH": {}, "SITES": {}, "SCORING": {}, "SETTINGS": {},
+              "ATS_BOARDS": {"greenhouse": {"x": "X"}},
+              "FEEDS": {"wwr": {"enabled": True}}}
+    changed = _overlay(Off, target)
+    assert target["FEEDS"] == {}, target["FEEDS"]                  # cleared
+    assert target["ATS_BOARDS"] == {"greenhouse": {"x": "X"}}      # omitted -> kept
+    assert changed == ["FEEDS"]
+    print(f"demo ok (active profile: {PROFILE or 'default'})")
+
+
+if __name__ == "__main__":
+    demo()
