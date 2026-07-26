@@ -816,13 +816,19 @@ def finalize(raw_rows):
         def reachable(row):
             if row.get("remote_scope") in SETTINGS["remote_scopes"]:
                 return True
-            # A geo-locked role at an employer who demonstrably hires in your
-            # country is worth an application — they already have the entity or
-            # EOR that makes it possible. This is the rule that turns a pile of
-            # useless "restricted" rows into a usable shortlist.
-            return bool(SETTINGS["keep_restricted_if_hires_home"]
-                        and row.get("remote_scope") == "restricted"
-                        and row.get("hires_home") == "yes")
+            # Two kinds of geo-locked role are still worth an application:
+            #   - the employer demonstrably hires in your country (hires_home),
+            #     so the entity or EOR that makes it possible already exists;
+            #   - the lock is TO your country — a "remote within India" role is
+            #     the most reachable kind there is, and dropping it as "not
+            #     worldwide" is plainly wrong. This is not hypothetical: every
+            #     LinkedIn f_WT=2 row comes back located in its own country, so
+            #     without this the paid sweep discards what it paid to fetch.
+            if not SETTINGS["keep_restricted_if_hires_home"]:
+                return False
+            return bool(row.get("remote_scope") == "restricted"
+                        and (row.get("hires_home") == "yes"
+                             or is_home_location(row.get("remote_regions"))))
         ok = [r for r in scored if reachable(r)]
         rescued = sum(1 for r in ok if r.get("remote_scope") not in SETTINGS["remote_scopes"])
         unreachable = len(scored) - len(ok)
@@ -1043,6 +1049,16 @@ def demo():
         assert len(finalize([dict(base, Company="A", hires_home="yes")])) == 1
         assert len(finalize([dict(base, Company="B", hires_home="no")])) == 0
         assert len(finalize([dict(base, Company="C", hires_home="")])) == 0  # feeds
+        # ...or when the lock is TO home: "remote within India" is the most
+        # reachable role there is, whatever the employer's other postings say.
+        home = {"Title": "React Developer", "Description": "2 years experience.",
+                "Location": "Remote, India", "Company": "D", "hires_home": ""}
+        got = finalize([dict(home)])
+        assert len(got) == 1 and got[0]["remote_scope"] == "restricted", got
+        assert got[0]["remote_regions"] == "India", got
+        # A lock to somewhere else is still dropped.
+        away = dict(home, Location="Remote, Germany", Company="E")
+        assert len(finalize([dict(away)])) == 0, finalize([dict(away)])
         SETTINGS["keep_restricted_if_hires_home"] = False
         assert len(finalize([dict(base, Company="A", hires_home="yes")])) == 0
     finally:

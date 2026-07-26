@@ -14,7 +14,7 @@ import os
 import sys
 
 from config import SETTINGS
-from scraper import dedupe
+from scraper import OUTPUT_COLUMNS, dedupe
 
 # Honors --profile, so a merge can't silently pick up the default profile's files
 # while you're working on someone else's sweep.
@@ -24,6 +24,20 @@ OUT_DIR = SETTINGS["output_dir"]
 def merge_rows(rows):
     """Sort best-first, then drop duplicate postings (highest score wins)."""
     return dedupe(sorted(rows, key=lambda r: r.get("score", 0), reverse=True))
+
+
+def csv_columns(rows):
+    """Canonical column order, plus anything unexpected the rows happen to carry.
+
+    Derived from scraper.OUTPUT_COLUMNS rather than from rows[0], because a merge
+    spans files written at different times: an older sweep predates a column that
+    a newer one has, and keying off the first row alone made DictWriter raise
+    partway through — leaving a truncated jobs_combined.csv behind that looked
+    like a successful merge to everything downstream.
+    """
+    cols = list(OUTPUT_COLUMNS)
+    cols += [k for r in rows for k in r if k not in cols]
+    return cols
 
 
 def merge(files):
@@ -60,8 +74,11 @@ if __name__ == "__main__":
         json.dump(merged, fh, indent=2, ensure_ascii=False)
     with open(csv_path, "w", newline="") as fh:
         if merged:
-            w = csv.DictWriter(fh, fieldnames=list(merged[0].keys()))
+            w = csv.DictWriter(fh, fieldnames=csv_columns(merged))
             w.writeheader()
-            w.writerows(merged)
+            # Fill per row: files written before a column existed simply lack the
+            # key, and DictWriter raises on a missing fieldname.
+            cols = csv_columns(merged)
+            w.writerows({c: r.get(c, "") for c in cols} for r in merged)
     print(f"Merged {len(files)} files -> {len(merged)} unique jobs (ranked by score)")
     print(f"  {json_path}\n  {csv_path}")
