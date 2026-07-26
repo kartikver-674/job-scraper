@@ -702,6 +702,24 @@ def effective_search(site_key, search):
     return {**search, "max_results": per_run} if per_run is not None else search
 
 
+def remote_was_queried(site_key, search):
+    """True when the SEARCH ITSELF constrained results to remote roles.
+
+    Worth trusting over the text, because the text often doesn't say. Measured on
+    a real LinkedIn f_WT=2 sweep: of 76 rows, every one arrived located by city
+    ("Toronto, Ontario, Canada", "New York, NY") with no remote marker in the
+    data at all — the remoteness lived in the query. 22 of them classified as
+    "not stated" and would have been filtered out as non-remote despite being
+    exactly what we paid to ask for.
+
+    A literal "Remote" location means remote for every adapter: LinkedIn maps it
+    to f_WT=2, naukri to workMode=remote, indeed passes it as the location.
+    """
+    if (search.get("location") or "").strip().lower() == "remote":
+        return True
+    return site_key == "linkedin" and bool(SITES.get("linkedin", {}).get("remote_only"))
+
+
 def scrape_search(client, site_key, actor_id, search):
     """Run one actor and return (rows, cost_usd).
 
@@ -739,6 +757,13 @@ def scrape_search(client, site_key, actor_id, search):
         return [], cost
     rows = [normalize(item, site_key)
             for item in client.dataset(run.default_dataset_id).iterate_items()]
+    if remote_was_queried(site_key, search):
+        # Stamp what the query already guarantees, the same way the remote-only
+        # feeds do, so enrich sees it. Their own location text is kept because it
+        # still carries the SCOPE (a city means the remote role is locked to that
+        # country), which is the distinction that decides reachability.
+        for row in rows:
+            row["Location"] = (row["Location"] + ", Remote").strip(", ")
     return rows, cost
 
 
@@ -1063,6 +1088,28 @@ def demo():
         assert len(finalize([dict(base, Company="A", hires_home="yes")])) == 0
     finally:
         SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"] = orig
+
+    # A remote-constrained query must mark its rows, or they get filtered out as
+    # non-remote for not repeating in prose what the query already guaranteed.
+    assert remote_was_queried("linkedin", {"location": "Remote"})
+    assert remote_was_queried("naukri", {"location": "remote"})
+    assert not remote_was_queried("linkedin", {"location": "Germany"})
+    orig_flag = SITES.get("linkedin", {}).get("remote_only")
+    try:
+        SITES.setdefault("linkedin", {})["remote_only"] = True
+        assert remote_was_queried("linkedin", {"location": "Germany"})
+        assert not remote_was_queried("indeed", {"location": "Germany"})
+    finally:
+        SITES["linkedin"]["remote_only"] = orig_flag
+    # The stamp is what makes an India-locked remote row survive: city location
+    # alone reads as "not stated" and is dropped.
+    plain = enrich.enrich({"Location": "Bengaluru, Karnataka, India",
+                           "Title": "React Developer", "Description": "Build UIs."})
+    stamped = enrich.enrich({"Location": "Bengaluru, Karnataka, India, Remote",
+                             "Title": "React Developer", "Description": "Build UIs."})
+    assert plain["remote_scope"] == "", plain
+    assert stamped["remote_scope"] == "restricted", stamped
+    assert stamped["remote_regions"] == "India", stamped
 
     # LinkedIn URLs: never guess a geography, because a wrong one bills full
     # price for US results. Raising happens before any actor starts, so it's free.
