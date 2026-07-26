@@ -702,6 +702,22 @@ def effective_search(site_key, search):
     return {**search, "max_results": per_run} if per_run is not None else search
 
 
+def account_usage_usd(client):
+    """Real month-to-date spend on the account, or None if it can't be read.
+
+    The authoritative number. run.usage_total_usd — what the actor reports for
+    its own run — UNDERCOUNTS: a measured 84-run sweep self-reported $0.53 while
+    the account actually moved $1.61, so a spend cap built on the self-report
+    would have let roughly 3x through before stopping. Platform usage beyond the
+    actor's own accounting is evidently not included in it.
+    """
+    try:
+        current = client.user().limits().model_dump().get("current") or {}
+        return float(current.get("monthly_usage_usd") or 0)
+    except Exception:
+        return None
+
+
 def remote_was_queried(site_key, search):
     """True when the SEARCH ITSELF constrained results to remote roles.
 
@@ -1278,6 +1294,14 @@ def main():
     if plans:
         from apify_client import ApifyClient
         client = ApifyClient(_require_token())
+        # Month-to-date spend BEFORE this sweep. Everything below measures
+        # against the account rather than the actors' self-reports, so the cap
+        # counts money that actually left. Falls back to summing usage_total_usd
+        # if the account can't be read — better an undercount than no guard.
+        baseline = account_usage_usd(client)
+        if baseline is None:
+            print("  (could not read account usage — spend cap falls back to the "
+                  "actor self-report, which undercounts)")
         stopped_early = False
         for site_key, plan in plans.items():
             if stopped_early:
@@ -1296,18 +1320,20 @@ def main():
                     break
                 try:
                     rows, cost = scrape_search(client, site_key, actor_id, search)
-                    spent += cost
+                    actual = account_usage_usd(client) if baseline is not None else None
+                    spent = actual - baseline if actual is not None else spent + cost
                     raw_rows.extend(rows)
                     emit(raw_rows)                                # checkpoint
                     with open(done_path, "a") as fh:                        # mark done
                         fh.write(combo_key + "\n")
                     done.add(combo_key)
                     print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
-                          f"(${cost:.3f}, ${spent:.2f} total)")
+                          f"(${cost:.3f} actor, ${spent:.2f} billed)")
                 except Exception as exc:  # isolate failures per search
                     failures.append((site_key, label, str(exc)))
                     print(f"  [{i}/{len(plan)}] {label:<46} ! {exc}")
-        print(f"\nTotal Apify spend this run: ${spent:.2f}")
+        print(f"\nTotal Apify spend this run: ${spent:.2f}"
+              + ("" if baseline is None else "  (billed to the account, not self-reported)"))
         # Per-search try/except means a sweep can fail almost entirely and still
         # exit 0 with a normal-looking summary — the usual cause is an Apify
         # account hitting "Monthly usage hard limit exceeded" partway through, which

@@ -63,13 +63,33 @@ if __name__ == "__main__":
     if "--demo" in sys.argv:
         demo()
         sys.exit()
-    files = [f for f in sorted(glob.glob(os.path.join(OUT_DIR, "jobs_*.json")))
-             if "combined" not in f]
+    # --all spans every profile directory as well as output/ itself, so one
+    # shortlist can cover several sweeps. Dedupe is by company+title, so the same
+    # posting found by two profiles collapses to its highest-scoring copy.
+    if "--all" in sys.argv:
+        # archive-* is skipped deliberately. Those directories hold finished
+        # sweeps — including OTHER PEOPLE's searches — scored under whatever
+        # config was current at the time. Merging them put another person's
+        # Salesforce roles at the top of a shortlist that explicitly penalizes
+        # Salesforce, because merge reuses stored scores and cannot re-score
+        # (the description isn't kept in the output rows). Move a directory to
+        # archive-<name>/ when you want it out of --all.
+        roots = ["output"] + sorted(
+            d for d in glob.glob(os.path.join("output", "*"))
+            if os.path.isdir(d) and not os.path.basename(d).startswith("archive"))
+        out_dir = "output"
+        out_name = "jobs_all"
+    else:
+        roots, out_dir, out_name = [OUT_DIR], OUT_DIR, "jobs_combined"
+
+    files = [f for r in roots
+             for f in sorted(glob.glob(os.path.join(r, "jobs_*.json")))
+             if "combined" not in f and "jobs_all" not in f]
     if not files:
-        sys.exit("No output/jobs_*.json files to merge.")
+        sys.exit(f"No jobs_*.json files to merge under {', '.join(roots)}.")
     merged = merge(files)
-    json_path = os.path.join(OUT_DIR, "jobs_combined.json")
-    csv_path = os.path.join(OUT_DIR, "jobs_combined.csv")
+    json_path = os.path.join(out_dir, f"{out_name}.json")
+    csv_path = os.path.join(out_dir, f"{out_name}.csv")
     with open(json_path, "w") as fh:
         json.dump(merged, fh, indent=2, ensure_ascii=False)
     with open(csv_path, "w", newline="") as fh:
