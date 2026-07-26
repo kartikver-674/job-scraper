@@ -170,7 +170,18 @@ ATS_BOARDS = {
         "elastic": "Elastic",         # 16/204
         "datadog": "Datadog",         #  9/418
         "cloudflare": "Cloudflare",   #  3/271
+        "stripe": "Stripe",           # 40/536, 121 dev roles
+        "netradyne": "Netradyne",     # 40/53 — India-heavy
+        "figma": "Figma",             #  3/174
     },
+    # Probed 2026-07-26 and NOT resolvable, so nobody burns time re-trying:
+    # razorpay, zerodha, dream11, sharechat, unacademy, swiggy, zomato, flipkart,
+    # myntra, nykaa, lenskart, browserstack, chargebee, innovaccer, whatfix,
+    # moengage, hasura, atlan, upstox, cars24, zepto, porter, rapido, sprinklr,
+    # jupiter, navi, khatabook, smallcase, cleartax, scaler, turing, deel,
+    # posthog, replit and ~25 more. Only 5 of 61 candidates resolved: most Indian
+    # employers don't expose a public ATS API, they hire via Naukri or a custom
+    # portal. Free ATS expansion has hit diminishing returns.
     "ashby": {
         "linear": "Linear", "ramp": "Ramp", "openai": "OpenAI",
         "notion": "Notion",           #  5/127

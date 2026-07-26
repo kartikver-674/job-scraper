@@ -78,7 +78,14 @@ ATS_BOARDS = {
 }
 
 SETTINGS = {
-    "remote_scopes": ["worldwide", "remote"],
+    # "restricted" is INCLUDED here, unlike remote_intl. This profile exists to
+    # buy LinkedIn's cross-border remote inventory, and measurement showed every
+    # f_WT=2 row arrives located by city — so it all classifies as geo-locked.
+    # Filtering to worldwide/remote threw away 54 of 76 paid rows and produced a
+    # single job. Keep them and let the remote_regions and tz_gap columns say
+    # where each one is locked and how far the timezone is, rather than deleting
+    # what was just paid for. Read those columns; don't just read the score.
+    "remote_scopes": ["worldwide", "remote", "restricted"],
     "min_comp_usd": 30000,
     "max_age_days": 21,
     "top_n_console": 25,
