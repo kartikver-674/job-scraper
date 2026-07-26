@@ -73,8 +73,16 @@ SITES = {
     # LinkedIn is cheap (~$0.001/result) but needs a numeric geoId for location
     # (see LINKEDIN_GEO_IDS). "Delhi / NCR" isn't a LinkedIn geo; use "India" for
     # broad coverage or a specific city.
+    # remote_geo: which region a bare "Remote" location means. LinkedIn's f_WT=2
+    # filters workplace type WITHIN a geography — there is no worldwide remote
+    # search — so this has to be stated. It was hardcoded to India in the adapter,
+    # which silently made every remote sweep an India-remote sweep.
+    # remote_only: add f_WT=2 to EVERY search, so a list of countries becomes a
+    # list of remote-in-that-country searches. That is how a global remote sweep
+    # is expressed (see profiles/global_remote.py).
     "linkedin": {"enabled": True,  "actor": "curious_coder/linkedin-jobs-scraper",
-                 "locations": ["India", "Remote"]},
+                 "locations": ["India", "Remote"],
+                 "remote_geo": "India", "remote_only": False},
     "indeed":   {"enabled": True,  "actor": "misceres/indeed-scraper"},
     # Naukri has a ~$0.50 MINIMUM charge per run, so pulling only a few results is
     # wasteful. results_per_run overrides SEARCH["max_results"] to pull more per
@@ -87,22 +95,42 @@ SITES = {
                  "locations": ["Delhi / NCR", "Remote"]},
 }
 
-# LinkedIn job search filters by numeric geoId, not city name (a bare location name
-# is ignored → US results). "Remote" is special-cased in the adapter (f_WT=2).
+# LinkedIn job search filters by a numeric geoId, not a place name. A missing or
+# wrong geoId is NOT a soft failure: LinkedIn ignores the free-text location and
+# returns US results, so you pay full price for the wrong country. The adapter
+# therefore REFUSES to build a LinkedIn search with no geoId rather than guessing.
+#
+# Check any entry (or a raw id) for free, no auth, against LinkedIn's public
+# guest search — it reports where the jobs it returns actually are:
+#     python verify_geoids.py
+#     python verify_geoids.py 103644278
+#
 # NOTE: the actor requires count >= 10 per run.
-# VERIFIED (tested, return correct-location jobs): India, Delhi.
-# UNVERIFIED (best-effort — confirm by opening a LinkedIn jobs search in the browser
-# and copying geoId from the URL before relying on them):
 LINKEDIN_GEO_IDS = {
-    "India": "102713980",      # verified
-    "Delhi": "106187582",      # verified
-    "New Delhi": "106164932",  # unverified
-    "Gurgaon": "115884833", "Gurugram": "115884833",  # unverified
-    "Noida": "105598789",      # unverified
-    "Bengaluru": "105214831",  # unverified
-    "Hyderabad": "105556991",  # unverified
-    "Pune": "114806696",       # unverified
-    "Mumbai": "106164952",     # unverified
+    # --- countries, all VERIFIED 2026-07-26 via verify_geoids.py --------------
+    "United States": "103644278", "United Kingdom": "101165590",
+    "Canada": "101174742", "Ireland": "104738515",
+    "Germany": "101282230", "Netherlands": "102890719",
+    "France": "105015875", "Spain": "105646813", "Portugal": "100364837",
+    "Poland": "105072130", "Sweden": "105117694", "Switzerland": "106693272",
+    "Australia": "101452733", "New Zealand": "105490917",
+    "Singapore": "102454443", "United Arab Emirates": "104305776",
+    "Japan": "101355337", "Brazil": "106057199", "Mexico": "103323778",
+    "South Africa": "104035573",
+    "India": "102713980",
+
+    # --- Indian cities, all VERIFIED 2026-07-26 ------------------------------
+    "Delhi": "106187582",
+    "Gurgaon": "115884833", "Gurugram": "115884833",   # LinkedIn labels it Gurugram
+    "Bengaluru": "105214831",
+    "Hyderabad": "105556991",
+    "Pune": "114806696",
+    "Mumbai": "106164952",
+
+    # REMOVED after verification — left here so nobody re-adds them:
+    #   "New Delhi": "106164932"  -> returns Inner Mongolia, CHINA. Use "Delhi".
+    #   "Noida":     "105598789"  -> returns no job cards at all.
+    # Both were previously marked "unverified" and would have been billed in full.
 }
 
 # ---------------------------------------------------------------------------

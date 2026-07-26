@@ -544,21 +544,41 @@ def _linkedin_experience_code(years):
 
 
 def _build_linkedin_url(s):
-    # LinkedIn's job search honors a numeric geoId, NOT the free-text location
-    # (a bare "location=Delhi" is ignored and defaults to US results). Map the
-    # location name to a geoId via config.LINKEDIN_GEO_IDS.
+    """One LinkedIn jobs-search URL for a search combo.
+
+    Two things here cost money if got wrong, so neither is guessed:
+
+    1. LinkedIn honors a numeric geoId and IGNORES the free-text location, so an
+       unmapped place silently returns US results. This used to fall back to
+       `location=<name>`, which meant paying full price for the wrong country.
+       It now raises instead — before any actor is started, so nothing is spent.
+    2. f_WT=2 filters workplace type WITHIN a geography; it is not a worldwide
+       remote search. A bare "Remote" location therefore needs to be told which
+       region it means (SITES["linkedin"]["remote_geo"]). That was hardcoded to
+       India, which quietly turned every remote sweep into an India-remote sweep.
+       For a global sweep, list countries as locations and set remote_only.
+    """
+    cfg = SITES.get("linkedin", {})
     loc = (s.get("location") or "").strip()
-    params = {"keywords": s["keywords"]}
+    remote_only = bool(cfg.get("remote_only"))
     if loc.lower() == "remote":
-        # LinkedIn filters remote via f_WT=2 (workplace type), not location text.
-        params["geoId"] = LINKEDIN_GEO_IDS.get("India", "")
+        remote_only = True
+        loc = (cfg.get("remote_geo") or "").strip()
+        if not loc:
+            raise ValueError(
+                "linkedin: location 'Remote' needs SITES['linkedin']['remote_geo'] "
+                "to say WHICH region (f_WT=2 filters remote within a geography, it "
+                "is not a worldwide search).")
+    geo_id = LINKEDIN_GEO_IDS.get(loc)
+    if not geo_id:
+        raise ValueError(
+            f"linkedin: no geoId for '{loc}'. LinkedIn ignores a free-text location "
+            f"and returns US results, so this would spend money on the wrong "
+            f"country. Add it to config.LINKEDIN_GEO_IDS, then confirm it with "
+            f"`python verify_geoids.py`.")
+    params = {"keywords": s["keywords"], "geoId": geo_id}
+    if remote_only:
         params["f_WT"] = "2"
-    else:
-        geo_id = LINKEDIN_GEO_IDS.get(loc)
-        if geo_id:
-            params["geoId"] = geo_id
-        elif loc:
-            params["location"] = loc  # fallback (unreliable) if no geoId mapped
     code = _linkedin_experience_code(s.get("experience_years"))
     if code:
         params["f_E"] = code
@@ -1028,6 +1048,36 @@ def demo():
     finally:
         SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"] = orig
 
+    # LinkedIn URLs: never guess a geography, because a wrong one bills full
+    # price for US results. Raising happens before any actor starts, so it's free.
+    orig_li = dict(SITES.get("linkedin", {}))
+    try:
+        SITES.setdefault("linkedin", {}).update(remote_geo=None, remote_only=False)
+        url = _build_linkedin_url({"keywords": "react", "location": "Germany"})
+        assert "geoId=101282230" in url and "f_WT" not in url, url
+        # remote_only turns every country search into a remote-in-that-country one.
+        SITES["linkedin"]["remote_only"] = True
+        assert "f_WT=2" in _build_linkedin_url({"keywords": "react", "location": "Germany"})
+        # A bare "Remote" must say WHICH region — it used to silently mean India.
+        SITES["linkedin"]["remote_only"] = False
+        try:
+            _build_linkedin_url({"keywords": "react", "location": "Remote"})
+            raise AssertionError("bare 'Remote' with no remote_geo must raise")
+        except ValueError as exc:
+            assert "remote_geo" in str(exc)
+        SITES["linkedin"]["remote_geo"] = "Germany"
+        url = _build_linkedin_url({"keywords": "react", "location": "Remote"})
+        assert "geoId=101282230" in url and "f_WT=2" in url, url
+        # An unmapped place raises instead of falling back to free text.
+        for bad in ("Atlantis", "Bhutan"):
+            try:
+                _build_linkedin_url({"keywords": "react", "location": bad})
+                raise AssertionError(f"unmapped '{bad}' must raise, not guess")
+            except ValueError as exc:
+                assert "no geoId" in str(exc)
+    finally:
+        SITES["linkedin"] = orig_li
+
     # Seen ledger: the same posting from two sources must collapse to ONE key,
     # or --only-new would keep re-reporting it.
     assert _seen_key({"title": "Backend Engineer", "company": "Acme Ltd"}) == \
@@ -1093,6 +1143,21 @@ def main():
                     print(f"\n  {platform}: {', '.join(boards.values())}")
         print("\n(dry run — no actors executed)")
         return
+
+    # Preflight every planned search through its input adapter. build_input()
+    # raises on anything that would cost money and return the wrong data (an
+    # unmapped LinkedIn geoId being the expensive one), so surface it ONCE here
+    # rather than as N identical failures after N paid runs.
+    problems = {}
+    for site_key, plan in plans.items():
+        for search in plan:
+            try:
+                build_input(site_key, effective_search(site_key, search))
+            except ValueError as exc:
+                problems[str(exc)] = None      # dict = dedup, keeps order
+    if problems:
+        sys.exit("\n".join(["Refusing to run — these would spend money on bad data:", ""]
+                           + [f"  · {p}" for p in problems]))
 
     total_runs = sum(len(p) for p in plans.values())
     if (not args.yes and not args.test

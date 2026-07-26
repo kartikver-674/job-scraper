@@ -68,7 +68,40 @@ Related tools:
 python rescore_from_apify.py      # re-score already-paid runs against the current
                                   # config, for free -> output/jobs_combined.*
 python merge_jobs.py              # merge + dedupe every output/jobs_*.json
+python verify_geoids.py           # check every LinkedIn geoId is really that place
 ```
+
+## Paid sweeps and LinkedIn geoIds
+
+LinkedIn searches by numeric `geoId` and **ignores** a free-text location, so a
+wrong or missing one doesn't fail — it returns US results and bills you in full.
+Two consequences, both now enforced in code:
+
+- `_build_linkedin_url` **raises** on an unmapped location instead of falling
+  back to free text, and `main()` preflights every planned search through it
+  before the spend prompt, so bad config costs nothing to discover.
+- `f_WT=2` filters remote **within a geography** — there is no worldwide remote
+  search. A bare `"Remote"` location needs `SITES["linkedin"]["remote_geo"]` to
+  say which region; set `remote_only: True` to make a list of countries into a
+  list of remote-in-that-country searches.
+
+`verify_geoids.py` checks any id against LinkedIn's public guest search (no auth,
+free) by looking at where the returned jobs actually are. It found two bad
+entries already in this config: `New Delhi` pointed at **Inner Mongolia, China**,
+and `Noida` returned nothing. Run it before spending on any id you added.
+
+Rough costs, from this repo's measured rates (LinkedIn ~$0.001/result, Indeed
+~$0.005/result, Naukri ~$0.50 minimum **per run**):
+
+| Sweep | Results | Cost |
+|---|---|---|
+| `global_remote` as shipped (7 kw × 12 countries × 25) | 2,100 | **~$2.10** |
+| 9 kw × 20 countries × 50, LinkedIn | 9,000 | ~$9 |
+| 9 kw × 20 countries × 50, Indeed | 9,000 | ~$45 |
+
+Indeed is 5× the cost for the same volume and its coverage skews domestic and
+onsite, so `global_remote` leaves it off. `SETTINGS["max_spend_usd"]` stops
+launching new runs once a sweep hits the cap.
 
 ## Configure
 
