@@ -12,9 +12,12 @@ and only 4 were reachable from India. India-remote inventory, by contrast, is
 
 9 keywords x 1 location = 9 runs at the measured $0.013/run, so ~$0.12.
 
-Free sources are OFF here on purpose: this profile exists to fetch the paid
-inventory the free sweep can't see, and re-running 700 free rows would just
-duplicate what's already in output/remote_intl/. Merge the two for one shortlist.
+Free sources are INHERITED, not disabled. They cost nothing, and having them in
+the same run means this profile's output is a single complete shortlist —
+LinkedIn's India-remote inventory plus the international boards — rather than a
+fragment that has to be merged with another profile's directory afterwards.
+Measured: 101 jobs, of which 34 LinkedIn, 42 Greenhouse, 15 WWR, 7 Ashby,
+3 Jobicy.
 """
 
 SEARCH = {
@@ -45,8 +48,9 @@ SITES = {
     "naukri": {"enabled": False, "actor": "muhammetakkurtt/naukri-job-scraper"},
 }
 
-ATS_BOARDS = {}
-FEEDS = {}
+# ATS_BOARDS and FEEDS deliberately omitted -> inherited from config.py.
+# Setting either to {} would switch that whole section OFF (see config.py
+# section 5); omitting it keeps the defaults, which is what we want here.
 
 SETTINGS = {
     # India-remote rows arrive located "India", so they classify as `restricted`

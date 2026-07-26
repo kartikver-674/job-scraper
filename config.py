@@ -436,14 +436,24 @@ def _selected_profile(argv=None, env=None):
 
 def _overlay(module, target=None):
     """Apply one profile module's dicts onto the config globals. Returns the
-    names it changed, for the run banner."""
+    names it changed, for the run banner.
+
+    A profile that OMITS a name inherits it. A profile that sets it to {} clears
+    it — that is how a section is switched off. Those two cases have to be
+    distinguished by presence, not truthiness: skipping falsy overrides meant
+    `FEEDS = {}` silently inherited every default feed instead of disabling them,
+    and a profile ran 28 sources it had explicitly opted out of.
+    """
     target = globals() if target is None else target
     changed = []
     for name in OVERLAYABLE:
-        override = getattr(module, name, None)
-        if not override:
+        if not hasattr(module, name):
             continue
-        target[name].update(override)
+        override = getattr(module, name)
+        if override:
+            target[name].update(override)
+        else:
+            target[name].clear()
         changed.append(name)
     return changed
 
@@ -490,6 +500,19 @@ def demo():
     assert target["SCORING"]["penalty_terms"] == {"php": -6}       # untouched sibling
     assert target["SETTINGS"] == {"min_comp_usd": 40000, "max_age_days": 14}
     assert sorted(changed) == ["SCORING", "SETTINGS"]
+
+    # Omitted = inherit, {} = switch off. Distinguished by presence, not
+    # truthiness — treating {} as "nothing to do" made a profile silently run
+    # every source it had opted out of.
+    class Off:
+        FEEDS = {}
+    target = {"SEARCH": {}, "SITES": {}, "SCORING": {}, "SETTINGS": {},
+              "ATS_BOARDS": {"greenhouse": {"x": "X"}},
+              "FEEDS": {"wwr": {"enabled": True}}}
+    changed = _overlay(Off, target)
+    assert target["FEEDS"] == {}, target["FEEDS"]                  # cleared
+    assert target["ATS_BOARDS"] == {"greenhouse": {"x": "X"}}      # omitted -> kept
+    assert changed == ["FEEDS"]
     print(f"demo ok (active profile: {PROFILE or 'default'})")
 
 
