@@ -1,5 +1,6 @@
 """
-Configuration for the full-stack job scraper.
+Configuration for the job scraper — tuned for Parul Gupta, Salesforce Functional
+Consultant (DMS/SFA implementations, ~2 yrs experience).
 
 EVERYTHING that decides *what* gets pulled and *how* it's ranked lives here. You
 should never need to touch scraper.py to add a keyword, a location, a site, a skill
@@ -35,26 +36,25 @@ editing this file, put the keys you want to change in profiles/<name>.py and run
 # scoring layer), but full-stack terms are listed first by intent.
 SEARCH = {
     "country": "IN",            # Indeed country code (IN, US, GB, ...)
-    "experience_years": 2,      # target ~2 yrs (0-3 acceptable); passed to sites that support it
+    "experience_years": 2,      # actual ~2 yrs; target range widened to 0-5 to include Senior Consultant reqs
     "salary_min": None,         # optional minimum salary; None to skip
     "max_results": 15,          # jobs PER (keyword x location) search — keep modest, pay-per-event (~$5/1000 results)
 
-    # Each entry is run as its OWN search term. Weighted toward full-stack.
+    # Each entry is run as its OWN search term. Salesforce-specific titles only —
+    # a bare "Business Analyst" or "Consultant" search would return every
+    # adjacent-domain BA/consulting role on the board.
     "role_keywords": [
-        "Full Stack Developer",
-        "Full Stack Engineer",
-        "MERN Stack Developer",
-        "React Native Developer",
-        "React Native Engineer",
-        "React Developer",
-        "Node.js Developer",
-        "Frontend Developer",
-        "Software Engineer JavaScript",
+        "Salesforce Functional Consultant",
+        "Salesforce Business Analyst",
+        "Salesforce Consultant",
+        "Salesforce Administrator",
+        "Salesforce Implementation Consultant",
     ],
 
-    # India-focused (Delhi/NCR heavy) + Remote.
+    # Home base (Chandigarh) + NCR/major hiring hubs + Remote. Worldwide-remote
+    # coverage comes from SETTINGS["remote_scopes"], not a location string here.
     "locations": [
-        "Delhi", "New Delhi", "Gurgaon", "Noida",
+        "Chandigarh", "Delhi", "New Delhi", "Gurgaon", "Noida",
         "Bengaluru", "Hyderabad", "Pune", "Remote",
     ],
 }
@@ -202,16 +202,30 @@ ATS_BOARDS = {
 # Public remote-job feeds. No auth, no cost. Adapters live in sources/feeds.py
 # (registered in sources.FEED_FETCHERS). The three structured JSON feeds below
 # are the only free source that reports PAY — the ATS boards never do.
+# Which slice of each feed to pull is CANDIDATE-SPECIFIC wherever the API takes a
+# filter — a Salesforce consultant is not in the programming categories. Verified
+# live 2026-07-28 which of these filters actually do anything:
+#   wwr       categories DO filter. Item counts on the ones used below:
+#             sales-and-marketing 154, customer-support 60, product 56,
+#             management-and-finance 36 (programming was 25).
+#             "remote-all-other-remote-jobs" returns 0 — not a real category.
+#   jobicy    industry DOES filter. "business" -> Business Development roles.
+#   remotive  category is IGNORED — returns the newest ~36 across ALL categories
+#             regardless, so it needs no per-field setting.
+#   remoteok  whole board, one request, no filter available.
+#   himalayas no filter available (see below).
+# So for a non-dev résumé, wwr + jobicy must be retuned here; the other three
+# already return everything and are gated only by ATS_TITLE_HINTS.
 FEEDS = {
     "remoteok": {"enabled": True},
     "wwr": {"enabled": True, "categories": [
-        "remote-programming-jobs",
-        "remote-front-end-programming-jobs",
-        "remote-back-end-programming-jobs",
-        "remote-full-stack-programming-jobs",
+        "remote-sales-and-marketing-jobs",
+        "remote-management-and-finance-jobs",
+        "remote-product-jobs",
+        "remote-customer-support-jobs",
     ]},
     "remotive": {"enabled": True},
-    "jobicy": {"enabled": True, "count": 50},
+    "jobicy": {"enabled": True, "count": 50, "industry": "business"},
     # No category filter exists on this API, so it pages blind through ~96k
     # mostly non-engineering jobs at 20 a time. Worth it for the exact UTC
     # offsets it reports, but raise `pages` only if you want the requests.
@@ -235,13 +249,24 @@ HOME_LOCATION_HINTS = [
 ]
 
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
-# we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
-# role (case-insensitive substring). Scoring then ranks within these.
+# we can't keyword-search. Keep only jobs whose TITLE looks like a role in MY
+# field (case-insensitive substring). Scoring then ranks within these.
+#
+# CANDIDATE-SPECIFIC, despite sitting among the infrastructure maps: this is the
+# ONLY gate on every free source (ATS boards + all 5 feeds). Left on the previous
+# person's dev vocabulary ("react", "node", "sde") it silently discards 100% of
+# the free layer for a non-dev résumé — the boards are still fetched, every row
+# is thrown away, and the run looks normal. Retune it with the résumé.
+#
+# Broader than role_keywords on purpose: free rows cost nothing, so keep the
+# adjacent titles (a plain "Business Analyst" at a company that runs Salesforce)
+# and let SCORING sink the ones that aren't really hers.
 ATS_TITLE_HINTS = [
-    "developer", "full stack", "fullstack", "full-stack", "frontend", "front end",
-    "front-end", "backend", "back end", "back-end", "software engineer",
-    "software development", "sde", "react", "node", "javascript", "typescript",
-    "web developer", "mern", "mobile developer", "application developer",
+    "salesforce", "sales cloud", "service cloud", "crm",
+    "functional consultant", "business analyst", "business systems analyst",
+    "implementation consultant", "solution consultant", "solutions consultant",
+    "technical consultant", "crm analyst", "crm consultant",
+    "administrator", "business process", "systems analyst",
 ]
 
 # Naukri needs numeric city IDs (not names). Map each name you search here to its
@@ -269,50 +294,77 @@ NAUKRI_CITY_IDS = {
 # penalty terms subtract; a full-stack bonus rewards frontend+backend overlap.
 SCORING = {
     # -- Positive skill weights (higher = more central to the resume) ---------
+    # Weighted by DISCRIMINATIVE POWER, not centrality. "Salesforce"/"DMS"/"SFA"
+    # separate her from every other functional-consultant/BA posting; "UAT" or
+    # "gap analysis" do not — those words show up in every BA job regardless of
+    # platform, so they're weighted low even though they're genuinely her top
+    # skills. (Same trap the Oracle Fusion / generic-BA ranking failure came from.)
     "skill_weights": {
-        # Core full-stack stack — highest signal
-        "node": 5, "node.js": 5, "express": 5,
-        "react": 5, "react native": 5, "react.js": 5,
-        "typescript": 5, "mongodb": 5,
-        # Strong supporting skills
-        "redis": 3, "socket.io": 3, "websocket": 3, "websockets": 3,
-        "jwt": 3, "oauth": 3, "rest api": 3, "restful": 3, "mongoose": 3,
-        "mysql": 3, "javascript": 3,
-        # Real-time / auth / concurrency — stated resume strengths
-        "firebase": 2, "fcm": 2, "concurrency": 2, "authentication": 2,
-        # General relevant tooling / practices (from resume)
-        "redux": 2, "expo": 2, "tailwind": 2, "next.js": 2, "jest": 2,
-        "azure devops": 2, "ci/cd": 2,
-        "zod": 1, "react hook form": 1, "html": 1, "css": 1, "es6": 1, "agile": 1,
+        # Core platform — the niche identifiers, highest signal
+        "salesforce": 10, "sales cloud": 8, "service cloud": 8,
+        "dms": 8, "sfa": 8,
+        # Salesforce-specific configuration vocabulary — still fairly
+        # discriminative, rarely shows up outside Salesforce postings
+        "custom objects": 4, "validation rules": 4, "approval process": 3,
+        "approval workflows": 3, "page layouts": 3, "roles and profiles": 2,
+        "salesforce inspector": 2, "data loader": 2, "azure devops": 2,
+        # Generic BA/delivery craft vocabulary — shared with every
+        # functional-consultant/BA role regardless of platform, so LOW weight.
+        # See fullstack_bonus below for how these combine with platform terms
+        # instead of scoring meaningfully on their own.
+        "requirement elicitation": 1, "requirement gathering": 1,
+        "business analysis": 1, "uat": 1, "gap analysis": 1,
+        "test case design": 1, "fsd": 1, "pfd": 1,
+        "change request management": 1, "stakeholder management": 1, "agile": 1,
     },
 
-    # -- Full-stack bonus -----------------------------------------------------
-    # A job mentioning BOTH a frontend AND a backend term is a true full-stack
-    # role → is_fullstack=True and fullstack_bonus added. Explicit full-stack /
-    # MERN wording in the TITLE also flags it as full-stack outright.
-    "frontend_terms": [
-        "react", "react native", "react.js", "redux", "expo", "tailwind",
-        "next.js", "zod", "react hook form", "frontend", "front-end", "front end", "ui",
+    # -- Salesforce-platform + delivery-craft bonus ---------------------------
+    # A real functional-consultant role names BOTH a Salesforce platform term
+    # AND BA/delivery language — that combination is what separates her from a
+    # pure Salesforce DEVELOPER (platform only, no BA) and a generic BA
+    # (delivery language only, wrong platform). Reused the frontend/backend slot
+    # structure since the shape — "both halves must be present" — is the same
+    # idea as full-stack, just not about web dev.
+    "frontend_terms": [   # Salesforce platform/product side
+        "salesforce", "sales cloud", "service cloud", "dms", "sfa",
+        "custom objects", "validation rules", "approval process", "page layouts",
     ],
-    "backend_terms": [
-        "node", "node.js", "express", "mongodb", "mongoose", "mysql", "redis",
-        "socket.io", "rest api", "restful", "firebase", "backend", "back-end",
-        "back end", "api", "server",
+    "backend_terms": [    # BA/delivery side
+        "requirement elicitation", "requirement gathering", "business analysis",
+        "uat", "gap analysis", "test case design", "fsd", "pfd",
+        "change request management", "stakeholder management",
     ],
     "fullstack_bonus": 6,
-    "fullstack_title_terms": ["full stack", "full-stack", "fullstack", "mern", "mean"],
+    # Title alone must name the PLATFORM, never a bare job function — bare
+    # "business analyst" or "functional consultant" leak into every adjacent
+    # field (measured failure: "Oracle Fusion Functional Consultant" outranked
+    # her real match on exactly this bug). Every term below names Salesforce.
+    "fullstack_title_terms": [
+        "salesforce functional consultant", "salesforce business analyst",
+        "salesforce consultant", "salesforce administrator",
+    ],
 
     # -- Down-ranking (penalty) ----------------------------------------------
-    # Stacks I don't do + Salesforce/CRM. Salesforce/CRM are penalized HARD so
-    # pure-CRM roles sink to the bottom (or drop out via SETTINGS["min_score"]).
+    # Pure Salesforce DEVELOPER work (she configures, she doesn't code Apex) +
+    # adjacent CRM/ERP platforms she has no experience in — same job FAMILY,
+    # wrong platform, nothing on her resume transfers.
+    #
+    # The code-term weights are deliberately MILD, tuned on the 2026-07-28 free
+    # sweep: "apex" at -6 was cancelling the whole platform+delivery bonus on two
+    # ideal Twilio roles (a Salesforce Admin and a Business Systems Analyst, both
+    # ADM-201 + page layouts + validation rules) purely because each listed
+    # "Knowledge of Apex, Flow, SOQL" as a NICE-TO-HAVE. A passing Apex mention is
+    # normal in good functional roles; the honest signal for a pure-dev job is the
+    # TITLE, so "salesforce developer" carries the weight instead.
     "penalty_terms": {
-        ".net": -6, "asp.net": -6, "c#": -6,
-        "java": -5, "java spring": -6, "spring boot": -6, "spring mvc": -6,
-        "php": -6, "laravel": -5,
-        "angular": -4, "angularjs": -4,
-        # Salesforce / CRM — hard down-rank
-        "salesforce": -12, "apex": -12, "lwc": -12,
-        "lightning web component": -12, "crm developer": -12, "crm": -6,
+        "salesforce developer": -8, "apex developer": -8,
+        "apex": -3, "visualforce": -3, "lwc": -3, "lightning web component": -3,
+        # Adjacent CRM/ERP platforms. "dynamics" bare, not "dynamics 365" —
+        # measured: a "Microsoft Dynamics CRM Functional Consultant" scored +2 and
+        # sat mid-list because the 365-only term never fired on "Dynamics CRM".
+        "dynamics": -6, "microsoft dynamics": -6,
+        "sap": -5, "oracle fusion": -5, "netsuite": -4,
+        "zoho": -4, "hubspot": -4, "workday": -4, "servicenow": -4,
     },
 
     # Lead-gen farms, not employers. They repost other companies' listings under
@@ -360,7 +412,7 @@ SETTINGS = {
     # Filtering
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
-    "max_experience_years": 3,   # roles whose text demands MORE than this (e.g. "5+ years") are dropped/penalized
+    "max_experience_years": 5,   # widened for Senior Consultant reqs (0-5 yrs acceptable); more than this is dropped/penalized
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
     "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
@@ -369,7 +421,7 @@ SETTINGS = {
     # 6000 USD ~= the old 5.2 LPA floor. Undisclosed, unparseable, or
     # unknown-currency pay is always KEPT — we never drop on a guess.
     # Raise this to ~40000+ once the sweep is weighted toward international remote.
-    "min_comp_usd": 6000,        # None to disable
+    "min_comp_usd": 9200,        # ~8 LPA floor, same ~1154 USD/LPA ratio as the comment above. None to disable
 
     # International-remote filters, from the signals enrich.py reads out of the
     # job text (visible as the remote_scope / visa / eor / timezones columns

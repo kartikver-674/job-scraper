@@ -16,13 +16,11 @@ Output lands in output/remote_intl/, so it never mixes with a default sweep.
 # count (keywords x locations) small.
 SEARCH = {
     "role_keywords": [
-        "Full Stack Engineer",
-        "Full Stack Developer",
-        "React Native Developer",
-        "React Developer",
-        "Node.js Developer",
-        "Backend Engineer JavaScript",
-        "Frontend Engineer TypeScript",
+        "Salesforce Functional Consultant",
+        "Salesforce Business Analyst",
+        "Salesforce Consultant",
+        "Salesforce Administrator",
+        "Salesforce Implementation Consultant",
     ],
     "locations": ["Remote"],
     "country": "US",          # Indeed country code; the remote boards ignore this
@@ -81,13 +79,13 @@ ATS_BOARDS = {
 FEEDS = {
     "remoteok": {"enabled": True},
     "wwr": {"enabled": True, "categories": [
-        "remote-programming-jobs",
-        "remote-front-end-programming-jobs",
-        "remote-back-end-programming-jobs",
-        "remote-full-stack-programming-jobs",
+        "remote-sales-and-marketing-jobs",
+        "remote-management-and-finance-jobs",
+        "remote-product-jobs",
+        "remote-customer-support-jobs",
     ]},
     "remotive": {"enabled": True},
-    "jobicy": {"enabled": True, "count": 50},
+    "jobicy": {"enabled": True, "count": 50, "industry": "business"},
     "himalayas": {"enabled": True, "pages": 15},   # unfiltered API: low yield/page
 }
 

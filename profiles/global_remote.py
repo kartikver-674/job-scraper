@@ -8,7 +8,7 @@ Indeed's ~$0.005, and Indeed's strength is domestic listings that skew onsite.
     python scraper.py --profile global_remote --yes
 
 Cost = keywords x countries x max_results x $0.001. As configured below that is
-7 x 12 x 25 = 2,100 results ~= $2.10 per sweep. Widen `countries` or
+5 x 12 x 25 = 1,500 results ~= $1.50 per sweep. Widen `countries` or
 `max_results` and it scales linearly; see the table in the README.
 
 Every geoId used here was verified with `python verify_geoids.py` — a wrong one
@@ -28,14 +28,14 @@ _COUNTRIES = [
 ]
 
 SEARCH = {
+    # Salesforce-specific titles only. A bare "Business Analyst" or "Consultant"
+    # here would buy 12 countries' worth of adjacent-domain BA roles at full price.
     "role_keywords": [
-        "Full Stack Engineer",
-        "Full Stack Developer",
-        "React Native Developer",
-        "React Developer",
-        "Node.js Developer",
-        "Backend Engineer JavaScript",
-        "Frontend Engineer TypeScript",
+        "Salesforce Functional Consultant",
+        "Salesforce Business Analyst",
+        "Salesforce Consultant",
+        "Salesforce Administrator",
+        "Salesforce Implementation Consultant",
     ],
     "locations": _COUNTRIES,
     "max_results": 25,        # per keyword x country; the main cost dial
@@ -53,19 +53,26 @@ SITES = {
     "naukri": {"enabled": False, "actor": "muhammetakkurtt/naukri-job-scraper"},
 }
 
+# Non-dev slices, matching config.py — see the verification notes there for which
+# of these filters actually do anything.
 FEEDS = {
     "remoteok": {"enabled": True},
     "wwr": {"enabled": True, "categories": [
-        "remote-programming-jobs",
-        "remote-front-end-programming-jobs",
-        "remote-back-end-programming-jobs",
-        "remote-full-stack-programming-jobs",
+        "remote-sales-and-marketing-jobs",
+        "remote-management-and-finance-jobs",
+        "remote-product-jobs",
+        "remote-customer-support-jobs",
     ]},
     "remotive": {"enabled": True},
-    "jobicy": {"enabled": True, "count": 50},
+    "jobicy": {"enabled": True, "count": 50, "industry": "business"},
     "himalayas": {"enabled": True, "pages": 15},
 }
 
+# Kept as-is even though these are tech companies and this is not a dev search:
+# every one of them RUNS Salesforce internally and hires admins / business systems
+# analysts into its Business Technology org, which is exactly the kind of in-house
+# Salesforce role that pays well and is easy to miss on a job board. The corrected
+# ATS_TITLE_HINTS is what lets those rows through.
 ATS_BOARDS = {
     "greenhouse": {
         "gitlab": "GitLab", "databricks": "Databricks", "twilio": "Twilio",
