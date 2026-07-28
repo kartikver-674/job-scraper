@@ -14,16 +14,39 @@ import os
 import sys
 
 from config import SETTINGS
-from scraper import OUTPUT_COLUMNS, dedupe
+from scraper import OUTPUT_COLUMNS, blocked_company, dedupe, reachable
 
 # Honors --profile, so a merge can't silently pick up the default profile's files
 # while you're working on someone else's sweep.
 OUT_DIR = SETTINGS["output_dir"]
 
 
+def applyable(row):
+    """Drop rows a current-config sweep would never have reported.
+
+    A merge spans files written under older configs, and it cannot re-score them
+    (the description isn't kept in the output rows). But the reachability and
+    repost-farm rules read only stored columns, so unlike scoring they CAN be
+    re-applied here — and they must be, because everything downstream (the
+    shortlist page, auto-apply) reads the merged file, not the per-run one. Left
+    off, a shortlist built today still serves the remote-in-Germany roles that
+    the scraper itself now filters out.
+
+    Rows from files written before remote_scope existed lack the key entirely and
+    are kept: absent means "this sweep never asked", not "no".
+    """
+    if blocked_company(row):
+        return False
+    if SETTINGS["remote_scopes"] and "remote_scope" in row:
+        return reachable(row)
+    return True
+
+
 def merge_rows(rows):
-    """Sort best-first, then drop duplicate postings (highest score wins)."""
-    return dedupe(sorted(rows, key=lambda r: r.get("score", 0), reverse=True))
+    """Sort best-first, drop duplicate postings (highest score wins), then drop
+    what the current config wouldn't report."""
+    ranked = dedupe(sorted(rows, key=lambda r: r.get("score", 0), reverse=True))
+    return [r for r in ranked if applyable(r)]
 
 
 def csv_columns(rows):
@@ -56,6 +79,19 @@ def demo():
     d = {"title": "Dev Full Stack", "company": "X Ltd", "location": "Worldwide", "score": 3}
     out = merge_rows([a, b, c, d])
     assert [r["score"] for r in out] == [9, 7], out  # b beats a and d, sorted desc
+    # No remote_scope key at all -> pre-column file, kept rather than deleted.
+    assert len(merge_rows([dict(c, title="Solo Dev")])) == 1
+
+    # Reachability, re-applied to rows that carry the column.
+    scoped = lambda **kw: dict(  # noqa: E731
+        {"title": "React Dev", "company": "Z", "score": 8}, **kw)
+    assert len(merge_rows([scoped(remote_scope="worldwide")])) == 1
+    assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="Germany")])) == 0
+    # Locked TO home, or an employer that hires here: both still applyable.
+    assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="India")])) == 1
+    assert len(merge_rows([scoped(remote_scope="restricted", hires_home="yes")])) == 1
+    # A repost farm goes whatever its scope says.
+    assert len(merge_rows([scoped(company="Hired", remote_scope="worldwide")])) == 0
     print("demo ok")
 
 

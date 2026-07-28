@@ -225,6 +225,48 @@ FULLSTACK_TITLE_PATTERNS = [_compile(t) for t in SCORING["fullstack_title_terms"
 HARD_DROP_PATTERNS = {t: _compile(t) for t in SCORING["hard_drop_terms"]}
 SOFT_DROP_PATTERNS = {t: _compile(t) for t in SCORING["soft_drop_terms"]}
 
+
+def norm_company(name):
+    """Company name flattened for comparison: lowercased, punctuation dropped
+    ("SWAKIO™" -> "swakio"), whitespace collapsed. Whole-name matching only —
+    substring matching here would drop a real "Freshired Labs" along with the
+    "Hired" repost farm."""
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", " ", (name or "").lower())).strip()
+
+
+COMPANY_BLOCKLIST = {norm_company(c) for c in SCORING["company_blocklist"]}
+
+
+def blocked_company(row):
+    """True for a lead-gen repost farm. Reads either schema's company key, so
+    merge_jobs.py can apply the same rule to already-written output rows."""
+    return norm_company(row.get("Company") or row.get("company")) in COMPANY_BLOCKLIST
+
+
+def reachable(row):
+    """True if this remote role is workable from HOME_LOCATION_HINTS, per
+    SETTINGS["remote_scopes"]. Module level, and reading only output columns, so
+    merge_jobs.py applies the identical rule to rows it can no longer re-score —
+    two copies of this predicate drifting apart is how a shortlist ends up full
+    of remote-in-Germany roles again.
+    """
+    if row.get("remote_scope") in SETTINGS["remote_scopes"]:
+        return True
+    # Two kinds of geo-locked role are still worth an application:
+    #   - the employer demonstrably hires in your country (hires_home), so the
+    #     entity or EOR that makes it possible already exists;
+    #   - the lock is TO your country — a "remote within India" role is the most
+    #     reachable kind there is, and dropping it as "not worldwide" is plainly
+    #     wrong. This is not hypothetical: every LinkedIn f_WT=2 row comes back
+    #     located in its own country, so without this the paid sweep discards
+    #     what it paid to fetch.
+    if not SETTINGS["keep_restricted_if_hires_home"]:
+        return False
+    return bool(row.get("remote_scope") == "restricted"
+                and (row.get("hires_home") == "yes"
+                     or is_home_location(row.get("remote_regions"))))
+
+
 # Any "<n> years/yrs" mention (optionally "n+" or "n-m"); we read the leading n.
 YEARS_PATTERN = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:years|yrs)")
 
@@ -381,6 +423,13 @@ def score_job(row):
     # sees it — it isn't always repeated in the description.
     text = (title + "\n" + (row.get("Description") or "") + "\n"
             + (row.get("Experience") or "")).lower()
+
+    # --- Hard filter: repost farm ---------------------------------------------
+    # Checked before scoring because these rank at the very top — they repost real
+    # listings, so they match the résumé as well as the original does, and no
+    # score threshold can separate them.
+    if blocked_company(row):
+        return None
 
     # --- Hard filters: unreachable title, or more experience than we have -----
     # A title is a LABEL; the years the text demands are the requirement. So only
@@ -854,22 +903,6 @@ def finalize(raw_rows):
     # so an unset signal means "not stated" and must never be treated as a no.
     unreachable = rescued = 0
     if SETTINGS["remote_scopes"]:
-        def reachable(row):
-            if row.get("remote_scope") in SETTINGS["remote_scopes"]:
-                return True
-            # Two kinds of geo-locked role are still worth an application:
-            #   - the employer demonstrably hires in your country (hires_home),
-            #     so the entity or EOR that makes it possible already exists;
-            #   - the lock is TO your country — a "remote within India" role is
-            #     the most reachable kind there is, and dropping it as "not
-            #     worldwide" is plainly wrong. This is not hypothetical: every
-            #     LinkedIn f_WT=2 row comes back located in its own country, so
-            #     without this the paid sweep discards what it paid to fetch.
-            if not SETTINGS["keep_restricted_if_hires_home"]:
-                return False
-            return bool(row.get("remote_scope") == "restricted"
-                        and (row.get("hires_home") == "yes"
-                             or is_home_location(row.get("remote_regions"))))
         ok = [r for r in scored if reachable(r)]
         rescued = sum(1 for r in ok if r.get("remote_scope") not in SETTINGS["remote_scopes"])
         unreachable = len(scored) - len(ok)
@@ -1069,6 +1102,15 @@ def demo():
     plain = sj("React Developer", "2 years of React experience.")
     senior = sj("Senior React Developer", "2 years of React experience.")
     assert senior["score"] == plain["score"] + SCORING["soft_penalty"]  # kept, lower
+
+    # Repost farms go whatever they score; whole-name match, so a real employer
+    # whose name merely contains one is untouched.
+    farm = {"Title": "Full Stack Engineer", "Description": "React, Node, 2 years."}
+    assert score_job(dict(farm, Company="Hired")) is None
+    assert score_job(dict(farm, Company="SWAKIO™")) is None
+    assert score_job(dict(farm, Company="  jobs ai ")) is None
+    assert score_job(dict(farm, Company="Freshired Labs")) is not None
+    assert score_job(dict(farm, Company="")) is not None   # unknown != blocked
     assert sj("Senior React Developer", "8+ years of React required.") is None
 
     # Timezone gap down-ranks but never removes, and only past the free window.

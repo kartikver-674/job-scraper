@@ -148,18 +148,17 @@ LINKEDIN_GEO_IDS = {
 #   careers.smartrecruiters.com/<Token> -> smartrecruiters  (case-sensitive)
 # Every token below was probed and resolves (2026-07-25).
 ATS_BOARDS = {
-    "greenhouse": {
-        "phonepe": "PhonePe", "groww": "Groww", "postman": "Postman",
-        "druva": "Druva", "slice": "Slice",
-    },
     "lever": {
         "paytm": "Paytm", "meesho": "Meesho", "mindtickle": "Mindtickle",
         "hevodata": "Hevo Data", "zeta": "Zeta", "fampay": "FamPay",
         "cred": "CRED",
+        "coderio": "Coderio",         #  0/22  — harvest_ats.py, 2026-07-27
     },
-    # Global companies WITH an India presence — the combination that makes
-    # SETTINGS["keep_restricted_if_hires_home"] pay off, since their geo-locked
-    # remote roles become reachable. India-job counts probed 2026-07-26.
+    # Indian employers, plus global companies WITH an India presence — the
+    # combination that makes SETTINGS["keep_restricted_if_hires_home"] pay off,
+    # since their geo-locked remote roles become reachable. India-job counts
+    # probed 2026-07-26. ONE greenhouse key only: a second one silently replaces
+    # this whole dict rather than adding to it.
     "greenhouse": {
         "phonepe": "PhonePe", "groww": "Groww", "postman": "Postman",
         "druva": "Druva", "slice": "Slice",
@@ -173,6 +172,16 @@ ATS_BOARDS = {
         "stripe": "Stripe",           # 40/536, 121 dev roles
         "netradyne": "Netradyne",     # 40/53 — India-heavy
         "figma": "Figma",             #  3/174
+        # Found by harvest_ats.py from companies the paid sweep had already
+        # surfaced — i.e. we were paying to see these roles through LinkedIn and
+        # can now fetch them free and direct. Probed 2026-07-27.
+        "roku": "Roku",               # 40/234
+        "clickhouse": "ClickHouse",   # 10/171
+        "flix": "Flix",               #  9/154
+        "sumup": "SumUp",             #  2/369
+        "ubiquiti": "Ubiquiti",       #  0/159 — no India entity, so its geo-locked
+        "justworks": "Justworks",     #  0/98    roles can never be rescued; kept
+                                      #          only for worldwide-remote postings
     },
     # Probed 2026-07-26 and NOT resolvable, so nobody burns time re-trying:
     # razorpay, zerodha, dream11, sharechat, unacademy, swiggy, zomato, flipkart,
@@ -185,6 +194,7 @@ ATS_BOARDS = {
     "ashby": {
         "linear": "Linear", "ramp": "Ramp", "openai": "OpenAI",
         "notion": "Notion",           #  5/127
+        "teero": "Teero",             #  0/5   — harvest_ats.py, 2026-07-27
     },
     "smartrecruiters": {},   # e.g. {"BoschGroup": "Bosch"}
 }
@@ -305,6 +315,16 @@ SCORING = {
         "lightning web component": -12, "crm developer": -12, "crm": -6,
     },
 
+    # Lead-gen farms, not employers. They repost other companies' listings under
+    # their own name — one set of titles sprayed across country subdomains with
+    # sequential LinkedIn IDs — so they match the résumé well and score at the
+    # very top while being unapplyable. Measured on the 2026-07-26 sweep: 4 names
+    # accounted for 11 of the 15 "reachable" rows at score >= 20. Dropped
+    # outright, whatever they score. Matched on the company name, case- and
+    # punctuation-insensitively ("SWAKIO™" -> "swakio"), whole name only, so a
+    # real employer whose name merely contains one of these is unaffected.
+    "company_blocklist": ["hired", "hire feed", "jobs ai", "swakio"],
+
     # -- Seniority filters ----------------------------------------------------
     # Two tiers, because a job TITLE is a label and not a requirement. The real
     # experience gate is SETTINGS["max_experience_years"], which reads the years
@@ -363,7 +383,13 @@ SETTINGS = {
     #   "restricted" remote but geo-locked (check the remote_regions column)
     #   "hybrid" / "onsite" / "" (not stated)
     # For remote roles workable from India, start with ["worldwide", "remote"].
-    "remote_scopes": None,       # e.g. ["worldwide", "remote", "restricted"]
+    #
+    # ON, because off was worse than useless: the 2026-07-26 sweep returned 480
+    # jobs at score >= 10 of which 27 were actually reachable from India — 245 of
+    # the top 252 were "remote" only within Germany / Spain / UAE / the UK. The
+    # filter keeps "restricted" rows whose lock is TO India, so India-remote roles
+    # (which LinkedIn labels restricted) survive — see scraper.finalize.
+    "remote_scopes": ["worldwide", "remote"],
     "drop_no_visa": False,       # drop only jobs that EXPLICITLY refuse to sponsor
     "require_eor": False,        # keep only jobs naming an employer-of-record path
 

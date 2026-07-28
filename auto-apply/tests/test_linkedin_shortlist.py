@@ -16,7 +16,10 @@ class TestRenderHtml(unittest.TestCase):
         jobs = [{"score": "10", "title": "Dev <script>", "company": "A&B",
                  "location": "X", "apply_url": "u"}]
         out = ls.render_html(jobs)
-        self.assertNotIn("<script>", out)      # escaped
+        # Assert on the FIELD, not the document: the page carries its own
+        # <script> block for opened-state tracking, so "no script tag anywhere"
+        # tests the wrong thing and fails on a correctly-escaped page.
+        self.assertNotIn("Dev <script>", out)  # never emitted raw
         self.assertIn("&lt;script&gt;", out)
         self.assertIn("A&amp;B", out)
 

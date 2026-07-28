@@ -69,7 +69,59 @@ python rescore_from_apify.py      # re-score already-paid runs against the curre
                                   # config, for free -> output/jobs_combined.*
 python merge_jobs.py              # merge + dedupe every output/jobs_*.json
 python verify_geoids.py           # check every LinkedIn geoId is really that place
+python harvest_ats.py             # probe the companies a sweep found for a free
+                                  # public ATS board -> paste-ready ATS_BOARDS
 ```
+
+## Applyable is not the same as scraped
+
+The number that matters is not how many jobs a sweep returns, it is how many you
+can actually take. Measured on the 2026-07-26 sweep (919 rows):
+
+| score cutoff | scraped | **applyable** | geo-locked elsewhere | repost farms |
+|---|---|---|---|---|
+| >= 0  | 727 | **37** | 637 | 53 |
+| >= 10 | 480 | **16** | 423 | 41 |
+| >= 20 | 252 | **5**  | 212 | 35 |
+
+Two filters, both now on by default, do that narrowing:
+
+- `SETTINGS["remote_scopes"] = ["worldwide", "remote"]`. LinkedIn's `f_WT=2` means
+  *remote within one country*, so 245 of the top 252 rows were remote-in-Germany /
+  Spain / UAE / the UK — real jobs, just not ones an applicant in India can take.
+  Rows whose lock is **to** India survive (`keep_restricted_if_hires_home`), which
+  is why turning this on does not delete the India-remote roles.
+- `SCORING["company_blocklist"]`. Lead-gen farms ("Hired", "Jobs Ai", "Hire Feed",
+  "SWAKIO") repost real listings under their own name, one set of titles sprayed
+  across country subdomains with sequential job IDs. Because they repost real
+  postings they match a résumé exactly as well as the original does, so they land
+  at the very top and no score threshold separates them. Dropped on the company
+  name, whole-name and punctuation-insensitively.
+
+Both filters are re-applied by `merge_jobs.py`, not just at scrape time. That
+matters because the shortlist page and `auto-apply/` read the **merged** file: a
+merge can't re-score old rows (the description isn't kept), but reachability and
+the blocklist read stored columns, so they can be and are. Rows from files written
+before `remote_scope` existed lack the column and are kept — absent means "that
+sweep never asked", not "no".
+
+Where the applyable 16 came from is the other half of the story: **12 from the free
+ATS boards and feeds, 4 from the paid LinkedIn sweep.** The paid sources are worth
+running to discover *which companies* hire your stack — then use `harvest_ats.py`
+to find those companies' own boards and apply there instead.
+
+## Working it daily
+
+A sweep every two weeks means applying to week-old postings that are already
+hundreds of applicants deep. The free sources cost nothing, so run them daily and
+let the `seen.tsv` ledger do the narrowing:
+
+```bash
+python scraper.py --site free --only-new     # zero cost, only what's new today
+```
+
+That reports the handful of genuinely new postings each morning, which is a small
+enough list to apply to properly. Save the paid sweep for once a fortnight.
 
 ## Paid sweeps and LinkedIn geoIds
 
@@ -115,7 +167,7 @@ Everything that decides *what* is pulled and *how* it is ranked lives in
 | `ATS_BOARDS` | free company career boards, `{platform: {token: "Name"}}` |
 | `FEEDS` | free remote-job feeds (Remote OK, WWR, Remotive, Jobicy, Himalayas) |
 | `LOCATION_HINTS` | location whitelist for free sources; **empty = allow all** |
-| `SCORING` | skill weights, full-stack bonus, penalties, seniority tiers |
+| `SCORING` | skill weights, full-stack bonus, penalties, seniority tiers, company blocklist |
 | `SETTINGS` | freshness, pay floor, remote/visa/EOR filters, spend caps, output |
 
 ## Only showing what's new
