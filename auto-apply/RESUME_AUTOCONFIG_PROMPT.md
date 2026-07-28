@@ -25,7 +25,32 @@ Do this:
 2. **Read `config.py`** end-to-end so you understand its structure and comments. You will edit
    only the **candidate-specific** parts. Do **NOT** touch infrastructure that isn't about who
    I am: `SITES`, `GREENHOUSE_COMPANIES`, `LEVER_COMPANIES`, `LINKEDIN_GEO_IDS`,
-   `NAUKRI_CITY_IDS`, `INDIA_LOCATION_HINTS`, `ATS_TITLE_HINTS`, and the cost-guard settings.
+   `NAUKRI_CITY_IDS`, `INDIA_LOCATION_HINTS`, and the cost-guard settings.
+
+   **Then read `profiles/*.py` — every one of them.** This is the most expensive thing to
+   miss. A profile overlay REPLACES the whole key it defines (the merge is one level deep), so
+   a profile still holding the previous person's `role_keywords` will silently run *their*
+   search at full price the moment anyone types `--profile global_remote`. `config.py` looking
+   perfect tells you nothing about the profiles. Retune `SEARCH.role_keywords` in each, and
+   re-do the cost arithmetic in the module docstring if the keyword count changed.
+
+   **Two things that look like infrastructure but are candidate-specific — retune both:**
+   - `ATS_TITLE_HINTS` — the ONLY gate on every free source (all ATS boards + all 5 feeds).
+     Left on the previous person's vocabulary it discards 100% of the free layer and the run
+     still prints a normal summary, because the boards are fetched and every row is then
+     thrown away. Measured: with dev-only hints, a Salesforce résumé got 0 free rows; after
+     retuning, 9 ranked rows including the two best matches of the whole sweep. Keep it
+     BROADER than `role_keywords` — free rows cost nothing, so admit adjacent titles and let
+     `SCORING` sink them.
+   - `FEEDS` — wherever the API takes a filter, that filter encodes a FIELD. Verify which ones
+     actually work rather than trusting the docstrings (all checked live 2026-07-28):
+     `wwr` categories DO filter (`remote-sales-and-marketing-jobs` 154 items,
+     `remote-customer-support-jobs` 60, `remote-product-jobs` 56,
+     `remote-management-and-finance-jobs` 36; `remote-all-other-remote-jobs` returns 0 and is
+     not a real category); `jobicy` `industry` DOES filter; `remotive`'s `category` is
+     **ignored** by their API (every value returns the same newest ~36 across all categories);
+     `remoteok` and `himalayas` offer no filter at all. So for a non-dev résumé you must
+     retune `wwr` + `jobicy`; the other three are gated only by `ATS_TITLE_HINTS`.
 
 3. **Infer my profile from the résumé** — my actual field/domain, seniority, years of
    experience, and the skills I genuinely have. Do not assume I'm a web/full-stack developer;
@@ -83,7 +108,23 @@ Do this:
      themselves: keep generic category words (e.g. a bare `"crm"`) OUT of them, or any
      adjacent-industry job satisfies that half for free.
    - `SCORING.penalty_terms` — stacks/domains to down-rank: my avoid-list from step 4 plus
-     obviously off-domain technologies for my field.
+     obviously off-domain technologies for my field. Two calibration rules, both learned the
+     expensive way:
+
+     **Penalize the TITLE signal, not a passing mention.** A term that names the wrong JOB is
+     a strong penalty; a term that merely appears as a nice-to-have inside the RIGHT job is
+     not. Measured: `"apex": -6` (meant to exclude pure Salesforce-developer roles) instead
+     cancelled the entire bonus on the two best matches in the sweep — a Salesforce
+     Administrator and a Business Systems Analyst, both ADM-201, page layouts, validation
+     rules — because each JD listed "Knowledge of Apex, Flow, SOQL" as a bonus qualification.
+     The fix: `"salesforce developer": -8` (the honest pure-dev signal) and `"apex": -3`. Ask
+     of every penalty: *"could this word appear in a job I DO want?"* If yes, go mild and put
+     the weight on the title term instead.
+
+     **Penalize the bare platform word, not just its versioned name.** Measured: a "Microsoft
+     Dynamics CRM Functional Consultant" scored **+2** and sat mid-list because the penalty
+     said `"dynamics 365"` and the posting said "Dynamics CRM". With `"dynamics": -6` it
+     correctly dropped to -10. Competing platforms get renamed constantly; match the root.
    - `SCORING.drop_terms` — seniority words that should remove a job outright, based on the
      levels I said to exclude in step 4.
 
@@ -92,14 +133,29 @@ Do this:
    The repo is under git, so I can diff/revert — but still show me the summary first and don't
    write until I approve.
 
-7. **When done, tell me how to verify:** run `python scraper.py --dry-run` to print the plan
-   and per-site inputs at zero cost, then a small real run (see the cost-guard notes in
-   `config.py`).
+7. **When done, verify in this order — the first two stages cost nothing, so never skip
+   straight to spending:**
+   1. `python scraper.py --dry-run` — prints the plan and per-site inputs at zero cost. Check
+      the searches actually name my field. Repeat it per profile
+      (`--profile global_remote --dry-run`), since a profile replaces the keywords.
+   2. `python scraper.py --profile remote_intl --site free --yes` — **a REAL, FULLY-RANKED run
+      for $0.** Free sources only, no Apify actor touched. This is the single highest-value
+      check in this whole document: it validates `ATS_TITLE_HINTS`, the `FEEDS` retune, the
+      skill weights, the penalties and the bonus against genuine live postings before any
+      money moves. Both live bugs listed in step 5 were caught here, at zero cost.
+   3. Only then a small paid run (see the cost-guard notes in `config.py`).
 
-8. **Tune the weights against REAL results, not just your reasoning.** The two ranking bugs
-   documented in step 5 were both invisible on inspection and obvious the moment live jobs came
-   back. So after the first small run, read the actual top 10 and ask *"is anything here a job
-   they'd never want?"* — then fix the weights and re-check. Two things make this cheap:
+8. **Tune the weights against REAL results, not just your reasoning.** Every ranking bug
+   documented in step 5 was invisible on inspection and obvious the moment live jobs came back.
+   So after the free run in step 7.2, read the actual top 10 and ask *"is anything here a job
+   they'd never want?"* — then fix the weights and re-check. Three things make this cheap:
+   - **Open the posting before you judge a row by its title.** A title that reads like noise
+     can be the best match in the sweep. Measured: a Twilio *"Systems Ops Administrator"* tied
+     for #1 and looked like generic IT-ops leakage — the actual JD was a Salesforce
+     Administrator role (Sales Cloud, ADM-201 certification, page layouts, validation rules,
+     approval processes), i.e. exactly the target. Had I "fixed" the weights to demote it, I
+     would have deleted a real match. Fetch the JD (the ATS boards have a public JSON API) and
+     check the CONTEXT of the matched terms before touching a weight in either direction.
    - **Re-scoring is FREE — never re-scrape to apply new weights.** `python
      rescore_from_apify.py` pulls the raw items back from the Apify runs you already paid for
      (Apify retains each run's dataset server-side; dataset reads cost no actor events) and

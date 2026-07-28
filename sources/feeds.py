@@ -103,8 +103,14 @@ def remoteok(cfg, keep_title, keep_location):
 
 
 def remotive(cfg, keep_title, keep_location):
-    """remotive.com/api — software-dev category, ~40 jobs, one request.
-    Location is already a scope word ("Worldwide", "USA Only", "Europe")."""
+    """remotive.com/api — newest ~36 jobs, one request.
+
+    The category param below is IGNORED by their API (verified 2026-07-28:
+    ?category=sales and ?category=software-dev return an identical set spanning
+    Medical, Marketing, Sales, ...). It stays in the URL only because removing it
+    changes nothing; don't bother making it configurable, and don't trust it to
+    be filtering. Location is already a scope word ("Worldwide", "USA Only").
+    """
     return _json_rows(
         "remotive", "https://remotive.com/api/remote-jobs?category=software-dev",
         "jobs",
@@ -117,11 +123,17 @@ def remotive(cfg, keep_title, keep_location):
 
 
 def jobicy(cfg, keep_title, keep_location):
-    """jobicy.com API v2 — engineering industry, 50 jobs, structured pay."""
+    """jobicy.com API v2 — 50 jobs, structured pay, one industry per request.
+
+    industry is config-driven because it genuinely filters (unlike remotive's
+    category): hardcoding "engineering" returned nothing but Software Engineering
+    rows, i.e. zero usable results for any non-dev search.
+    """
     count = cfg.get("count", 50)
+    industry = cfg.get("industry", "engineering")
     return _json_rows(
         "jobicy",
-        f"https://jobicy.com/api/v2/remote-jobs?count={count}&industry=engineering",
+        f"https://jobicy.com/api/v2/remote-jobs?count={count}&industry={industry}",
         "jobs",
         {"Title": "jobTitle", "Company": "companyName", "Location": "jobGeo",
          "Posted Date": "pubDate", "Job URL": "url", "Description": "jobDescription",
