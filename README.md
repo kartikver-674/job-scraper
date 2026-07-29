@@ -267,6 +267,7 @@ All free, no credentials, no rate limits worth worrying about:
 | Remotive | JSON | software-dev category; **reports pay** |
 | Jobicy | JSON | engineering industry; **reports pay** |
 | Himalayas | JSON | **reports pay and exact UTC offsets** |
+| Optum (UHG) | employer site | `sources/optum.py`; **publishes requisition numbers** and is liveness-verified |
 
 The three structured feeds are the only free source that reports compensation —
 the ATS boards never do — which is what makes `min_comp_usd` do anything at all.
@@ -284,6 +285,34 @@ every slug tried returned zero jobs, so the field names are unverified), and
 Workday (needs a POST body and a per-tenant hostname, so it can't be a row in
 the ATS table).
 
+### Optum — one employer, by requisition number
+
+```bash
+python scraper.py --profile optum --site optum      # free -> output/optum/
+```
+
+For applying through a referral, where you need the **requisition number** the
+referral is submitted against, not just a link. Two output columns exist for
+this: `req_number` and `verified_live` (blank for every other source).
+
+`careers.optum.com` is dead (NXDOMAIN, 2026-07-29). Optum requisitions are served
+from `careers.unitedhealthgroup.com`, a Radancy/TalentBrew site that hosts *every*
+UHG brand in one index, so rows are filtered by the per-card `brand-facet__optum`
+CSS class — the only place the brand appears. The site's own `Brand` facet is
+business segments ("Medicare & Retirement"), not brands, so it can't do this.
+
+It is not a row in `sources/ats.py`'s table because the search endpoint returns
+HTML *inside* JSON and the listing carries neither a description nor a date —
+both need a request per job. That request is also the liveness check: a pulled
+requisition 404s, and those rows are dropped.
+
+**A requisition's open/closed state is not publicly checkable beyond that.**
+`uhg.taleo.net/.../jobapply.ftl?job=<req>` answers `200` with an identical
+privacy-agreement gate for a live req and a nonexistent one alike (probed
+against three), so it carries no status signal without a candidate session.
+"In the live index AND its JD still 200s" is the strongest available signal —
+don't add the Taleo URL as a check, it will confirm anything.
+
 ## Adding a source
 
 - **A company** → one token in `config.ATS_BOARDS` under its platform.
@@ -297,6 +326,11 @@ the ATS table).
 - **A feed** → one function in `sources/feeds.py` with the signature
   `(cfg, keep_title, keep_location) -> [row]`, plus a line in
   `sources.FEED_FETCHERS`.
+- **One employer's own site** (no public ATS API) → its own module, like
+  `sources/optum.py`, wired into `sources.fetch_free` and gated by an
+  `enabled: False` config block so a normal sweep is unaffected. Worth it when
+  the site exposes something the aggregators don't — a requisition number, or a
+  way to prove the job is still open.
 
 Then extend `sources/__main__.py`'s fixtures and run `python -m sources`
 (offline) or `python -m sources --live` (one real request per source).

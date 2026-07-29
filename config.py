@@ -199,6 +199,42 @@ ATS_BOARDS = {
     "smartrecruiters": {},   # e.g. {"BoschGroup": "Bosch"}
 }
 
+# ---------------------------------------------------------------------------
+# OPTUM — one employer's own careers site, kept separate from ATS_BOARDS
+# ---------------------------------------------------------------------------
+# Adapter: sources/optum.py. Free, stdlib, no auth. Not a row in ats.ATS because
+# that table maps a JSON list to dotted paths, and this site returns HTML inside
+# JSON with no description or date in the listing — the JD needs a second
+# request per job (which is also what verifies the requisition is still live).
+#
+# careers.optum.com is dead (NXDOMAIN 2026-07-29); Optum requisitions are served
+# from careers.unitedhealthgroup.com, which hosts every UHG brand in one index.
+# brand="optum" keeps only Optum-branded cards (the per-card CSS class is the
+# ONLY place the brand appears — the site's Brand facet holds business segments).
+#
+# enabled=False by default: this is an employer-specific sweep, switched on by
+# profiles/optum.py, so a normal run is unchanged.
+OPTUM = {
+    "enabled": False,
+    "company": "Optum",
+    "brand": "optum",
+    # Each keyword is its own full-text query; results are deduped by job id.
+    "keywords": [
+        "full stack", "software engineer", "react", "node.js", "javascript",
+        "typescript", "react native", "mern", "frontend developer",
+        "backend developer", "web developer", "application developer",
+    ],
+    # "" = the whole index for that keyword. The title/location gates in
+    # config.ATS_TITLE_HINTS / LOCATION_HINTS narrow it afterwards, for free.
+    "locations": [""],
+    "per_page": 100,        # verified honoured; the site's own UI uses 15
+    "max_pages": 6,
+    # Re-fetch every JD and drop anything that 404s — a pulled requisition is
+    # gone from the site. See the module docstring for why the Taleo apply URL
+    # can NOT be used for this (it answers 200 for nonexistent reqs).
+    "verify_live": True,
+}
+
 # Public remote-job feeds. No auth, no cost. Adapters live in sources/feeds.py
 # (registered in sources.FEED_FETCHERS). The three structured JSON feeds below
 # are the only free source that reports PAY — the ATS boards never do.
@@ -456,7 +492,8 @@ SETTINGS = {
 import os
 import sys
 
-OVERLAYABLE = ("SEARCH", "SITES", "SCORING", "SETTINGS", "ATS_BOARDS", "FEEDS")
+OVERLAYABLE = ("SEARCH", "SITES", "SCORING", "SETTINGS", "ATS_BOARDS", "FEEDS",
+               "OPTUM", "LOCATION_HINTS", "ATS_TITLE_HINTS")
 
 
 def _selected_profile(argv=None, env=None):
@@ -480,6 +517,12 @@ def _overlay(module, target=None):
     distinguished by presence, not truthiness: skipping falsy overrides meant
     `FEEDS = {}` silently inherited every default feed instead of disabling them,
     and a profile ran 28 sources it had explicitly opted out of.
+
+    Dicts merge one level deep (.update); LIST settings (LOCATION_HINTS,
+    ATS_TITLE_HINTS) REPLACE wholesale, because they are single filter
+    vocabularies — appending someone else's cities to yours would widen the
+    filter instead of changing it. Mutated in place either way, since scraper.py
+    imports these names directly.
     """
     target = globals() if target is None else target
     changed = []
@@ -487,7 +530,9 @@ def _overlay(module, target=None):
         if not hasattr(module, name):
             continue
         override = getattr(module, name)
-        if override:
+        if isinstance(target[name], list):
+            target[name][:] = override or []
+        elif override:
             target[name].update(override)
         else:
             target[name].clear()

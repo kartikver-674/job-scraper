@@ -4,6 +4,7 @@ Anything that needs a paid Apify actor stays in scraper.py; everything in
 sources/ is free and unauthenticated.
 """
 import html
+import http.client
 import json
 import re
 import time
@@ -33,6 +34,11 @@ def get_bytes(url, timeout=25, retries=2):
                 raise
             last = exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            last = exc
+        # A truncated body is transient and is NOT an OSError, so without this it
+        # escaped the retry loop entirely and killed the fetch (seen on ~200KB+
+        # JD pages). http.client.HTTPException is the base of IncompleteRead.
+        except http.client.HTTPException as exc:
             last = exc
         if attempt < retries:
             time.sleep(2 ** attempt)

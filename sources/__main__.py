@@ -6,7 +6,53 @@ dotted path yields blank titles, not an exception), so it's what needs a test.
 """
 import sys
 
-from . import FEED_FETCHERS, ats, fetch_free
+from . import FEED_FETCHERS, ats, fetch_free, optum
+
+# Optum fragments, verbatim from live responses (2026-07-29). Two Optum cards and
+# one UnitedHealthcare card, because the whole point of the brand class is that
+# careers.unitedhealthgroup.com serves every UHG brand from one index.
+OPTUM_LISTING = """
+<li><a href="/job/gurgaon/full-stack-engineer/34088/98443445328" data-job-id="98443445328" class="brand-facet brand-facet__optum">
+<div><h2>Full Stack Engineer</h2><span class="job-id job-info">2378400</span>
+<span class="job-divider"> | </span><span class="job-location 1">Gurgaon, Haryana</span></div></a></li>
+<li><a href="/job/wausau/senior-software-engineer/34088/96963085648" data-job-id="96963085648" class="brand-facet brand-facet__optum">
+<div><h2>Senior Software Engineer</h2><span class="job-id job-info">2364341</span>
+<span class="job-divider"> | </span><span class="job-location 1">Wausau, Wisconsin</span>
+<span class="job-divider"> | </span><span class="job-info job-worksetting">Remote</span></div></a></li>
+<li><a href="/job/minnetonka/actuarial-analyst/34088/97000000001" data-job-id="97000000001" class="brand-facet brand-facet__uhc">
+<div><h2>Actuarial Analyst</h2><span class="job-id job-info">2300001</span>
+<span class="job-divider"> | </span><span class="job-location 1">Minnetonka, Minnesota</span></div></a></li>
+"""
+
+# datePosted is NOT zero-padded in the real payload — that is the bug this guards.
+OPTUM_JD = """
+<script type="application/ld+json">{"@context":"http://schema.org","@type":"JobPosting",
+"datePosted":"2026-7-15","description":"<p>Optum is a global organization</p>"}</script>
+<span class="job-id job-info"> <b>Requisition number:</b> 2371064 </span>
+<span class="job-date job-info"> <b>Date posted:</b> 07/15/2026 </span>
+<a class="btn-internal-apply" href="https://uhg.taleo.net/careersection/10020/jobapply.ftl?job=2371064">Apply</a>
+"""
+
+
+def optum_offline():
+    cards = optum._cards(OPTUM_LISTING, brand="optum")
+    assert len(cards) == 2, f"brand filter kept {len(cards)} cards, expected 2"
+    first = cards[0]
+    assert first["req"] == "2378400", first          # the referral requisition
+    assert first["title"] == "Full Stack Engineer", first
+    assert first["location"] == "Gurgaon, Haryana", first
+    assert first["job_id"] == "98443445328", first
+    assert first["url"].startswith("https://careers.unitedhealthgroup.com/job/"), first
+    assert cards[1]["work_setting"] == "Remote", cards[1]
+
+    jd = optum.parse_jd(OPTUM_JD)
+    assert jd["live"] is True, jd
+    assert jd["req"] == "2371064", jd
+    assert jd["apply_req"] == "2371064", jd
+    # "2026-7-15" -> "2026-07-15", or scraper._parse_date can't read it and every
+    # Optum row silently becomes undated (and then either stale or unfiltered).
+    assert jd["date_posted"] == "2026-07-15", jd
+    assert jd["description"] == "Optum is a global organization", jd
 
 YES = lambda _: True  # noqa: E731 — keep-everything predicates for the checks
 
@@ -57,7 +103,9 @@ def offline():
     # Every table entry must be exercised above, or an unverified one slips in.
     assert set(FIXTURES) == set(ats.ATS), (
         f"untested ATS entries: {set(ats.ATS) - set(FIXTURES)}")
-    print(f"offline ok — {len(ats.ATS)} ATS platforms, {len(FEED_FETCHERS)} feeds")
+    optum_offline()
+    print(f"offline ok — {len(ats.ATS)} ATS platforms, {len(FEED_FETCHERS)} feeds, "
+          f"+ optum")
 
 
 def live():
