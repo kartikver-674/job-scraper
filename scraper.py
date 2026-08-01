@@ -58,7 +58,8 @@ import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
                     LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS, OPTUM,
-                    LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS)
+                    LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS,
+                    ATS_TITLE_EXCLUDE)
 
 # ---------------------------------------------------------------------------
 # Internal common schema (title-cased keys) produced by normalize(). The final
@@ -176,16 +177,33 @@ def location_allowed(loc):
     Empty hints = allow everything (the default now that the target is
     international remote). An unspecified location is always kept — scoring and
     the remote/comp filters sort it out.
+
+    Matched on alphanumeric boundaries, not as a substring: "india" also matches
+    "Indianapolis, Indiana", which on one employer's board was 107 of the 427
+    cards an India-only sweep kept — a quarter of it US nursing jobs. Same
+    lookaround idiom as _compile() below.
     """
     if not LOCATION_HINTS or not loc:
         return True
     low = loc.lower()
-    return any(h in low for h in LOCATION_HINTS)
+    return any(re.search(rf"(?<![a-z0-9]){re.escape(h)}(?![a-z0-9])", low)
+               for h in LOCATION_HINTS)
 
 
 def is_dev_title(title):
-    """Free sources return a whole board; keep only software/dev-looking titles."""
+    """Free sources return a whole board; keep only software/dev-looking titles.
+
+    ATS_TITLE_EXCLUDE wins over ATS_TITLE_HINTS, because the titles worth
+    excluding contain a hint by construction — "Senior Software Engineer I (Data
+    Engineer - Spark, Scala, ETL)" is a data-engineering job wearing a software
+    title, and no include vocabulary can tell them apart.
+
+    Substring, not word-boundary (unlike location_allowed): real titles run the
+    words together — "ReactJS", "AI/ML", "Devops", "Java FSD".
+    """
     low = (title or "").lower()
+    if any(x in low for x in ATS_TITLE_EXCLUDE):
+        return False
     return any(h in low for h in ATS_TITLE_HINTS)
 
 
@@ -271,12 +289,45 @@ def reachable(row):
 YEARS_PATTERN = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:years|yrs)")
 
 
+# A years figure only gates a candidate when it's counting EXPERIENCE. These
+# three tests were derived from 63 live requisitions on one employer's board
+# (2026-07-30), where the raw pattern above read a degree requirement as a career
+# length.
+_EXP_CUE_RE = re.compile(r"experience|hands[- ]on")
+_EXP_OF_RE = re.compile(r"\s*(?:of|in)\s+[a-z]")   # "8+ years of|in <something>"
+_EDU_RE = re.compile(r"education|schooling|degree program")
+
+
 def _required_experience_floor(text):
-    """Smallest 'N years' figure mentioned — a proxy for the minimum experience
-    demanded. 'company founded 5 years ago' plus a real '2 years' requirement
-    resolves to 2 (kept); a lone '5+ years' resolves to 5 (over threshold)."""
-    nums = [int(m.group(1)) for m in YEARS_PATTERN.finditer(text)]
-    return min(nums) if nums else None
+    """The experience a posting demands, in years, or None if it doesn't say.
+
+    Only counts figures that are talking about experience: "minimum 16 years of
+    formal education" is a degree, not a career, and reading it as one made a
+    4-year role look like a 16-year one. Prose like "founded 5 years ago" is
+    likewise ignored rather than resolved to a requirement.
+
+    SETTINGS["experience_aggregate"] picks how several figures combine, because
+    the right answer depends on how the employer writes:
+
+      "min" (default)  Short JDs, where the smallest number is usually the real
+          ask and anything larger is a nice-to-have.
+      "max"  Long structured JDs that state a total AND a per-skill figure.
+          "8+ years of total software engineering experience ... 2+ years
+          hands-on in AI/ML" is an 8-year job, and min() ranked it first out of
+          63 as if it wanted 2. Across those 63: 21 read differently, all 21 in
+          favour of max.
+    """
+    vals = []
+    for m in YEARS_PATTERN.finditer(text):
+        after = text[m.end():m.end() + 60]
+        if _EDU_RE.search(after):
+            continue
+        if (_EXP_CUE_RE.search(text[max(0, m.start() - 30):m.end() + 60])
+                or _EXP_OF_RE.match(after)):
+            vals.append(int(m.group(1)))
+    if not vals:
+        return None
+    return max(vals) if SETTINGS.get("experience_aggregate") == "max" else min(vals)
 
 
 def is_remote(row):
@@ -1118,6 +1169,40 @@ def demo():
     assert score_job(dict(farm, Company="")) is not None   # unknown != blocked
     assert sj("Senior React Developer", "8+ years of React required.") is None
 
+    # Experience floor: only figures that count EXPERIENCE, and the aggregate
+    # decides which of several wins. All three cases are verbatim from live JDs.
+    floor = _required_experience_floor
+    assert floor("we were founded 5 years ago and love react") is None
+    assert floor("b.tech (minimum 16 years of formal education) "
+                 "4+ years in a software engineer role") == 4      # degree != career
+    both = ("8+ years of total software engineering experience, "
+            "including 2+ years hands-on in ai/ml")
+    assert floor(both) == 2                                        # default: min
+    agg = SETTINGS.get("experience_aggregate")
+    SETTINGS["experience_aggregate"] = "max"
+    try:
+        assert floor(both) == 8
+        assert floor("3+ years of experience in full stack development") == 3
+    finally:
+        SETTINGS["experience_aggregate"] = agg
+
+    # The title gate fails SILENTLY — a wrong answer doesn't raise, it quietly
+    # changes which jobs exist. An exclude must beat an include, because the
+    # titles worth excluding contain an include term by construction.
+    saved = ATS_TITLE_HINTS[:], ATS_TITLE_EXCLUDE[:]
+    try:
+        ATS_TITLE_HINTS[:] = ["software engineer", "ml engineer", "full stack"]
+        ATS_TITLE_EXCLUDE[:] = ["data engineer", "automation testing"]
+        assert is_dev_title("Senior AI/ML Engineer - LLM, RAG and Agentic AI")
+        assert is_dev_title("Lead Full Stack Engineer - Java FSD")
+        assert not is_dev_title("Senior Software Engineer I (Data Engineer - Spark)")
+        assert not is_dev_title("Senior Software Engineer I - AWS Automation Testing")
+        assert not is_dev_title("Senior Data Analyst - Power BI")   # no hint at all
+        ATS_TITLE_EXCLUDE[:] = []
+        assert is_dev_title("Senior Software Engineer I (Data Engineer - Spark)")
+    finally:
+        ATS_TITLE_HINTS[:], ATS_TITLE_EXCLUDE[:] = saved
+
     # Timezone gap down-ranks but never removes, and only past the free window.
     near = sj("React Developer", "Remote across Europe. 2 years experience.")
     far = sj("React Developer", "Remote in the US. 2 years experience.")
@@ -1220,6 +1305,11 @@ def demo():
         assert location_allowed("Berlin, Germany") is False
         assert location_allowed("Pune, India") is True
         assert location_allowed("") is True                     # unspecified -> keep
+        # Word boundaries, not substrings: US Indiana is not India, and matched a
+        # quarter of the cards an India-only sweep was keeping.
+        assert location_allowed("Indianapolis, Indiana") is False
+        assert location_allowed("New Albany, Indiana") is False
+        assert location_allowed("Indiana, Pennsylvania") is False
     finally:
         LOCATION_HINTS = original
     print("demo ok")

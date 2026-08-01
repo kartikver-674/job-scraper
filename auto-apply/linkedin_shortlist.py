@@ -122,7 +122,11 @@ def render_html(jobs, candidate="", generated_on=""):
         company = html.escape(j.get("company", "") or "—")
         score = html.escape(j.get("score", ""))
         location = html.escape(j.get("location", "") or "Location N/A")
-        source = html.escape(j.get("source_site", ""))
+        # A referral is submitted against the requisition number, not a link, so
+        # it takes the chip whenever a source publishes one. Every other row
+        # keeps its source name — aggregators don't expose a requisition id.
+        req = (j.get("req_number") or "").strip()
+        source = html.escape("REQ " + req) if req else html.escape(j.get("source_site", ""))
         # data-jid is the identity used to remember "opened" across reloads. The
         # apply_url is the only genuinely stable per-job key here (titles and
         # companies repeat across postings), so it doubles as the storage key.
@@ -239,5 +243,10 @@ if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     opts = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
     name = args[0] if args else ""
+    # cfg.MIN_SCORE is tuned for the email flow (recruiter-contact rows). A
+    # browsable page wants its own floor — a row whose description never parsed
+    # scores near zero, and that's "couldn't read it", not "bad job".
+    if "min" in opts:
+        cfg.MIN_SCORE = int(opts["min"])
     path, n = generate(candidate=name, out_path=opts.get("out"), csv_path=opts.get("csv"))
     print("Wrote " + path + " (" + str(n) + " jobs)")

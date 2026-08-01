@@ -280,6 +280,15 @@ ATS_TITLE_HINTS = [
     "web developer", "mern", "mobile developer", "application developer",
 ]
 
+# Titles to reject even when they DO match a hint above. Checked first, so it
+# wins — which is the only way to keep out a role that borrows a software title
+# for a different job ("Senior Software Engineer - Data Engineer, Spark, ETL").
+# Empty by default: it earns its keep when the hints are broadened past one
+# stack, where a wider net starts catching adjacent careers. Seniority does NOT
+# belong here — SCORING["hard_drop_terms"] already handles it, and as a penalty
+# rather than a silent delete.
+ATS_TITLE_EXCLUDE = []
+
 # Naukri needs numeric city IDs (not names). Map each name you search here to its
 # ID (from the actor's schema). "Remote" is special-cased to a workMode filter, so
 # it needs no entry. Add more IDs as you widen coverage.
@@ -397,6 +406,12 @@ SETTINGS = {
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
     "max_experience_years": 3,   # roles whose text demands MORE than this (e.g. "5+ years") are dropped/penalized
+    # How to combine several "N years" figures in one posting: "min" reads the
+    # smallest as the real ask (right for short JDs, where anything larger is a
+    # nice-to-have), "max" the largest (right for the long structured kind that
+    # state a total AND a per-skill figure). See
+    # scraper._required_experience_floor.
+    "experience_aggregate": "min",
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
     "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
