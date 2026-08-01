@@ -167,6 +167,7 @@ Everything that decides *what* is pulled and *how* it is ranked lives in
 | `ATS_BOARDS` | free company career boards, `{platform: {token: "Name"}}` |
 | `FEEDS` | free remote-job feeds (Remote OK, WWR, Remotive, Jobicy, Himalayas) |
 | `LOCATION_HINTS` | location whitelist for free sources; **empty = allow all** |
+| `ATS_TITLE_HINTS` / `ATS_TITLE_EXCLUDE` | which titles a free source keeps; exclude wins |
 | `SCORING` | skill weights, full-stack bonus, penalties, seniority tiers, company blocklist |
 | `SETTINGS` | freshness, pay floor, remote/visa/EOR filters, spend caps, output |
 
@@ -192,7 +193,13 @@ over; delete individual lines to resurface specific jobs.
 ## Seniority: two tiers, because a title is not a requirement
 
 `SETTINGS["max_experience_years"]` is the real gate — it reads the years the job
-text actually demands. The title lists only handle labelling:
+text actually demands, ignoring figures that aren't counting experience ("minimum
+16 years of formal education" is a degree, not a career). When a posting states
+several, `SETTINGS["experience_aggregate"]` decides which one is the requirement:
+`"min"` for short JDs, `"max"` for the long structured kind that give a total
+*and* a per-skill figure ("8+ years of total software engineering experience,
+including 2+ years hands-on in AI/ML" is an 8-year job — `min` ranked it first of
+63 as if it wanted 2). The title lists only handle labelling:
 
 - `SCORING["hard_drop_terms"]` (manager, principal, staff, architect, …) —
   removed outright.
