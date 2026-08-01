@@ -218,17 +218,20 @@ OPTUM = {
     "enabled": False,
     "company": "Optum",
     "brand": "optum",
-    # Each keyword is its own full-text query; results are deduped by job id.
-    "keywords": [
-        "full stack", "software engineer", "react", "node.js", "javascript",
-        "typescript", "react native", "mern", "frontend developer",
-        "backend developer", "web developer", "application developer",
-    ],
-    # "" = the whole index for that keyword. The title/location gates in
-    # config.ATS_TITLE_HINTS / LOCATION_HINTS narrow it afterwards, for free.
+    # ONE empty query = the whole index, which is both cheaper and more complete
+    # than a keyword list. Probed 2026-07-30: the index holds 5,872 jobs, and the
+    # site's full-text search reads the JD body, so a keyword is a strict SUBSET
+    # of "" that also can't be trusted to narrow ("developer" matched 5,787 of
+    # 5,872 — nearly every JD says the word somewhere). A 12-keyword list was
+    # therefore 12 sweeps of the same index that could still miss a role whose
+    # title we want but whose JD never says our words. The title + location gates
+    # (ATS_TITLE_HINTS / ATS_TITLE_EXCLUDE / LOCATION_HINTS) do the narrowing, for
+    # free, and only survivors cost a JD request. Whole sweep: ~59 listing
+    # requests, ~3 min.
+    "keywords": [""],
     "locations": [""],
     "per_page": 100,        # verified honoured; the site's own UI uses 15
-    "max_pages": 6,
+    "max_pages": 70,        # 5,872 jobs / 100 = 59 pages + headroom to grow
     # Re-fetch every JD and drop anything that 404s — a pulled requisition is
     # gone from the site. See the module docstring for why the Taleo apply URL
     # can NOT be used for this (it answers 200 for nonexistent reqs).
@@ -508,7 +511,7 @@ import os
 import sys
 
 OVERLAYABLE = ("SEARCH", "SITES", "SCORING", "SETTINGS", "ATS_BOARDS", "FEEDS",
-               "OPTUM", "LOCATION_HINTS", "ATS_TITLE_HINTS")
+               "OPTUM", "LOCATION_HINTS", "ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE")
 
 
 def _selected_profile(argv=None, env=None):

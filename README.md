@@ -313,6 +313,33 @@ HTML *inside* JSON and the listing carries neither a description nor a date —
 both need a request per job. That request is also the liveness check: a pulled
 requisition 404s, and those rows are dropped.
 
+**One empty query, not a keyword list.** The index holds 5,872 jobs and the
+site's full-text search reads the JD body, so any keyword is a strict subset of
+`""` that still can't be trusted to narrow — `"developer"` matched 5,787 of
+5,872. A 12-keyword list was 12 sweeps of the same index that could still miss a
+role whose title you want but whose JD never says your words. `""` costs ~59
+listing requests (~3 min), and the title + location gates do the narrowing for
+free — only survivors cost a JD request.
+
+**Which roles, and which are a different career.** `profiles/optum.py` casts a
+wide net across software engineering — full-stack, backend, frontend, software
+engineer, AI/ML and GenAI, platform, automation, developer-productivity — and
+ranks by résumé overlap rather than filtering to one stack, so an off-stack
+requisition (Java, .NET, Angular — most of Optum) costs a point or two instead
+of a place in the list. `ATS_TITLE_EXCLUDE` keeps out the tracks that need a
+different background: data engineering/science/analytics, SRE, DevOps-as-a-job,
+cloud infra, security, networking, QA/test, IT ops. It is deliberately tight —
+an over-broad entry deletes a good role invisibly, while one that slips through
+is merely ranked low and still on the page. Measured on the live index
+(2026-07-30): 320 India cards, 94 kept by the old full-stack-only gate, 145 by
+this one.
+
+`SETTINGS["experience_aggregate"] = "max"` here, because every Optum requisition
+states a total *and* a per-skill figure. And note `LOCATION_HINTS` matches on
+word boundaries: as a substring, `"india"` also matches `"Indianapolis,
+Indiana"` — 107 of the 427 cards this sweep was keeping were US nursing and
+therapy jobs.
+
 **A requisition's open/closed state is not publicly checkable beyond that.**
 `uhg.taleo.net/.../jobapply.ftl?job=<req>` answers `200` with an identical
 privacy-agreement gate for a live req and a nonexistent one alike (probed

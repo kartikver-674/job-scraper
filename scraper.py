@@ -214,6 +214,12 @@ def is_home_location(loc):
     return any(h in low for h in HOME_LOCATION_HINTS)
 
 
+def _optum_scope():
+    """Banner wording: a single empty keyword IS the whole index, not "1 queries"."""
+    kws = OPTUM.get("keywords") or [""]
+    return "whole index" if kws == [""] else f"{len(kws)} queries"
+
+
 def fetch_free():
     """Every configured ATS board + feed. Free; per-board failures are isolated."""
     rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed,
@@ -1347,7 +1353,7 @@ def main():
         print(f"Free sources: {n_boards} ATS boards "
               f"({', '.join(k for k, v in ATS_BOARDS.items() if v)}) "
               f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})"
-              + (f" + {OPTUM['company']} careers ({len(OPTUM['keywords'])} queries, "
+              + (f" + {OPTUM['company']} careers ({_optum_scope()}, "
                  f"live-verified)" if n_optum else "") + "\n")
 
     if args.dry_run:
