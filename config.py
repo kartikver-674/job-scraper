@@ -1,5 +1,6 @@
 """
-Configuration for the full-stack job scraper.
+Configuration for the job scraper — tuned for a Salesforce Business Analyst
+(functional consultant, ~1.5 yrs, Mohali/Punjab; Salesforce Certified Admin).
 
 EVERYTHING that decides *what* gets pulled and *how* it's ranked lives here. You
 should never need to touch scraper.py to add a keyword, a location, a site, a skill
@@ -18,7 +19,7 @@ Philosophy — prove it cheaply first:
 Sections below:
     1. SEARCH   — shared criteria + the role x location matrix
     2. SITES    — which boards to scrape (toggle here)
-    3. SCORING  — resume-based relevance weights, full-stack bonus, exclude/down-rank
+    3. SCORING  — resume-based relevance weights, two-halves bonus, exclude/down-rank
     4. SETTINGS — filtering thresholds, cost guards, output knobs
     5. PROFILES — named overlays, so one scraper serves several people/searches
 
@@ -32,30 +33,38 @@ editing this file, put the keys you want to change in profiles/<name>.py and run
 # ===========================================================================
 # The scraper runs the CROSS PRODUCT of role_keywords x locations for every
 # enabled site. Ordering matters only cosmetically (results are re-ranked by the
-# scoring layer), but full-stack terms are listed first by intent.
+# scoring layer), but the Salesforce-qualified titles are listed first by intent.
+#
+# 7 keywords x 10 locations = 70 Indeed combos (~$6). Start with
+# `--limit` (first N combos) before running the whole matrix.
 SEARCH = {
     "country": "IN",            # Indeed country code (IN, US, GB, ...)
-    "experience_years": 2,      # target ~2 yrs (0-3 acceptable); passed to sites that support it
-    "salary_min": None,         # optional minimum salary; None to skip
+    "experience_years": 2,      # 1.5 yrs on the resume; rounds to the site filters' nearest band
+    "salary_min": None,         # optional minimum salary; None to skip (SETTINGS["min_comp_usd"] filters after the fact)
     "max_results": 15,          # jobs PER (keyword x location) search — keep modest, pay-per-event (~$5/1000 results)
 
-    # Each entry is run as its OWN search term. Weighted toward full-stack.
+    # Each entry is run as its OWN search term. Platform-qualified titles first;
+    # the bare "Business Analyst" is deliberate — plenty of real Salesforce BA
+    # roles are titled generically, and the scoring layer demotes the rest.
     "role_keywords": [
-        "Full Stack Developer",
-        "Full Stack Engineer",
-        "MERN Stack Developer",
-        "React Native Developer",
-        "React Native Engineer",
-        "React Developer",
-        "Node.js Developer",
-        "Frontend Developer",
-        "Software Engineer JavaScript",
+        "Salesforce Business Analyst",
+        "Salesforce Functional Consultant",
+        "Salesforce Consultant",
+        "Salesforce Administrator",
+        "Sales Cloud Consultant",
+        "CRM Business Analyst",
+        "Business Analyst",
     ],
 
-    # India-focused (Delhi/NCR heavy) + Remote.
+    # Home (Chandigarh tri-city) + the Salesforce partner/SI markets + Remote.
+    # NOTE: Mohali/Chandigarh have no verified LINKEDIN_GEO_IDS entry and no
+    # NAUKRI_CITY_IDS entry, so they run on Indeed only — LinkedIn and Naukri use
+    # their own location overrides in SITES.
     "locations": [
-        "Delhi", "New Delhi", "Gurgaon", "Noida",
-        "Bengaluru", "Hyderabad", "Pune", "Remote",
+        "Mohali", "Chandigarh",
+        "Delhi", "Gurgaon", "Noida",
+        "Bengaluru", "Hyderabad", "Pune", "Mumbai",
+        "Remote",
     ],
 }
 
@@ -80,8 +89,17 @@ SITES = {
     # remote_only: add f_WT=2 to EVERY search, so a list of countries becomes a
     # list of remote-in-that-country searches. That is how a global remote sweep
     # is expressed (see profiles/global_remote.py).
+    # City coverage, not just "India": measured on the 2026-08-01 sweep, LinkedIn
+    # cost $0.19 for 4 rows at score >= 20 while Indeed cost $6.06 for 16 — but
+    # Indeed only won on volume because it ran 70 city combos to LinkedIn's 2
+    # locations. Per good row LinkedIn was 8x cheaper, so give it the cities and
+    # let Indeed be the one you skip. Only VERIFIED geoIds are listed; Mohali and
+    # Chandigarh have none, so they stay Indeed-only (the adapter refuses to
+    # search without a geoId rather than silently billing for US results).
+    # 8 locations x 7 keywords x 15 results ~= $0.84.
     "linkedin": {"enabled": True,  "actor": "curious_coder/linkedin-jobs-scraper",
-                 "locations": ["India", "Remote"],
+                 "locations": ["India", "Delhi", "Gurgaon", "Bengaluru",
+                               "Hyderabad", "Pune", "Mumbai", "Remote"],
                  "remote_geo": "India", "remote_only": False},
     "indeed":   {"enabled": True,  "actor": "misceres/indeed-scraper"},
     # Naukri has a ~$0.50 MINIMUM charge per run, so pulling only a few results is
@@ -235,23 +253,26 @@ HOME_LOCATION_HINTS = [
 ]
 
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
-# we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
-# role (case-insensitive substring). Scoring then ranks within these.
+# we can't keyword-search. Keep only jobs whose TITLE looks like a BA / Salesforce
+# functional role (case-insensitive substring). Scoring then ranks within these.
+# Was a dev-title list; on a BA search that silently filtered out every free row,
+# so the ATS boards and feeds contributed nothing at all. Volume is still low —
+# the configured boards are dev-heavy product startups.
 ATS_TITLE_HINTS = [
-    "developer", "full stack", "fullstack", "full-stack", "frontend", "front end",
-    "front-end", "backend", "back end", "back-end", "software engineer",
-    "software development", "sde", "react", "node", "javascript", "typescript",
-    "web developer", "mern", "mobile developer", "application developer",
+    "business analyst", "business analysis", "business systems analyst",
+    "functional consultant", "functional analyst", "requirements analyst",
+    "salesforce", "crm", "sales cloud", "service cloud", "sales operations",
+    "implementation consultant", "solution consultant", "product owner",
 ]
 
 # Titles to reject even when they DO match a hint above. Checked first, so it
 # wins — which is the only way to keep out a role that borrows a software title
 # for a different job ("Senior Software Engineer - Data Engineer, Spark, ETL").
-# Empty by default: it earns its keep when the hints are broadened past one
-# stack, where a wider net starts catching adjacent careers. Seniority does NOT
+# Earns its keep now that the hints include the bare word "salesforce", which on
+# a product-company board is mostly Salesforce DEVELOPER work. Seniority does NOT
 # belong here — SCORING["hard_drop_terms"] already handles it, and as a penalty
 # rather than a silent delete.
-ATS_TITLE_EXCLUDE = []
+ATS_TITLE_EXCLUDE = ["developer", "engineer", "architect", "sdet"]
 
 # Naukri needs numeric city IDs (not names). Map each name you search here to its
 # ID (from the actor's schema). "Remote" is special-cased to a workMode filter, so
@@ -275,53 +296,114 @@ NAUKRI_CITY_IDS = {
 # Each job's (title + description) is matched, case-insensitively and on WORD
 # BOUNDARIES (so ".net" and "node.js" match cleanly and "lead" won't match
 # "leadership"), against the terms below. Positive weights add to the score;
-# penalty terms subtract; a full-stack bonus rewards frontend+backend overlap.
+# penalty terms subtract; a bonus rewards jobs naming BOTH halves of the field
+# (Salesforce platform + business analysis) — see "two halves" below.
 SCORING = {
-    # -- Positive skill weights (higher = more central to the resume) ---------
+    # -- Positive skill weights ----------------------------------------------
+    # Weighted by DISCRIMINATIVE POWER, not by how central the skill is to her.
+    # The test for every term is "would this word appear in a job she does NOT
+    # want?" — if yes it stays low however core it is. Requirements gathering,
+    # BRD/FRD, UAT and gap analysis ARE her top skills, but they appear in every
+    # BA posting on earth; only the platform terms identify her niche. Weighted
+    # the other way round (craft 3-4, platform 5) on live data an "Oracle Fusion
+    # Functional Consultant" ranked #1 and a generic "Business Analyst" beat the
+    # real "Salesforce Business Analyst".
     "skill_weights": {
-        # Core full-stack stack — highest signal
-        "node": 5, "node.js": 5, "express": 5,
-        "react": 5, "react native": 5, "react.js": 5,
-        "typescript": 5, "mongodb": 5,
-        # Strong supporting skills
-        "redis": 3, "socket.io": 3, "websocket": 3, "websockets": 3,
-        "jwt": 3, "oauth": 3, "rest api": 3, "restful": 3, "mongoose": 3,
-        "mysql": 3, "javascript": 3,
-        # Real-time / auth / concurrency — stated resume strengths
-        "firebase": 2, "fcm": 2, "concurrency": 2, "authentication": 2,
-        # General relevant tooling / practices (from resume)
-        "redux": 2, "expo": 2, "tailwind": 2, "next.js": 2, "jest": 2,
-        "azure devops": 2, "ci/cd": 2,
-        "zod": 1, "react hook form": 1, "html": 1, "css": 1, "es6": 1, "agile": 1,
+        # The niche identifier — deliberately dominant
+        "salesforce": 10,
+        # Clouds she has actually delivered on (L'Oreal, Diamond Beverages)
+        "sales cloud": 8, "service cloud": 8, "experience cloud": 7,
+        # Salesforce-only artefacts — almost no other product's JD says these
+        "soql": 6, "lightning app builder": 6, "salesforce inspector": 6,
+        "apex": 5, "sfa": 5, "sales force automation": 5,
+        "salesforce administrator": 5,
+        "lwc": 4, "lightning web component": 4, "flow builder": 4,
+        "salesforce certified": 4,
+        # Both forms deliberately: the matcher is boundary-anchored, so
+        # "validation rule" does NOT match "validation rules" — and the plural is
+        # what JDs actually write. Same reason the old config listed
+        # websocket/websockets. A JD using both just scores the term twice.
+        "validation rule": 4, "validation rules": 4,
+        "permission set": 4, "permission sets": 4,
+        "approval process": 4, "approval processes": 4,
+        "record type": 3, "record types": 3,
+        "custom metadata": 3, "dealer management": 3,
+        # BA craft — genuinely hers, but shared with every adjacent BA role, so
+        # supporting weight only
+        "business analyst": 2, "requirements gathering": 2,
+        "requirement gathering": 2, "gap analysis": 2, "elicitation": 2,
+        "brd": 2, "frd": 2, "functional specification": 2, "uat": 2,
+        "change request": 2, "change requests": 2,
+        # Generic delivery vocabulary + the analytics stack, which leaks straight
+        # into data-analyst postings she isn't looking for
+        "user stories": 1, "acceptance criteria": 1, "user acceptance testing": 1,
+        "stakeholder management": 1, "impact analysis": 1, "process mapping": 1,
+        "agile": 1, "scrum": 1, "sprint planning": 1, "backlog": 1, "sdlc": 1,
+        "power bi": 1, "sql": 1, "rest api": 1, "dms": 1,
     },
 
-    # -- Full-stack bonus -----------------------------------------------------
-    # A job mentioning BOTH a frontend AND a backend term is a true full-stack
-    # role → is_fullstack=True and fullstack_bonus added. Explicit full-stack /
-    # MERN wording in the TITLE also flags it as full-stack outright.
-    "frontend_terms": [
-        "react", "react native", "react.js", "redux", "expo", "tailwind",
-        "next.js", "zod", "react hook form", "frontend", "front-end", "front end", "ui",
+    # -- "Two halves" bonus ---------------------------------------------------
+    # Same machinery as the old full-stack bonus (scraper.py precompiles these
+    # key names), repurposed to the two halves of HER field: the PLATFORM and the
+    # BUSINESS-ANALYSIS craft. A job naming both is a real Salesforce functional
+    # role; platform alone is a Salesforce developer post, craft alone is a
+    # generic BA post. Bare "crm" is deliberately absent from the platform half —
+    # it would hand the bonus to every SAP/Dynamics/Zoho job for free.
+    "frontend_terms": [        # half A — the platform
+        "salesforce", "sales cloud", "service cloud", "experience cloud",
+        "apex", "lwc", "soql", "lightning app builder", "salesforce inspector",
+        "sfa", "sales force automation",
     ],
-    "backend_terms": [
-        "node", "node.js", "express", "mongodb", "mongoose", "mysql", "redis",
-        "socket.io", "rest api", "restful", "firebase", "backend", "back-end",
-        "back end", "api", "server",
+    "backend_terms": [         # half B — the BA craft
+        "business analyst", "business analysis", "functional consultant",
+        "requirements gathering", "requirement gathering", "gap analysis",
+        "brd", "frd", "functional specification", "uat",
+        "user acceptance testing", "change request",
     ],
-    "fullstack_bonus": 6,
-    "fullstack_title_terms": ["full stack", "full-stack", "fullstack", "mern", "mean"],
+    # 10, not 6, measured on the 2026-08-01 LinkedIn sweep: matching BOTH halves
+    # is the single cleanest "functional role, not a dev role" signal in the data
+    # — every Salesforce Developer row matched half A only (salesforce/apex/lwc/
+    # soql, no requirements/UAT/BRD anywhere), so widening the bonus separates
+    # them without having to guess at ever-deeper title penalties.
+    "fullstack_bonus": 10,
+    # Flags a match from the TITLE ALONE, bypassing all other evidence, so every
+    # term here MUST name the platform. A bare "business analyst" handed the
+    # bonus to "Business Analyst (Italian)", and a bare "functional consultant"
+    # to "Oracle Fusion Functional Consultant". Genuine matches still earn it
+    # through the two-halves rule above, so nothing real is lost.
+    "fullstack_title_terms": [
+        "salesforce business analyst", "salesforce functional consultant",
+        "salesforce consultant", "salesforce administrator",
+        "salesforce analyst", "crm business analyst",
+    ],
 
     # -- Down-ranking (penalty) ----------------------------------------------
-    # Stacks I don't do + Salesforce/CRM. Salesforce/CRM are penalized HARD so
-    # pure-CRM roles sink to the bottom (or drop out via SETTINGS["min_score"]).
+    # She is FUNCTIONAL, not a developer: she reads Apex and hands it off. So the
+    # coding roles sink. Scoped to whole phrases wherever possible, because a
+    # Salesforce BA posting routinely mentions working WITH Apex developers and
+    # shouldn't be punished for it.
     "penalty_terms": {
-        ".net": -6, "asp.net": -6, "c#": -6,
-        "java": -5, "java spring": -6, "spring boot": -6, "spring mvc": -6,
-        "php": -6, "laravel": -5,
-        "angular": -4, "angularjs": -4,
-        # Salesforce / CRM — hard down-rank
-        "salesforce": -12, "apex": -12, "lwc": -12,
-        "lightning web component": -12, "crm developer": -12, "crm": -6,
+        # -16, raised from -12: on the first live sweep three Salesforce
+        # Developer posts still landed in the top 10 (22/12/12), because the
+        # platform terms they share with a functional role are worth ~40 on their
+        # own. Deep enough to sink them, not so deep they vanish — she may still
+        # want to see them.
+        "salesforce developer": -16, "apex developer": -16, "lwc developer": -16,
+        "crm developer": -16,
+        # Hands-on-code signals a functional JD never carries, so a Salesforce
+        # DEV post sinks below a functional one without punishing a BA posting
+        # that merely mentions Apex once.
+        "apex trigger": -5, "apex triggers": -5, "batch apex": -5,
+        "visualforce": -5, "trigger framework": -5,
+        "apex class": -4, "apex classes": -4,
+        "java": -5, ".net": -5, "asp.net": -5, "c#": -5, "php": -5,
+        "react": -5, "angular": -5, "node.js": -5, "python developer": -5,
+        "full stack": -5, "full-stack": -5,
+        "frontend": -4, "backend": -4, "software engineer": -4, "sde": -4,
+        "devops": -4, "test automation": -3, "qa engineer": -3,
+        # NOT penalized (yet): SAP / Oracle Fusion / Dynamics / ServiceNow. The
+        # platform weights above should already outrank them — check the real
+        # top 10 after the first sweep and add them here if they leak in.
     },
 
     # Lead-gen farms, not employers. They repost other companies' listings under
@@ -339,7 +421,9 @@ SCORING = {
     # experience gate is SETTINGS["max_experience_years"], which reads the years
     # actually demanded by the text; these lists only handle the title.
     #
-    # hard_drop_terms: never a fit at this experience level whatever the JD says.
+    # hard_drop_terms: never a fit at 1.5 yrs whatever the JD says — including
+    # "architect", which in Salesforce-land is a 8-10 yr Technical/Solution
+    # Architect track.
     # Removed entirely (or penalized, if SETTINGS["drop_excluded"] is False).
     "hard_drop_terms": [
         "principal", "staff", "manager", "architect", "director",
@@ -381,10 +465,10 @@ SETTINGS = {
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
     # Minimum compensation, annualized and in USD, so an Indian LPA figure and a
     # US/EU salary are compared on the same axis (see scraper.comp_max_usd).
-    # 6000 USD ~= the old 5.2 LPA floor. Undisclosed, unparseable, or
-    # unknown-currency pay is always KEPT — we never drop on a guess.
-    # Raise this to ~40000+ once the sweep is weighted toward international remote.
-    "min_comp_usd": 6000,        # None to disable
+    # 9500 USD ~= the 8 LPA floor asked for. Undisclosed, unparseable, or
+    # unknown-currency pay is always KEPT — we never drop on a guess, and Indian
+    # BA postings disclose pay less often than they hide it.
+    "min_comp_usd": 9500,        # None to disable
 
     # International-remote filters, from the signals enrich.py reads out of the
     # job text (visible as the remote_scope / visa / eor / timezones columns
@@ -399,12 +483,12 @@ SETTINGS = {
     #   "hybrid" / "onsite" / "" (not stated)
     # For remote roles workable from India, start with ["worldwide", "remote"].
     #
-    # ON, because off was worse than useless: the 2026-07-26 sweep returned 480
-    # jobs at score >= 10 of which 27 were actually reachable from India — 245 of
-    # the top 252 were "remote" only within Germany / Spain / UAE / the UK. The
-    # filter keeps "restricted" rows whose lock is TO India, so India-remote roles
-    # (which LinkedIn labels restricted) survive — see scraper.finalize.
-    "remote_scopes": ["worldwide", "remote"],
+    # OFF ([] = no filtering), and it has to be: this search is mostly ONSITE
+    # (Mohali, NCR, the metro SI hubs). A scope list keeps ONLY the scopes named,
+    # so ["worldwide", "remote"] silently deleted every office role in the sweep —
+    # i.e. nearly everything paid for. Switch it back on only if the target
+    # becomes remote-first.
+    "remote_scopes": [],
     "drop_no_visa": False,       # drop only jobs that EXPLICITLY refuse to sponsor
     "require_eor": False,        # keep only jobs naming an employer-of-record path
 
@@ -428,7 +512,11 @@ SETTINGS = {
     # results). Your $5 free credit is therefore ~1000 results total. max_spend_usd
     # below stops launching new runs once the run's cumulative cost hits it, so a
     # sweep self-limits well under the free tier.
-    "max_spend_usd": None,          # None = no cap (cost headroom + backup API key available); set a $ value to self-limit
+    # Credits are tight (2026-08-01: $2.09 left on APIFY_TOKEN, $5.00 on
+    # APIFY_TOKEN_2, and Naukri alone would cost $7). This counts spend WITHIN
+    # one run, measured against real account billing — so it caps each token's
+    # share of a sweep that resumes across both via output/.done_combos.
+    "max_spend_usd": 4.50,          # None = no cap. 1.60 for the APIFY_TOKEN leg, 4.50 for APIFY_TOKEN_2
     "max_searches_per_site": None,  # cap (keyword x location) combos per site (None = full sweep; --limit overrides)
     "confirm_above_runs": 12,       # if planned actor runs exceed this, ask before spending (skip with --yes)
     "test_max_results": 5,          # max_results used by --test
