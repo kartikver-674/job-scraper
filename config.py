@@ -1,5 +1,14 @@
 """
-Configuration for the full-stack job scraper.
+Configuration for the job scraper — tuned for a Software Engineer (~1.5 yrs,
+Chandigarh/Mohali) LEAVING Salesforce for Java / backend / frontend / Flutter /
+AI work.
+
+The one thing to understand before editing anything below: his RÉSUMÉ is a
+Salesforce résumé (Apex, LWC, Batch Apex, SOQL — the whole current job) but his
+TARGET is everything except that. So Salesforce terms are the biggest PENALTY
+block in SCORING, not the biggest weight. Anyone who "fixes" that by reading the
+résumé and re-adding `"salesforce": 10` will hand him his own current job as the
+#1 result. That is the intent, not a bug.
 
 EVERYTHING that decides *what* gets pulled and *how* it's ranked lives here. You
 should never need to touch scraper.py to add a keyword, a location, a site, a skill
@@ -32,30 +41,48 @@ editing this file, put the keys you want to change in profiles/<name>.py and run
 # ===========================================================================
 # The scraper runs the CROSS PRODUCT of role_keywords x locations for every
 # enabled site. Ordering matters only cosmetically (results are re-ranked by the
-# scoring layer), but full-stack terms are listed first by intent.
+# scoring layer), but the five target tracks are grouped by intent.
+#
+# COST WARNING, because this matrix is bigger than the old one: --dry-run reports
+# 180 actor runs — 90 Indeed combos (9 keywords x 10 locations, ~$7), 72 LinkedIn
+# (~$1), and 18 Naukri, which at Naukri's ~$0.50 per-run FLOOR is ~$9 on its own
+# for the least useful third of the sweep. Never run the whole thing first:
+#     python scraper.py --dry-run                  # the plan, zero cost
+#     python scraper.py --site indeed --limit 10   # ~$0.8, enough to tune weights
+# and once you have paid for one sweep, `python rescore_from_apify.py` re-ranks it
+# for free — never re-scrape to try new weights.
 SEARCH = {
     "country": "IN",            # Indeed country code (IN, US, GB, ...)
-    "experience_years": 2,      # target ~2 yrs (0-3 acceptable); passed to sites that support it
-    "salary_min": None,         # optional minimum salary; None to skip
+    "experience_years": 2,      # 1.5+ yrs on the résumé; rounds to the site filters' nearest band
+    "salary_min": None,         # optional minimum salary; None to skip (SETTINGS["min_comp_usd"] filters after the fact)
     "max_results": 15,          # jobs PER (keyword x location) search — keep modest, pay-per-event (~$5/1000 results)
 
-    # Each entry is run as its OWN search term. Weighted toward full-stack.
+    # Each entry is run as its OWN search term, one per target track. Kept to 9
+    # deliberately: five tracks x every synonym would triple the bill for
+    # overlapping results, and the scoring layer re-ranks whatever comes back.
     "role_keywords": [
+        "Java Developer",              # track 1 — Java / enterprise backend
+        "Backend Developer",
+        "Node.js Developer",           # track 2 — JS backend (résumé: Node.js, REST)
+        "Flutter Developer",           # track 3 — his deepest hands-on skill
+        "React Developer",             # track 4 — frontend
         "Full Stack Developer",
-        "Full Stack Engineer",
-        "MERN Stack Developer",
-        "React Native Developer",
-        "React Native Engineer",
-        "React Developer",
-        "Node.js Developer",
-        "Frontend Developer",
-        "Software Engineer JavaScript",
+        "Software Engineer",           # broadest net; the scoring layer does the narrowing
+        "Machine Learning Engineer",   # track 5 — AI/CV (see the weights caveat in SCORING)
+        "AI Engineer",
     ],
 
-    # India-focused (Delhi/NCR heavy) + Remote.
+    # Home tri-city first, then the metros he named, then Remote.
+    # NOTE: Mohali and Chandigarh have NO verified LINKEDIN_GEO_IDS entry and no
+    # NAUKRI_CITY_IDS entry, so they are INDEED-ONLY — LinkedIn and Naukri use
+    # their own location overrides in SITES. Panchkula is deliberately absent:
+    # Indeed's city search is radius-based, so "Mohali" + "Chandigarh" already
+    # cover it, and a third combo would be paid for near-zero extra inventory.
     "locations": [
-        "Delhi", "New Delhi", "Gurgaon", "Noida",
-        "Bengaluru", "Hyderabad", "Pune", "Remote",
+        "Mohali", "Chandigarh",
+        "Delhi", "Gurgaon", "Noida",
+        "Bengaluru", "Hyderabad", "Pune", "Mumbai",
+        "Remote",
     ],
 }
 
@@ -80,8 +107,14 @@ SITES = {
     # remote_only: add f_WT=2 to EVERY search, so a list of countries becomes a
     # list of remote-in-that-country searches. That is how a global remote sweep
     # is expressed (see profiles/global_remote.py).
+    # City coverage, not just "India": LinkedIn is ~5x cheaper per result than
+    # Indeed, so it is the one to widen and Indeed is the one to --limit. Only
+    # VERIFIED geoIds are listed — Mohali and Chandigarh have none, so they stay
+    # Indeed-only (the adapter refuses to search without a geoId rather than
+    # silently billing for US results). 9 keywords x 8 locations x 15 ~= $1.08.
     "linkedin": {"enabled": True,  "actor": "curious_coder/linkedin-jobs-scraper",
-                 "locations": ["India", "Remote"],
+                 "locations": ["India", "Delhi", "Gurgaon", "Bengaluru",
+                               "Hyderabad", "Pune", "Mumbai", "Remote"],
                  "remote_geo": "India", "remote_only": False},
     "indeed":   {"enabled": True,  "actor": "misceres/indeed-scraper"},
     # Naukri has a ~$0.50 MINIMUM charge per run, so pulling only a few results is
@@ -237,21 +270,32 @@ HOME_LOCATION_HINTS = [
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
 # we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
 # role (case-insensitive substring). Scoring then ranks within these.
+# The dev-title list already fits him (he wants engineering roles, unlike the
+# BA/functional retunes on other branches) — widened with the mobile and AI
+# tracks his résumé supports.
 ATS_TITLE_HINTS = [
     "developer", "full stack", "fullstack", "full-stack", "frontend", "front end",
     "front-end", "backend", "back end", "back-end", "software engineer",
     "software development", "sde", "react", "node", "javascript", "typescript",
     "web developer", "mern", "mobile developer", "application developer",
+    # Mobile track (Flutter/Dart + Android Studio on the résumé)
+    "flutter", "dart", "android", "mobile engineer", "cross-platform",
+    # Java / enterprise backend
+    "java",
+    # AI / CV track — one academic project, so kept to the exact wording he can
+    # defend rather than the whole ML job market
+    "machine learning", "computer vision", "ml engineer", "ai engineer",
 ]
 
 # Titles to reject even when they DO match a hint above. Checked first, so it
 # wins — which is the only way to keep out a role that borrows a software title
 # for a different job ("Senior Software Engineer - Data Engineer, Spark, ETL").
-# Empty by default: it earns its keep when the hints are broadened past one
-# stack, where a wider net starts catching adjacent careers. Seniority does NOT
-# belong here — SCORING["hard_drop_terms"] already handles it, and as a penalty
-# rather than a silent delete.
-ATS_TITLE_EXCLUDE = []
+# Earns its keep here for one reason: he is leaving Salesforce, and "Salesforce
+# Developer" matches the hint "developer" above. A -15 penalty sinks those rows
+# but they still occupy the list; on the FREE boards there is no reason to carry
+# them at all. Seniority does NOT belong here — SCORING["hard_drop_terms"]
+# already handles it, and as a penalty rather than a silent delete.
+ATS_TITLE_EXCLUDE = ["salesforce", "apex", "crm"]
 
 # Naukri needs numeric city IDs (not names). Map each name you search here to its
 # ID (from the actor's schema). "Remote" is special-cased to a workMode filter, so
@@ -277,51 +321,111 @@ NAUKRI_CITY_IDS = {
 # "leadership"), against the terms below. Positive weights add to the score;
 # penalty terms subtract; a full-stack bonus rewards frontend+backend overlap.
 SCORING = {
-    # -- Positive skill weights (higher = more central to the resume) ---------
+    # -- Positive skill weights ----------------------------------------------
+    # ONLY terms the résumé actually names, weighted by DISCRIMINATIVE POWER
+    # rather than by how central the skill is to him. The test for every term is
+    # "would this word appear in a job he does NOT want?" — if yes it stays low
+    # however core it is. That is why "sql" and "docker" sit at 1 while "dart"
+    # sits at 6: half the postings on earth say SQL, almost none say Dart unless
+    # they mean Flutter.
+    #
+    # KNOWN THIN SPOTS, stated rather than papered over: the résumé lists "Java"
+    # and "Machine Learning / Computer Vision" as skills but names no framework
+    # for either — no Spring/Hibernate/JPA, no PyTorch/TensorFlow/OpenCV. Those
+    # words are therefore NOT here, because inventing them would claim skills he
+    # can't defend in an interview. Consequence: a Spring Boot JD scores from
+    # "java" alone and ranks below an equally good Flutter JD. If he does know
+    # Spring or PyTorch, adding those two lines is the single highest-value edit
+    # to this file.
     "skill_weights": {
-        # Core full-stack stack — highest signal
-        "node": 5, "node.js": 5, "express": 5,
-        "react": 5, "react native": 5, "react.js": 5,
-        "typescript": 5, "mongodb": 5,
-        # Strong supporting skills
-        "redis": 3, "socket.io": 3, "websocket": 3, "websockets": 3,
-        "jwt": 3, "oauth": 3, "rest api": 3, "restful": 3, "mongoose": 3,
-        "mysql": 3, "javascript": 3,
-        # Real-time / auth / concurrency — stated resume strengths
-        "firebase": 2, "fcm": 2, "concurrency": 2, "authentication": 2,
-        # General relevant tooling / practices (from resume)
-        "redux": 2, "expo": 2, "tailwind": 2, "next.js": 2, "jest": 2,
-        "azure devops": 2, "ci/cd": 2,
-        "zod": 1, "react hook form": 1, "html": 1, "css": 1, "es6": 1, "agile": 1,
+        # -- Track identifiers: near-zero false positives, so they decide rank --
+        "flutter": 8, "dart": 6,
+        # 8, not 7: a JD saying "Java" is unambiguous about what it wants, it is
+        # the track he named first, and with no Spring/Hibernate terms to stack on
+        # (see above) this one word carries the whole track's score.
+        "java": 8,                 # \bjava\b does NOT match "javascript" — safe to weight high
+        "react": 7,
+        "computer vision": 6, "instance segmentation": 6,
+        # -- Strong, résumé-backed stack terms ---------------------------------
+        # node + node.js both fire on "Node.js" (10 total) by design, the same way
+        # the plural forms are listed separately: a JD that says it twice means it.
+        "node.js": 5, "node": 5,
+        "machine learning": 5, "firebase": 4, "android": 4,
+        ".net": 4, "c#": 4, "worker service": 3,   # .NET Worker Services, Dealermatix
+        # 2, not 4: annotation is the genuine part of his CV project but it is
+        # also what every data-labeling BPO posting advertises — it fails the
+        # "would this appear in a job he does NOT want?" test badly. At 4 the two
+        # of them stacked to +8 and put the AI track above Flutter on the check.
+        "image annotation": 2, "data annotation": 2,
+        # -- Genuinely his, but shared with plenty of adjacent roles ------------
+        "javascript": 3, "python": 3, "postgresql": 3, "mysql": 3,
+        "rest api": 2, "restful": 2, "rest integration": 2,
+        "cross-platform": 2, "asynchronous": 2, "batch processing": 2,
+        "reusable components": 2, "erp": 2,
+        # -- Everyday software vocabulary: in almost every JD, so ~no signal ----
+        "sql": 1, "docker": 1, "postman": 1, "figma": 1, "responsive": 1,
     },
 
-    # -- Full-stack bonus -----------------------------------------------------
-    # A job mentioning BOTH a frontend AND a backend term is a true full-stack
-    # role → is_fullstack=True and fullstack_bonus added. Explicit full-stack /
-    # MERN wording in the TITLE also flags it as full-stack outright.
+    # -- Frontend + backend bonus ---------------------------------------------
+    # He asked for BOTH frontend and backend roles, so the stock full-stack bonus
+    # is still the right notion for him and is kept as-is in shape — but at 5,
+    # not 6, and deliberately NOT higher. It is a tiebreaker, not a track
+    # decider: cranking it up would rank every web full-stack post above the
+    # Flutter and Java roles that are the actual targets.
+    #
+    # Bare "ui", "api" and "server" are removed from the halves on purpose —
+    # "ui" handed the frontend half to UI/UX designer posts and "api"/"server"
+    # handed the backend half to literally any web job, so both halves matched
+    # for free and the bonus stopped meaning anything.
+    #
+    # flutter/dart/responsive are NOT in the frontend half, for the same reason
+    # and measured on the fake-job check: every Flutter JD says "responsive UI"
+    # and mentions a REST API, which satisfied BOTH halves, so the whole mobile
+    # track collected +5 for free and out-ranked Java 32-21. A mobile role is not
+    # a web full-stack role; it wins here on the flutter/dart weights themselves,
+    # which is honest. ("responsive" keeps its skill weight of 1 — it just no
+    # longer certifies half a job.)
     "frontend_terms": [
-        "react", "react native", "react.js", "redux", "expo", "tailwind",
-        "next.js", "zod", "react hook form", "frontend", "front-end", "front end", "ui",
+        "react", "react.js", "javascript",
+        "frontend", "front-end", "front end",
     ],
     "backend_terms": [
-        "node", "node.js", "express", "mongodb", "mongoose", "mysql", "redis",
-        "socket.io", "rest api", "restful", "firebase", "backend", "back-end",
-        "back end", "api", "server",
+        "node", "node.js", "java", ".net", "c#", "rest api", "restful",
+        "postgresql", "mysql", "backend", "back-end", "back end",
     ],
-    "fullstack_bonus": 6,
+    "fullstack_bonus": 5,
+    # Flags a match from the TITLE ALONE, bypassing all other evidence, so every
+    # term here must name the domain and never a bare job function. These four do
+    # (they mean web full-stack development, nothing else); a "Salesforce Full
+    # Stack Developer" still sinks, because the penalty block below outweighs the
+    # bonus. Genuine matches also earn it through the two-halves rule, so nothing
+    # real depends on this list.
     "fullstack_title_terms": ["full stack", "full-stack", "fullstack", "mern", "mean"],
 
     # -- Down-ranking (penalty) ----------------------------------------------
-    # Stacks I don't do + Salesforce/CRM. Salesforce/CRM are penalized HARD so
-    # pure-CRM roles sink to the bottom (or drop out via SETTINGS["min_score"]).
+    # THE INVERSION. Every Salesforce term below is on his résumé and is the work
+    # he is trying to leave, so it is penalized rather than rewarded. This has to
+    # be deep, not mild: a Salesforce JD shares "rest api", "sql", "asynchronous"
+    # and "batch processing" with him, so on shared vocabulary alone his own
+    # current job would out-score a real Java or Flutter role.
     "penalty_terms": {
-        ".net": -6, "asp.net": -6, "c#": -6,
-        "java": -5, "java spring": -6, "spring boot": -6, "spring mvc": -6,
-        "php": -6, "laravel": -5,
-        "angular": -4, "angularjs": -4,
-        # Salesforce / CRM — hard down-rank
-        "salesforce": -12, "apex": -12, "lwc": -12,
-        "lightning web component": -12, "crm developer": -12, "crm": -6,
+        "salesforce": -15, "apex": -12, "lwc": -12,
+        "lightning web component": -12, "lightning web components": -12,
+        "salesforce developer": -12,   # stacks with "salesforce" — deliberately unrecoverable
+        "visualforce": -10, "soql": -10, "sosl": -10, "aura": -8,
+        "sales cloud": -10, "service cloud": -10,
+        "veeva": -10, "ncino": -10, "crm": -5,
+        # Adjacent enterprise-platform work: the same "configure someone else's
+        # product" job he is leaving, and none of it is on his résumé anyway.
+        "abap": -8, "servicenow": -8, "pega": -8, "oracle fusion": -8,
+        "dynamics 365": -8, "sap": -6, "mulesoft": -6, "sharepoint": -6,
+        # Stacks he doesn't have. "Frontend/backend developer" as a target does
+        # NOT mean any framework will do — these are real re-learning costs, so
+        # they sink but never drop (he may still want to see them).
+        "php": -6, "laravel": -6, "drupal": -6, "wordpress": -6,
+        "ruby on rails": -6, "angular": -5, "angularjs": -5,
+        # Roles that borrow a dev title for non-development work.
+        "manual testing": -6, "qa engineer": -5, "sdet": -5, "selenium": -5,
     },
 
     # Lead-gen farms, not employers. They repost other companies' listings under
@@ -339,7 +443,7 @@ SCORING = {
     # experience gate is SETTINGS["max_experience_years"], which reads the years
     # actually demanded by the text; these lists only handle the title.
     #
-    # hard_drop_terms: never a fit at this experience level whatever the JD says.
+    # hard_drop_terms: never a fit at 1.5 yrs whatever the JD says.
     # Removed entirely (or penalized, if SETTINGS["drop_excluded"] is False).
     "hard_drop_terms": [
         "principal", "staff", "manager", "architect", "director",
@@ -369,7 +473,7 @@ SETTINGS = {
     # Filtering
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
-    "max_experience_years": 3,   # roles whose text demands MORE than this (e.g. "5+ years") are dropped/penalized
+    "max_experience_years": 3,   # 1.5 yrs on the résumé; a JD demanding "5+ years" is dropped/penalized
     # How to combine several "N years" figures in one posting: "min" reads the
     # smallest as the real ask (right for short JDs, where anything larger is a
     # nice-to-have), "max" the largest (right for the long structured kind that
@@ -381,10 +485,10 @@ SETTINGS = {
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
     # Minimum compensation, annualized and in USD, so an Indian LPA figure and a
     # US/EU salary are compared on the same axis (see scraper.comp_max_usd).
-    # 6000 USD ~= the old 5.2 LPA floor. Undisclosed, unparseable, or
-    # unknown-currency pay is always KEPT — we never drop on a guess.
-    # Raise this to ~40000+ once the sweep is weighted toward international remote.
-    "min_comp_usd": 6000,        # None to disable
+    # 11400 USD ~= the 10 LPA floor he asked for (1 lakh ~= $1140, see
+    # scraper.demo). Undisclosed, unparseable, or unknown-currency pay is always
+    # KEPT — we never drop on a guess, and most Indian postings state nothing.
+    "min_comp_usd": 11400,       # None to disable
 
     # International-remote filters, from the signals enrich.py reads out of the
     # job text (visible as the remote_scope / visa / eor / timezones columns
