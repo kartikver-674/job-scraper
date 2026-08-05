@@ -87,7 +87,7 @@ OUTPUT_COLUMNS = [
     "remote?", "remote_scope", "hires_home", "tz_gap", "remote_regions",
     "visa", "eor", "timezones",
     "experience_required", "salary", "hr_email", "hr_phone",
-    "source_site", "apply_url", "date_posted", "req_number", "verified_live",
+    "source_site", "apply_url", "date_posted", "req_number", "grade", "verified_live",
 ]
 
 
@@ -600,7 +600,20 @@ def job_key(row):
 
     Accepts both the internal schema ("Title") and the output schema ("title"),
     so merge_jobs.py can share it instead of keeping a second copy.
+
+    A published REQUISITION NUMBER outranks all of that, because it is the
+    employer's own identity for the opening and it is what an application is
+    submitted against. Company+title is a heuristic for "same posting seen
+    twice"; a req number is a fact. Without this, one employer's board collapses
+    genuinely separate openings — "Senior Full Stack Engineer" in Bengaluru and
+    in Hyderabad are two requisitions, two hiring managers, two applications, and
+    company+title made them one row. Measured on the 2026-07-30 Optum sweep: 107
+    live requisitions collapsed to 63. Only sources that publish a req id are
+    affected (today: Optum); every other row keys exactly as before.
     """
+    req = (row.get("req_number") or "").strip()
+    if req:
+        return "req", req.lower()
     company = _company_key(row.get("Company") or row.get("company"))
     title = _title_key(row.get("Title") or row.get("title"))
     if company and title:
@@ -1153,6 +1166,17 @@ def demo():
     # Nothing to key on -> no identity, so rows are never collapsed into each other.
     assert job_key({}) is None
     assert len(dedupe([{}, {}])) == 2
+
+    # A requisition number is the employer's own identity for the opening, so two
+    # cities' postings of one title stay two rows — but the SAME req seen twice
+    # still collapses.
+    reqs = [{"Title": "Senior Full Stack Engineer", "Company": "Optum",
+             "Location": "Bengaluru", "req_number": "2378405"},
+            {"Title": "Senior Full Stack Engineer", "Company": "Optum",
+             "Location": "Hyderabad", "req_number": "2378409"}]
+    assert len(dedupe(reqs)) == 2, dedupe(reqs)
+    assert len(dedupe(reqs + [dict(reqs[0], Location="Bangalore")])) == 2
+    assert job_key(reqs[0]) != job_key(reqs[1])
 
     # Two-tier seniority: an inflated title label must not delete a role whose
     # stated requirement is within reach, but a genuinely senior one still goes.

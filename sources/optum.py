@@ -67,13 +67,20 @@ _LDJSON_RE = re.compile(
     re.S)
 _JD_REQ_RE = re.compile(
     r'<b>\s*Requisition number:\s*</b>\s*([A-Za-z0-9-]+)', re.I)
+# UHG's internal pay grade. Not rendered anywhere on the page — it rides along in
+# an embedded JSON blob (custom_fields.Grade / GradeLevel, same value in both).
+# It is the ONLY field that states a requisition's level as the employer means it:
+# the visible title is the internal/system title, which reads two rungs senior to
+# the grade ("Senior Software Engineer I" is G27, "Software Engineer" is G26), so
+# ranking on the title alone mis-reads what a candidate is eligible for.
+_JD_GRADE_RE = re.compile(r'"Name":"Grade","RawValue":"(\d+)"')
 _JD_DATE_RE = re.compile(
     r'<b>\s*Date posted:\s*</b>\s*(\d{1,2})/(\d{1,2})/(\d{4})', re.I)
 _APPLY_RE = re.compile(r'jobapply\.ftl\?job=([A-Za-z0-9-]+)')
 
 BLANK = {"Title": "", "Company": "", "Location": "", "Salary": "",
          "Experience": "", "Posted Date": "", "Job URL": "", "Description": "",
-         "hires_home": ""}
+         "hires_home": "", "grade": ""}
 
 
 def _text(html_fragment):
@@ -163,7 +170,7 @@ def detail(url):
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return {"live": False, "description": "", "date_posted": "",
-                    "req": "", "apply_req": "", "http": 404}
+                    "req": "", "apply_req": "", "grade": "", "http": 404}
         raise
     return parse_jd(html)
 
@@ -192,9 +199,11 @@ def parse_jd(html):
 
     req = _JD_REQ_RE.search(html)
     apply_req = _APPLY_RE.search(html)
+    grade = _JD_GRADE_RE.search(html)
     return {"live": True, "description": desc, "date_posted": date_posted,
             "req": req.group(1) if req else "",
             "apply_req": apply_req.group(1) if apply_req else "",
+            "grade": grade.group(1) if grade else "",
             "http": 200}
 
 
@@ -252,6 +261,7 @@ def fetch(cfg, keep_title, keep_location, log=print):
             row["Description"] = info["description"]
             row["Posted Date"] = info["date_posted"]
             row["req_number"] = info["req"] or card["req"]
+            row["grade"] = info["grade"]
             row["verified_live"] = "yes"
         rows.append(row)
 
