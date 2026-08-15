@@ -6,7 +6,7 @@ dotted path yields blank titles, not an exception), so it's what needs a test.
 """
 import sys
 
-from . import FEED_FETCHERS, ats, fetch_free
+from . import FEED_FETCHERS, ats, enterprise, fetch_free
 
 YES = lambda _: True  # noqa: E731 — keep-everything predicates for the checks
 
@@ -57,7 +57,12 @@ def offline():
     # Every table entry must be exercised above, or an unverified one slips in.
     assert set(FIXTURES) == set(ats.ATS), (
         f"untested ATS entries: {set(ats.ATS) - set(FIXTURES)}")
-    print(f"offline ok — {len(ats.ATS)} ATS platforms, {len(FEED_FETCHERS)} feeds")
+    # Same contract for the enterprise adapters: their date shapes and the
+    # SuccessFactors row regex fail silently (blank dates, blank titles), so
+    # they are asserted here rather than discovered on a live sweep.
+    enterprise.demo()
+    print(f"offline ok — {len(ats.ATS)} ATS platforms, "
+          f"{len(FEED_FETCHERS)} feeds, {len(enterprise.EMPLOYERS)} employers")
 
 
 def live():

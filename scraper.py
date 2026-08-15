@@ -57,7 +57,7 @@ import enrich
 import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
-                    LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS,
+                    LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS, ENTERPRISE,
                     LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS,
                     ATS_TITLE_EXCLUDE)
 
@@ -217,7 +217,7 @@ def is_home_location(loc):
 def fetch_free():
     """Every configured ATS board + feed. Free; per-board failures are isolated."""
     rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed,
-                              is_home_location)
+                              is_home_location, enterprise_cfg=ENTERPRISE)
     return [_truncate_desc(r) for r in rows]
 
 
@@ -1362,9 +1362,10 @@ def main():
     # --no-free or a specific Apify --site was requested.
     n_boards = sum(len(b) for b in ATS_BOARDS.values())
     n_feeds = sum(1 for c in FEEDS.values() if c.get("enabled"))
+    n_ent = len(ENTERPRISE.get("employers") or []) if ENTERPRISE.get("enabled") else 0
     run_free = ((args.site in FREE_SITES or args.site is None)
                 and not args.test and not args.no_free
-                and bool(n_boards or n_feeds))
+                and bool(n_boards or n_feeds or n_ent))
 
     if not plans and not run_free:
         sys.exit("Nothing to run — no sites enabled and no free sources configured.")
@@ -1374,7 +1375,9 @@ def main():
     if run_free:
         print(f"Free sources: {n_boards} ATS boards "
               f"({', '.join(k for k, v in ATS_BOARDS.items() if v)}) "
-              f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})\n")
+              f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})"
+              + (f" + {n_ent} enterprise careers sites "
+                 f"({', '.join(ENTERPRISE['employers'])})" if n_ent else "") + "\n")
 
     if args.dry_run:
         print("Sample actor inputs (first combo per site):")

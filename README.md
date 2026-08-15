@@ -165,6 +165,7 @@ Everything that decides *what* is pulled and *how* it is ranked lives in
 | `SEARCH` | role keywords x locations, experience, results per search |
 | `SITES` | which paid Apify actors run |
 | `ATS_BOARDS` | free company career boards, `{platform: {token: "Name"}}` |
+| `ENTERPRISE` | free big-employer careers sites (Amazon, JPMorgan, Oracle, Accenture, SAP) |
 | `FEEDS` | free remote-job feeds (Remote OK, WWR, Remotive, Jobicy, Himalayas) |
 | `LOCATION_HINTS` | location whitelist for free sources; **empty = allow all** |
 | `ATS_TITLE_HINTS` / `ATS_TITLE_EXCLUDE` | which titles a free source keeps; exclude wins |
@@ -291,12 +292,48 @@ every slug tried returned zero jobs, so the field names are unverified), and
 Workday (needs a POST body and a per-tenant hostname, so it can't be a row in
 the ATS table).
 
+## Big employers that run their own platform
+
+The household names never appear in `ATS_BOARDS` — they don't rent a board, they
+run their own recruiting stack. `sources/enterprise.py` covers four of those
+platforms, which between them reach five employers:
+
+```bash
+python scraper.py --profile bigtech --site free    # -> output/bigtech/
+python auto-apply/bigtech_shortlist.py             # clickable page, per employer
+```
+
+| Platform | Employers | Shape |
+|---|---|---|
+| amazon.jobs | Amazon | JSON, description **in the listing** — no JD request |
+| Oracle Recruiting Cloud | JPMorgan Chase, Oracle | JSON, listing only — no full JD exists publicly |
+| Workday | Accenture | POST-only search, JD per job |
+| SuccessFactors | SAP | HTML, JD per job |
+
+Two things worth knowing before trusting the numbers. Amazon's
+`normalized_country_code[]=IND` is the filter that works — `country[]` and
+`loc_group_id[]` are accepted and silently ignored, the same trap the Optum
+adapter documents. And Oracle Recruiting Cloud publishes **no** full job
+description (its detail finder rejects every documented spelling), so those rows
+score on a title plus a ~100-character blurb while Amazon's score on thousands
+of characters. Scores are therefore comparable *within* an employer, not across
+them — which is why `bigtech_shortlist.py` groups by employer and labels the two
+short-text boards instead of printing one flat ranking.
+
+Microsoft, IBM, Capgemini, Siemens and Deloitte were probed and are **not**
+reachable for free; the reasons are recorded at the top of `sources/enterprise.py`
+so nobody re-derives them.
+
 ## Adding a source
 
 - **A company** → one token in `config.ATS_BOARDS` under its platform.
   Token comes from the careers URL: `boards.greenhouse.io/<token>`,
   `jobs.lever.co/<token>`, `jobs.ashbyhq.com/<token>`,
   `careers.smartrecruiters.com/<Token>`.
+- **A big employer on Workday / Oracle Recruiting Cloud / SuccessFactors** → one
+  dict entry in `sources/enterprise.py`'s `EMPLOYERS` (host, tenant, site). Those
+  two platforms alone run a large share of the Fortune 500, so the next name is
+  usually one line rather than a new adapter.
 - **An ATS platform** → one dict entry in `sources/ats.py`'s `ATS` table: a URL
   template, where the job list sits in the response, and a field → dotted-path
   map. Verify it against a live board first — a wrong path yields blank titles

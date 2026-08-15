@@ -4,6 +4,7 @@ Anything that needs a paid Apify actor stays in scraper.py; everything in
 sources/ is free and unauthenticated.
 """
 import html
+import http.client
 import json
 import re
 import time
@@ -41,6 +42,34 @@ def get_bytes(url, timeout=25, retries=2):
 
 def get_json(url, **kw):
     return json.loads(get_bytes(url, **kw).decode("utf-8", "replace"))
+
+
+def post_json(url, payload, timeout=25, retries=2, headers=None):
+    """POST a JSON body, get JSON back. Same bounded/retry policy as get_bytes.
+
+    Exists for Workday, whose job search is POST-only — the one thing that kept
+    it out of ats.ATS (see that module's "known gaps").
+    """
+    body = json.dumps(payload).encode()
+    head = {"User-Agent": UA, "Content-Type": "application/json",
+            "Accept": "application/json"}
+    head.update(headers or {})
+    last = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(url, data=body, headers=head)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8", "replace"))
+        except urllib.error.HTTPError as exc:
+            if 400 <= exc.code < 500:
+                raise
+            last = exc
+        except (urllib.error.URLError, TimeoutError, OSError,
+                http.client.HTTPException) as exc:
+            last = exc
+        if attempt < retries:
+            time.sleep(2 ** attempt)
+    raise last
 
 
 def get_xml(url, **kw):
