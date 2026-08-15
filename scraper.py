@@ -57,7 +57,7 @@ import enrich
 import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
-                    LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS, OPTUM,
+                    LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS, OPTUM, ENTERPRISE,
                     LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS,
                     ATS_TITLE_EXCLUDE)
 
@@ -223,7 +223,8 @@ def _optum_scope():
 def fetch_free():
     """Every configured ATS board + feed. Free; per-board failures are isolated."""
     rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed,
-                              is_home_location, optum_cfg=OPTUM)
+                              is_home_location, optum_cfg=OPTUM,
+                              enterprise_cfg=ENTERPRISE)
     return [_truncate_desc(r) for r in rows]
 
 
@@ -291,8 +292,22 @@ def reachable(row):
                      or is_home_location(row.get("remote_regions"))))
 
 
-# Any "<n> years/yrs" mention (optionally "n+" or "n-m"); we read the leading n.
-YEARS_PATTERN = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:years|yrs)")
+# Any "<n> years/yrs" mention (optionally "n+" or a range); we read the leading n.
+#
+# "year(s)" and "yr(s)" are in here because Accenture's JD template writes
+# "Minimum 5 Year(s) Of Experience Is Required" — without the optional "(s)" that
+# phrasing matched nothing, so an entire employer's experience bar read as
+# "not stated" and 5- and 8-year roles ranked as if they had no requirement.
+#
+# A RANGE reads as its lower bound, so the separator has to cover every way a JD
+# writes one. Only the ASCII hyphen was handled, so "10-18+ years of overall IT
+# experience" and "5 to 12 years of hands-on experience" both matched on their
+# SECOND number and reported 18 and 12 — an en dash and the word "to" are how
+# Accenture actually writes it, and under experience_aggregate="max" that buried
+# 32 reachable roles as if they wanted a career's worth.
+YEARS_PATTERN = re.compile(
+    r"(\d{1,2})\s*\+?\s*(?:[-–—]|to)?\s*(?:\d{1,2}\s*\+?\s*)?"
+    r"(?:years?|yrs?)(?:\(s\))?")
 
 
 # A years figure only gates a candidate when it's counting EXPERIENCE. These
@@ -326,10 +341,16 @@ def _required_experience_floor(text):
     vals = []
     for m in YEARS_PATTERN.finditer(text):
         after = text[m.end():m.end() + 60]
-        if _EDU_RE.search(after):
+        edu, exp = _EDU_RE.search(after), _EXP_CUE_RE.search(after)
+        # Whichever word comes FIRST decides what the figure is counting. Both
+        # can appear inside the same 60 characters: Accenture writes "minimum 3
+        # Year(s) Of Experience Is Required. Educational Qualification: 15 Years
+        # Full Time Education", where a plain "is there an education word nearby"
+        # test throws away the 3 and keeps nothing.
+        if edu and (not exp or edu.start() < exp.start()):
             continue
-        if (_EXP_CUE_RE.search(text[max(0, m.start() - 30):m.end() + 60])
-                or _EXP_OF_RE.match(after)):
+        if (exp or _EXP_OF_RE.match(after)
+                or _EXP_CUE_RE.search(text[max(0, m.start() - 30):m.start()])):
             vals.append(int(m.group(1)))
     if not vals:
         return None
@@ -1213,6 +1234,20 @@ def demo():
     try:
         assert floor(both) == 8
         assert floor("3+ years of experience in full stack development") == 3
+        # Accenture's template, verbatim. The "(s)" used to make this read as
+        # "not stated", so every 5- and 8-year role ranked as if unbounded.
+        assert floor("minimum 5 year(s) of experience is required") == 5
+        assert floor("skills : java full stack development minimum 3 year(s) of "
+                     "experience is required educational qualification : 15 "
+                     "years full time education") == 3      # 15 is the degree
+        assert floor("1 year of experience in software development") == 1
+        # Ranges read as their LOWER bound whichever separator is used. Both
+        # verbatim from Accenture JDs; both used to report the upper number.
+        assert floor("experience 10-18+ years of overall it experience") == 10
+        assert floor("10–18+ years of overall it experience") == 10
+        assert floor("experience: 5 to 12 years of hands-on experience in "
+                     "full-stack development") == 5
+        assert floor("3-5 years of experience building web apps") == 3
     finally:
         SETTINGS["experience_aggregate"] = agg
 
@@ -1364,9 +1399,10 @@ def main():
     n_boards = sum(len(b) for b in ATS_BOARDS.values())
     n_feeds = sum(1 for c in FEEDS.values() if c.get("enabled"))
     n_optum = 1 if OPTUM.get("enabled") else 0
+    n_ent = len(ENTERPRISE.get("employers") or []) if ENTERPRISE.get("enabled") else 0
     run_free = ((args.site in FREE_SITES or args.site is None)
                 and not args.test and not args.no_free
-                and bool(n_boards or n_feeds or n_optum))
+                and bool(n_boards or n_feeds or n_optum or n_ent))
 
     if not plans and not run_free:
         sys.exit("Nothing to run — no sites enabled and no free sources configured.")
@@ -1378,7 +1414,9 @@ def main():
               f"({', '.join(k for k, v in ATS_BOARDS.items() if v)}) "
               f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})"
               + (f" + {OPTUM['company']} careers ({_optum_scope()}, "
-                 f"live-verified)" if n_optum else "") + "\n")
+                 f"live-verified)" if n_optum else "")
+              + (f" + {n_ent} enterprise careers sites "
+                 f"({', '.join(ENTERPRISE['employers'])})" if n_ent else "") + "\n")
 
     if args.dry_run:
         print("Sample actor inputs (first combo per site):")

@@ -238,6 +238,30 @@ OPTUM = {
     "verify_live": True,
 }
 
+# ---------------------------------------------------------------------------
+# ENTERPRISE — household-name employers that run their own recruiting platform
+# ---------------------------------------------------------------------------
+# Adapter: sources/enterprise.py. Free, stdlib, no auth. Separate from
+# ATS_BOARDS because these are not rented boards: they are four different
+# platforms (amazon.jobs, Oracle Recruiting Cloud, Workday, SuccessFactors),
+# two of which need a JD request per job and one of which needs a POST.
+#
+# Which employers exist is sources/enterprise.EMPLOYERS; this only says which to
+# RUN. Adding a company already on one of those platforms is a dict entry there
+# — Workday and Oracle Recruiting Cloud between them run a large share of the
+# Fortune 500, so the marginal cost of the next name is one line.
+#
+# enabled=False by default: switched on by a profile, so a normal run is
+# unchanged. keywords=[""] sweeps a whole board and lets the title/location
+# gates narrow it; give real keywords only where the board is too big to page.
+ENTERPRISE = {
+    "enabled": False,
+    "employers": ["amazon", "jpmorgan", "oracle", "accenture", "sap"],
+    "keywords": [""],
+    "max_pages": 5,
+    "verify_live": True,
+}
+
 # Public remote-job feeds. No auth, no cost. Adapters live in sources/feeds.py
 # (registered in sources.FEED_FETCHERS). The three structured JSON feeds below
 # are the only free source that reports PAY — the ATS boards never do.
@@ -511,7 +535,8 @@ import os
 import sys
 
 OVERLAYABLE = ("SEARCH", "SITES", "SCORING", "SETTINGS", "ATS_BOARDS", "FEEDS",
-               "OPTUM", "LOCATION_HINTS", "ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE")
+               "OPTUM", "ENTERPRISE", "LOCATION_HINTS", "ATS_TITLE_HINTS",
+               "ATS_TITLE_EXCLUDE")
 
 
 def _selected_profile(argv=None, env=None):
@@ -537,10 +562,12 @@ def _overlay(module, target=None):
     and a profile ran 28 sources it had explicitly opted out of.
 
     Dicts merge one level deep (.update); LIST settings (LOCATION_HINTS,
-    ATS_TITLE_HINTS) REPLACE wholesale, because they are single filter
-    vocabularies — appending someone else's cities to yours would widen the
-    filter instead of changing it. Mutated in place either way, since scraper.py
-    imports these names directly.
+    ATS_TITLE_HINTS, ATS_TITLE_EXCLUDE) REPLACE wholesale, because they are
+    single filter vocabularies — appending someone else's cities to yours would
+    widen the filter instead of changing it. Without the isinstance branch a
+    list override raised AttributeError (list has no .update), which is why
+    those three could not be overlaid at all. Mutated in place either way, since
+    scraper.py imports these names directly.
     """
     target = globals() if target is None else target
     changed = []
@@ -613,6 +640,24 @@ def demo():
     assert target["FEEDS"] == {}, target["FEEDS"]                  # cleared
     assert target["ATS_BOARDS"] == {"greenhouse": {"x": "X"}}      # omitted -> kept
     assert changed == ["FEEDS"]
+
+    # LIST settings replace wholesale rather than merging, and an empty list
+    # clears them. Before the isinstance branch this raised AttributeError, so a
+    # profile's LOCATION_HINTS / ATS_TITLE_* were not overlayable at all — a
+    # profile could name its own title gates and silently run the defaults.
+    class Lists:
+        LOCATION_HINTS = ["india", "noida"]
+        ATS_TITLE_EXCLUDE = []
+    target = {"SEARCH": {}, "SITES": {}, "SCORING": {}, "SETTINGS": {},
+              "ATS_BOARDS": {}, "FEEDS": {},
+              "LOCATION_HINTS": ["berlin"],
+              "ATS_TITLE_HINTS": ["developer"],
+              "ATS_TITLE_EXCLUDE": ["sre"]}
+    changed = _overlay(Lists, target)
+    assert target["LOCATION_HINTS"] == ["india", "noida"]   # replaced, not merged
+    assert target["ATS_TITLE_EXCLUDE"] == []               # [] clears it
+    assert target["ATS_TITLE_HINTS"] == ["developer"]      # omitted -> kept
+    assert sorted(changed) == ["ATS_TITLE_EXCLUDE", "LOCATION_HINTS"]
     print(f"demo ok (active profile: {PROFILE or 'default'})")
 
 

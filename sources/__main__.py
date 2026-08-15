@@ -6,7 +6,7 @@ dotted path yields blank titles, not an exception), so it's what needs a test.
 """
 import sys
 
-from . import FEED_FETCHERS, ats, fetch_free, optum
+from . import FEED_FETCHERS, ats, enterprise, fetch_free, optum
 
 # Optum fragments, verbatim from live responses (2026-07-29). Two Optum cards and
 # one UnitedHealthcare card, because the whole point of the brand class is that
@@ -104,7 +104,12 @@ def offline():
     assert set(FIXTURES) == set(ats.ATS), (
         f"untested ATS entries: {set(ats.ATS) - set(FIXTURES)}")
     optum_offline()
-    print(f"offline ok — {len(ats.ATS)} ATS platforms, {len(FEED_FETCHERS)} feeds, "
+    # Same contract for the enterprise adapters: their date shapes and the
+    # SuccessFactors row regex fail silently (blank dates, blank titles), so
+    # they are asserted here rather than discovered on a live sweep.
+    enterprise.demo()
+    print(f"offline ok — {len(ats.ATS)} ATS platforms, "
+          f"{len(FEED_FETCHERS)} feeds, {len(enterprise.EMPLOYERS)} employers, "
           f"+ optum")
 
 
