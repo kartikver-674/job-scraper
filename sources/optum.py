@@ -18,6 +18,22 @@ Endpoints, all probed live 2026-07-29:
       -> {"filters": html, "results": html, "hasJobs": bool}
       `results` carries <section id="search-results" data-total-job-results=..>
       and one <li> per job. RecordsPerPage=100 is honoured (verified: 100 cards).
+
+      ONLY Keywords, CurrentPage, RecordsPerPage and the sort keys do anything.
+      `Location` is accepted and SILENTLY IGNORED — probed 2026-08-09 with "",
+      "India", "Hyderabad, India" and "Noida": byte-identical totals (5,642) and
+      an identical page 1 every time. So config.OPTUM["locations"] cannot narrow
+      a sweep; location filtering only happens client-side, in
+      scraper.location_allowed via LOCATION_HINTS. Setting it to ["India"] does
+      not fail — it quietly returns the whole world.
+
+      The same applies to the facet parameters (CustomFacetName / FacetTerm /
+      FacetType / fc / fl / fcf / afc / afl / afcf): the `filters` html DOES
+      publish a real Grade facet (data-field-name="custom_fields.Grade", with a
+      job count per grade), but five plausible encodings of it all returned the
+      unfiltered 5,642. The counts in `filters` are still worth reading as a
+      census; the grade of a given job has to come from its JD (see
+      _JD_GRADE_RE).
   GET /job/<city>/<slug>/34088/<jobId>
       -> full JD page. <script type="application/ld+json"> JobPosting has the
          description and datePosted; the page also prints "Requisition number:"
