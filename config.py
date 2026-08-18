@@ -133,6 +133,29 @@ LINKEDIN_GEO_IDS = {
     # Both were previously marked "unverified" and would have been billed in full.
 }
 
+# LinkedIn's company filter is `f_C=<numeric company id>`, and it has exactly the
+# same failure mode as geoId: a wrong id does not error, it silently returns some
+# OTHER company's jobs and bills you in full. So every entry here was verified
+# against the public guest search before use:
+#
+#     python verify_geoids.py --companies
+#
+# Each id below returned 10/10 cards for the named company (2026-08-16).
+#
+# NOT a hypothetical risk — 1409 is widely cited online as Capgemini and is
+# actually **Wells Fargo Advisors**. Verifying caught it before a single run.
+LINKEDIN_COMPANY_IDS = {
+    "Microsoft": "1035",
+    "IBM": "1009",
+    "Deloitte": "1038",
+    "Siemens": "1043",
+    # Capgemini is deliberately ABSENT: its numeric id is not exposed on any
+    # guest surface (the job cards and posting pages carry only the "capgemini"
+    # slug, no urn:li:organization). Target it by keyword instead and filter on
+    # the company column — a distinctive company name makes that precise, and
+    # guessing an id here is how you end up paying for Wells Fargo.
+}
+
 # ---------------------------------------------------------------------------
 # FREE sources: company career boards (ATS) + public remote-job feeds
 # ---------------------------------------------------------------------------

@@ -33,10 +33,12 @@ from linkedin_shortlist import STYLE, _script, _tier   # noqa: E402
 # Employers whose board publishes no full JD — see the module docstring.
 SHORT_TEXT = {"JPMorgan Chase", "Oracle"}
 
-# Reachability order, not score order. Amazon states a real experience bar and
-# has roles at 1-2 years; SAP is last because every role it returned wants 10+
-# whatever it scored. Employers absent from the CSV are skipped silently.
-ORDER = ["Amazon", "Accenture", "JPMorgan Chase", "Oracle", "SAP"]
+# Reachability order, not score order. Amazon and Accenture lead because they
+# state real experience bars and actually post roles at 1-2 years; SAP is last
+# because every role it returned wants 10+ whatever it scored. Employers absent
+# from the CSV are skipped silently.
+ORDER = ["Amazon", "Accenture", "Microsoft", "IBM", "Capgemini", "Deloitte",
+         "JPMorgan Chase", "Siemens", "Oracle", "SAP"]
 
 
 def latest_csv():

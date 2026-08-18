@@ -57,7 +57,8 @@ import enrich
 import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
-                    LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS, OPTUM, ENTERPRISE,
+                    LINKEDIN_GEO_IDS, LINKEDIN_COMPANY_IDS,
+                    ATS_BOARDS, FEEDS, OPTUM, ENTERPRISE,
                     LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS,
                     ATS_TITLE_EXCLUDE)
 
@@ -554,6 +555,15 @@ def score_job(row):
     row["score"] = score
     row["matched_skills"] = ", ".join(dict.fromkeys(matched))  # dedup, preserve order
     row["is_fullstack"] = is_fullstack
+    # Keep the PARSED figure, not just the filtering decision it fed. The
+    # experience_required column used to read row["Experience"], a raw field only
+    # a couple of sources ever set (naukri's "2-4 Yrs", lever's commitment), so it
+    # was blank for LinkedIn, Amazon, Workday, SuccessFactors and Optum alike —
+    # every row whose requirement lives in the JD prose, which is most of them.
+    # The number is already computed here for the over-experience gate; it's the
+    # single most decision-relevant field for a candidate with a fixed number of
+    # years, so it belongs in the output rather than being thrown away.
+    row["years_required"] = floor
     enrich.enrich(row, SETTINGS["home_utc_offset"])   # remote/visa/eor/tz signals
     row["remote?"] = is_remote(row)
 
@@ -717,6 +727,21 @@ def _build_linkedin_url(s):
             f"country. Add it to config.LINKEDIN_GEO_IDS, then confirm it with "
             f"`python verify_geoids.py`.")
     params = {"keywords": s["keywords"], "geoId": geo_id}
+    # 3. f_C=<numeric company id> is the third thing that bills you for the wrong
+    #    data when guessed. A wrong id doesn't error — it returns some other
+    #    employer's jobs. Measured: 1409, widely cited as Capgemini, is Wells
+    #    Fargo Advisors. So an unmapped name raises here, before any spend.
+    company = (s.get("company") or "").strip()
+    if company:
+        company_id = LINKEDIN_COMPANY_IDS.get(company)
+        if not company_id:
+            raise ValueError(
+                f"linkedin: no company id for '{company}'. A wrong f_C silently "
+                f"returns a DIFFERENT company's jobs at full price. Add it to "
+                f"config.LINKEDIN_COMPANY_IDS and confirm with "
+                f"`python verify_geoids.py --companies`, or target the employer "
+                f"by keyword instead.")
+        params["f_C"] = company_id
     if remote_only:
         params["f_WT"] = "2"
     code = _linkedin_experience_code(s.get("experience_years"))
@@ -775,21 +800,28 @@ def build_input(site_key, s):
 # ===========================================================================
 # Search plan
 # ===========================================================================
-def build_search_plan(keywords, locations):
-    """Cross product of keywords x locations (one search dict each). Both are
-    per-site overridable (SITES[site]["keywords"|"locations"]) and keywords can be
-    overridden per-run with --keywords."""
+def build_search_plan(keywords, locations, companies=None):
+    """Cross product of keywords x locations x companies (one search dict each).
+
+    All three are per-site overridable (SITES[site]["keywords"|"locations"|
+    "companies"]) and keywords can be overridden per-run with --keywords.
+    companies defaults to [None] — no company dimension — so a normal sweep is
+    the same keywords x locations plan it always was. Only LinkedIn consumes it
+    (f_C); other adapters ignore the key.
+    """
     plan = []
     for keyword in keywords:
         for location in locations:
-            plan.append({
-                "keywords": keyword,
-                "location": location,
-                "country": SEARCH["country"],
-                "experience_years": SEARCH["experience_years"],
-                "salary_min": SEARCH["salary_min"],
-                "max_results": SEARCH["max_results"],
-            })
+            for company in (companies or [None]):
+                plan.append({
+                    "keywords": keyword,
+                    "location": location,
+                    "company": company,
+                    "country": SEARCH["country"],
+                    "experience_years": SEARCH["experience_years"],
+                    "salary_min": SEARCH["salary_min"],
+                    "max_results": SEARCH["max_results"],
+                })
     return plan
 
 
@@ -818,7 +850,8 @@ def plan_for_site(site_key, args):
         keywords = [k.strip() for k in args.keywords.split(",") if k.strip()]
     else:
         keywords = SITES[site_key].get("keywords", SEARCH["role_keywords"])
-    plan = build_search_plan(keywords, locations)
+    plan = build_search_plan(keywords, locations,
+                             SITES[site_key].get("companies"))
 
     if args.test:
         plan = plan[:1]
@@ -932,7 +965,11 @@ def print_plan(plans):
         per_run = SITES[site_key].get("results_per_run", SEARCH["max_results"])
         print(f"  {site_key}: {len(plan)} searches (max {per_run} results each)")
         for s in plan:
-            print(f"    · {s['keywords']:<32} @ {s['location']:<14}")
+            # The company matters more than the keyword when a plan is
+            # company-filtered: without it four paid runs print as four
+            # identical blank lines, and you can't see what you're buying.
+            who = f" [{s['company']}]" if s.get("company") else ""
+            print(f"    · {(s['keywords'] or '(all)') + who:<40} @ {s['location']:<14}")
     print()
 
 
@@ -955,7 +992,12 @@ def to_output(row):
         "visa": row.get("visa", ""),
         "eor": row.get("eor", ""),
         "timezones": row.get("timezones", ""),
-        "experience_required": row.get("Experience", ""),
+        # Prefer what the JD actually demands (parsed in score_job) over the raw
+        # source field, which most sources never populate. Rendered as "3+" so a
+        # floor isn't mistaken for an exact requirement.
+        "experience_required": (f"{row['years_required']}+"
+                                if row.get("years_required") is not None
+                                else row.get("Experience", "")),
         "salary": row.get("Salary", ""),
         "hr_email": row.get("hr_email", ""),
         "hr_phone": row.get("hr_phone", ""),
@@ -1517,8 +1559,14 @@ def main():
             actor_id = SITES[site_key]["actor"]
             print(f"\n{site_key} ({actor_id})")
             for i, search in enumerate(plan, 1):
-                label = f"{search['keywords']} @ {search['location']}"
-                combo_key = f"{today}|{site_key}|{search['keywords']}|{search['location']}"
+                # The company is part of a combo's identity, not decoration:
+                # four company-filtered searches share an empty keyword and one
+                # location, so without it they collapse to a single key and
+                # three of the four paid runs silently "skip (done)".
+                who = f" [{search['company']}]" if search.get("company") else ""
+                label = f"{search['keywords'] or '(all)'}{who} @ {search['location']}"
+                combo_key = (f"{today}|{site_key}|{search['keywords']}|"
+                             f"{search['location']}|{search.get('company') or ''}")
                 if combo_key in done:
                     print(f"  [{i}/{len(plan)}] {label:<46} — skip (done)")
                     continue
