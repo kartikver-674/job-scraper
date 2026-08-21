@@ -35,9 +35,10 @@ editing this file, put the keys you want to change in profiles/<name>.py and run
 # scoring layer), but the exact-title Salesforce terms are listed first by intent.
 SEARCH = {
     "country": "IN",            # Indeed country code (IN, US, GB, ...)
-    "experience_years": 2,      # ~1.5 yrs actual (Salesforce FC since 01/2025); ask sites for 1
-                                # so 1-yr postings aren't filtered out. Upper bound is enforced
-                                # by SETTINGS["max_experience_years"].
+    "experience_years": 2,      # ~1.7 yrs actual (Salesforce FC at Dealermatix since 01/2025,
+                                # résumé says "1+ year"); ask sites for 2 so both 1-yr and
+                                # 2-yr postings come back. Upper bound is enforced by
+                                # SETTINGS["max_experience_years"], which is now 4.
     "salary_min": None,         # DELIBERATELY None: site-side salary filters silently drop the
                                 # majority of India listings that don't disclose pay. The CTC
                                 # floor is enforced after the fact via SETTINGS["min_comp_usd"].
@@ -46,12 +47,19 @@ SEARCH = {
     # Each entry is run as its OWN search term. Salesforce functional/BA titles —
     # config + requirements work, NOT Apex/LWC development (see penalty_terms).
     "role_keywords": [
+        # Bare "Salesforce" first, and it is the biggest single volume lever here:
+        # it returns admin, BA, consultant AND developer postings, and the scoring
+        # layer is what separates them (developer titles are penalized, not
+        # searched for). One extra keyword, roughly double the reachable pool.
+        "Salesforce",
+        "Salesforce Admin",
         "Salesforce Functional Consultant",
         "Salesforce Consultant",
         "Salesforce Business Analyst",
         "Salesforce Administrator",
         "Salesforce Sales Cloud Consultant",
         "Salesforce Service Cloud Consultant",
+        "Salesforce Business Systems Analyst",
         "CRM Functional Consultant",
         "Business Analyst CRM",
         "Functional Consultant",
@@ -64,7 +72,12 @@ SEARCH = {
     # Mohali are not searched there — add IDs + widen those lists if you want them.
     "locations": [
         "Chandigarh", "Mohali", "Delhi", "Gurgaon", "Noida",
-        "Bengaluru", "Hyderabad", "Pune", "Remote",
+        "Bengaluru", "Hyderabad", "Pune",
+        # Added for reach: both are large Salesforce-partner markets, and home is
+        # Kotdwara (Uttarakhand) rather than Tricity, so relocating to a metro is
+        # already on the table.
+        "Mumbai", "Chennai",
+        "Remote",
     ],
 }
 
@@ -185,6 +198,8 @@ ATS_BOARDS = {
         "hevodata": "Hevo Data", "zeta": "Zeta", "fampay": "FamPay",
         "cred": "CRED",
         "coderio": "Coderio",         #  0/22  — harvest_ats.py, 2026-07-27
+        # harvest_ats.py, 2026-08-21, from this résumé's own sweep output
+        "levelai": "Level AI",        # 17/20  India
     },
     # Indian employers, plus global companies WITH an India presence — the
     # combination that makes SETTINGS["keep_restricted_if_hires_home"] pay off,
@@ -214,6 +229,10 @@ ATS_BOARDS = {
         "ubiquiti": "Ubiquiti",       #  0/159 — no India entity, so its geo-locked
         "justworks": "Justworks",     #  0/98    roles can never be rescued; kept
                                       #          only for worldwide-remote postings
+        # harvest_ats.py, 2026-08-21, from this résumé's own sweep output. Already
+        # earning its keep: dunnhumby's "Associate Functional Analyst" in Gurugram
+        # was one of the highest-scoring rows of the run that found the board.
+        "dunnhumby": "dunnhumby",     # 16/64  India
     },
     # Probed 2026-07-26 and NOT resolvable, so nobody burns time re-trying:
     # razorpay, zerodha, dream11, sharechat, unacademy, swiggy, zomato, flipkart,
@@ -228,7 +247,12 @@ ATS_BOARDS = {
         "notion": "Notion",           #  5/127
         "teero": "Teero",             #  0/5   — harvest_ats.py, 2026-07-27
     },
-    "smartrecruiters": {},   # e.g. {"BoschGroup": "Bosch"}
+    "smartrecruiters": {
+        # harvest_ats.py, 2026-08-21. One India job today, but Genpact is an
+        # IT-services employer that staffs Salesforce delivery teams, so the
+        # board is worth reading every sweep — it costs one request.
+        "genpactindia": "Genpact India Pvt. Ltd.",   # 1/1 India
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -247,7 +271,11 @@ ATS_BOARDS = {
 # enabled=False by default: this is an employer-specific sweep, switched on by
 # profiles/optum.py, so a normal run is unchanged.
 OPTUM = {
-    "enabled": False,
+    # ON here. UnitedHealth Group runs one of the largest captive tech operations
+    # in India (Noida, Gurugram, Hyderabad, Bengaluru) and staffs its own
+    # Salesforce and CRM teams, so with the title gate retuned to functional
+    # vocabulary this whole free index is worth reading. ~59 listing requests.
+    "enabled": True,
     "company": "Optum",
     "brand": "optum",
     # ONE empty query = the whole index, which is both cheaper and more complete
@@ -287,10 +315,24 @@ OPTUM = {
 # unchanged. keywords=[""] sweeps a whole board and lets the title/location
 # gates narrow it; give real keywords only where the board is too big to page.
 ENTERPRISE = {
-    "enabled": False,
-    "employers": ["amazon", "jpmorgan", "oracle", "accenture", "sap"],
-    "keywords": [""],
-    "max_pages": 5,
+    # ON here, unlike main. Accenture is the largest Salesforce employer in India
+    # by a wide margin and its Workday board is fully readable for free, which
+    # makes this the single biggest free source for this search — bigger than all
+    # 34 ATS_BOARDS put together, since those are product companies that hire
+    # Salesforce people only for their own internal BizApps team.
+    "enabled": True,
+    # oracle and sap are deliberately OUT of the list. Both run their own
+    # competing CRM/ERP, so their postings are for their own stacks — the exact
+    # roles penalty_terms sinks — and Oracle Recruiting Cloud publishes no full
+    # JD anyway, so those rows can't be scored properly either way.
+    "employers": ["accenture", "amazon", "jpmorgan"],
+    # NOT [""] (the whole index) like main uses. These boards run tens of
+    # thousands of postings; an unfiltered read at max_pages would return an
+    # arbitrary slice of mostly irrelevant jobs. One keyword is passed straight to
+    # each platform's own search, so this asks each employer for its Salesforce
+    # openings and nothing else.
+    "keywords": ["Salesforce"],
+    "max_pages": 8,
     "verify_live": True,
 }
 
@@ -310,7 +352,11 @@ FEEDS = {
     # No category filter exists on this API, so it pages blind through ~96k
     # mostly non-engineering jobs at 20 a time. Worth it for the exact UTC
     # offsets it reports, but raise `pages` only if you want the requests.
-    "himalayas": {"enabled": True, "pages": 10},
+    # 2 pages, not 10: himalayas alone was ~80% of the wall-clock on a free
+    # sweep here (8 minutes of ~10) and returned ONE row. It stays enabled
+    # because that row was real, but paged shallowly — a remote Salesforce
+    # posting worth having is on page 1, not page 9.
+    "himalayas": {"enabled": True, "pages": 2},
 }
 
 # Keep a free-source job only if its location mentions one of these.
@@ -352,6 +398,10 @@ ATS_TITLE_HINTS = [
     "functional consultant", "functional analyst", "business analyst",
     "business systems analyst", "systems analyst", "solution consultant",
     "administrator", "configuration",
+    # Broad on purpose: on a partner or consultancy board this is the main title
+    # shape, and a free source costs nothing when it over-returns — scoring sinks
+    # what doesn't fit. A missing hint, by contrast, is invisible.
+    "consultant", "salesforce admin",
 ]
 
 # Titles to reject even when they DO match a hint above. Checked first, so it
@@ -405,18 +455,36 @@ SCORING = {
         # Platform match — must dominate. This is what separates her target roles
         # from any other BA/consultant job.
         "salesforce": 10, "sales cloud": 8, "service cloud": 8,
-        "salesforce administrator": 8,
+        # Community Cloud is on the résumé under its OLD name; every JD written
+        # since 2021 calls it Experience Cloud, so both have to be here or the
+        # postings that want exactly what she has score zero for it.
+        "experience cloud": 7, "community cloud": 7,
+        "salesforce administrator": 8, "salesforce admin": 8,
+        "salesforce certified": 4, "certified administrator": 4,
         "flow builder": 6, "salesforce flow": 6, "soql": 5,
-        # Platform config skills (Salesforce-specific vocabulary)
+        "salesforce integration": 3, "crm implementation": 3,
+        # Platform config skills, EACH IN BOTH INFLECTIONS. Matching is
+        # word-boundary, not substring: "approval process" does NOT match
+        # "approval processes", and a JD is as likely to write one as the other.
+        # Measured on one JD worded both ways: 40 points with the plural spellings
+        # in the config, 14 with only the singulars. Same reason "salesforce
+        # admin" sits next to "salesforce administrator" above.
         "lightning experience": 4, "experience builder": 4,
-        "lightning app builder": 4, "validation rules": 4,
-        "approval process": 4, "custom objects": 4, "permission sets": 4,
-        "record types": 3, "page layouts": 3,
-        # Her job title + platform category — generic enough to need modest weight
-        "functional consultant": 4, "crm": 3,
+        "lightning app builder": 4,
+        "validation rule": 4, "validation rules": 4,
+        "approval process": 4, "approval processes": 4,
+        "custom object": 4, "custom objects": 4,
+        "permission set": 4, "permission sets": 4,
+        "sharing rule": 4, "sharing rules": 4,
+        "record type": 3, "record types": 3,
+        "page layout": 3, "page layouts": 3,
+        "role hierarchy": 3, "governor limits": 2,
+        # Her job title + the title product companies use for the same job +
+        # platform category — generic enough to need modest weight.
+        "functional consultant": 4, "business systems analyst": 4, "crm": 3,
         # Functional-delivery artefacts she authored. Higher than the rest of the
         # generic vocabulary because they signal functional (not dev) work.
-        "brd": 3, "frd": 3, "fsd": 2,
+        "brd": 3, "frd": 3, "fsd": 2, "sop": 1,
         # Generic BA / testing craft — resume-stated, but non-discriminative, so
         # supporting weight only. Do NOT raise these: it's what let Oracle and
         # plain-BA roles outrank real Salesforce ones.
@@ -425,15 +493,24 @@ SCORING = {
         "user stories": 2, "business requirement": 2,
         "functional requirement": 2, "business process mapping": 2,
         "system integration testing": 2, "stakeholder management": 2,
-        "dashboards": 2, "user management": 2, "reports": 1,
-        "process flow": 1, "integration testing": 1, "regression testing": 1,
-        "test case": 1, "test cases": 1, "client communication": 1,
-        "agile": 1, "sdlc": 1, "go-live": 1, "change request": 1,
-        "production support": 1,
-        # Domain experience — DMS/SFA for automotive, FMCG, manufacturing clients
-        "dms": 2, "dealer management": 2, "sfa": 2,
+        "reports and dashboards": 2, "dashboards": 2, "user management": 2,
+        "reports": 1, "process flow": 1, "integration testing": 1,
+        "regression testing": 1, "test case": 1, "test cases": 1,
+        "client communication": 1, "agile": 1, "sdlc": 1,
+        "go-live": 1, "go live": 1, "change request": 1, "change requests": 1,
+        "production support": 1, "end user training": 1, "knowledge base": 1,
+        "data analysis": 1,
+        # Domain experience — SFA/DMS delivery for automotive, FMCG, EV and
+        # manufacturing clients (Greaves Electric, Parle Agro, L'Oréal, boAt,
+        # JK Papers). This block is the part of her résumé a generic Salesforce BA
+        # does NOT have, so it earns real weight on the postings that ask for it.
+        "sales force automation": 3, "sfa": 2, "dms": 2,
+        "dealer management": 2, "distributor management": 2,
+        "secondary sales": 2, "field sales": 2, "sub-dealer": 2,
+        "dealer onboarding": 2,
+        "incentive": 1, "procurement": 1, "expense management": 1,
         "automotive": 1, "fmcg": 1, "manufacturing": 1,
-        "excel": 1, "user manual": 1,
+        "excel": 1, "powerpoint": 1, "user manual": 1,
     },
 
     # -- "Both halves" bonus (was the full-stack bonus) -----------------------
@@ -447,15 +524,24 @@ SCORING = {
     # "crm" deliberately NOT here: it let any CRM/ERP job satisfy the config half,
     # so the bonus needs genuine Salesforce vocabulary to fire.
     "frontend_terms": [
-        "salesforce", "sales cloud", "service cloud", "flow builder",
-        "lightning", "validation rules", "approval process", "custom objects",
-        "permission sets", "page layouts", "record types", "soql",
+        "salesforce", "sales cloud", "service cloud", "experience cloud",
+        "community cloud", "flow builder", "lightning",
+        "validation rule", "validation rules",
+        "approval process", "approval processes",
+        "custom object", "custom objects",
+        "permission set", "permission sets",
+        "sharing rule", "sharing rules",
+        "page layout", "page layouts", "record type", "record types",
+        "role hierarchy", "soql",
     ],
     "backend_terms": [
         "requirement gathering", "business requirement", "functional requirement",
         "brd", "frd", "user stories", "gap analysis", "business analyst",
         "uat", "user acceptance testing", "stakeholder management",
-        "business process", "process flow", "change request", "go-live",
+        "business process", "business process mapping", "process flow",
+        "process mapping", "change request", "change requests",
+        "go-live", "go live", "system integration testing", "test case",
+        "production support", "requirement analysis",
     ],
     "fullstack_bonus": 6,
     # Every term here must name the PLATFORM. Bare job-function titles were tried
@@ -469,7 +555,9 @@ SCORING = {
     "fullstack_title_terms": [
         "salesforce consultant", "salesforce functional consultant",
         "salesforce business analyst", "salesforce analyst",
-        "salesforce administrator", "crm consultant",
+        "salesforce administrator", "salesforce admin",
+        "salesforce business systems analyst", "salesforce functional analyst",
+        "crm consultant", "crm functional consultant", "crm business analyst",
     ],
 
     # -- Down-ranking (penalty) ----------------------------------------------
@@ -541,10 +629,16 @@ SCORING = {
 # ===========================================================================
 SETTINGS = {
     # Filtering
-    "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
-                                 # False: keep them but apply drop_penalty (they sink)
-    "max_experience_years": 3,   # ~1.5 yrs experience (Salesforce FC since 01/2025)
-                                 # -> roles demanding MORE than 3 yrs are dropped/penalized
+    # False, on purpose, and this is the single biggest volume lever in the file:
+    # True DELETES every over-experienced and senior-titled row, so a "3-5 years"
+    # posting she'd be a plausible stretch for never appears at all. False keeps
+    # them and applies drop_penalty, so they sink below the roles she matches
+    # instead of vanishing. min_score is None, so nothing is thrown away.
+    "drop_excluded": False,
+    # 4, not 3: ~1.7 yrs plus an MBA and a Salesforce Administrator certification
+    # is a real candidate for a "2-4 years" posting, and India's Salesforce
+    # postings cluster at 2-4. Anything demanding more is penalized, not dropped.
+    "max_experience_years": 4,
     # How to combine several "N years" figures in one posting: "min" reads the
     # smallest as the real ask (right for short JDs, where anything larger is a
     # nice-to-have), "max" the largest (right for the long structured kind that
@@ -553,7 +647,11 @@ SETTINGS = {
     # consultant postings are short.
     "experience_aggregate": "min",
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
-    "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
+    # 21, not 14: consultancy and partner postings in India stay genuinely open
+    # for weeks (they hire in batches against a client pipeline), unlike product
+    # engineering roles. Two extra weeks of window is the cheapest volume there
+    # is; drop back to 14 if replies dry up.
+    "max_age_days": 21,
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
     # Minimum compensation, annualized and in USD, so an Indian LPA figure and a
     # US/EU salary are compared on the same axis (see scraper.comp_max_usd).
