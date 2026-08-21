@@ -21,7 +21,14 @@ auto-apply/review_queue.csv
 auto-apply/applications.csv
 auto-apply/resume/resume.txt
 auto-apply/resume/resume.pdf
+# Glob, not two fixed names: a résumé carries a real phone number and email
+# address, and dropping one in here under any filename must not publish it.
+auto-apply/resume/*.pdf
+auto-apply/resume/*.docx
 
 # Phase 2: generated userscript (embeds Groq key + résumé) and shortlist
 auto-apply/linkedin-easyapply.user.js
-auto-apply/shortlist.html
+# Glob, not just shortlist.html: shortlists are generated per person
+# (shortlist-<name>.html via --out), and each one is a named individual's job
+# search. Generated + personal = never committed.
+auto-apply/shortlist*.html
