@@ -12,11 +12,12 @@ import datetime
 import glob
 import json
 import os
+import re
 import sys
 
 from config import SETTINGS
 from scraper import (OUTPUT_COLUMNS, blocked_company, dedupe, is_recent,
-                     reachable)
+                     reachable, title_excluded)
 
 # Honors --profile, so a merge can't silently pick up the default profile's files
 # while you're working on someone else's sweep.
@@ -37,6 +38,13 @@ def applyable(row):
     Rows from files written before remote_scope existed lack the key entirely and
     are kept: absent means "this sweep never asked", not "no".
 
+TITLE and a STATED experience figure are re-applied for the same reason and
+    from the same kind of stored column: after "developer"/"engineer" joined
+    hard_drop_terms, 26 of one shortlist's 50 rows were roles the live config
+    would never have reported — technical postings carrying scores from an earlier
+    sweep. Both are gated on drop_excluded, so a config that prefers to keep and
+    penalize those rows still keeps them.
+
     AGE is re-applied for the same reason, and it bites hardest: the oldest file
     in a merge can predate the newest by over a month, so a page built from the
     merged CSV was offering postings the scraper had already stopped reporting as
@@ -48,10 +56,30 @@ def applyable(row):
         return False
     if SETTINGS["remote_scopes"] and "remote_scope" in row:
         return reachable(row)
-    if SETTINGS["max_age_days"] is not None:
-        return is_recent(row.get("date_posted") or row.get("Posted Date"),
-                         SETTINGS["max_age_days"])
+    if SETTINGS["max_age_days"] is not None and not is_recent(
+            row.get("date_posted") or row.get("Posted Date"),
+            SETTINGS["max_age_days"]):
+        return False
+    if SETTINGS["drop_excluded"]:
+        if title_excluded(row.get("title") or row.get("Title")):
+            return False
+        years = _stated_years(row.get("experience_required"))
+        if years is not None and years > SETTINGS["max_experience_years"]:
+            return False
     return True
+
+
+def _stated_years(value):
+    """The leading number out of a stored experience_required cell, or None.
+
+    The column holds what the parser found, written as "3+"/"8+", and older files
+    hold whatever raw text the source gave ("Full Time", "2-4 Yrs", ""). Only a
+    leading integer is trusted; anything else is "the posting didn't say", which
+    must never read as zero (that would keep every unknown) or as huge (that would
+    delete every unknown).
+    """
+    m = re.match(r"\s*(\d{1,2})", str(value or ""))
+    return int(m.group(1)) if m else None
 
 
 def merge_rows(rows):
@@ -116,6 +144,30 @@ def demo():
         SETTINGS["remote_scopes"] = []
         assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="Germany")])) == 1
         assert len(merge_rows([scoped(company="Hired", remote_scope="worldwide")])) == 0
+
+        # Title and stated experience, re-applied to rows scored under older term
+        # lists and older thresholds.
+        # Pinned like every other block here: "manager" happens to be in each
+        # config's hard_drop_terms today, but this asserts that the rule is WIRED,
+        # not what any one résumé's word list contains.
+        from scraper import HARD_DROP_PATTERNS, _compile
+        _me, _hd = SETTINGS["max_experience_years"], dict(HARD_DROP_PATTERNS)
+        try:
+            SETTINGS["max_experience_years"] = 2
+            HARD_DROP_PATTERNS.clear()
+            HARD_DROP_PATTERNS["manager"] = _compile("manager")
+            assert len(merge_rows([scoped(title="Zorb Manager")])) == 0
+            assert len(merge_rows([scoped(title="Zorb")])) == 1
+            assert len(merge_rows([scoped(experience_required="8+")])) == 0
+            assert len(merge_rows([scoped(experience_required="2+")])) == 1
+            # Not a number = the posting never said. Kept, both ways round.
+            assert len(merge_rows([scoped(experience_required="Full Time")])) == 1
+            assert len(merge_rows([scoped(experience_required="")])) == 1
+            assert _stated_years("2-4 Yrs") == 2 and _stated_years(None) is None
+        finally:
+            SETTINGS["max_experience_years"] = _me
+            HARD_DROP_PATTERNS.clear()
+            HARD_DROP_PATTERNS.update(_hd)
 
         # Age, re-applied across files of different vintages. Pinned too, since
         # max_age_days is per-résumé and None is a legal value.
