@@ -20,11 +20,12 @@ Costs nothing but requests. Nothing is written; you paste what you want to keep.
 import argparse
 import glob
 import json
+import os
 import re
 import time
 import urllib.error
 
-from config import ATS_BOARDS, HOME_LOCATION_HINTS
+from config import ATS_BOARDS, HOME_LOCATION_HINTS, SETTINGS
 from sources._http import flat, get_json
 from sources.ats import ATS
 
@@ -51,9 +52,17 @@ def known_tokens():
 
 
 def companies_from_output(min_score, path=None):
-    """Company names from the newest output JSON, best-scoring first."""
-    path = path or max(glob.glob("output/**/jobs_*.json", recursive=True),
-                       key=lambda p: (p.endswith("jobs_all.json"), p))
+    """Company names from the newest output JSON, best-scoring first.
+
+    Scoped to SETTINGS["output_dir"] and picked by MTIME. It used to glob
+    output/** recursively and take the max by PATH STRING, which is neither the
+    newest file nor this profile's: "output/optum/jobs_combined.json" sorts above
+    "output/jobs_2026-08-21.json", so a run under one résumé's profile silently
+    probed another's companies and reported "1 company, nothing resolved".
+    """
+    path = path or max(
+        glob.glob(os.path.join(SETTINGS["output_dir"], "jobs_*.json")),
+        key=lambda p: (p.endswith("jobs_all.json"), os.path.getmtime(p)))
     rows = json.load(open(path))
     seen = {}
     for r in sorted(rows, key=lambda r: -(r.get("score") or 0)):
@@ -155,6 +164,28 @@ def demo():
     assert slugs("") == [] and slugs("Pvt Ltd") == []
     assert _dig({"location": {"name": "Pune, India"}}, "location.name") == "Pune, India"
     assert _dig({}, "location.name") is None
+
+    # Input selection: this profile's directory, newest file, jobs_all preferred.
+    # The bug it guards was silent — a wrong pick still prints a plausible report.
+    import tempfile
+    tmp = tempfile.mkdtemp()
+    os.makedirs(os.path.join(tmp, "other_profile"))
+    def _write(rel, rows, mtime):
+        f = os.path.join(tmp, rel)
+        json.dump(rows, open(f, "w"))
+        os.utime(f, (mtime, mtime))
+        return f
+    _write("other_profile/jobs_combined.json", [{"company": "Wrong", "score": 9}], 3000)
+    _write("jobs_2026-01-01.json", [{"company": "Older", "score": 9}], 1000)
+    want = _write("jobs_2026-06-01.json", [{"company": "Right", "score": 9}], 2000)
+    orig_dir = SETTINGS["output_dir"]
+    try:
+        SETTINGS["output_dir"] = tmp
+        assert companies_from_output(0) == (want, ["Right"]), companies_from_output(0)
+        allf = _write("jobs_all.json", [{"company": "All", "score": 9}], 500)
+        assert companies_from_output(0) == (allf, ["All"])   # preferred despite mtime
+    finally:
+        SETTINGS["output_dir"] = orig_dir
     print("harvest_ats demo ok")
 
 
