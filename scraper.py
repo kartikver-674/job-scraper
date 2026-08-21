@@ -1243,14 +1243,36 @@ def demo():
 
     # Two-tier seniority: an inflated title label must not delete a role whose
     # stated requirement is within reach, but a genuinely senior one still goes.
+    # PINNED, like the remote_scopes block below: these asserts describe what
+    # score_job does when drop_excluded is TRUE, and read live they passed or
+    # failed on whose résumé config happened to be loaded — a profile that
+    # deliberately keeps over-experienced rows and penalizes them instead
+    # (drop_excluded=False) failed here on a perfectly correct setting.
     sj = lambda t, d="": score_job({"Title": t, "Description": d})   # noqa: E731
-    assert sj("Engineering Manager") is None                     # hard drop
-    assert sj("Staff Software Engineer") is None
-    assert sj("Principal Architect") is None
-    assert sj("Senior React Developer", "2 years of React experience.") is not None
-    plain = sj("React Developer", "2 years of React experience.")
-    senior = sj("Senior React Developer", "2 years of React experience.")
-    assert senior["score"] == plain["score"] + SCORING["soft_penalty"]  # kept, lower
+    _drop_excluded = SETTINGS["drop_excluded"]
+    SETTINGS["drop_excluded"] = True
+    try:
+        assert sj("Engineering Manager") is None                     # hard drop
+        assert sj("Staff Software Engineer") is None
+        assert sj("Principal Architect") is None
+        assert sj("Senior React Developer", "2 years of React experience.") is not None
+        plain = sj("React Developer", "2 years of React experience.")
+        senior = sj("Senior React Developer", "2 years of React experience.")
+        assert senior["score"] == plain["score"] + SCORING["soft_penalty"]  # kept, lower
+        # A title label is not a requirement, but a STATED floor over the
+        # threshold is: this one goes even though "Senior" alone wouldn't do it.
+        assert sj("Senior React Developer", "8+ years of React required.") is None
+
+        # drop_excluded=False: the same rows are KEPT and sink by drop_penalty
+        # rather than disappearing. That branch shipped with no coverage at all.
+        SETTINGS["drop_excluded"] = False
+        assert sj("Engineering Manager") is not None
+        within = sj("Business Analyst", "2 years of experience.")
+        over = sj("Business Analyst", "12 years of experience.")
+        assert over is not None, "over-experienced row must be kept, not dropped"
+        assert over["score"] == within["score"] + SCORING["drop_penalty"]
+    finally:
+        SETTINGS["drop_excluded"] = _drop_excluded
 
     # Repost farms go whatever they score; whole-name match, so a real employer
     # whose name merely contains one is untouched.
@@ -1260,7 +1282,6 @@ def demo():
     assert score_job(dict(farm, Company="  jobs ai ")) is None
     assert score_job(dict(farm, Company="Freshired Labs")) is not None
     assert score_job(dict(farm, Company="")) is not None   # unknown != blocked
-    assert sj("Senior React Developer", "8+ years of React required.") is None
 
     # Experience floor: only figures that count EXPERIENCE, and the aggregate
     # decides which of several wins. All three cases are verbatim from live JDs.
