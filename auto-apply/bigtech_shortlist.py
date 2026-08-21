@@ -88,7 +88,14 @@ EXTRA_CSS = """
 
 def render(groups, generated_on, total):
     out = []
-    for company in ORDER:
+    # ORDER is a preference, not a whitelist. Anything not named in it still has
+    # to render — iterating ORDER alone silently DROPPED every employer added by
+    # a later sweep (MongoDB, GitLab, Roku, Twilio all vanished from the page
+    # while sitting in the CSV). Unlisted employers follow, best score first.
+    listed = [c for c in ORDER if groups.get(c)]
+    rest = sorted((c for c in groups if c not in ORDER),
+                  key=lambda c: -max(float(r.get("score") or 0) for r in groups[c]))
+    for company in listed + rest:
         rows = groups.get(company) or []
         if not rows:
             continue
@@ -135,6 +142,20 @@ def render(groups, generated_on, total):
         "</button></p></main>\n" + _script("bigtech") + "\n</body>\n</html>\n")
 
 
+def demo():
+    """Self-check for the one failure this file had: ORDER read as a whitelist,
+    so every employer a later sweep added was in the CSV and off the page."""
+    groups = {"Amazon": [{"score": "10", "title": "A", "apply_url": "u"}],
+              "Zzz Ltd": [{"score": "40", "title": "Z", "apply_url": "u"}],
+              "Mmm Inc": [{"score": "50", "title": "M", "apply_url": "u"}]}
+    page = render(groups, "2026-01-01", 3)
+    for company in groups:
+        assert f">{company}<" in page, f"{company} dropped from the page"
+    # Listed employers keep ORDER; the rest follow, best score first.
+    assert page.index(">Amazon<") < page.index(">Mmm Inc<") < page.index(">Zzz Ltd<")
+    print("bigtech_shortlist demo ok")
+
+
 def main():
     opts = dict(a[2:].split("=", 1) for a in sys.argv[1:]
                 if a.startswith("--") and "=" in a)
@@ -163,4 +184,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--demo" in sys.argv:
+        demo()
+    else:
+        main()
