@@ -117,7 +117,16 @@ def scan(grades, days, max_pages=20, log=print):
     cards = {}
     for page in range(1, max_pages + 1):
         url = optum._SEARCH.format(page=page, per_page=100, kw="", loc="")
-        html = (get_json(url) or {}).get("results") or ""
+        # This host throttles progressively across repeated runs, and a single
+        # timed-out listing page used to raise straight out of scan() and kill
+        # the whole run — including a completed watchlist re-check. A partial
+        # newest-first sweep is still a useful answer; no answer is not.
+        try:
+            html = (get_json(url) or {}).get("results") or ""
+        except Exception as exc:
+            log(f"  ! listing page {page}: {type(exc).__name__} — "
+                f"continuing with the {len(cards)} cards already read")
+            break
         got = optum._cards(html, "optum")
         if not got:
             break
@@ -183,6 +192,9 @@ def main():
         print(f"re-checking {sum(1 for r in watch.values() if r.get('status') == 'open')} "
               f"previously reported reqs")
         closed, still_open = recheck(watch, today)
+        # Save NOW. Closure is the expensive half of this script's answer, and
+        # writing it only at the end meant a later listing timeout threw it away.
+        save_watchlist(watch, path)
 
     in_band, fresh = scan(grades, days)
 
