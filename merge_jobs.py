@@ -8,13 +8,15 @@ file twice. Run after a sweep:
     python merge_jobs.py --profile srishti     # merges output/srishti/
 """
 import csv
+import datetime
 import glob
 import json
 import os
 import sys
 
 from config import SETTINGS
-from scraper import OUTPUT_COLUMNS, blocked_company, dedupe, reachable
+from scraper import (OUTPUT_COLUMNS, blocked_company, dedupe, is_recent,
+                     reachable)
 
 # Honors --profile, so a merge can't silently pick up the default profile's files
 # while you're working on someone else's sweep.
@@ -34,11 +36,21 @@ def applyable(row):
 
     Rows from files written before remote_scope existed lack the key entirely and
     are kept: absent means "this sweep never asked", not "no".
+
+    AGE is re-applied for the same reason, and it bites hardest: the oldest file
+    in a merge can predate the newest by over a month, so a page built from the
+    merged CSV was offering postings the scraper had already stopped reporting as
+    stale (measured: 5-week-old rows from an archived paid run, sitting above
+    today's, because they scored well). is_recent honours SETTINGS["drop_undated"],
+    so an unparseable date is still "the posting didn't say", not "too old".
     """
     if blocked_company(row):
         return False
     if SETTINGS["remote_scopes"] and "remote_scope" in row:
         return reachable(row)
+    if SETTINGS["max_age_days"] is not None:
+        return is_recent(row.get("date_posted") or row.get("Posted Date"),
+                         SETTINGS["max_age_days"])
     return True
 
 
@@ -104,6 +116,22 @@ def demo():
         SETTINGS["remote_scopes"] = []
         assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="Germany")])) == 1
         assert len(merge_rows([scoped(company="Hired", remote_scope="worldwide")])) == 0
+
+        # Age, re-applied across files of different vintages. Pinned too, since
+        # max_age_days is per-résumé and None is a legal value.
+        age, undated = SETTINGS["max_age_days"], SETTINGS["drop_undated"]
+        try:
+            SETTINGS["max_age_days"], SETTINGS["drop_undated"] = 21, False
+            old_day = (datetime.date.today()
+                       - datetime.timedelta(days=40)).isoformat()
+            new_day = datetime.date.today().isoformat()
+            assert len(merge_rows([scoped(date_posted=new_day)])) == 1
+            assert len(merge_rows([scoped(date_posted=old_day)])) == 0
+            assert len(merge_rows([scoped()])) == 1          # undated -> kept
+            SETTINGS["max_age_days"] = None                  # filter off -> kept
+            assert len(merge_rows([scoped(date_posted=old_day)])) == 1
+        finally:
+            SETTINGS["max_age_days"], SETTINGS["drop_undated"] = age, undated
     finally:
         SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"] = orig
     print("demo ok")
