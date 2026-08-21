@@ -320,6 +320,22 @@ _EXP_OF_RE = re.compile(r"\s*(?:of|in)\s+[a-z]")   # "8+ years of|in <something>
 _EDU_RE = re.compile(r"education|schooling|degree program")
 
 
+# "<label> : 10+ years" — a header field whose entire value is a years figure.
+# Netradyne's template writes the experience row as "Business Systems Group :
+# 10+ years", so no experience cue sits anywhere near the number and the
+# cue-based test read the posting as "didn't say". It was a 10-year job ranked
+# first on a 2-year candidate's shortlist.
+_FIELD_YEARS_RE = re.compile(
+    # COLON only. A hyphen here matched the range "10-18+ years" as
+    # label="10", value=18, which under the "max" aggregate turned a 10-year
+    # posting into an 18-year one — the opposite of the bug being fixed.
+    r"([\w /&()]{0,40}?)\s*:\s*(\d{1,2})\s*\+?\s*(?:years?|yrs?)\b", re.I)
+# ...but plenty of labelled year-values are not experience at all.
+_DURATION_LABEL_RE = re.compile(
+    r"contract|duration|notice|tenure|validity|bond|period|term|warranty|"
+    r"internship|course|degree|education|age\b", re.I)
+
+
 def _required_experience_floor(text):
     """The experience a posting demands, in years, or None if it doesn't say.
 
@@ -353,6 +369,10 @@ def _required_experience_floor(text):
         if (exp or _EXP_OF_RE.match(after)
                 or _EXP_CUE_RE.search(text[max(0, m.start() - 30):m.start()])):
             vals.append(int(m.group(1)))
+    # Second pass: labelled fields, for the templates that never say "experience".
+    for m in _FIELD_YEARS_RE.finditer(text):
+        if not _DURATION_LABEL_RE.search(m.group(1)):
+            vals.append(int(m.group(2)))
     if not vals:
         return None
     return max(vals) if SETTINGS.get("experience_aggregate") == "max" else min(vals)
@@ -391,6 +411,20 @@ def _parse_date(s):
     if any(w in low for w in ("today", "just posted", "hour", "minute", "moment")):
         return datetime.now()
     return None
+
+
+def title_excluded(title):
+    """Does this TITLE alone hard-disqualify the role?
+
+    Split out of score_job so merge_jobs.py can re-apply it to a stored row.
+    A merged file spans sweeps run under older term lists, and the title is one of
+    the columns that IS kept — so unlike scoring, this rule can be re-checked
+    later, and it has to be: after "developer"/"engineer" were added to
+    hard_drop_terms, 26 of one shortlist's 50 rows were roles the current config
+    would never have reported, still sitting there with their old scores.
+    """
+    low = (title or "").lower()
+    return any(pat.search(low) for pat in HARD_DROP_PATTERNS.values())
 
 
 def is_recent(date_str, max_age_days):
@@ -515,7 +549,7 @@ def score_job(row):
     # hard_drop_terms (manager/principal/staff/...) and a stated experience floor
     # over the threshold remove a job. "Senior"/"Lead" are handled below as a
     # down-rank, because title inflation would otherwise delete reachable roles.
-    excluded = any(pat.search(title) for pat in HARD_DROP_PATTERNS.values())
+    excluded = title_excluded(title)
     floor = _required_experience_floor(text)
     if floor is not None and floor > SETTINGS["max_experience_years"]:
         excluded = True
@@ -1243,40 +1277,57 @@ def demo():
 
     # Two-tier seniority: an inflated title label must not delete a role whose
     # stated requirement is within reach, but a genuinely senior one still goes.
-    # PINNED, like the remote_scopes block below: these asserts describe what
-    # score_job does when drop_excluded is TRUE, and read live they passed or
-    # failed on whose résumé config happened to be loaded — a profile that
-    # deliberately keeps over-experienced rows and penalizes them instead
-    # (drop_excluded=False) failed here on a perfectly correct setting.
+    #
+    # FULLY PINNED — the flag AND the vocabularies. These asserts are about the
+    # mechanism, not about anyone's word lists, and every part of them read live
+    # has now broken on a legitimate config: drop_excluded=False (a résumé that
+    # keeps over-experienced rows and penalizes them) and then hard_drop_terms
+    # containing "developer" (a functional-consultant résumé, for which every
+    # developer title IS a hard no) both failed here on correct settings. So the
+    # test titles are nonsense words no real config scores, and the term lists are
+    # substituted for the duration.
     sj = lambda t, d="": score_job({"Title": t, "Description": d})   # noqa: E731
-    _drop_excluded = SETTINGS["drop_excluded"]
-    SETTINGS["drop_excluded"] = True
+    _saved = (SETTINGS["drop_excluded"], dict(HARD_DROP_PATTERNS),
+              dict(SOFT_DROP_PATTERNS), SETTINGS["max_experience_years"])
     try:
-        assert sj("Engineering Manager") is None                     # hard drop
-        assert sj("Staff Software Engineer") is None
-        assert sj("Principal Architect") is None
-        assert sj("Senior React Developer", "2 years of React experience.") is not None
-        plain = sj("React Developer", "2 years of React experience.")
-        senior = sj("Senior React Developer", "2 years of React experience.")
-        assert senior["score"] == plain["score"] + SCORING["soft_penalty"]  # kept, lower
-        # A title label is not a requirement, but a STATED floor over the
-        # threshold is: this one goes even though "Senior" alone wouldn't do it.
-        assert sj("Senior React Developer", "8+ years of React required.") is None
+        SETTINGS["drop_excluded"] = True
+        SETTINGS["max_experience_years"] = 3
+        HARD_DROP_PATTERNS.clear()
+        HARD_DROP_PATTERNS.update({t: _compile(t) for t in ("principal", "manager")})
+        SOFT_DROP_PATTERNS.clear()
+        SOFT_DROP_PATTERNS.update({"senior": _compile("senior")})
+
+        assert sj("Zorb Manager") is None                       # hard-drop term
+        assert sj("Principal Zorb") is None
+        assert sj("Senior Zorb", "2 years of experience.") is not None
+        plain = sj("Zorb", "2 years of experience.")
+        senior = sj("Senior Zorb", "2 years of experience.")
+        assert senior["score"] == plain["score"] + SCORING["soft_penalty"]
+        # A title label is not a requirement; a STATED floor over the threshold
+        # is. This one goes even though "Senior" alone wouldn't do it.
+        assert sj("Senior Zorb", "8+ years of experience.") is None
 
         # drop_excluded=False: the same rows are KEPT and sink by drop_penalty
         # rather than disappearing. That branch shipped with no coverage at all.
         SETTINGS["drop_excluded"] = False
-        assert sj("Engineering Manager") is not None
-        within = sj("Business Analyst", "2 years of experience.")
-        over = sj("Business Analyst", "12 years of experience.")
+        assert sj("Zorb Manager") is not None
+        within = sj("Zorb", "2 years of experience.")
+        over = sj("Zorb", "12 years of experience.")
         assert over is not None, "over-experienced row must be kept, not dropped"
         assert over["score"] == within["score"] + SCORING["drop_penalty"]
     finally:
-        SETTINGS["drop_excluded"] = _drop_excluded
+        (SETTINGS["drop_excluded"], _h, _s,
+         SETTINGS["max_experience_years"]) = _saved
+        HARD_DROP_PATTERNS.clear(); HARD_DROP_PATTERNS.update(_h)
+        SOFT_DROP_PATTERNS.clear(); SOFT_DROP_PATTERNS.update(_s)
 
     # Repost farms go whatever they score; whole-name match, so a real employer
     # whose name merely contains one is untouched.
-    farm = {"Title": "Full Stack Engineer", "Description": "React, Node, 2 years."}
+    # Nonsense title for the same reason as the block above: this asserts what
+    # blocked_company does, and a real job title drags whatever the loaded config
+    # thinks of that title into the result ("Full Stack Engineer" is a hard drop
+    # on a functional-consultant résumé). "2 years" clears any sane threshold.
+    farm = {"Title": "Zorb", "Description": "2 years of experience."}
     assert score_job(dict(farm, Company="Hired")) is None
     assert score_job(dict(farm, Company="SWAKIO™")) is None
     assert score_job(dict(farm, Company="  jobs ai ")) is None
@@ -1292,6 +1343,19 @@ def demo():
     both = ("8+ years of total software engineering experience, "
             "including 2+ years hands-on in ai/ml")
     assert floor(both) == 2                                        # default: min
+    # A labelled field whose whole value is a years figure counts, even when no
+    # experience word is anywhere near it — and a labelled DURATION does not.
+    # Verbatim from the Netradyne template that put a 10-year role at the top of a
+    # 2-year candidate's shortlist.
+    assert floor("job title : salesforce techno functional consultant "
+                 "department/group : business systems group "
+                 "business systems group : 10+ years location : bangalore") == 10
+    assert floor("experience : 3+ years") == 3
+    assert floor("contract duration : 2 years") is None
+    assert floor("internship : 1 year") is None
+    assert floor("education : 15 years full time") is None
+    assert floor("with growth exceeding 4x year over year") is None
+
     agg = SETTINGS.get("experience_aggregate")
     SETTINGS["experience_aggregate"] = "max"
     try:
@@ -1332,27 +1396,27 @@ def demo():
         ATS_TITLE_HINTS[:], ATS_TITLE_EXCLUDE[:] = saved
 
     # Timezone gap down-ranks but never removes, and only past the free window.
-    near = sj("React Developer", "Remote across Europe. 2 years experience.")
-    far = sj("React Developer", "Remote in the US. 2 years experience.")
+    near = sj("Zorb", "Remote across Europe. 2 years experience.")
+    far = sj("Zorb", "Remote in the US. 2 years experience.")
     assert near is not None and far is not None
     assert near["tz_gap"] == 4.5 and far["tz_gap"] == 11.5
     assert near["score"] > far["score"], (near["score"], far["score"])
     # 4.5h is inside TZ_FREE_HOURS, so the near role pays nothing at all.
-    assert near["score"] == sj("React Developer", "2 years experience.")["score"]
+    assert near["score"] == sj("Zorb", "2 years experience.")["score"]
 
     # A geo-locked role is rescued only when the EMPLOYER hires at home.
     orig = SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"]
     SETTINGS["remote_scopes"] = ["worldwide"]
     SETTINGS["keep_restricted_if_hires_home"] = True
     try:
-        base = {"Title": "React Developer", "Description": "2 years experience.",
+        base = {"Title": "Zorb", "Description": "2 years experience.",
                 "Location": "New York, NY (HQ), Remote"}
         assert len(finalize([dict(base, Company="A", hires_home="yes")])) == 1
         assert len(finalize([dict(base, Company="B", hires_home="no")])) == 0
         assert len(finalize([dict(base, Company="C", hires_home="")])) == 0  # feeds
         # ...or when the lock is TO home: "remote within India" is the most
         # reachable role there is, whatever the employer's other postings say.
-        home = {"Title": "React Developer", "Description": "2 years experience.",
+        home = {"Title": "Zorb", "Description": "2 years experience.",
                 "Location": "Remote, India", "Company": "D", "hires_home": ""}
         got = finalize([dict(home)])
         assert len(got) == 1 and got[0]["remote_scope"] == "restricted", got
@@ -1380,9 +1444,9 @@ def demo():
     # The stamp is what makes an India-locked remote row survive: city location
     # alone reads as "not stated" and is dropped.
     plain = enrich.enrich({"Location": "Bengaluru, Karnataka, India",
-                           "Title": "React Developer", "Description": "Build UIs."})
+                           "Title": "Zorb", "Description": "Build UIs."})
     stamped = enrich.enrich({"Location": "Bengaluru, Karnataka, India, Remote",
-                             "Title": "React Developer", "Description": "Build UIs."})
+                             "Title": "Zorb", "Description": "Build UIs."})
     assert plain["remote_scope"] == "", plain
     assert stamped["remote_scope"] == "restricted", stamped
     assert stamped["remote_regions"] == "India", stamped
