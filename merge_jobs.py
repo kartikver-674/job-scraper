@@ -82,16 +82,30 @@ def demo():
     # No remote_scope key at all -> pre-column file, kept rather than deleted.
     assert len(merge_rows([dict(c, title="Solo Dev")])) == 1
 
-    # Reachability, re-applied to rows that carry the column.
-    scoped = lambda **kw: dict(  # noqa: E731
-        {"title": "React Dev", "company": "Z", "score": 8}, **kw)
-    assert len(merge_rows([scoped(remote_scope="worldwide")])) == 1
-    assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="Germany")])) == 0
-    # Locked TO home, or an employer that hires here: both still applyable.
-    assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="India")])) == 1
-    assert len(merge_rows([scoped(remote_scope="restricted", hires_home="yes")])) == 1
-    # A repost farm goes whatever its scope says.
-    assert len(merge_rows([scoped(company="Hired", remote_scope="worldwide")])) == 0
+    # Reachability, re-applied to rows that carry the column. PINNED, the way
+    # scraper.demo() pins it: these asserts describe what applyable() does when
+    # the filter is ON, so read straight from the live config they passed only for
+    # a profile that happens to enable it and failed for one that doesn't — a
+    # check that depends on whose résumé is loaded isn't a check.
+    orig = SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"]
+    SETTINGS["remote_scopes"] = ["worldwide", "remote"]
+    SETTINGS["keep_restricted_if_hires_home"] = True
+    try:
+        scoped = lambda **kw: dict(  # noqa: E731
+            {"title": "React Dev", "company": "Z", "score": 8}, **kw)
+        assert len(merge_rows([scoped(remote_scope="worldwide")])) == 1
+        assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="Germany")])) == 0
+        # Locked TO home, or an employer that hires here: both still applyable.
+        assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="India")])) == 1
+        assert len(merge_rows([scoped(remote_scope="restricted", hires_home="yes")])) == 1
+        # A repost farm goes whatever its scope says.
+        assert len(merge_rows([scoped(company="Hired", remote_scope="worldwide")])) == 0
+        # Filter OFF: the geo-locked row comes back, the repost farm still goes.
+        SETTINGS["remote_scopes"] = []
+        assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="Germany")])) == 1
+        assert len(merge_rows([scoped(company="Hired", remote_scope="worldwide")])) == 0
+    finally:
+        SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"] = orig
     print("demo ok")
 
 
