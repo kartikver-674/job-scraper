@@ -394,14 +394,15 @@ HOME_LOCATION_HINTS = [
 # expensive kind of silence. Substring match, so "salesforce" also catches
 # "Salesforce Functional Consultant (Sales Cloud)".
 ATS_TITLE_HINTS = [
-    "salesforce", "sales cloud", "service cloud", "crm",
+    "salesforce", "sfdc", "sales cloud", "service cloud", "crm",
     "functional consultant", "functional analyst", "business analyst",
     "business systems analyst", "systems analyst", "solution consultant",
-    "administrator", "configuration",
-    # Broad on purpose: on a partner or consultancy board this is the main title
-    # shape, and a free source costs nothing when it over-returns — scoring sinks
-    # what doesn't fit. A missing hint, by contrast, is invisible.
-    "consultant", "salesforce admin",
+    "administrator",
+    # A bare "consultant" was tried here and REMOVED: on a free board it is not a
+    # Salesforce signal at all, it let in "Six Sigma Consultant",
+    # "Consultant - Data Analysis" and "Data Pre-sales", and every genuine target
+    # already matches on "salesforce", "sfdc" or a functional/BA title.
+    "salesforce admin",
 ]
 
 # Titles to reject even when they DO match a hint above. Checked first, so it
@@ -454,7 +455,7 @@ SCORING = {
     "skill_weights": {
         # Platform match — must dominate. This is what separates her target roles
         # from any other BA/consultant job.
-        "salesforce": 10, "sales cloud": 8, "service cloud": 8,
+        "salesforce": 10, "sfdc": 10, "sales cloud": 8, "service cloud": 8,
         # Community Cloud is on the résumé under its OLD name; every JD written
         # since 2021 calls it Experience Cloud, so both have to be here or the
         # postings that want exactly what she has score zero for it.
@@ -570,6 +571,11 @@ SCORING = {
         "apex": -6, "lwc": -6,
         "lightning web component": -6, "lightning web components": -6,
         "visualforce": -5,
+        # Salesforce products she has no experience in. A functional JD that says
+        # "exposure to Marketing Cloud is a plus" should still rank; one built
+        # around them should not. Title-level cases are hard-dropped instead.
+        "marketing cloud": -4, "commerce cloud": -4, "data cloud": -4,
+        "sfmc": -4, "sfcc": -4, "cpq": -4, "mulesoft": -4, "tableau crm": -4,
         # Off-domain: software engineering stacks (not a coder)
         "full stack": -8, "fullstack": -8, "mern": -8,
         "react": -6, "node.js": -6, "angular": -6,
@@ -606,6 +612,29 @@ SCORING = {
     "hard_drop_terms": [
         "principal", "staff", "manager", "architect", "director",
         "head of", "vp", "chief",
+        # TECHNICAL roles. She is a functional consultant: she configures
+        # Salesforce and writes the requirements, she does not build, test or
+        # analyse data for a living. This list had nothing technical in it, which
+        # is why "Senior Software Engineer - Salesforce, LWC", "Salesforce QA /
+        # SFDC Quality Analyst", "Lead Software Engineer - Salesforce" and
+        # "Salesforce Developer" all reached the shortlist. Title-only matching,
+        # which is exactly why it is the right lever here: it still works on the
+        # paid rows whose description was never stored, where nothing that reads
+        # the JD body can help.
+        "developer", "engineer", "sde", "programmer", "full stack",
+        "qa", "quality analyst", "tester", "technical", "devops",
+        # Data / analytics / product careers that borrow "analyst" and
+        # "consultant". "analyst" itself is NOT here — Business Analyst is the
+        # target title, so only the qualified forms are dropped.
+        "data analyst", "data analysis", "data scientist", "data science",
+        "data engineer", "analytics", "product owner", "product analyst",
+        "pre-sales", "presales", "six sigma", "risk management",
+        "asset management",
+        # Salesforce products she has never touched. Named in the TITLE the role
+        # is about that product; merely mentioned in the body it is a penalty
+        # (below), not a delete.
+        "marketing cloud", "commerce cloud", "data cloud", "sfmc", "sfcc",
+        "cpq", "mulesoft", "tableau", "guidewire",
     ],
     # soft_drop_terms: usually inflated titling, especially in international
     # remote, where "Senior" routinely means 3-4 years. NEVER dropped — only
@@ -629,16 +658,19 @@ SCORING = {
 # ===========================================================================
 SETTINGS = {
     # Filtering
-    # False, on purpose, and this is the single biggest volume lever in the file:
-    # True DELETES every over-experienced and senior-titled row, so a "3-5 years"
-    # posting she'd be a plausible stretch for never appears at all. False keeps
-    # them and applies drop_penalty, so they sink below the roles she matches
-    # instead of vanishing. min_score is None, so nothing is thrown away.
-    "drop_excluded": False,
-    # 4, not 3: ~1.7 yrs plus an MBA and a Salesforce Administrator certification
-    # is a real candidate for a "2-4 years" posting, and India's Salesforce
-    # postings cluster at 2-4. Anything demanding more is penalized, not dropped.
-    "max_experience_years": 4,
+    # True. This was tried as False for volume and it was the wrong trade: it
+    # meant every technical and over-experienced row stayed on the page, sunk by a
+    # penalty but still there, and the page is a shortlist, not an archive. A role
+    # that demands more experience than she has is not a weaker match, it is a
+    # different job.
+    "drop_excluded": True,
+    # 2, her actual ceiling (~1.7 yrs at Dealermatix since 01/2025). This was 3,
+    # and 3 was quietly one year too lenient in BOTH directions: the comparison is
+    # `floor > max_experience_years`, so a posting demanding exactly "3+ years"
+    # passed a threshold of 3. Every "3+ years" functional role on the shortlist
+    # arrived through that off-by-one. At 2, a "2-4 years" posting still passes
+    # (experience_aggregate is "min", so the range reads as 2) while "3+" does not.
+    "max_experience_years": 2,
     # How to combine several "N years" figures in one posting: "min" reads the
     # smallest as the real ask (right for short JDs, where anything larger is a
     # nice-to-have), "max" the largest (right for the long structured kind that
