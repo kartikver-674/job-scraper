@@ -1,5 +1,5 @@
 """
-Configuration for the full-stack job scraper.
+Configuration for a SALES / BUSINESS DEVELOPMENT job scraper.
 
 EVERYTHING that decides *what* gets pulled and *how* it's ranked lives here. You
 should never need to touch scraper.py to add a keyword, a location, a site, a skill
@@ -18,7 +18,7 @@ Philosophy — prove it cheaply first:
 Sections below:
     1. SEARCH   — shared criteria + the role x location matrix
     2. SITES    — which boards to scrape (toggle here)
-    3. SCORING  — resume-based relevance weights, full-stack bonus, exclude/down-rank
+    3. SCORING  — resume-based relevance weights, hunter+closer bonus, exclude/down-rank
     4. SETTINGS — filtering thresholds, cost guards, output knobs
     5. PROFILES — named overlays, so one scraper serves several people/searches
 
@@ -35,27 +35,37 @@ editing this file, put the keys you want to change in profiles/<name>.py and run
 # scoring layer), but full-stack terms are listed first by intent.
 SEARCH = {
     "country": "IN",            # Indeed country code (IN, US, GB, ...)
-    "experience_years": 2,      # target ~2 yrs (0-3 acceptable); passed to sites that support it
-    "salary_min": None,         # optional minimum salary; None to skip
-    "max_results": 15,          # jobs PER (keyword x location) search — keep modest, pay-per-event (~$5/1000 results)
+    # ~1 yr: PlanetSpark intern Sep 2025 -> BD Associate Dec 2025 -> Senior BD
+    # Associate Apr 2026. Ask sites for 1 so fresher and 1-yr postings both come
+    # back; the ceiling is SETTINGS["max_experience_years"].
+    "experience_years": 1,
+    "salary_min": None,         # DELIBERATELY None: Indian sales postings quote a
+                                # low fixed CTC plus incentives, and a site-side
+                                # salary filter drops most of them outright.
+    "max_results": 15,          # jobs PER (keyword x location) search — pay-per-event
 
-    # Each entry is run as its OWN search term. Weighted toward full-stack.
+    # Each entry is run as its OWN search term. Sales / business-development
+    # titles only — nothing technical, which is the whole point of this profile.
     "role_keywords": [
-        "Full Stack Developer",
-        "Full Stack Engineer",
-        "MERN Stack Developer",
-        "React Native Developer",
-        "React Native Engineer",
-        "React Developer",
-        "Node.js Developer",
-        "Frontend Developer",
-        "Software Engineer JavaScript",
+        "Business Development Associate",
+        "Business Development Executive",
+        "Business Development Manager",
+        "Inside Sales Executive",
+        "Inside Sales Associate",
+        "Sales Development Representative",
+        "Sales Executive",
+        "Account Executive",
+        "Academic Counsellor",
+        "Admission Counsellor",
+        "Client Relationship Executive",
     ],
 
-    # India-focused (Delhi/NCR heavy) + Remote.
+    # Home is Gurugram, and NCR is where the EdTech sales market actually is
+    # (PlanetSpark, upGrad, Unacademy, Vedantu, Physics Wallah all hire here).
+    # Bengaluru and Mumbai are added for reach, not because a move is planned.
     "locations": [
-        "Delhi", "New Delhi", "Gurgaon", "Noida",
-        "Bengaluru", "Hyderabad", "Pune", "Remote",
+        "Gurgaon", "Gurugram", "Delhi", "New Delhi", "Noida",
+        "Bengaluru", "Mumbai", "Remote",
     ],
 }
 
@@ -238,6 +248,9 @@ ATS_BOARDS = {
 # enabled=False by default: this is an employer-specific sweep, switched on by
 # profiles/optum.py, so a normal run is unchanged.
 OPTUM = {
+    # OFF. UnitedHealth Group's India centres are technology and healthcare
+    # operations; they do not run a sales floor here, so ~59 free requests would
+    # buy nothing. Left wired in case that changes.
     "enabled": False,
     "company": "Optum",
     "brand": "optum",
@@ -278,10 +291,19 @@ OPTUM = {
 # unchanged. keywords=[""] sweeps a whole board and lets the title/location
 # gates narrow it; give real keywords only where the board is too big to page.
 ENTERPRISE = {
-    "enabled": False,
-    "employers": ["amazon", "jpmorgan", "oracle", "accenture", "sap"],
-    "keywords": [""],
-    "max_pages": 5,
+    # ON. Amazon and Accenture both hire sales and account-management roles in
+    # India at this level ("Account Manager", "Business Development Manager",
+    # "Sales Capture"), and both boards read for free. JPMorgan is included
+    # because its Oracle board carries relationship-management seats.
+    "enabled": True,
+    # oracle and sap are OUT: their India postings are overwhelmingly product
+    # engineering, and Oracle Recruiting Cloud publishes no JD body to score.
+    "employers": ["amazon", "accenture", "jpmorgan"],
+    # NOT [""] (the whole index) — these boards run tens of thousands of
+    # postings. The keyword goes straight to each platform's own search, so this
+    # asks each employer for its sales openings and nothing else.
+    "keywords": ["Business Development", "Sales"],
+    "max_pages": 6,
     "verify_live": True,
 }
 
@@ -309,7 +331,16 @@ FEEDS = {
 # is international remote — remote/visa/comp filters do the narrowing instead of
 # a country whitelist. An empty job location is always kept.
 # To go back to India-only, copy HOME_LOCATION_HINTS below into this list.
-LOCATION_HINTS = []
+LOCATION_HINTS = [
+    # main ships this EMPTY (allow everything) because its target is
+    # international remote. Empty here would pour US and EU rows off ~37 free
+    # boards into an NCR sales search. Gurugram first — that is where she lives
+    # and where the EdTech sales market is.
+    "india", "gurugram", "gurgaon", "delhi", "new delhi", "ncr", "noida",
+    "greater noida", "faridabad", "ghaziabad",
+    "bengaluru", "bangalore", "mumbai", "pune", "hyderabad",
+    "remote",
+]
 
 # Where YOU are. Not a filter — this is how a company board is checked for
 # whether the employer hires in your country at all
@@ -323,11 +354,24 @@ HOME_LOCATION_HINTS = [
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
 # we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
 # role (case-insensitive substring). Scoring then ranks within these.
+# Free sources return a whole board (engineering, finance, ops, HR, ...), so
+# unlike a job board we can't keyword-search. Keep only jobs whose TITLE looks
+# like a SALES role. Retuned wholesale from main's software vocabulary
+# ("developer", "react", "sde"), which would have kept exactly zero relevant rows
+# and made the free-source layer look like it worked while returning nothing.
+#
+# Deliberately NOT here: bare "analyst", "marketing", "operations", "consultant",
+# "associate", "executive". Each was considered and each is a different job far
+# more often than it is hers — on a free board "Executive" alone matches finance,
+# HR and admin seats, and there is no cheap way to tell them apart later.
 ATS_TITLE_HINTS = [
-    "developer", "full stack", "fullstack", "full-stack", "frontend", "front end",
-    "front-end", "backend", "back end", "back-end", "software engineer",
-    "software development", "sde", "react", "node", "javascript", "typescript",
-    "web developer", "mern", "mobile developer", "application developer",
+    "business development", "inside sales", "sales development",
+    "sales executive", "sales associate", "sales representative",
+    "sales manager", "sales specialist", "field sales", "channel sales",
+    "account executive", "account manager", "key account",
+    "client relationship", "client servicing", "customer success",
+    "counsellor", "counselor", "admission", "enrollment", "enrolment",
+    "revenue", "growth associate", "growth executive",
 ]
 
 # Titles to reject even when they DO match a hint above. Checked first, so it
@@ -337,7 +381,15 @@ ATS_TITLE_HINTS = [
 # stack, where a wider net starts catching adjacent careers. Seniority does NOT
 # belong here — SCORING["hard_drop_terms"] already handles it, and as a penalty
 # rather than a silent delete.
-ATS_TITLE_EXCLUDE = []
+# Checked BEFORE the hints, so it wins. This is the belt to hard_drop_terms'
+# braces: a title can satisfy a sales hint and still be a technical seat
+# ("Sales Engineer", "Technical Account Manager", "Solutions Architect - Revenue
+# Systems"). Catching it here means the row never even costs a JD request.
+ATS_TITLE_EXCLUDE = [
+    "engineer", "developer", "architect", "technical", "software",
+    "data analyst", "data scientist", "analytics", "devops", "qa",
+    "designer", "recruiter", "marketing manager",
+]
 
 # Naukri needs numeric city IDs (not names). Map each name you search here to its
 # ID (from the actor's schema). "Remote" is special-cased to a workMode filter, so
@@ -364,86 +416,167 @@ NAUKRI_CITY_IDS = {
 # penalty terms subtract; a full-stack bonus rewards frontend+backend overlap.
 SCORING = {
     # -- Positive skill weights (higher = more central to the resume) ---------
+    # Everything here is on the résumé: consultative selling, lead generation and
+    # qualification, customer acquisition, sales presentations, negotiation,
+    # client relationship management, CRM and pipeline management, sales strategy,
+    # market research, target achievement — all of it B2C EdTech at PlanetSpark.
+    #
+    # WEIGHTED BY DISCRIMINATIVE POWER, not by how central it is to her. "Sales"
+    # and "communication" appear in half the job ads in India; "consultative
+    # selling", "inside sales", "lead qualification" and "SDR" appear in the ones
+    # she actually wants. So the function-specific vocabulary dominates and the
+    # soft-skill vocabulary is supporting signal only.
     "skill_weights": {
-        # Core full-stack stack — highest signal
-        "node": 5, "node.js": 5, "express": 5,
-        "react": 5, "react native": 5, "react.js": 5,
-        "typescript": 5, "mongodb": 5,
-        # Strong supporting skills
-        "redis": 3, "socket.io": 3, "websocket": 3, "websockets": 3,
-        "jwt": 3, "oauth": 3, "rest api": 3, "restful": 3, "mongoose": 3,
-        "mysql": 3, "javascript": 3,
-        # Real-time / auth / concurrency — stated resume strengths
-        "firebase": 2, "fcm": 2, "concurrency": 2, "authentication": 2,
-        # General relevant tooling / practices (from resume)
-        "redux": 2, "expo": 2, "tailwind": 2, "next.js": 2, "jest": 2,
-        "azure devops": 2, "ci/cd": 2,
-        "zod": 1, "react hook form": 1, "html": 1, "css": 1, "es6": 1, "agile": 1,
+        # The function itself — must dominate.
+        "business development": 10, "inside sales": 9,
+        "consultative selling": 9, "consultative sales": 9,
+        "sales development representative": 9, "sdr": 7, "bdr": 7,
+        "account executive": 7, "sales executive": 7,
+        # The sales cycle, as her résumé describes it.
+        "lead generation": 6, "lead qualification": 6, "prospecting": 6,
+        "customer acquisition": 6, "sales pipeline": 6, "pipeline management": 5,
+        "cold calling": 5, "outbound": 5, "new business": 5,
+        "sales presentation": 4, "sales presentations": 4,
+        "product demo": 3, "negotiation": 4, "closing": 3, "conversion": 3,
+        "upsell": 3, "cross-sell": 3, "revenue growth": 4, "sales target": 5,
+        "quota": 4, "target achievement": 3, "targets": 2,
+        # Accounts and relationships — the second half of her job.
+        "client relationship": 6, "relationship management": 5,
+        "account management": 5, "account manager": 6, "key account": 5,
+        "client servicing": 5,
+        "customer engagement": 4, "customer success": 4, "retention": 3,
+        "stakeholder engagement": 3, "follow-up": 2, "follow up": 2,
+        # Tools and operations she names.
+        "crm": 5, "crm management": 5, "salesforce": 3, "hubspot": 3,
+        "leadsquared": 3, "zoho": 2, "sales strategy": 4, "market research": 3,
+        "excel": 2,
+        # Her domain. EdTech B2C counselling is the single most transferable
+        # thing on the résumé, so it is weighted like a skill, not a nice-to-have.
+        "edtech": 7, "ed-tech": 7, "counsellor": 6, "counselor": 6,
+        "counselling": 5, "counseling": 5, "admission": 5, "admissions": 5,
+        "enrollment": 5, "enrolment": 5, "student": 3, "learner": 2,
+        "b2c": 5, "b2b": 3, "saas": 2,
+        # Adjacent markets a B.Tech Biotechnology degree genuinely opens, and
+        # nothing else on this résumé does: pharma / medical-device / life-science
+        # sales hires science graduates into exactly this kind of role.
+        "pharma": 3, "pharmaceutical": 3, "medical device": 3,
+        "life sciences": 3, "biotech": 3, "healthcare": 2, "diagnostics": 2,
+        # Generic strengths — real, but every ad says them. Support only.
+        "communication": 1, "interpersonal": 1, "team collaboration": 1,
+        "presentation": 1, "customer service": 1,
     },
 
-    # -- Full-stack bonus -----------------------------------------------------
-    # A job mentioning BOTH a frontend AND a backend term is a true full-stack
-    # role → is_fullstack=True and fullstack_bonus added. Explicit full-stack /
-    # MERN wording in the TITLE also flags it as full-stack outright.
+    # -- "Both halves" bonus (was the full-stack bonus) -----------------------
+    # A frontend/backend split is meaningless for a salesperson, so the two halves
+    # are REDEFINED (key names kept — scraper.py reads them by name):
+    #   frontend_terms → HUNTING: finding and winning new business
+    #   backend_terms  → CLOSING / FARMING: converting and then keeping the client
+    # Her résumé is explicitly both ("own the sales pipeline end to end"), and a
+    # role needing both is a full-cycle sales job rather than a pure dialler seat
+    # or a pure support desk → is_fullstack=True, prints as "FS", gets the bonus.
     "frontend_terms": [
-        "react", "react native", "react.js", "redux", "expo", "tailwind",
-        "next.js", "zod", "react hook form", "frontend", "front-end", "front end", "ui",
+        "business development", "lead generation", "lead qualification",
+        "prospecting", "cold calling", "outbound", "new business",
+        "customer acquisition", "sdr", "bdr", "market research",
     ],
     "backend_terms": [
-        "node", "node.js", "express", "mongodb", "mongoose", "mysql", "redis",
-        "socket.io", "rest api", "restful", "firebase", "backend", "back-end",
-        "back end", "api", "server",
+        "negotiation", "closing", "conversion", "client relationship",
+        "relationship management", "account management", "customer engagement",
+        "customer success", "retention", "upsell", "cross-sell", "crm",
+        "pipeline management", "follow-up", "follow up", "counselling",
+        "counseling",
     ],
     "fullstack_bonus": 6,
-    "fullstack_title_terms": ["full stack", "full-stack", "fullstack", "mern", "mean"],
+    # Titles that ARE the job, so they earn the bonus outright.
+    "fullstack_title_terms": [
+        "business development associate", "business development executive",
+        "business development manager", "business development representative",
+        "inside sales", "sales development representative",
+        "account executive", "account manager", "sales executive",
+        "sales associate", "customer success",
+        "academic counsellor", "academic counselor",
+        "admission counsellor", "admission counselor",
+        "client relationship", "key account",
+    ],
 
     # -- Down-ranking (penalty) ----------------------------------------------
-    # Stacks I don't do + Salesforce/CRM. Salesforce/CRM are penalized HARD so
-    # pure-CRM roles sink to the bottom (or drop out via SETTINGS["min_score"]).
+    # TECHNICAL VOCABULARY IN THE BODY. hard_drop_terms below removes technical
+    # TITLES outright; this is the second line, for a sales-titled posting that
+    # turns out to be a technical seat ("Sales Engineer", "Technical Account
+    # Manager", a developer role at a startup that called it "Growth"). Heavy,
+    # because she is a Biotechnology graduate in sales, not a technologist, and a
+    # technical role is not a weaker match — it is the wrong job.
     "penalty_terms": {
-        ".net": -6, "asp.net": -6, "c#": -6,
-        "java": -5, "java spring": -6, "spring boot": -6, "spring mvc": -6,
-        "php": -6, "laravel": -5,
-        "angular": -4, "angularjs": -4,
-        # Salesforce / CRM — hard down-rank
-        "salesforce": -12, "apex": -12, "lwc": -12,
-        "lightning web component": -12, "crm developer": -12, "crm": -6,
+        "software development": -12, "software engineering": -12,
+        "programming": -10, "coding": -10, "codebase": -10,
+        "python": -8, "java": -8, "javascript": -8, "typescript": -8,
+        "react": -8, "node.js": -8, "angular": -8, ".net": -8, "c++": -8,
+        "php": -8, "golang": -8, "kotlin": -8, "swift": -8,
+        "sql": -6, "nosql": -6, "mongodb": -6, "postgresql": -6,
+        "aws": -6, "azure": -6, "gcp": -6, "kubernetes": -8, "docker": -8,
+        "devops": -8, "ci/cd": -8, "microservices": -8, "rest api": -6,
+        "machine learning": -8, "deep learning": -8, "tensorflow": -8,
+        "data pipeline": -8, "etl": -8, "hadoop": -8, "spark": -8,
+        "linux": -6, "git": -6, "github": -4, "jira": -2,
+        "figma": -6, "ux design": -6, "ui design": -6, "wireframe": -6,
+        # Functions that are not sales, however the title is dressed up.
+        "recruitment": -8, "talent acquisition": -8, "payroll": -8,
+        "accounts payable": -8, "bookkeeping": -8, "taxation": -8,
+        "audit": -6, "legal counsel": -8, "litigation": -8,
+        # Seniority she cannot reach at ~1 year, as a penalty not a delete —
+        # Indian sales titling is inflated and "Manager" often means 2 years.
+        "10+ years": -10, "8+ years": -8,
     },
 
-    # Lead-gen farms, not employers. They repost other companies' listings under
-    # their own name — one set of titles sprayed across country subdomains with
-    # sequential LinkedIn IDs — so they match the résumé well and score at the
-    # very top while being unapplyable. Measured on the 2026-07-26 sweep: 4 names
-    # accounted for 11 of the 15 "reachable" rows at score >= 20. Dropped
-    # outright, whatever they score. Matched on the company name, case- and
-    # punctuation-insensitively ("SWAKIO™" -> "swakio"), whole name only, so a
-    # real employer whose name merely contains one of these is unaffected.
+    # -- Employers whose postings are never worth an application --------------
+    # Whole-name match (see scraper.norm_company), so a real employer whose name
+    # merely CONTAINS one of these is untouched.
     "company_blocklist": ["hired", "hire feed", "jobs ai", "swakio"],
 
-    # -- Seniority filters ----------------------------------------------------
-    # Two tiers, because a job TITLE is a label and not a requirement. The real
-    # experience gate is SETTINGS["max_experience_years"], which reads the years
-    # actually demanded by the text; these lists only handle the title.
+    # -- Hard filters (wrong seniority / wrong profession entirely) -----------
+    # hard_drop_terms is matched against the TITLE ONLY, and removed outright
+    # (or penalized, if SETTINGS["drop_excluded"] is False).
     #
-    # hard_drop_terms: never a fit at this experience level whatever the JD says.
-    # Removed entirely (or penalized, if SETTINGS["drop_excluded"] is False).
+    # This is the list that delivers "not one technical job". It is long on
+    # purpose: the engine's own defaults are a software-engineering vocabulary,
+    # so every technical word has to be named here rather than assumed absent.
+    # Note "engineer" is here without qualification, which also removes "Sales
+    # Engineer" and "Solutions Engineer" — correct for this résumé, those are
+    # pre-sales technical seats.
     "hard_drop_terms": [
-        "principal", "staff", "manager", "architect", "director",
-        "head of", "vp", "chief",
+        # Technical
+        "developer", "engineer", "engineering", "sde", "programmer",
+        "architect", "devops", "sre", "qa", "quality assurance", "tester",
+        "testing", "technician", "technical", "software", "full stack",
+        "fullstack", "frontend", "front-end", "backend", "back-end",
+        "data scientist", "data science", "data engineer", "data analyst",
+        "analytics", "machine learning", "ai/ml", "cybersecurity",
+        "network", "database", "dba", "sysadmin", "system administrator",
+        "cloud", "scrum master", "designer", "ux", "ui/ux",
+        # Adjacent-but-not-sales roles that leaked through on a title check
+        # scoring 0: they are neither technical nor hers, and a row that scores
+        # zero still occupies a line on the shortlist.
+        "business analyst", "product manager", "product owner", "growth hacker",
+        # Other professions entirely
+        "recruiter", "recruitment", "talent acquisition", "human resources",
+        "accountant", "finance manager", "auditor", "lawyer", "advocate",
+        "teacher", "tutor", "faculty", "professor", "trainer",
+        "nurse", "doctor", "physician", "pharmacist", "therapist",
+        "driver", "warehouse", "chef", "receptionist", "security guard",
+        # Seniority genuinely out of reach at ~1 year. "Manager" is NOT here:
+        # in Indian sales, Business Development Manager is routinely a 1-3 year
+        # title and dropping it would delete her most likely next step.
+        "head of", "vp", "vice president", "avp", "director", "chief",
+        "president", "general manager", "zonal", "national head",
     ],
-    # soft_drop_terms: usually inflated titling, especially in international
-    # remote, where "Senior" routinely means 3-4 years. NEVER dropped — only
-    # down-ranked, so max_experience_years decides on the stated requirement
-    # instead. Measured on a live sweep: hard-dropping these deleted 13 of 28
-    # reachable remote roles whose JDs asked for <= 3 years (Twilio, Datadog,
-    # Proxify, Lemon.io, A.Team).
+    # soft_drop_terms: inflated titling. NEVER dropped — only down-ranked, so
+    # max_experience_years decides on the stated requirement instead.
     "soft_drop_terms": ["senior", "sr", "lead"],
 
     "drop_penalty": -15,   # hard drops, when drop_excluded is False
     "soft_penalty": -4,    # soft title match: sinks it, never removes it
 
-    # Per hour of timezone gap beyond enrich.TZ_FREE_HOURS. Down-ranks rather
-    # than drops, because a wide gap is a cost to weigh, not a disqualifier.
+    # Timezone distance from home, in points per hour past enrich.TZ_FREE_HOURS.
     "timezone_gap_penalty": -1.5,
 }
 
@@ -455,22 +588,37 @@ SETTINGS = {
     # Filtering
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
-    "max_experience_years": 3,   # roles whose text demands MORE than this (e.g. "5+ years") are dropped/penalized
+    # 2, her real ceiling (~1 yr at PlanetSpark, Sep 2025 to now). Note the
+    # comparison is `floor > max_experience_years`, so 2 lets a "2+ years" and a
+    # "1-3 years" posting through and stops "3+ years" — one higher and every
+    # 3-year role reappears.
+    "max_experience_years": 2,
     # How to combine several "N years" figures in one posting: "min" reads the
     # smallest as the real ask (right for short JDs, where anything larger is a
     # nice-to-have), "max" the largest (right for the long structured kind that
     # state a total AND a per-skill figure). See
     # scraper._required_experience_floor.
     "experience_aggregate": "min",
-    "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
-    "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
+    # 5, and it is the LAST line of defence behind hard_drop_terms and
+    # ATS_TITLE_EXCLUDE. Anything technical that gets past both lists arrives
+    # carrying the penalty_terms above and lands at or below zero, so a positive
+    # floor removes it whatever its title said. A genuine sales posting clears 5
+    # on its title alone ("Business Development Associate" scores 16 with an
+    # empty description), so this costs nothing real.
+    "min_score": 5,
+    # 14. Indian sales hiring moves fast and reposts constantly, so an old
+    # posting is usually a closed one — the opposite of the consultancy pattern.
+    "max_age_days": 14,
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
     # Minimum compensation, annualized and in USD, so an Indian LPA figure and a
     # US/EU salary are compared on the same axis (see scraper.comp_max_usd).
     # 6000 USD ~= the old 5.2 LPA floor. Undisclosed, unparseable, or
     # unknown-currency pay is always KEPT — we never drop on a guess.
-    # Raise this to ~40000+ once the sweep is weighted toward international remote.
-    "min_comp_usd": 6000,        # None to disable
+    # None, deliberately. Entry-level Indian sales is quoted as a low fixed CTC
+    # plus incentives (3-5 LPA fixed is normal and the earnings are in the
+    # variable), so any floor here filters on the least meaningful half of the
+    # package. Comp is a conversation to have at offer stage, not a gate.
+    "min_comp_usd": None,
 
     # International-remote filters, from the signals enrich.py reads out of the
     # job text (visible as the remote_scope / visa / eor / timezones columns
@@ -490,7 +638,10 @@ SETTINGS = {
     # the top 252 were "remote" only within Germany / Spain / UAE / the UK. The
     # filter keeps "restricted" rows whose lock is TO India, so India-remote roles
     # (which LinkedIn labels restricted) survive — see scraper.finalize.
-    "remote_scopes": ["worldwide", "remote"],
+    # OFF (empty). main targets international remote; this search is NCR sales,
+    # which is onsite and field work — the exact rows ["worldwide", "remote"]
+    # deletes. Leaving main's default here would have emptied the sweep.
+    "remote_scopes": [],
     "drop_no_visa": False,       # drop only jobs that EXPLICITLY refuse to sponsor
     "require_eor": False,        # keep only jobs naming an employer-of-record path
 

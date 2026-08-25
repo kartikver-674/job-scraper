@@ -1405,9 +1405,15 @@ def demo():
     assert near["score"] == sj("Zorb", "2 years experience.")["score"]
 
     # A geo-locked role is rescued only when the EMPLOYER hires at home.
-    orig = SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"]
+    # min_score is pinned off along with the rest: these rows are nonsense titles
+    # with no skill text, so they score ~0, and a profile that sets a positive
+    # floor (a correct thing to do) made finalize() drop them before the
+    # reachability rule under test ever ran.
+    orig = (SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"],
+            SETTINGS["min_score"])
     SETTINGS["remote_scopes"] = ["worldwide"]
     SETTINGS["keep_restricted_if_hires_home"] = True
+    SETTINGS["min_score"] = None
     try:
         base = {"Title": "Zorb", "Description": "2 years experience.",
                 "Location": "New York, NY (HQ), Remote"}
@@ -1427,7 +1433,8 @@ def demo():
         SETTINGS["keep_restricted_if_hires_home"] = False
         assert len(finalize([dict(base, Company="A", hires_home="yes")])) == 0
     finally:
-        SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"] = orig
+        (SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"],
+         SETTINGS["min_score"]) = orig
 
     # A remote-constrained query must mark its rows, or they get filtered out as
     # non-remote for not repeating in prose what the query already guaranteed.
