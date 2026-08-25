@@ -379,6 +379,30 @@ SCORING = {
         "redux": 2, "expo": 2, "tailwind": 2, "next.js": 2, "jest": 2,
         "azure devops": 2, "ci/cd": 2,
         "zod": 1, "react hook form": 1, "html": 1, "css": 1, "es6": 1, "agile": 1,
+        # AI / agentic work. Absent from the base model until now, which meant the
+        # default profile scored his MCP and agent work at zero — the two hits
+        # that looked like coverage, "tailwind" and "html", were substring
+        # coincidences ("ai" in tailwind, "ml" in html). Same weights as
+        # profiles/optum.py and profiles/bigtech.py already use, so the three
+        # agree instead of ranking the same posting differently.
+        "llm": 2, "llms": 2, "gen ai": 2, "rag": 2, "langchain": 2,
+        "agentic": 2, "ai agent": 2, "ai agents": 2, "prompt engineering": 2,
+        "hugging face": 2, "huggingface": 2, "transformers": 2, "nlp": 2,
+        "openai": 1, "embeddings": 1, "vector database": 1, "mcp": 1,
+        # RÉSUMÉ-BACKED and missing until now. B.E. Computer Science —
+        # Artificial Intelligence & Machine Learning, plus a GAN image-restoration
+        # project in Python/TensorFlow/OpenCV. Python especially: it is asked for
+        # by a large share of the postings this sweep will see, and the model
+        # scored it at zero.
+        "python": 3, "machine learning": 2, "deep learning": 2,
+        "tensorflow": 2, "opencv": 1, "artificial intelligence": 1, "gan": 1,
+        "c++": 1,
+        # Named engineering work from the projects, all of it distinctive enough
+        # to be worth points: multi-document Mongo transactions and
+        # compare-and-swap in MediCart, rotating refresh-token families and
+        # 2dsphere geospatial search in RentKaro.
+        "transactions": 2, "rate limiting": 1, "rate limiter": 1,
+        "refresh token": 1, "geospatial": 1,
     },
 
     # -- Full-stack bonus -----------------------------------------------------
