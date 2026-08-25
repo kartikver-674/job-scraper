@@ -527,6 +527,12 @@ SCORING = {
         "recruitment": -8, "talent acquisition": -8, "payroll": -8,
         "accounts payable": -8, "bookkeeping": -8, "taxation": -8,
         "audit": -6, "legal counsel": -8, "litigation": -8,
+        # The same language requirement written out in the body rather than the
+        # title. A penalty, not a delete, because "you will cover the DACH market"
+        # is not always "you must speak German" — but it usually is.
+        "fluent in german": -12, "fluent in dutch": -12, "fluent in french": -12,
+        "native german": -12, "native dutch": -12, "native speaker": -8,
+        "fluency in": -6, "language skills": -4, "c1 level": -8, "b2 level": -6,
         # Seniority she cannot reach at ~1 year, as a penalty not a delete —
         # Indian sales titling is inflated and "Manager" often means 2 years.
         "10+ years": -10, "8+ years": -8,
@@ -561,6 +567,16 @@ SCORING = {
         # scoring 0: they are neither technical nor hers, and a row that scores
         # zero still occupies a line on the shortlist.
         "business analyst", "product manager", "product owner", "growth hacker",
+        # LANGUAGE-GATED markets. She speaks English and Hindi. Measured on a
+        # paid global-remote test sweep (104 rows, 2026-08-25): 16% carried one of
+        # these in the TITLE, and they were the top TWO scorers — "Account
+        # Development Representative, DACH & CEE" at 75 and "UK & Nordics" at 74.
+        # A European-language BDR seat is not a weaker match, it is unreachable.
+        "dach", "benelux", "nordic", "nordics", "cee",
+        "dutch", "german", "french", "spanish", "italian", "portuguese",
+        "polish", "swedish", "danish", "norwegian", "finnish", "flemish",
+        "arabic", "mandarin", "japanese", "korean", "hebrew", "turkish",
+        "speaking", "speaker", "bilingual",
         # Other professions entirely
         "recruiter", "recruitment", "talent acquisition", "human resources",
         "accountant", "finance manager", "auditor", "lawyer", "advocate",
@@ -581,7 +597,12 @@ SCORING = {
     "soft_penalty": -4,    # soft title match: sinks it, never removes it
 
     # Timezone distance from home, in points per hour past enrich.TZ_FREE_HOURS.
-    "timezone_gap_penalty": -1.5,
+    # STEEPER than main's -1.5, because this is a phone-and-CRM job: a BDR works
+    # the prospect's business hours, so an 11.5h gap to US Pacific is a permanent
+    # night shift, not an inconvenience. On the test sweep 36 of 104 rows sat at
+    # 10.5-11.5h. At -2.5 those pay ~16 points and rank below the 4.5-5.5h
+    # European and IST-adjacent roles, which is the correct order for her.
+    "timezone_gap_penalty": -2.5,
 }
 
 

@@ -30,10 +30,25 @@ not fail — LinkedIn silently returns US results and bills in full.
 # remote_only turns each of these into "remote jobs in <country>", which is the
 # only way LinkedIn expresses remote: f_WT=2 filters workplace type WITHIN a
 # geography, there is no worldwide remote search.
+# Trimmed from twelve after a 6-search paid test (104 rows, $0.24, 2026-08-25).
+# What the test showed, and what it cost to learn:
+#   Germany, Netherlands   DROPPED. Their BDR inventory is language-gated — the
+#                          two highest-scoring rows of the whole test were
+#                          "DACH & CEE" and "UK & Nordics", and 16% of rows
+#                          carried a language marker in the title alone.
+#   Spain, Portugal        DROPPED untested, same reason: the roles that exist
+#                          there are Iberian-market seats.
+#   United States, Canada  KEPT, but they are 10.5-11.5h from IST and a BDR works
+#                          the prospect's hours. timezone_gap_penalty now prices
+#                          that at ~16 points, so they rank below the rest.
+#   UK, Ireland            KEPT — English-language and 5.5h, the best overlap of
+#                          any Western market.
+#   Australia, Singapore,  KEPT — English-language, IST-adjacent or ahead, and
+#   UAE, India             the ones that genuinely hire India-based candidates.
 _COUNTRIES = [
-    "United States", "United Kingdom", "Canada", "Ireland",
-    "Germany", "Netherlands", "Spain", "Portugal",
-    "Australia", "Singapore", "United Arab Emirates", "India",
+    "India", "United Arab Emirates", "Singapore", "Australia",
+    "United Kingdom", "Ireland",
+    "United States", "Canada",
 ]
 
 SEARCH = {
@@ -85,7 +100,11 @@ SETTINGS = {
     # local-market Indian rate to a US band, and dropping on a disclosed figure
     # would filter on the least meaningful half of a commission package.
     "min_comp_usd": None,
-    "max_age_days": 21,
+    # 30 days. This is not only a filter — scraper.build_input maps it onto
+    # LinkedIn's f_TPR, so the recency window is applied at the SOURCE. Every
+    # result the sweep pays for is inside the month; without it the credit buys
+    # year-old postings that the local filter then throws away.
+    "max_age_days": 30,
     "top_n_console": 30,
 
     # Hard stop under the ~$1.80 estimate above, so a mis-set dial cannot run

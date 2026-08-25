@@ -54,8 +54,15 @@ TITLE and a STATED experience figure are re-applied for the same reason and
     """
     if blocked_company(row):
         return False
-    if SETTINGS["remote_scopes"] and "remote_scope" in row:
-        return reachable(row)
+    # A GUARD, not an early return. This used to `return reachable(row)`, which
+    # short-circuited every rule added after it: on any profile with remote_scopes
+    # set, a row carrying a remote_scope column skipped the age, title and
+    # experience re-checks entirely. Caught by 7 language-gated rows surviving a
+    # merge whose config hard-drops them — applyable() said False when called
+    # directly and True in the real run, because the real rows had the column.
+    if (SETTINGS["remote_scopes"] and "remote_scope" in row
+            and not reachable(row)):
+        return False
     if SETTINGS["max_age_days"] is not None and not is_recent(
             row.get("date_posted") or row.get("Posted Date"),
             SETTINGS["max_age_days"]):
@@ -140,6 +147,20 @@ def demo():
         assert len(merge_rows([scoped(remote_scope="restricted", hires_home="yes")])) == 1
         # A repost farm goes whatever its scope says.
         assert len(merge_rows([scoped(company="Hired", remote_scope="worldwide")])) == 0
+        # ...and a REACHABLE row is still subject to every later rule. This is
+        # the short-circuit above, asserted: with the filter ON and the row
+        # carrying a scope, a hard-dropped title must still be dropped.
+        from scraper import HARD_DROP_PATTERNS as _H, _compile as _C
+        _keep = dict(_H)
+        try:
+            _H.clear(); _H["manager"] = _C("manager")
+            assert len(merge_rows([scoped(remote_scope="worldwide",
+                                          title="Zorb Manager")])) == 0
+            assert len(merge_rows([scoped(remote_scope="worldwide",
+                                          title="Zorb")])) == 1
+        finally:
+            _H.clear(); _H.update(_keep)
+
         # Filter OFF: the geo-locked row comes back, the repost farm still goes.
         SETTINGS["remote_scopes"] = []
         assert len(merge_rows([scoped(remote_scope="restricted", remote_regions="Germany")])) == 1
