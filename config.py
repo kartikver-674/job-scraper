@@ -312,11 +312,15 @@ ENTERPRISE = {
 # are the only free source that reports PAY — the ATS boards never do.
 FEEDS = {
     "remoteok": {"enabled": True},
+    # main's categories here are the four PROGRAMMING feeds, which for this
+    # résumé is four requests that can only return rows the title gate then
+    # deletes. Probed 2026-08-25: "remote-sales-jobs" and "remote-business-jobs"
+    # both 301 (they do not exist), "remote-sales-and-marketing-jobs" returns 64
+    # items, "remote-customer-support-jobs" 16. Verified, not guessed — a wrong
+    # category is a silent zero, not an error.
     "wwr": {"enabled": True, "categories": [
-        "remote-programming-jobs",
-        "remote-front-end-programming-jobs",
-        "remote-back-end-programming-jobs",
-        "remote-full-stack-programming-jobs",
+        "remote-sales-and-marketing-jobs",
+        "remote-customer-support-jobs",
     ]},
     "remotive": {"enabled": True},
     "jobicy": {"enabled": True, "count": 50},
