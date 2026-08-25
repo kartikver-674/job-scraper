@@ -1216,13 +1216,67 @@ def parse_args():
     return p.parse_args()
 
 
+def _token_headroom(token):
+    """(used, cap) month-to-date for a token, or None if it can't be read."""
+    import json
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                f"https://api.apify.com/v2/users/me/limits?token={token}",
+                timeout=15) as r:
+            d = json.load(r)["data"]
+        return (d["current"]["monthlyUsageUsd"],
+                d["limits"]["maxMonthlyUsageUsd"])
+    except Exception:
+        return None
+
+
 def _require_token():
+    """The configured token with the most credit left.
+
+    APIFY_TOKEN, APIFY_TOKEN_2, ... are separate free accounts with their own $5
+    caps. This used to return APIFY_TOKEN unconditionally, which made every
+    additional key decorative: with $2.50 left on the first account and $5.00
+    untouched on the second, an 84-search sweep costing ~$3.86 died at search 54
+    on "Monthly usage hard limit exceeded" — and because each search is wrapped
+    in its own try/except, it exited 0 with a normal-looking summary.
+
+    Reading the limits endpoint is free, so the choice is made on facts rather
+    than on which variable was named first. Unreadable tokens sort last but stay
+    usable, since a network blip is not proof a key is spent.
+
+    NOT a mid-run switch: the client is built once, so a sweep still cannot span
+    two accounts. It picks the best single account for the whole sweep, which is
+    enough whenever one account's headroom covers the plan — check --dry-run
+    against the numbers below if it might not.
+    """
     from dotenv import load_dotenv
     load_dotenv()
-    token = os.getenv("APIFY_TOKEN")
-    if not token:
+    named = [(k, v) for k, v in os.environ.items()
+             if k == "APIFY_TOKEN" or k.startswith("APIFY_TOKEN_")]
+    tokens = {}
+    for name, value in named:
+        if value and value not in tokens:
+            tokens[value] = name          # dedupe: the same key pasted twice is one wallet
+    if not tokens:
         sys.exit("APIFY_TOKEN not found. Add it to a .env file in this folder.")
-    return token
+    if len(tokens) == 1:
+        return next(iter(tokens))
+
+    scored = []
+    for token, name in tokens.items():
+        h = _token_headroom(token)
+        left = -1.0 if h is None else h[1] - h[0]
+        scored.append((left, name, token, h))
+    scored.sort(key=lambda t: -t[0])
+    for left, name, _, h in scored:
+        detail = "unreadable" if h is None else f"${h[0]:.2f} of ${h[1]:.2f} used"
+        print(f"  {name:<16} {detail:<24} "
+              + ("" if h is None else f"${left:.2f} left"))
+    best = scored[0]
+    print(f"  -> using {best[1]}"
+          + ("" if best[3] is None else f" (${best[0]:.2f} available)"))
+    return best[2]
 
 
 def demo():
