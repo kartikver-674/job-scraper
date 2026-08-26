@@ -35,26 +35,47 @@ editing this file, put the keys you want to change in profiles/<name>.py and run
 # scoring layer), but full-stack terms are listed first by intent.
 SEARCH = {
     "country": "IN",            # Indeed country code (IN, US, GB, ...)
-    "experience_years": 2,      # target ~2 yrs (0-3 acceptable); passed to sites that support it
+    "experience_years": 4,      # 4+ yrs (Jun 2022 -> present); passed to sites that support it
     "salary_min": None,         # optional minimum salary; None to skip
     "max_results": 15,          # jobs PER (keyword x location) search — keep modest, pay-per-event (~$5/1000 results)
 
-    # Each entry is run as its OWN search term. Weighted toward full-stack.
+    # Each entry is run as its OWN search term. Kanav ships THREE resumes for
+    # three different job families, so the keyword list covers all three rather
+    # than optimising one: React Native / mobile, pure frontend React, and
+    # full-stack MERN. They are the same skill set framed three ways, so a role
+    # from any family is a real target and none of them should be a stretch.
     "role_keywords": [
-        "Full Stack Developer",
-        "Full Stack Engineer",
-        "MERN Stack Developer",
+        # -- React Native / mobile (KanavReactNative.pdf) ---------------------
         "React Native Developer",
         "React Native Engineer",
-        "React Developer",
-        "Node.js Developer",
+        "Mobile Application Developer",
+        # -- Frontend React (KanavFrontEnd.pdf) ------------------------------
         "Frontend Developer",
+        "React Developer",
+        "React.js Developer",
+        "Frontend Engineer",
+        "UI Developer",
+        # -- Full-stack MERN (KanavKhera-FullStack.pdf) ----------------------
+        "Full Stack Developer",
+        "MERN Stack Developer",
+        "Node.js Developer",
         "Software Engineer JavaScript",
     ],
 
-    # India-focused (Delhi/NCR heavy) + Remote.
+    # He lives in New Delhi and currently works in Chandigarh/Mohali, so the
+    # Chandigarh belt is a first-class location here and not an afterthought.
+    #
+    # NOTE for paid LinkedIn runs: there is NO verified Chandigarh or Mohali
+    # geoId. Five plausible candidates were probed against the free guest search
+    # and every one of them was somewhere else entirely -- 106262505 is Galway
+    # (Ireland), 115976306 is Glasgow (Scotland), 104990346 is Ahmedabad,
+    # 115884833 is Gurugram. Adding any of them would have billed a full search
+    # for the wrong city. The plain "India" geoId returns Mohali rows on its own
+    # (LinkedIn writes them "Sahibzada Ajit Singh Nagar, Punjab, India"), and the
+    # free ATS/feed sources are not geoId-bound at all, so the belt stays covered
+    # without guessing. The names below are used by Indeed and the free sources.
     "locations": [
-        "Delhi", "New Delhi", "Gurgaon", "Noida",
+        "Chandigarh", "Mohali", "Delhi", "New Delhi", "Gurgaon", "Noida",
         "Bengaluru", "Hyderabad", "Pune", "Remote",
     ],
 }
@@ -315,9 +336,13 @@ LOCATION_HINTS = []
 # whether the employer hires in your country at all
 # (SETTINGS["keep_restricted_if_hires_home"]).
 HOME_LOCATION_HINTS = [
-    "india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "bengaluru",
-    "bangalore", "hyderabad", "pune", "mumbai", "chennai", "kolkata",
-    "ahmedabad",
+    "india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "faridabad",
+    "ghaziabad", "bengaluru", "bangalore", "hyderabad", "pune", "mumbai",
+    "chennai", "kolkata", "ahmedabad", "jaipur", "indore",
+    # The Chandigarh belt, where he works now. LinkedIn writes Mohali as
+    # "Sahibzada Ajit Singh Nagar, Punjab, India", hence the district and state.
+    "chandigarh", "mohali", "panchkula", "zirakpur", "sahibzada ajit singh",
+    "punjab", "haryana",
 ]
 
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
@@ -328,6 +353,9 @@ ATS_TITLE_HINTS = [
     "front-end", "backend", "back end", "back-end", "software engineer",
     "software development", "sde", "react", "node", "javascript", "typescript",
     "web developer", "mern", "mobile developer", "application developer",
+    # His three resumes, three job families.
+    "react native", "mobile application", "mobile engineer", "ui developer",
+    "ui engineer", "web engineer", "javascript engineer", "software developer",
 ]
 
 # Titles to reject even when they DO match a hint above. Checked first, so it
@@ -337,7 +365,17 @@ ATS_TITLE_HINTS = [
 # stack, where a wider net starts catching adjacent careers. Seniority does NOT
 # belong here — SCORING["hard_drop_terms"] already handles it, and as a penalty
 # rather than a silent delete.
-ATS_TITLE_EXCLUDE = []
+ATS_TITLE_EXCLUDE = [
+    # The hints above are deliberately wide (three job families), and a wide net
+    # starts catching adjacent careers that merely borrow a software title.
+    # Checked BEFORE the hints and wins, so these are removed outright.
+    "data engineer", "data scientist", "machine learning", "ml engineer",
+    "devops", "sre", "site reliability", "salesforce", "sap", "dynamics",
+    "android developer", "ios developer",   # native-only; he is React Native
+    "flutter", "unity", ".net", "java developer", "python developer",
+    "php", "wordpress", "drupal", "qa ", "test engineer", "automation engineer",
+    "embedded", "firmware", "game developer", "business analyst",
+]
 
 # Naukri needs numeric city IDs (not names). Map each name you search here to its
 # ID (from the actor's schema). "Remote" is special-cased to a workMode filter, so
@@ -365,20 +403,71 @@ NAUKRI_CITY_IDS = {
 SCORING = {
     # -- Positive skill weights (higher = more central to the resume) ---------
     "skill_weights": {
-        # Core full-stack stack — highest signal
-        "node": 5, "node.js": 5, "express": 5,
-        "react": 5, "react native": 5, "react.js": 5,
-        "typescript": 5, "mongodb": 5,
-        # Strong supporting skills
+        # -- Core, on all three resumes ---------------------------------------
+        "react": 6, "react.js": 6, "react native": 6,
+        "javascript": 5, "typescript": 5,
+        "node": 5, "node.js": 5, "express": 5, "mongodb": 5,
+        # -- React ecosystem, named explicitly --------------------------------
+        # The frontend resume lists these as first-class skills, so they are
+        # scored as skills and not as incidental mentions.
+        "redux": 4, "redux toolkit": 4, "react hooks": 3, "context api": 3,
+        "react router": 3, "react navigation": 3, "hooks": 2, "vite": 2,
+        "next.js": 2,          # not on the resume; a React meta-framework is
+                               # still a strong signal that this IS a React job
+        # -- React Native depth. The distinctive ones: a posting that says
+        # "TurboModules" or "Hermes" was written by someone who actually does
+        # this work, and he has shipped against the New Architecture.
+        "turbomodules": 5, "turbo modules": 5, "fabric": 4, "jsi": 4,
+        "hermes": 4, "native modules": 4, "offline-first": 3, "offline first": 3,
+        "expo": 3, "eas build": 3, "flatlist": 3, "detox": 3,
+        "swift": 3, "kotlin": 3,       # native modules written in both
+        "fastlane": 3, "gradle": 2, "xcode": 2, "android studio": 2,
+        "play store": 2, "google play console": 2, "app center": 2,
+        "ios": 2, "android": 2, "cross-platform": 3, "cross platform": 3,
+        # -- Backend / real-time / auth ---------------------------------------
         "redis": 3, "socket.io": 3, "websocket": 3, "websockets": 3,
-        "jwt": 3, "oauth": 3, "rest api": 3, "restful": 3, "mongoose": 3,
-        "mysql": 3, "javascript": 3,
-        # Real-time / auth / concurrency — stated resume strengths
-        "firebase": 2, "fcm": 2, "concurrency": 2, "authentication": 2,
-        # General relevant tooling / practices (from resume)
-        "redux": 2, "expo": 2, "tailwind": 2, "next.js": 2, "jest": 2,
-        "azure devops": 2, "ci/cd": 2,
-        "zod": 1, "react hook form": 1, "html": 1, "css": 1, "es6": 1, "agile": 1,
+        "jwt": 3, "oauth": 2, "rest api": 3, "restful": 3, "mongoose": 3,
+        "firebase": 3, "fcm": 2, "authentication": 2, "concurrency": 2,
+        "sql": 2, "mysql": 2, "docker": 2, "ci/cd": 3, "cloudinary": 1,
+        # -- Frontend craft. The whole point of KanavFrontEnd.pdf, and worth
+        # real points rather than the 1 they carried on the branch this was cut
+        # from: for a frontend role these ARE the job.
+        "html": 2, "html5": 2, "css": 2, "css3": 2, "es6": 2,
+        "responsive design": 3, "responsive": 2, "design system": 3,
+        "design systems": 3, "component library": 3, "reusable components": 3,
+        "cross-browser": 2, "accessibility": 1,
+        # -- Performance work, quantified on every resume (10,000+ record
+        # tables, low-end Android, 5,000+ users).
+        "memoization": 3, "code splitting": 3, "lazy loading": 3,
+        "virtualization": 3, "virtualized": 3, "pagination": 2,
+        "debounce": 2, "caching": 2, "performance optimization": 3,
+        "performance profiling": 2, "bundle size": 2, "web vitals": 1,
+        # -- Testing / quality ------------------------------------------------
+        "jest": 3, "rntl": 3, "react testing library": 3, "unit testing": 2,
+        "unit tests": 2, "e2e": 1, "code review": 2, "code reviews": 2,
+        "agile": 1, "scrum": 1,
+        # -- AI-assisted development. Genuinely resume-backed here, not
+        # aspirational: Claude Code, Copilot, Cursor, Google Antigravity and
+        # prompt engineering are listed as a skills section, and ParkAssist
+        # ships LLM orchestration over statutory text.
+        "claude": 3, "claude code": 3, "github copilot": 2, "copilot": 2,
+        "cursor": 2, "ai-assisted": 3, "ai assisted": 3,
+        "prompt engineering": 3, "llm": 3, "llms": 3, "gen ai": 2,
+        "generative ai": 2, "ai agent": 2, "ai agents": 2, "agentic": 2,
+        "rag": 2, "langchain": 1, "openai": 1, "mcp": 1,
+        # -- Named engineering work from the projects, distinctive enough to be
+        # worth points on their own: compare-and-swap and multi-document Mongo
+        # transactions, rotating refresh-token families with theft detection,
+        # 2dsphere geospatial search, a rate limiter, an escrow ledger.
+        "transactions": 2, "rate limiting": 2, "rate limiter": 2,
+        "refresh token": 2, "geospatial": 2, "compare-and-swap": 2,
+        "security headers": 1, "deep linking": 2, "push notifications": 2,
+        # -- Domain. Four years of it, across both employers: dealer management,
+        # CRM, field sales, order lifecycle, plus e-commerce and marketplace
+        # side projects. See the penalty block for why "crm" is scored here
+        # rather than penalised.
+        "crm": 2, "dealer management": 2, "field sales": 2, "e-commerce": 1,
+        "ecommerce": 1, "marketplace": 1, "erp": 1, "dms": 1,
         # AI / agentic work. Absent from the base model until now, which meant the
         # default profile scored his MCP and agent work at zero — the two hits
         # that looked like coverage, "tailwind" and "html", were substring
@@ -410,8 +499,9 @@ SCORING = {
     # role → is_fullstack=True and fullstack_bonus added. Explicit full-stack /
     # MERN wording in the TITLE also flags it as full-stack outright.
     "frontend_terms": [
-        "react", "react native", "react.js", "redux", "expo", "tailwind",
-        "next.js", "zod", "react hook form", "frontend", "front-end", "front end", "ui",
+        "react", "react native", "react.js", "redux", "redux toolkit", "expo",
+        "next.js", "vite", "html", "css", "frontend", "front-end", "front end",
+        "ui", "ux", "responsive", "design system", "react hooks",
     ],
     "backend_terms": [
         "node", "node.js", "express", "mongodb", "mongoose", "mysql", "redis",
@@ -429,9 +519,27 @@ SCORING = {
         "java": -5, "java spring": -6, "spring boot": -6, "spring mvc": -6,
         "php": -6, "laravel": -5,
         "angular": -4, "angularjs": -4,
-        # Salesforce / CRM — hard down-rank
+        # Salesforce specifically — a different career, hard down-rank.
+        #
+        # But NOT bare "crm", which carried -6 on the branch this was cut from.
+        # That penalty belongs to a resume that is running AWAY from CRM work.
+        # Kanav's is built on it: four years of dealer-management, CRM and
+        # field-sales platforms at Dealermatix and Tata, and the word appears on
+        # all three resumes. Left at -6 it would have down-ranked his single
+        # strongest domain match by six points, which is the difference between
+        # the top of the page and off it. Scored +2 in skill_weights instead.
+        # "crm developer" stays penalised: in a job title that means Salesforce.
         "salesforce": -12, "apex": -12, "lwc": -12,
-        "lightning web component": -12, "crm developer": -12, "crm": -6,
+        "lightning web component": -12, "crm developer": -12,
+        # Stacks he does not write. Python and the ML terms were REMOVED from
+        # skill_weights rather than moved here: absent from all three resumes,
+        # but a Python line in a React JD is normal and not a mismatch worth
+        # punishing. Scoring them positive, as the parent branch did, would have
+        # ranked jobs against someone else's resume.
+        "django": -4, "flask": -3, "ruby": -5, "rails": -5, "golang": -3,
+        # NOT "go ": the matcher is a word-boundary one, so a trailing
+        # space still fires on "go live" / "go-to-market" in ordinary JD
+        # prose. "golang" is the only unambiguous spelling.
     },
 
     # Lead-gen farms, not employers. They repost other companies' listings under
@@ -451,17 +559,31 @@ SCORING = {
     #
     # hard_drop_terms: never a fit at this experience level whatever the JD says.
     # Removed entirely (or penalized, if SETTINGS["drop_excluded"] is False).
+    # At 4+ years with four engineers mentored, "Senior" and "Lead" are titles
+    # he should be APPLYING to, so both lists shrank. What is left is the band
+    # that still needs 8-10 years however the JD is worded.
     "hard_drop_terms": [
-        "principal", "staff", "manager", "architect", "director",
-        "head of", "vp", "chief",
+        "principal", "staff engineer", "director", "head of", "vp", "chief",
+        "cto", "engineering manager",
     ],
+    # "architect" and bare "manager" were REMOVED from the hard drops:
+    # "Solutions Architect" and "Product Manager" are genuinely out of band, but
+    # the word-boundary matcher also killed "Frontend Architect (React)" style
+    # postings and anything containing "manager" as a product noun -- e.g. a
+    # "Dealer Management" or "Order Manager" platform role, which is literally
+    # his current job. max_experience_years now does that work on the stated
+    # requirement, which is the honest gate.
     # soft_drop_terms: usually inflated titling, especially in international
     # remote, where "Senior" routinely means 3-4 years. NEVER dropped — only
     # down-ranked, so max_experience_years decides on the stated requirement
     # instead. Measured on a live sweep: hard-dropping these deleted 13 of 28
     # reachable remote roles whose JDs asked for <= 3 years (Twilio, Datadog,
     # Proxify, Lemon.io, A.Team).
-    "soft_drop_terms": ["senior", "sr", "lead"],
+    # Only titles that outrun 4 years. "senior", "sr" and "lead" were removed
+    # outright -- he has led a team of 4, run architecture reviews and owned
+    # releases, so a Senior/Lead posting is the target and not a stretch.
+    # Penalising them sank the most appropriate half of the market.
+    "soft_drop_terms": ["architect", "manager", "principal"],
 
     "drop_penalty": -15,   # hard drops, when drop_excluded is False
     "soft_penalty": -4,    # soft title match: sinks it, never removes it
@@ -479,7 +601,11 @@ SETTINGS = {
     # Filtering
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
-    "max_experience_years": 3,   # roles whose text demands MORE than this (e.g. "5+ years") are dropped/penalized
+    # 4+ years shipped (Jun 2022 -> present), leading a team of 4. The gate is
+    # `floor > max`, so 6 ADMITS a posting asking for exactly 6 and drops 7+.
+    # That is deliberate: a 6-year ask is reachable for a 4-year lead, a 8-year
+    # one is not.
+    "max_experience_years": 6,
     # How to combine several "N years" figures in one posting: "min" reads the
     # smallest as the real ask (right for short JDs, where anything larger is a
     # nice-to-have), "max" the largest (right for the long structured kind that
@@ -494,7 +620,10 @@ SETTINGS = {
     # 6000 USD ~= the old 5.2 LPA floor. Undisclosed, unparseable, or
     # unknown-currency pay is always KEPT — we never drop on a guess.
     # Raise this to ~40000+ once the sweep is weighted toward international remote.
-    "min_comp_usd": 6000,        # None to disable
+    # ~7.5 LPA. A 4-year React Native lead in NCR/Chandigarh sits well above
+    # this, so the floor exists only to drop fresher-band listings; undisclosed
+    # pay is always KEPT, so it cannot silently delete a real role.
+    "min_comp_usd": 9000,        # None to disable
 
     # International-remote filters, from the signals enrich.py reads out of the
     # job text (visible as the remote_scope / visa / eor / timezones columns
