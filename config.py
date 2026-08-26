@@ -121,6 +121,15 @@ LINKEDIN_GEO_IDS = {
 
     # --- Indian cities, all VERIFIED 2026-07-26 ------------------------------
     "Delhi": "106187582",
+    # Chandigarh tricity, VERIFIED 2026-08-26: 10/10 job cards land in it --
+    # four written "Chandigarh, Chandigarh, India", six by district as
+    # "Sahibzada Ajit Singh Nagar, Punjab, India" or "Sas Nagar" (both Mohali).
+    # Found by scraping the public jobs-search page for the location name, after
+    # five blind guesses resolved to Galway, Glasgow, Ahmedabad, Gurugram and
+    # nothing. verify_geoids.py reported MISMATCH until its alias table learned
+    # the district spellings -- that checker rejects a correct id whenever
+    # LinkedIn's label and our name disagree, so read the locations it prints.
+    "Chandigarh": "100139308",
     "Gurgaon": "115884833", "Gurugram": "115884833",   # LinkedIn labels it Gurugram
     "Bengaluru": "105214831",
     "Hyderabad": "105556991",
