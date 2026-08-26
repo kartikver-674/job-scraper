@@ -35,7 +35,13 @@ SITES = {
                  # the top 25 in the country while a Delhi one returns the top 25
                  # in Delhi — the city rows are genuinely additional inventory,
                  # not duplicates. All four geoIds verified via verify_geoids.py.
-                 "locations": ["India", "Delhi", "Gurgaon", "Bengaluru", "Remote"],
+                 # Chandigarh added 2026-08-26 and it is the one that matters
+                 # most: it is where he currently works, and the first 40-search
+                 # sweep without it returned exactly ONE tricity row out of 179.
+                 # The "India" geoId does NOT surface that belt, contrary to what
+                 # this docstring used to claim.
+                 "locations": ["India", "Delhi", "Gurgaon", "Bengaluru",
+                               "Chandigarh", "Remote"],
                  # What a bare "Remote" means. f_WT=2 filters workplace type
                  # WITHIN a geography — there is no worldwide-remote search — so
                  # "Remote" above is India-remote, which is what he can take.

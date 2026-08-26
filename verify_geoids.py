@@ -39,7 +39,14 @@ _US_RE = re.compile(
 # a correct geoId reads as a MISMATCH purely on spelling.
 _ALIASES = {"gurgaon": "gurugram", "bengaluru": "bangalore",
             "bangalore": "bengaluru", "mumbai": "bombay",
-            "new delhi": "delhi", "uae": "united arab emirates"}
+            "new delhi": "delhi", "uae": "united arab emirates",
+            # LinkedIn labels the Chandigarh tricity by DISTRICT, not city, so a
+            # correct geoId reads as a MISMATCH on spelling alone: 100139308
+            # returns 10/10 tricity rows, six of them written "Sahibzada Ajit
+            # Singh Nagar, Punjab, India" and one "Sas Nagar" -- both of which
+            # are Mohali. Without these the checker rejects the right id.
+            "chandigarh": "sahibzada ajit singh nagar",
+            "mohali": "sahibzada ajit singh nagar"}
 
 
 def locations_for(geo_id):
@@ -64,7 +71,8 @@ def check(name, geo_id):
         # city-level cards like "Manchester, England, United Kingdom" still count.
         wanted = {name.split()[-1].lower()}
         if low in _ALIASES:
-            wanted.add(_ALIASES[low])
+            wanted.update(_ALIASES[low] if isinstance(_ALIASES[low], tuple)
+                          else (_ALIASES[low],))
         hits = sum(1 for l in locs if any(w in l.lower() for w in wanted))
     verdict = "ok" if hits >= len(locs) * 0.6 else "MISMATCH"
     return name, geo_id, verdict, f"{hits}/{len(locs)} · e.g. {locs[0][:38]}"
