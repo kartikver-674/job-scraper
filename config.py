@@ -565,6 +565,23 @@ SCORING = {
     "hard_drop_terms": [
         "principal", "staff engineer", "director", "head of", "vp", "chief",
         "cto", "engineering manager",
+        # TOO JUNIOR, which nothing in the model caught until now. The experience
+        # gate reads the years a posting DEMANDS, so it stops "8+ years" and has
+        # no opinion at all about a req that wants zero — and the first free
+        # sweep duly ranked Notion's "Software Engineer, New Grad (Dec 2026)"
+        # third overall, plus two Notion internships, for a man with four years
+        # and four mentees. They score well because a new-grad JD lists the same
+        # stack; the mismatch is entirely in the band.
+        #
+        # Here rather than in ATS_TITLE_EXCLUDE on purpose: that list only gates
+        # the free sources (see scraper.is_dev_title), while hard_drop_terms runs
+        # on paid rows too AND is re-applied to stored rows at merge time.
+        #
+        # "intern" and "internship" are both listed because the matcher is
+        # word-boundary — "intern" does not fire inside "internship" (nor, usefully,
+        # inside "internal" or "international").
+        "intern", "internship", "trainee", "fresher", "apprentice", "co-op",
+        "new grad", "graduate", "junior", "jr",
     ],
     # "architect" and bare "manager" were REMOVED from the hard drops:
     # "Solutions Architect" and "Product Manager" are genuinely out of band, but
@@ -613,7 +630,11 @@ SETTINGS = {
     # scraper._required_experience_floor.
     "experience_aggregate": "min",
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
-    "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
+    # 30, not the parent branch's 14. Freshness is still the biggest lever on
+    # getting a reply, but this is a FIRST sweep — seen.tsv holds nothing of his,
+    # so a 14-day window discarded 300 rows he has never had the chance to look
+    # at. Tighten to 14 once the backfill is done and runs are incremental.
+    "max_age_days": 30,
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
     # Minimum compensation, annualized and in USD, so an Indian LPA figure and a
     # US/EU salary are compared on the same axis (see scraper.comp_max_usd).
@@ -643,7 +664,19 @@ SETTINGS = {
     # the top 252 were "remote" only within Germany / Spain / UAE / the UK. The
     # filter keeps "restricted" rows whose lock is TO India, so India-remote roles
     # (which LinkedIn labels restricted) survive — see scraper.finalize.
-    "remote_scopes": ["worldwide", "remote"],
+    # EMPTY for Kanav, where the parent branch had ["worldwide", "remote"].
+    # That list is right for someone hunting international remote and wrong for
+    # him: he lives in New Delhi, works in Chandigarh, and an onsite Gurgaon or
+    # Mohali row classifies as "onsite" or "" — so the filter deleted exactly the
+    # inventory he most wants. Measured on the first free sweep: 1093 rows pulled,
+    # 337 thrown away as "not worldwide/remote", and every one of the top ten was
+    # an international remote listing.
+    #
+    # Nothing is lost by keeping them. linkedin_shortlist.py --sections splits the
+    # rendered page into "Onsite & hybrid in India" / "Fully remote" / "Onsite
+    # abroad", so the distinction is visible on the page instead of being decided
+    # here by deletion.
+    "remote_scopes": [],
     "drop_no_visa": False,       # drop only jobs that EXPLICITLY refuse to sponsor
     "require_eor": False,        # keep only jobs naming an employer-of-record path
 
@@ -673,8 +706,13 @@ SETTINGS = {
     "test_max_results": 5,          # max_results used by --test
 
     # Output
-    "output_dir": "output",
-    "top_n_console": 10,         # how many top jobs to print to the console
+    # output/kanav, not output/. The root is shared on disk across branches (it
+    # is gitignored, so a checkout does not swap it), and the first free run
+    # landed his rows next to a different person's jobs_2026-08-21 files. Anything
+    # that later globs the root — merge_jobs --all, harvest_ats.companies_from_output
+    # — would then be mixing two résumés' results.
+    "output_dir": "output/kanav",
+    "top_n_console": 40,         # how many top jobs to print to the console
     "description_max": 20000,    # cap description length BEFORE scoring; keep large so
                                  # skills aren't cut off (ATS JDs start with long company
                                  # boilerplate). Description isn't an output column — this
