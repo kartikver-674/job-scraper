@@ -1042,6 +1042,16 @@ def to_output(row):
         # what a referral is submitted against, so it has to survive to output.
         # Blank for every source that doesn't publish one.
         "req_number": row.get("req_number", ""),
+        # UHG's internal pay grade, from sources/optum.detail(). This line was
+        # MISSING while "grade" sat in OUTPUT_COLUMNS, so every sweep wrote the
+        # column and left it empty — and an empty grade column reads as "the
+        # employer didn't publish one", not as "we dropped it on the floor".
+        # It is the whole eligibility filter for the Optum runs (24/25 are in
+        # band, 26 asks 3+ years), so a silent blank there is the difference
+        # between a scan that answers the question and one that only looks like
+        # it did. Verified against a live JD: the extractor and the source were
+        # both fine, this assembler was the only broken link.
+        "grade": row.get("grade", ""),
         "verified_live": row.get("verified_live", ""),
     }
 
@@ -1328,6 +1338,18 @@ def demo():
     assert len(dedupe(reqs)) == 2, dedupe(reqs)
     assert len(dedupe(reqs + [dict(reqs[0], Location="Bangalore")])) == 2
     assert job_key(reqs[0]) != job_key(reqs[1])
+
+    # Every DECLARED output column must actually be produced. This is the whole
+    # bug class, not one field: "grade" sat in OUTPUT_COLUMNS while to_output()
+    # never copied it, so csv.DictWriter dutifully wrote the header and left the
+    # column empty on every row of every sweep. An empty column reads as "the
+    # employer didn't publish this", which is why it survived — nothing looked
+    # broken. Comparing the two sets catches the next forgotten column for free.
+    assert set(to_output({})) == set(OUTPUT_COLUMNS), (
+        set(OUTPUT_COLUMNS) ^ set(to_output({})))
+    # And specifically that the pay grade rides through, since it IS the
+    # eligibility filter on the Optum runs (24/25 in band, 26 wants 3+ years).
+    assert to_output({"grade": "25"})["grade"] == "25"
 
     # Two-tier seniority: an inflated title label must not delete a role whose
     # stated requirement is within reach, but a genuinely senior one still goes.
