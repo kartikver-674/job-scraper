@@ -463,6 +463,26 @@ SCORING = {
     "hard_drop_terms": [
         "principal", "staff", "manager", "architect", "director",
         "head of", "vp", "chief",
+        # TOO JUNIOR, which nothing in the model caught. max_experience_years
+        # reads the years a posting DEMANDS, so it stops "8+ years" and has no
+        # opinion whatever about a req that wants zero. Measured on the free
+        # global sweep of 2026-09-01: Notion's "Software Engineer, New Grad
+        # (Dec 2026)" ranked 3rd of the abroad rows at 44, Mactores' "Full Stack
+        # Product Engineer Intern" ranked 2nd of the remote rows at 30, and
+        # Stripe's "Software Engineer, Intern" made the India list. They score
+        # well because a new-grad JD lists the same stack; the mismatch is
+        # entirely in the band.
+        #
+        # Here rather than in ATS_TITLE_EXCLUDE on purpose: that list only gates
+        # the free sources (see scraper.is_dev_title), while hard_drop_terms runs
+        # on paid rows too AND is re-applied to stored rows at merge time, so
+        # rows already on disk get dropped instead of lingering with old scores.
+        #
+        # "intern" and "internship" are both listed because the matcher is
+        # word-boundary: "intern" does not fire inside "internship" -- nor,
+        # usefully, inside "internal" or "international".
+        "intern", "internship", "trainee", "fresher", "apprentice", "co-op",
+        "new grad", "graduate", "junior", "jr",
     ],
     # soft_drop_terms: usually inflated titling, especially in international
     # remote, where "Senior" routinely means 3-4 years. NEVER dropped — only
