@@ -238,8 +238,38 @@ def _compile(term):
     Lookarounds (instead of \\b) so punctuated terms match cleanly: ".net",
     "node.js", "socket.io", "c#", "5+ years" all work, and "lead" won't fire
     inside "leadership".
+
+    Each word also takes an optional plural suffix ("s" or "es"), because config
+    terms are
+    written in RESUME phrasing and job ads are written in employer phrasing —
+    and the exact matcher scored every mismatch as a silent zero. Measured on an
+    ideal Salesforce functional-consultant ad: "requirements gathering",
+    "approval processes", "custom object creation", "validation rule setup",
+    "page layout design" and "test cases" ALL scored 0 against a config holding
+    the other number of each. The ad matched 4 terms; a Salesforce DEVELOPER ad
+    matched 5, purely because it happened to pluralise the way the config did.
+    Only the noun changes, and it can sit anywhere in the phrase, so the "s?"
+    goes on every word rather than on the end of the term.
+
+    WRITE CONFIG TERMS IN THE SINGULAR. The suffix is added, never removed, so
+    "custom object" reaches "custom objects" but "custom objects" does NOT reach
+    "custom object" -- and the singular is the form job ads bury inside a longer
+    phrase ("custom object creation", "validation rule setup").
+
+    Deliberately naive: it is inflection, not stemming, so it will not reach
+    "business analysis" -> "business analyst", an irregular plural, or an
+    abbreviation like "dms" -> "dealer management system". Those stay explicit
+    config entries. The junk it also admits ("rulees", "objectes") is not English
+    and so never appears in a job ad -- cheaper than carrying a stemmer.
+    Words are joined with \\s+, not a literal space, because the text being
+    searched is a job ad with its original line breaks: "run user acceptance
+    testing cycles" wrapped after "acceptance" matched nothing at all. Same
+    reason it survives a double space or the non-breaking space that HTML job
+    descriptions are full of.
+    # ponytail: naive -(e)s inflection; a real stemmer if plurals keep leaking
     """
-    return re.compile(r"(?<![a-z0-9])" + re.escape(term.lower()) + r"(?![a-z0-9])")
+    body = r"\s+".join(re.escape(w) + "(?:e?s)?" for w in term.lower().split())
+    return re.compile(r"(?<![a-z0-9])" + body + r"(?![a-z0-9])")
 
 
 # Precompile everything once from config.
@@ -1292,6 +1322,26 @@ def _require_token():
 def demo():
     """Offline self-check for the logic that fails SILENTLY — currency parsing
     and job identity. `python scraper.py --demo`, no network, no cost."""
+    # _compile: the three ways a term written in RÉSUMÉ phrasing used to score a
+    # perfectly matching job ad at ZERO. Measured before the fix on an ideal
+    # Salesforce functional-consultant ad: it matched 4 config terms, while a
+    # Salesforce DEVELOPER ad — the wrong job — matched 5, purely because it
+    # happened to pluralise the way the config did.
+    assert _compile("custom object").search("custom objects")        # plural
+    assert _compile("custom object").search("custom object creation")  # buried
+    assert _compile("approval process").search("approval processes")  # -es plural
+    assert _compile("user acceptance testing").search(
+        "run user acceptance\ntesting cycles")                       # wrapped line
+    assert _compile("sales cloud").search("sales\u00a0cloud")         # nbsp
+    # Boundaries still hold: the suffix must not turn a term into a substring
+    # match, and the singular is reached from the singular only.
+    assert not _compile("lead").search("leadership")
+    assert not _compile("intern").search("internship")   # nor "international"
+    assert not _compile("intern").search("international")
+    assert not _compile("custom objects").search("custom object")     # never reverse
+    assert _compile("node.js").search("node.js")                      # punctuation
+    assert _compile("c#").search("c# developer")
+
     usd = lambda t: (None if comp_max_usd(t) is None      # noqa: E731
                      else round(comp_max_usd(t)))
     # The regression that mattered: a US salary used to parse as 2.2 "LPA" and

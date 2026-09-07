@@ -338,6 +338,10 @@ LOCATION_HINTS = []
 # whether the employer hires in your country at all
 # (SETTINGS["keep_restricted_if_hires_home"]).
 HOME_LOCATION_HINTS = [
+    # Chandigarh tricity first — it is where she actually is, and an ATS board
+    # that writes a location as bare "Mohali" with no country would otherwise
+    # miss the "india" catch-all below.
+    "chandigarh", "mohali", "panchkula", "zirakpur",
     "india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "bengaluru",
     "bangalore", "hyderabad", "pune", "mumbai", "chennai", "kolkata",
     "ahmedabad",
@@ -404,22 +408,47 @@ SCORING = {
     # platform, so they're weighted low even though they're genuinely her top
     # skills. (Same trap the Oracle Fusion / generic-BA ranking failure came from.)
     "skill_weights": {
-        # Core platform — the niche identifiers, highest signal
+        # Core platform — the niche identifiers, highest signal. Every
+        # abbreviation carries its spelled-out twin: ads write "Dealer
+        # Management System (DMS)" at least as often as the initials, and
+        # scraper._compile does inflection, not expansion. Both firing on one ad
+        # is intended — an ad that says the concept twice really is a DMS role,
+        # which is the exact niche this whole config exists to find.
         "salesforce": 10, "sales cloud": 8, "service cloud": 8,
-        "dms": 8, "sfa": 8,
-        # Salesforce-specific configuration vocabulary — still fairly
-        # discriminative, rarely shows up outside Salesforce postings
-        "custom objects": 4, "validation rules": 4, "approval process": 3,
-        "approval workflows": 3, "page layouts": 3, "roles and profiles": 2,
+        "dms": 8, "dealer management system": 8,
+        "sfa": 8, "sales force automation": 8,
+        # Salesforce configuration vocabulary — still fairly discriminative,
+        # rarely shows up outside Salesforce postings.
+        #
+        # SINGULAR, and it matters: scraper._compile ADDS an optional plural and
+        # never removes one, so "custom object" reaches "custom objects" while
+        # "custom objects" reaches nothing else. The singular is also the form
+        # ads bury inside a longer phrase — "custom object creation",
+        # "validation rule setup", "page layout design" — which is how the
+        # plural spellings here used to score an ideal ad at zero.
+        "custom object": 4, "validation rule": 4, "approval process": 3,
+        "approval workflow": 3, "page layout": 3,
+        "role and profile": 2, "role & profile": 2,
         "salesforce inspector": 2, "data loader": 2, "azure devops": 2,
+        "data migration": 2,
         # Generic BA/delivery craft vocabulary — shared with every
         # functional-consultant/BA role regardless of platform, so LOW weight.
         # See fullstack_bonus below for how these combine with platform terms
         # instead of scoring meaningfully on their own.
+        #
+        # The spelled-out twins are here for the same reason as DMS/SFA above:
+        # measured across 41 real Salesforce ads, "business analyst" was the
+        # single most common term (16 hits) and "user acceptance testing"
+        # appeared 3 times — neither reachable from "business analysis" or "uat".
         "requirement elicitation": 1, "requirement gathering": 1,
-        "business analysis": 1, "uat": 1, "gap analysis": 1,
-        "test case design": 1, "fsd": 1, "pfd": 1,
-        "change request management": 1, "stakeholder management": 1, "agile": 1,
+        "business analysis": 1, "business analyst": 1,
+        "uat": 1, "user acceptance testing": 1, "gap analysis": 1,
+        "test case": 1, "fsd": 1, "pfd": 1,
+        "change request": 1, "stakeholder management": 1,
+        # Résumé-backed and missing until now: "Agile AND Waterfall", the
+        # 10,000-record Data Loader migration, the dashboards built alongside
+        # the page layouts, and the MBA that several consulting ads ask for.
+        "agile": 1, "waterfall": 1, "dashboard": 1, "mba": 1,
     },
 
     # -- Salesforce-platform + delivery-craft bonus ---------------------------
@@ -430,13 +459,15 @@ SCORING = {
     # structure since the shape — "both halves must be present" — is the same
     # idea as full-stack, just not about web dev.
     "frontend_terms": [   # Salesforce platform/product side
-        "salesforce", "sales cloud", "service cloud", "dms", "sfa",
-        "custom objects", "validation rules", "approval process", "page layouts",
+        "salesforce", "sales cloud", "service cloud",
+        "dms", "dealer management system", "sfa", "sales force automation",
+        "custom object", "validation rule", "approval process", "page layout",
     ],
     "backend_terms": [    # BA/delivery side
-        "requirement elicitation", "requirement gathering", "business analysis",
-        "uat", "gap analysis", "test case design", "fsd", "pfd",
-        "change request management", "stakeholder management",
+        "requirement elicitation", "requirement gathering",
+        "business analysis", "business analyst",
+        "uat", "user acceptance testing", "gap analysis", "test case",
+        "fsd", "pfd", "change request", "stakeholder management",
     ],
     "fullstack_bonus": 6,
     # Title alone must name the PLATFORM, never a bare job function — bare
