@@ -165,8 +165,10 @@ Everything that decides *what* is pulled and *how* it is ranked lives in
 | `SEARCH` | role keywords x locations, experience, results per search |
 | `SITES` | which paid Apify actors run |
 | `ATS_BOARDS` | free company career boards, `{platform: {token: "Name"}}` |
+| `ENTERPRISE` | free big-employer careers sites (Amazon, JPMorgan, Oracle, Accenture, SAP) |
 | `FEEDS` | free remote-job feeds (Remote OK, WWR, Remotive, Jobicy, Himalayas) |
 | `LOCATION_HINTS` | location whitelist for free sources; **empty = allow all** |
+| `ATS_TITLE_HINTS` / `ATS_TITLE_EXCLUDE` | which titles a free source keeps; exclude wins |
 | `SCORING` | skill weights, full-stack bonus, penalties, seniority tiers, company blocklist |
 | `SETTINGS` | freshness, pay floor, remote/visa/EOR filters, spend caps, output |
 
@@ -192,7 +194,13 @@ over; delete individual lines to resurface specific jobs.
 ## Seniority: two tiers, because a title is not a requirement
 
 `SETTINGS["max_experience_years"]` is the real gate — it reads the years the job
-text actually demands. The title lists only handle labelling:
+text actually demands, ignoring figures that aren't counting experience ("minimum
+16 years of formal education" is a degree, not a career). When a posting states
+several, `SETTINGS["experience_aggregate"]` decides which one is the requirement:
+`"min"` for short JDs, `"max"` for the long structured kind that give a total
+*and* a per-skill figure ("8+ years of total software engineering experience,
+including 2+ years hands-on in AI/ML" is an 8-year job — `min` ranked it first of
+63 as if it wanted 2). The title lists only handle labelling:
 
 - `SCORING["hard_drop_terms"]` (manager, principal, staff, architect, …) —
   removed outright.
@@ -267,6 +275,7 @@ All free, no credentials, no rate limits worth worrying about:
 | Remotive | JSON | software-dev category; **reports pay** |
 | Jobicy | JSON | engineering industry; **reports pay** |
 | Himalayas | JSON | **reports pay and exact UTC offsets** |
+| Optum (UHG) | employer site | `sources/optum.py`; **publishes requisition numbers** and is liveness-verified |
 
 The three structured feeds are the only free source that reports compensation —
 the ATS boards never do — which is what makes `min_comp_usd` do anything at all.
@@ -280,9 +289,97 @@ inferring a zone from a region name.
 
 Probed and deliberately **not** included: `arbeitnow.com` (100 jobs → 5 remote →
 1 dev-titled, and that one onsite in Nuremberg), Workable (endpoint is live but
-every slug tried returned zero jobs, so the field names are unverified), and
-Workday (needs a POST body and a per-tenant hostname, so it can't be a row in
-the ATS table).
+every slug tried returned zero jobs, so the field names are unverified). Workday
+was also a gap for the same reason — a POST body and a per-tenant hostname can't
+be expressed as a row in that table — and is now handled by
+`sources/enterprise.py` instead (see below).
+
+### Optum — one employer, by requisition number
+
+```bash
+python scraper.py --profile optum --site optum      # free -> output/optum/
+```
+
+For applying through a referral, where you need the **requisition number** the
+referral is submitted against, not just a link. Two output columns exist for
+this: `req_number` and `verified_live` (blank for every other source).
+
+`careers.optum.com` is dead (NXDOMAIN, 2026-07-29). Optum requisitions are served
+from `careers.unitedhealthgroup.com`, a Radancy/TalentBrew site that hosts *every*
+UHG brand in one index, so rows are filtered by the per-card `brand-facet__optum`
+CSS class — the only place the brand appears. The site's own `Brand` facet is
+business segments ("Medicare & Retirement"), not brands, so it can't do this.
+
+It is not a row in `sources/ats.py`'s table because the search endpoint returns
+HTML *inside* JSON and the listing carries neither a description nor a date —
+both need a request per job. That request is also the liveness check: a pulled
+requisition 404s, and those rows are dropped.
+
+**One empty query, not a keyword list.** The index holds 5,872 jobs and the
+site's full-text search reads the JD body, so any keyword is a strict subset of
+`""` that still can't be trusted to narrow — `"developer"` matched 5,787 of
+5,872. A 12-keyword list was 12 sweeps of the same index that could still miss a
+role whose title you want but whose JD never says your words. `""` costs ~59
+listing requests (~3 min), and the title + location gates do the narrowing for
+free — only survivors cost a JD request.
+
+**Which roles, and which are a different career.** `profiles/optum.py` casts a
+wide net across software engineering — full-stack, backend, frontend, software
+engineer, AI/ML and GenAI, platform, automation, developer-productivity — and
+ranks by résumé overlap rather than filtering to one stack, so an off-stack
+requisition (Java, .NET, Angular — most of Optum) costs a point or two instead
+of a place in the list. `ATS_TITLE_EXCLUDE` keeps out the tracks that need a
+different background: data engineering/science/analytics, SRE, DevOps-as-a-job,
+cloud infra, security, networking, QA/test, IT ops. It is deliberately tight —
+an over-broad entry deletes a good role invisibly, while one that slips through
+is merely ranked low and still on the page. Measured on the live index
+(2026-07-30): 320 India cards, 94 kept by the old full-stack-only gate, 145 by
+this one.
+
+`SETTINGS["experience_aggregate"] = "max"` here, because every Optum requisition
+states a total *and* a per-skill figure. And note `LOCATION_HINTS` matches on
+word boundaries: as a substring, `"india"` also matches `"Indianapolis,
+Indiana"` — 107 of the 427 cards this sweep was keeping were US nursing and
+therapy jobs.
+
+**A requisition's open/closed state is not publicly checkable beyond that.**
+`uhg.taleo.net/.../jobapply.ftl?job=<req>` answers `200` with an identical
+privacy-agreement gate for a live req and a nonexistent one alike (probed
+against three), so it carries no status signal without a candidate session.
+"In the live index AND its JD still 200s" is the strongest available signal —
+don't add the Taleo URL as a check, it will confirm anything.
+
+## Big employers that run their own platform
+
+The household names never appear in `ATS_BOARDS` — they don't rent a board, they
+run their own recruiting stack. `sources/enterprise.py` covers four of those
+platforms, which between them reach five employers:
+
+```bash
+python scraper.py --profile bigtech --site free    # -> output/bigtech/
+python auto-apply/bigtech_shortlist.py             # clickable page, per employer
+```
+
+| Platform | Employers | Shape |
+|---|---|---|
+| amazon.jobs | Amazon | JSON, description **in the listing** — no JD request |
+| Oracle Recruiting Cloud | JPMorgan Chase, Oracle | JSON, listing only — no full JD exists publicly |
+| Workday | Accenture | POST-only search, JD per job |
+| SuccessFactors | SAP | HTML, JD per job |
+
+Two things worth knowing before trusting the numbers. Amazon's
+`normalized_country_code[]=IND` is the filter that works — `country[]` and
+`loc_group_id[]` are accepted and silently ignored, the same trap the Optum
+adapter documents. And Oracle Recruiting Cloud publishes **no** full job
+description (its detail finder rejects every documented spelling), so those rows
+score on a title plus a ~100-character blurb while Amazon's score on thousands
+of characters. Scores are therefore comparable *within* an employer, not across
+them — which is why `bigtech_shortlist.py` groups by employer and labels the two
+short-text boards instead of printing one flat ranking.
+
+Microsoft, IBM, Capgemini, Siemens and Deloitte were probed and are **not**
+reachable for free; the reasons are recorded at the top of `sources/enterprise.py`
+so nobody re-derives them.
 
 ## Adding a source
 
@@ -290,6 +387,10 @@ the ATS table).
   Token comes from the careers URL: `boards.greenhouse.io/<token>`,
   `jobs.lever.co/<token>`, `jobs.ashbyhq.com/<token>`,
   `careers.smartrecruiters.com/<Token>`.
+- **A big employer on Workday / Oracle Recruiting Cloud / SuccessFactors** → one
+  dict entry in `sources/enterprise.py`'s `EMPLOYERS` (host, tenant, site). Those
+  two platforms alone run a large share of the Fortune 500, so the next name is
+  usually one line rather than a new adapter.
 - **An ATS platform** → one dict entry in `sources/ats.py`'s `ATS` table: a URL
   template, where the job list sits in the response, and a field → dotted-path
   map. Verify it against a live board first — a wrong path yields blank titles
@@ -297,6 +398,11 @@ the ATS table).
 - **A feed** → one function in `sources/feeds.py` with the signature
   `(cfg, keep_title, keep_location) -> [row]`, plus a line in
   `sources.FEED_FETCHERS`.
+- **One employer's own site** (no public ATS API) → its own module, like
+  `sources/optum.py`, wired into `sources.fetch_free` and gated by an
+  `enabled: False` config block so a normal sweep is unaffected. Worth it when
+  the site exposes something the aggregators don't — a requisition number, or a
+  way to prove the job is still open.
 
 Then extend `sources/__main__.py`'s fixtures and run `python -m sources`
 (offline) or `python -m sources --live` (one real request per source).

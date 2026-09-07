@@ -121,6 +121,15 @@ LINKEDIN_GEO_IDS = {
 
     # --- Indian cities, all VERIFIED 2026-07-26 ------------------------------
     "Delhi": "106187582",
+    # Chandigarh tricity, VERIFIED 2026-08-26: 10/10 job cards land in it --
+    # four written "Chandigarh, Chandigarh, India", six by district as
+    # "Sahibzada Ajit Singh Nagar, Punjab, India" or "Sas Nagar" (both Mohali).
+    # Found by scraping the public jobs-search page for the location name, after
+    # five blind guesses resolved to Galway, Glasgow, Ahmedabad, Gurugram and
+    # nothing. verify_geoids.py reported MISMATCH until its alias table learned
+    # the district spellings -- that checker rejects a correct id whenever
+    # LinkedIn's label and our name disagree, so read the locations it prints.
+    "Chandigarh": "100139308",
     "Gurgaon": "115884833", "Gurugram": "115884833",   # LinkedIn labels it Gurugram
     "Bengaluru": "105214831",
     "Hyderabad": "105556991",
@@ -131,6 +140,29 @@ LINKEDIN_GEO_IDS = {
     #   "New Delhi": "106164932"  -> returns Inner Mongolia, CHINA. Use "Delhi".
     #   "Noida":     "105598789"  -> returns no job cards at all.
     # Both were previously marked "unverified" and would have been billed in full.
+}
+
+# LinkedIn's company filter is `f_C=<numeric company id>`, and it has exactly the
+# same failure mode as geoId: a wrong id does not error, it silently returns some
+# OTHER company's jobs and bills you in full. So every entry here was verified
+# against the public guest search before use:
+#
+#     python verify_geoids.py --companies
+#
+# Each id below returned 10/10 cards for the named company (2026-08-16).
+#
+# NOT a hypothetical risk — 1409 is widely cited online as Capgemini and is
+# actually **Wells Fargo Advisors**. Verifying caught it before a single run.
+LINKEDIN_COMPANY_IDS = {
+    "Microsoft": "1035",
+    "IBM": "1009",
+    "Deloitte": "1038",
+    "Siemens": "1043",
+    # Capgemini is deliberately ABSENT: its numeric id is not exposed on any
+    # guest surface (the job cards and posting pages carry only the "capgemini"
+    # slug, no urn:li:organization). Target it by keyword instead and filter on
+    # the company column — a distinctive company name makes that precise, and
+    # guessing an id here is how you end up paying for Wells Fargo.
 }
 
 # ---------------------------------------------------------------------------
@@ -197,6 +229,69 @@ ATS_BOARDS = {
         "teero": "Teero",             #  0/5   — harvest_ats.py, 2026-07-27
     },
     "smartrecruiters": {},   # e.g. {"BoschGroup": "Bosch"}
+}
+
+# ---------------------------------------------------------------------------
+# OPTUM — one employer's own careers site, kept separate from ATS_BOARDS
+# ---------------------------------------------------------------------------
+# Adapter: sources/optum.py. Free, stdlib, no auth. Not a row in ats.ATS because
+# that table maps a JSON list to dotted paths, and this site returns HTML inside
+# JSON with no description or date in the listing — the JD needs a second
+# request per job (which is also what verifies the requisition is still live).
+#
+# careers.optum.com is dead (NXDOMAIN 2026-07-29); Optum requisitions are served
+# from careers.unitedhealthgroup.com, which hosts every UHG brand in one index.
+# brand="optum" keeps only Optum-branded cards (the per-card CSS class is the
+# ONLY place the brand appears — the site's Brand facet holds business segments).
+#
+# enabled=False by default: this is an employer-specific sweep, switched on by
+# profiles/optum.py, so a normal run is unchanged.
+OPTUM = {
+    "enabled": False,
+    "company": "Optum",
+    "brand": "optum",
+    # ONE empty query = the whole index, which is both cheaper and more complete
+    # than a keyword list. Probed 2026-07-30: the index holds 5,872 jobs, and the
+    # site's full-text search reads the JD body, so a keyword is a strict SUBSET
+    # of "" that also can't be trusted to narrow ("developer" matched 5,787 of
+    # 5,872 — nearly every JD says the word somewhere). A 12-keyword list was
+    # therefore 12 sweeps of the same index that could still miss a role whose
+    # title we want but whose JD never says our words. The title + location gates
+    # (ATS_TITLE_HINTS / ATS_TITLE_EXCLUDE / LOCATION_HINTS) do the narrowing, for
+    # free, and only survivors cost a JD request. Whole sweep: ~59 listing
+    # requests, ~3 min.
+    "keywords": [""],
+    "locations": [""],
+    "per_page": 100,        # verified honoured; the site's own UI uses 15
+    "max_pages": 70,        # 5,872 jobs / 100 = 59 pages + headroom to grow
+    # Re-fetch every JD and drop anything that 404s — a pulled requisition is
+    # gone from the site. See the module docstring for why the Taleo apply URL
+    # can NOT be used for this (it answers 200 for nonexistent reqs).
+    "verify_live": True,
+}
+
+# ---------------------------------------------------------------------------
+# ENTERPRISE — household-name employers that run their own recruiting platform
+# ---------------------------------------------------------------------------
+# Adapter: sources/enterprise.py. Free, stdlib, no auth. Separate from
+# ATS_BOARDS because these are not rented boards: they are four different
+# platforms (amazon.jobs, Oracle Recruiting Cloud, Workday, SuccessFactors),
+# two of which need a JD request per job and one of which needs a POST.
+#
+# Which employers exist is sources/enterprise.EMPLOYERS; this only says which to
+# RUN. Adding a company already on one of those platforms is a dict entry there
+# — Workday and Oracle Recruiting Cloud between them run a large share of the
+# Fortune 500, so the marginal cost of the next name is one line.
+#
+# enabled=False by default: switched on by a profile, so a normal run is
+# unchanged. keywords=[""] sweeps a whole board and lets the title/location
+# gates narrow it; give real keywords only where the board is too big to page.
+ENTERPRISE = {
+    "enabled": False,
+    "employers": ["amazon", "jpmorgan", "oracle", "accenture", "sap"],
+    "keywords": [""],
+    "max_pages": 5,
+    "verify_live": True,
 }
 
 # Public remote-job feeds. No auth, no cost. Adapters live in sources/feeds.py
@@ -268,6 +363,15 @@ ATS_TITLE_HINTS = [
     "technical consultant", "crm analyst", "crm consultant",
     "administrator", "business process", "systems analyst",
 ]
+
+# Titles to reject even when they DO match a hint above. Checked first, so it
+# wins — which is the only way to keep out a role that borrows a software title
+# for a different job ("Senior Software Engineer - Data Engineer, Spark, ETL").
+# Empty by default: it earns its keep when the hints are broadened past one
+# stack, where a wider net starts catching adjacent careers. Seniority does NOT
+# belong here — SCORING["hard_drop_terms"] already handles it, and as a penalty
+# rather than a silent delete.
+ATS_TITLE_EXCLUDE = []
 
 # Naukri needs numeric city IDs (not names). Map each name you search here to its
 # ID (from the actor's schema). "Remote" is special-cased to a workMode filter, so
@@ -387,6 +491,26 @@ SCORING = {
     "hard_drop_terms": [
         "principal", "staff", "manager", "architect", "director",
         "head of", "vp", "chief",
+        # TOO JUNIOR, which nothing in the model caught. max_experience_years
+        # reads the years a posting DEMANDS, so it stops "8+ years" and has no
+        # opinion whatever about a req that wants zero. Measured on the free
+        # global sweep of 2026-09-01: Notion's "Software Engineer, New Grad
+        # (Dec 2026)" ranked 3rd of the abroad rows at 44, Mactores' "Full Stack
+        # Product Engineer Intern" ranked 2nd of the remote rows at 30, and
+        # Stripe's "Software Engineer, Intern" made the India list. They score
+        # well because a new-grad JD lists the same stack; the mismatch is
+        # entirely in the band.
+        #
+        # Here rather than in ATS_TITLE_EXCLUDE on purpose: that list only gates
+        # the free sources (see scraper.is_dev_title), while hard_drop_terms runs
+        # on paid rows too AND is re-applied to stored rows at merge time, so
+        # rows already on disk get dropped instead of lingering with old scores.
+        #
+        # "intern" and "internship" are both listed because the matcher is
+        # word-boundary: "intern" does not fire inside "internship" -- nor,
+        # usefully, inside "internal" or "international".
+        "intern", "internship", "trainee", "fresher", "apprentice", "co-op",
+        "new grad", "graduate", "junior", "jr",
     ],
     # soft_drop_terms: usually inflated titling, especially in international
     # remote, where "Senior" routinely means 3-4 years. NEVER dropped — only
@@ -413,6 +537,12 @@ SETTINGS = {
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
     "max_experience_years": 5,   # widened for Senior Consultant reqs (0-5 yrs acceptable); more than this is dropped/penalized
+    # How to combine several "N years" figures in one posting: "min" reads the
+    # smallest as the real ask (right for short JDs, where anything larger is a
+    # nice-to-have), "max" the largest (right for the long structured kind that
+    # state a total AND a per-skill figure). See
+    # scraper._required_experience_floor.
+    "experience_aggregate": "min",
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
     "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
@@ -508,7 +638,9 @@ SETTINGS = {
 import os
 import sys
 
-OVERLAYABLE = ("SEARCH", "SITES", "SCORING", "SETTINGS", "ATS_BOARDS", "FEEDS")
+OVERLAYABLE = ("SEARCH", "SITES", "SCORING", "SETTINGS", "ATS_BOARDS", "FEEDS",
+               "OPTUM", "ENTERPRISE", "LOCATION_HINTS", "ATS_TITLE_HINTS",
+               "ATS_TITLE_EXCLUDE")
 
 
 def _selected_profile(argv=None, env=None):
@@ -532,6 +664,14 @@ def _overlay(module, target=None):
     distinguished by presence, not truthiness: skipping falsy overrides meant
     `FEEDS = {}` silently inherited every default feed instead of disabling them,
     and a profile ran 28 sources it had explicitly opted out of.
+
+    Dicts merge one level deep (.update); LIST settings (LOCATION_HINTS,
+    ATS_TITLE_HINTS, ATS_TITLE_EXCLUDE) REPLACE wholesale, because they are
+    single filter vocabularies — appending someone else's cities to yours would
+    widen the filter instead of changing it. Without the isinstance branch a
+    list override raised AttributeError (list has no .update), which is why
+    those three could not be overlaid at all. Mutated in place either way, since
+    scraper.py imports these names directly.
     """
     target = globals() if target is None else target
     changed = []
@@ -539,7 +679,9 @@ def _overlay(module, target=None):
         if not hasattr(module, name):
             continue
         override = getattr(module, name)
-        if override:
+        if isinstance(target[name], list):
+            target[name][:] = override or []
+        elif override:
             target[name].update(override)
         else:
             target[name].clear()
@@ -602,6 +744,24 @@ def demo():
     assert target["FEEDS"] == {}, target["FEEDS"]                  # cleared
     assert target["ATS_BOARDS"] == {"greenhouse": {"x": "X"}}      # omitted -> kept
     assert changed == ["FEEDS"]
+
+    # LIST settings replace wholesale rather than merging, and an empty list
+    # clears them. Before the isinstance branch this raised AttributeError, so a
+    # profile's LOCATION_HINTS / ATS_TITLE_* were not overlayable at all — a
+    # profile could name its own title gates and silently run the defaults.
+    class Lists:
+        LOCATION_HINTS = ["india", "noida"]
+        ATS_TITLE_EXCLUDE = []
+    target = {"SEARCH": {}, "SITES": {}, "SCORING": {}, "SETTINGS": {},
+              "ATS_BOARDS": {}, "FEEDS": {},
+              "LOCATION_HINTS": ["berlin"],
+              "ATS_TITLE_HINTS": ["developer"],
+              "ATS_TITLE_EXCLUDE": ["sre"]}
+    changed = _overlay(Lists, target)
+    assert target["LOCATION_HINTS"] == ["india", "noida"]   # replaced, not merged
+    assert target["ATS_TITLE_EXCLUDE"] == []               # [] clears it
+    assert target["ATS_TITLE_HINTS"] == ["developer"]      # omitted -> kept
+    assert sorted(changed) == ["ATS_TITLE_EXCLUDE", "LOCATION_HINTS"]
     print(f"demo ok (active profile: {PROFILE or 'default'})")
 
 

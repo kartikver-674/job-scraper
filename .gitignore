@@ -21,6 +21,10 @@ auto-apply/review_queue.csv
 auto-apply/applications.csv
 auto-apply/resume/resume.txt
 auto-apply/resume/resume.pdf
+# Glob, not two fixed names: a résumé carries a real phone number and email
+# address, and dropping one in here under any filename must not publish it.
+auto-apply/resume/*.pdf
+auto-apply/resume/*.docx
 
 # Phase 2: generated userscript (embeds Groq key + résumé) and shortlist
 auto-apply/linkedin-easyapply.user.js

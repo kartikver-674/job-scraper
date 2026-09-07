@@ -57,8 +57,10 @@ import enrich
 import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
-                    LINKEDIN_GEO_IDS, ATS_BOARDS, FEEDS,
-                    LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS)
+                    LINKEDIN_GEO_IDS, LINKEDIN_COMPANY_IDS,
+                    ATS_BOARDS, FEEDS, OPTUM, ENTERPRISE,
+                    LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS,
+                    ATS_TITLE_EXCLUDE)
 
 # ---------------------------------------------------------------------------
 # Internal common schema (title-cased keys) produced by normalize(). The final
@@ -86,7 +88,7 @@ OUTPUT_COLUMNS = [
     "remote?", "remote_scope", "hires_home", "tz_gap", "remote_regions",
     "visa", "eor", "timezones",
     "experience_required", "salary", "hr_email", "hr_phone",
-    "source_site", "apply_url", "date_posted",
+    "source_site", "apply_url", "date_posted", "req_number", "grade", "verified_live",
 ]
 
 
@@ -176,16 +178,33 @@ def location_allowed(loc):
     Empty hints = allow everything (the default now that the target is
     international remote). An unspecified location is always kept — scoring and
     the remote/comp filters sort it out.
+
+    Matched on alphanumeric boundaries, not as a substring: "india" also matches
+    "Indianapolis, Indiana", which on one employer's board was 107 of the 427
+    cards an India-only sweep kept — a quarter of it US nursing jobs. Same
+    lookaround idiom as _compile() below.
     """
     if not LOCATION_HINTS or not loc:
         return True
     low = loc.lower()
-    return any(h in low for h in LOCATION_HINTS)
+    return any(re.search(rf"(?<![a-z0-9]){re.escape(h)}(?![a-z0-9])", low)
+               for h in LOCATION_HINTS)
 
 
 def is_dev_title(title):
-    """Free sources return a whole board; keep only software/dev-looking titles."""
+    """Free sources return a whole board; keep only software/dev-looking titles.
+
+    ATS_TITLE_EXCLUDE wins over ATS_TITLE_HINTS, because the titles worth
+    excluding contain a hint by construction — "Senior Software Engineer I (Data
+    Engineer - Spark, Scala, ETL)" is a data-engineering job wearing a software
+    title, and no include vocabulary can tell them apart.
+
+    Substring, not word-boundary (unlike location_allowed): real titles run the
+    words together — "ReactJS", "AI/ML", "Devops", "Java FSD".
+    """
     low = (title or "").lower()
+    if any(x in low for x in ATS_TITLE_EXCLUDE):
+        return False
     return any(h in low for h in ATS_TITLE_HINTS)
 
 
@@ -196,10 +215,17 @@ def is_home_location(loc):
     return any(h in low for h in HOME_LOCATION_HINTS)
 
 
+def _optum_scope():
+    """Banner wording: a single empty keyword IS the whole index, not "1 queries"."""
+    kws = OPTUM.get("keywords") or [""]
+    return "whole index" if kws == [""] else f"{len(kws)} queries"
+
+
 def fetch_free():
     """Every configured ATS board + feed. Free; per-board failures are isolated."""
     rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed,
-                              is_home_location)
+                              is_home_location, optum_cfg=OPTUM,
+                              enterprise_cfg=ENTERPRISE)
     return [_truncate_desc(r) for r in rows]
 
 
@@ -267,16 +293,89 @@ def reachable(row):
                      or is_home_location(row.get("remote_regions"))))
 
 
-# Any "<n> years/yrs" mention (optionally "n+" or "n-m"); we read the leading n.
-YEARS_PATTERN = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:years|yrs)")
+# Any "<n> years/yrs" mention (optionally "n+" or a range); we read the leading n.
+#
+# "year(s)" and "yr(s)" are in here because Accenture's JD template writes
+# "Minimum 5 Year(s) Of Experience Is Required" — without the optional "(s)" that
+# phrasing matched nothing, so an entire employer's experience bar read as
+# "not stated" and 5- and 8-year roles ranked as if they had no requirement.
+#
+# A RANGE reads as its lower bound, so the separator has to cover every way a JD
+# writes one. Only the ASCII hyphen was handled, so "10-18+ years of overall IT
+# experience" and "5 to 12 years of hands-on experience" both matched on their
+# SECOND number and reported 18 and 12 — an en dash and the word "to" are how
+# Accenture actually writes it, and under experience_aggregate="max" that buried
+# 32 reachable roles as if they wanted a career's worth.
+YEARS_PATTERN = re.compile(
+    r"(\d{1,2})\s*\+?\s*(?:[-–—]|to)?\s*(?:\d{1,2}\s*\+?\s*)?"
+    r"(?:years?|yrs?)(?:\(s\))?")
+
+
+# A years figure only gates a candidate when it's counting EXPERIENCE. These
+# three tests were derived from 63 live requisitions on one employer's board
+# (2026-07-30), where the raw pattern above read a degree requirement as a career
+# length.
+_EXP_CUE_RE = re.compile(r"experience|hands[- ]on")
+_EXP_OF_RE = re.compile(r"\s*(?:of|in)\s+[a-z]")   # "8+ years of|in <something>"
+_EDU_RE = re.compile(r"education|schooling|degree program")
+
+
+# "<label> : 10+ years" — a header field whose entire value is a years figure.
+# Netradyne's template writes the experience row as "Business Systems Group :
+# 10+ years", so no experience cue sits anywhere near the number and the
+# cue-based test read the posting as "didn't say". It was a 10-year job ranked
+# first on a 2-year candidate's shortlist.
+_FIELD_YEARS_RE = re.compile(
+    # COLON only. A hyphen here matched the range "10-18+ years" as
+    # label="10", value=18, which under the "max" aggregate turned a 10-year
+    # posting into an 18-year one — the opposite of the bug being fixed.
+    r"([\w /&()]{0,40}?)\s*:\s*(\d{1,2})\s*\+?\s*(?:years?|yrs?)\b", re.I)
+# ...but plenty of labelled year-values are not experience at all.
+_DURATION_LABEL_RE = re.compile(
+    r"contract|duration|notice|tenure|validity|bond|period|term|warranty|"
+    r"internship|course|degree|education|age\b", re.I)
 
 
 def _required_experience_floor(text):
-    """Smallest 'N years' figure mentioned — a proxy for the minimum experience
-    demanded. 'company founded 5 years ago' plus a real '2 years' requirement
-    resolves to 2 (kept); a lone '5+ years' resolves to 5 (over threshold)."""
-    nums = [int(m.group(1)) for m in YEARS_PATTERN.finditer(text)]
-    return min(nums) if nums else None
+    """The experience a posting demands, in years, or None if it doesn't say.
+
+    Only counts figures that are talking about experience: "minimum 16 years of
+    formal education" is a degree, not a career, and reading it as one made a
+    4-year role look like a 16-year one. Prose like "founded 5 years ago" is
+    likewise ignored rather than resolved to a requirement.
+
+    SETTINGS["experience_aggregate"] picks how several figures combine, because
+    the right answer depends on how the employer writes:
+
+      "min" (default)  Short JDs, where the smallest number is usually the real
+          ask and anything larger is a nice-to-have.
+      "max"  Long structured JDs that state a total AND a per-skill figure.
+          "8+ years of total software engineering experience ... 2+ years
+          hands-on in AI/ML" is an 8-year job, and min() ranked it first out of
+          63 as if it wanted 2. Across those 63: 21 read differently, all 21 in
+          favour of max.
+    """
+    vals = []
+    for m in YEARS_PATTERN.finditer(text):
+        after = text[m.end():m.end() + 60]
+        edu, exp = _EDU_RE.search(after), _EXP_CUE_RE.search(after)
+        # Whichever word comes FIRST decides what the figure is counting. Both
+        # can appear inside the same 60 characters: Accenture writes "minimum 3
+        # Year(s) Of Experience Is Required. Educational Qualification: 15 Years
+        # Full Time Education", where a plain "is there an education word nearby"
+        # test throws away the 3 and keeps nothing.
+        if edu and (not exp or edu.start() < exp.start()):
+            continue
+        if (exp or _EXP_OF_RE.match(after)
+                or _EXP_CUE_RE.search(text[max(0, m.start() - 30):m.start()])):
+            vals.append(int(m.group(1)))
+    # Second pass: labelled fields, for the templates that never say "experience".
+    for m in _FIELD_YEARS_RE.finditer(text):
+        if not _DURATION_LABEL_RE.search(m.group(1)):
+            vals.append(int(m.group(2)))
+    if not vals:
+        return None
+    return max(vals) if SETTINGS.get("experience_aggregate") == "max" else min(vals)
 
 
 def is_remote(row):
@@ -312,6 +411,20 @@ def _parse_date(s):
     if any(w in low for w in ("today", "just posted", "hour", "minute", "moment")):
         return datetime.now()
     return None
+
+
+def title_excluded(title):
+    """Does this TITLE alone hard-disqualify the role?
+
+    Split out of score_job so merge_jobs.py can re-apply it to a stored row.
+    A merged file spans sweeps run under older term lists, and the title is one of
+    the columns that IS kept — so unlike scoring, this rule can be re-checked
+    later, and it has to be: after "developer"/"engineer" were added to
+    hard_drop_terms, 26 of one shortlist's 50 rows were roles the current config
+    would never have reported, still sitting there with their old scores.
+    """
+    low = (title or "").lower()
+    return any(pat.search(low) for pat in HARD_DROP_PATTERNS.values())
 
 
 def is_recent(date_str, max_age_days):
@@ -436,7 +549,7 @@ def score_job(row):
     # hard_drop_terms (manager/principal/staff/...) and a stated experience floor
     # over the threshold remove a job. "Senior"/"Lead" are handled below as a
     # down-rank, because title inflation would otherwise delete reachable roles.
-    excluded = any(pat.search(title) for pat in HARD_DROP_PATTERNS.values())
+    excluded = title_excluded(title)
     floor = _required_experience_floor(text)
     if floor is not None and floor > SETTINGS["max_experience_years"]:
         excluded = True
@@ -476,6 +589,15 @@ def score_job(row):
     row["score"] = score
     row["matched_skills"] = ", ".join(dict.fromkeys(matched))  # dedup, preserve order
     row["is_fullstack"] = is_fullstack
+    # Keep the PARSED figure, not just the filtering decision it fed. The
+    # experience_required column used to read row["Experience"], a raw field only
+    # a couple of sources ever set (naukri's "2-4 Yrs", lever's commitment), so it
+    # was blank for LinkedIn, Amazon, Workday, SuccessFactors and Optum alike —
+    # every row whose requirement lives in the JD prose, which is most of them.
+    # The number is already computed here for the over-experience gate; it's the
+    # single most decision-relevant field for a candidate with a fixed number of
+    # years, so it belongs in the output rather than being thrown away.
+    row["years_required"] = floor
     enrich.enrich(row, SETTINGS["home_utc_offset"])   # remote/visa/eor/tz signals
     row["remote?"] = is_remote(row)
 
@@ -543,7 +665,20 @@ def job_key(row):
 
     Accepts both the internal schema ("Title") and the output schema ("title"),
     so merge_jobs.py can share it instead of keeping a second copy.
+
+    A published REQUISITION NUMBER outranks all of that, because it is the
+    employer's own identity for the opening and it is what an application is
+    submitted against. Company+title is a heuristic for "same posting seen
+    twice"; a req number is a fact. Without this, one employer's board collapses
+    genuinely separate openings — "Senior Full Stack Engineer" in Bengaluru and
+    in Hyderabad are two requisitions, two hiring managers, two applications, and
+    company+title made them one row. Measured on the 2026-07-30 Optum sweep: 107
+    live requisitions collapsed to 63. Only sources that publish a req id are
+    affected (today: Optum); every other row keys exactly as before.
     """
+    req = (row.get("req_number") or "").strip()
+    if req:
+        return "req", req.lower()
     company = _company_key(row.get("Company") or row.get("company"))
     title = _title_key(row.get("Title") or row.get("title"))
     if company and title:
@@ -626,6 +761,21 @@ def _build_linkedin_url(s):
             f"country. Add it to config.LINKEDIN_GEO_IDS, then confirm it with "
             f"`python verify_geoids.py`.")
     params = {"keywords": s["keywords"], "geoId": geo_id}
+    # 3. f_C=<numeric company id> is the third thing that bills you for the wrong
+    #    data when guessed. A wrong id doesn't error — it returns some other
+    #    employer's jobs. Measured: 1409, widely cited as Capgemini, is Wells
+    #    Fargo Advisors. So an unmapped name raises here, before any spend.
+    company = (s.get("company") or "").strip()
+    if company:
+        company_id = LINKEDIN_COMPANY_IDS.get(company)
+        if not company_id:
+            raise ValueError(
+                f"linkedin: no company id for '{company}'. A wrong f_C silently "
+                f"returns a DIFFERENT company's jobs at full price. Add it to "
+                f"config.LINKEDIN_COMPANY_IDS and confirm with "
+                f"`python verify_geoids.py --companies`, or target the employer "
+                f"by keyword instead.")
+        params["f_C"] = company_id
     if remote_only:
         params["f_WT"] = "2"
     code = _linkedin_experience_code(s.get("experience_years"))
@@ -684,25 +834,32 @@ def build_input(site_key, s):
 # ===========================================================================
 # Search plan
 # ===========================================================================
-def build_search_plan(keywords, locations):
-    """Cross product of keywords x locations (one search dict each). Both are
-    per-site overridable (SITES[site]["keywords"|"locations"]) and keywords can be
-    overridden per-run with --keywords."""
+def build_search_plan(keywords, locations, companies=None):
+    """Cross product of keywords x locations x companies (one search dict each).
+
+    All three are per-site overridable (SITES[site]["keywords"|"locations"|
+    "companies"]) and keywords can be overridden per-run with --keywords.
+    companies defaults to [None] — no company dimension — so a normal sweep is
+    the same keywords x locations plan it always was. Only LinkedIn consumes it
+    (f_C); other adapters ignore the key.
+    """
     plan = []
     for keyword in keywords:
         for location in locations:
-            plan.append({
-                "keywords": keyword,
-                "location": location,
-                "country": SEARCH["country"],
-                "experience_years": SEARCH["experience_years"],
-                "salary_min": SEARCH["salary_min"],
-                "max_results": SEARCH["max_results"],
-            })
+            for company in (companies or [None]):
+                plan.append({
+                    "keywords": keyword,
+                    "location": location,
+                    "company": company,
+                    "country": SEARCH["country"],
+                    "experience_years": SEARCH["experience_years"],
+                    "salary_min": SEARCH["salary_min"],
+                    "max_results": SEARCH["max_results"],
+                })
     return plan
 
 
-FREE_SITES = ("ats", "feeds", "free")   # pseudo-sites: no Apify actor, no cost
+FREE_SITES = ("ats", "feeds", "free", "optum")  # pseudo-sites: no Apify actor, no cost
 
 
 def resolve_sites(args):
@@ -727,7 +884,8 @@ def plan_for_site(site_key, args):
         keywords = [k.strip() for k in args.keywords.split(",") if k.strip()]
     else:
         keywords = SITES[site_key].get("keywords", SEARCH["role_keywords"])
-    plan = build_search_plan(keywords, locations)
+    plan = build_search_plan(keywords, locations,
+                             SITES[site_key].get("companies"))
 
     if args.test:
         plan = plan[:1]
@@ -841,7 +999,11 @@ def print_plan(plans):
         per_run = SITES[site_key].get("results_per_run", SEARCH["max_results"])
         print(f"  {site_key}: {len(plan)} searches (max {per_run} results each)")
         for s in plan:
-            print(f"    · {s['keywords']:<32} @ {s['location']:<14}")
+            # The company matters more than the keyword when a plan is
+            # company-filtered: without it four paid runs print as four
+            # identical blank lines, and you can't see what you're buying.
+            who = f" [{s['company']}]" if s.get("company") else ""
+            print(f"    · {(s['keywords'] or '(all)') + who:<40} @ {s['location']:<14}")
     print()
 
 
@@ -864,13 +1026,33 @@ def to_output(row):
         "visa": row.get("visa", ""),
         "eor": row.get("eor", ""),
         "timezones": row.get("timezones", ""),
-        "experience_required": row.get("Experience", ""),
+        # Prefer what the JD actually demands (parsed in score_job) over the raw
+        # source field, which most sources never populate. Rendered as "3+" so a
+        # floor isn't mistaken for an exact requirement.
+        "experience_required": (f"{row['years_required']}+"
+                                if row.get("years_required") is not None
+                                else row.get("Experience", "")),
         "salary": row.get("Salary", ""),
         "hr_email": row.get("hr_email", ""),
         "hr_phone": row.get("hr_phone", ""),
         "source_site": row.get("Source", ""),
         "apply_url": row.get("Job URL", ""),
         "date_posted": row.get("Posted Date", ""),
+        # The employer's own requisition id, where a source exposes one — it is
+        # what a referral is submitted against, so it has to survive to output.
+        # Blank for every source that doesn't publish one.
+        "req_number": row.get("req_number", ""),
+        # UHG's internal pay grade, from sources/optum.detail(). This line was
+        # MISSING while "grade" sat in OUTPUT_COLUMNS, so every sweep wrote the
+        # column and left it empty — and an empty grade column reads as "the
+        # employer didn't publish one", not as "we dropped it on the floor".
+        # It is the whole eligibility filter for the Optum runs (24/25 are in
+        # band, 26 asks 3+ years), so a silent blank there is the difference
+        # between a scan that answers the question and one that only looks like
+        # it did. Verified against a live JD: the extractor and the source were
+        # both fine, this assembler was the only broken link.
+        "grade": row.get("grade", ""),
+        "verified_live": row.get("verified_live", ""),
     }
 
 
@@ -1044,13 +1226,67 @@ def parse_args():
     return p.parse_args()
 
 
+def _token_headroom(token):
+    """(used, cap) month-to-date for a token, or None if it can't be read."""
+    import json
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                f"https://api.apify.com/v2/users/me/limits?token={token}",
+                timeout=15) as r:
+            d = json.load(r)["data"]
+        return (d["current"]["monthlyUsageUsd"],
+                d["limits"]["maxMonthlyUsageUsd"])
+    except Exception:
+        return None
+
+
 def _require_token():
+    """The configured token with the most credit left.
+
+    APIFY_TOKEN, APIFY_TOKEN_2, ... are separate free accounts with their own $5
+    caps. This used to return APIFY_TOKEN unconditionally, which made every
+    additional key decorative: with $2.50 left on the first account and $5.00
+    untouched on the second, an 84-search sweep costing ~$3.86 died at search 54
+    on "Monthly usage hard limit exceeded" — and because each search is wrapped
+    in its own try/except, it exited 0 with a normal-looking summary.
+
+    Reading the limits endpoint is free, so the choice is made on facts rather
+    than on which variable was named first. Unreadable tokens sort last but stay
+    usable, since a network blip is not proof a key is spent.
+
+    NOT a mid-run switch: the client is built once, so a sweep still cannot span
+    two accounts. It picks the best single account for the whole sweep, which is
+    enough whenever one account's headroom covers the plan — check --dry-run
+    against the numbers below if it might not.
+    """
     from dotenv import load_dotenv
     load_dotenv()
-    token = os.getenv("APIFY_TOKEN")
-    if not token:
+    named = [(k, v) for k, v in os.environ.items()
+             if k == "APIFY_TOKEN" or k.startswith("APIFY_TOKEN_")]
+    tokens = {}
+    for name, value in named:
+        if value and value not in tokens:
+            tokens[value] = name          # dedupe: the same key pasted twice is one wallet
+    if not tokens:
         sys.exit("APIFY_TOKEN not found. Add it to a .env file in this folder.")
-    return token
+    if len(tokens) == 1:
+        return next(iter(tokens))
+
+    scored = []
+    for token, name in tokens.items():
+        h = _token_headroom(token)
+        left = -1.0 if h is None else h[1] - h[0]
+        scored.append((left, name, token, h))
+    scored.sort(key=lambda t: -t[0])
+    for left, name, _, h in scored:
+        detail = "unreadable" if h is None else f"${h[0]:.2f} of ${h[1]:.2f} used"
+        print(f"  {name:<16} {detail:<24} "
+              + ("" if h is None else f"${left:.2f} left"))
+    best = scored[0]
+    print(f"  -> using {best[1]}"
+          + ("" if best[3] is None else f" (${best[0]:.2f} available)"))
+    return best[2]
 
 
 def demo():
@@ -1092,49 +1328,171 @@ def demo():
     assert job_key({}) is None
     assert len(dedupe([{}, {}])) == 2
 
+    # A requisition number is the employer's own identity for the opening, so two
+    # cities' postings of one title stay two rows — but the SAME req seen twice
+    # still collapses.
+    reqs = [{"Title": "Senior Full Stack Engineer", "Company": "Optum",
+             "Location": "Bengaluru", "req_number": "2378405"},
+            {"Title": "Senior Full Stack Engineer", "Company": "Optum",
+             "Location": "Hyderabad", "req_number": "2378409"}]
+    assert len(dedupe(reqs)) == 2, dedupe(reqs)
+    assert len(dedupe(reqs + [dict(reqs[0], Location="Bangalore")])) == 2
+    assert job_key(reqs[0]) != job_key(reqs[1])
+
+    # Every DECLARED output column must actually be produced. This is the whole
+    # bug class, not one field: "grade" sat in OUTPUT_COLUMNS while to_output()
+    # never copied it, so csv.DictWriter dutifully wrote the header and left the
+    # column empty on every row of every sweep. An empty column reads as "the
+    # employer didn't publish this", which is why it survived — nothing looked
+    # broken. Comparing the two sets catches the next forgotten column for free.
+    assert set(to_output({})) == set(OUTPUT_COLUMNS), (
+        set(OUTPUT_COLUMNS) ^ set(to_output({})))
+    # And specifically that the pay grade rides through, since it IS the
+    # eligibility filter on the Optum runs (24/25 in band, 26 wants 3+ years).
+    assert to_output({"grade": "25"})["grade"] == "25"
+
     # Two-tier seniority: an inflated title label must not delete a role whose
     # stated requirement is within reach, but a genuinely senior one still goes.
+    #
+    # FULLY PINNED — the flag AND the vocabularies. These asserts are about the
+    # mechanism, not about anyone's word lists, and every part of them read live
+    # has now broken on a legitimate config: drop_excluded=False (a résumé that
+    # keeps over-experienced rows and penalizes them) and then hard_drop_terms
+    # containing "developer" (a functional-consultant résumé, for which every
+    # developer title IS a hard no) both failed here on correct settings. So the
+    # test titles are nonsense words no real config scores, and the term lists are
+    # substituted for the duration.
     sj = lambda t, d="": score_job({"Title": t, "Description": d})   # noqa: E731
-    assert sj("Engineering Manager") is None                     # hard drop
-    assert sj("Staff Software Engineer") is None
-    assert sj("Principal Architect") is None
-    assert sj("Senior React Developer", "2 years of React experience.") is not None
-    plain = sj("React Developer", "2 years of React experience.")
-    senior = sj("Senior React Developer", "2 years of React experience.")
-    assert senior["score"] == plain["score"] + SCORING["soft_penalty"]  # kept, lower
+    _saved = (SETTINGS["drop_excluded"], dict(HARD_DROP_PATTERNS),
+              dict(SOFT_DROP_PATTERNS), SETTINGS["max_experience_years"])
+    try:
+        SETTINGS["drop_excluded"] = True
+        SETTINGS["max_experience_years"] = 3
+        HARD_DROP_PATTERNS.clear()
+        HARD_DROP_PATTERNS.update({t: _compile(t) for t in ("principal", "manager")})
+        SOFT_DROP_PATTERNS.clear()
+        SOFT_DROP_PATTERNS.update({"senior": _compile("senior")})
+
+        assert sj("Zorb Manager") is None                       # hard-drop term
+        assert sj("Principal Zorb") is None
+        assert sj("Senior Zorb", "2 years of experience.") is not None
+        plain = sj("Zorb", "2 years of experience.")
+        senior = sj("Senior Zorb", "2 years of experience.")
+        assert senior["score"] == plain["score"] + SCORING["soft_penalty"]
+        # A title label is not a requirement; a STATED floor over the threshold
+        # is. This one goes even though "Senior" alone wouldn't do it.
+        assert sj("Senior Zorb", "8+ years of experience.") is None
+
+        # drop_excluded=False: the same rows are KEPT and sink by drop_penalty
+        # rather than disappearing. That branch shipped with no coverage at all.
+        SETTINGS["drop_excluded"] = False
+        assert sj("Zorb Manager") is not None
+        within = sj("Zorb", "2 years of experience.")
+        over = sj("Zorb", "12 years of experience.")
+        assert over is not None, "over-experienced row must be kept, not dropped"
+        assert over["score"] == within["score"] + SCORING["drop_penalty"]
+    finally:
+        (SETTINGS["drop_excluded"], _h, _s,
+         SETTINGS["max_experience_years"]) = _saved
+        HARD_DROP_PATTERNS.clear(); HARD_DROP_PATTERNS.update(_h)
+        SOFT_DROP_PATTERNS.clear(); SOFT_DROP_PATTERNS.update(_s)
 
     # Repost farms go whatever they score; whole-name match, so a real employer
     # whose name merely contains one is untouched.
-    farm = {"Title": "Full Stack Engineer", "Description": "React, Node, 2 years."}
+    # Nonsense title for the same reason as the block above: this asserts what
+    # blocked_company does, and a real job title drags whatever the loaded config
+    # thinks of that title into the result ("Full Stack Engineer" is a hard drop
+    # on a functional-consultant résumé). "2 years" clears any sane threshold.
+    farm = {"Title": "Zorb", "Description": "2 years of experience."}
     assert score_job(dict(farm, Company="Hired")) is None
     assert score_job(dict(farm, Company="SWAKIO™")) is None
     assert score_job(dict(farm, Company="  jobs ai ")) is None
     assert score_job(dict(farm, Company="Freshired Labs")) is not None
     assert score_job(dict(farm, Company="")) is not None   # unknown != blocked
-    assert sj("Senior React Developer", "8+ years of React required.") is None
+
+    # Experience floor: only figures that count EXPERIENCE, and the aggregate
+    # decides which of several wins. All three cases are verbatim from live JDs.
+    floor = _required_experience_floor
+    assert floor("we were founded 5 years ago and love react") is None
+    assert floor("b.tech (minimum 16 years of formal education) "
+                 "4+ years in a software engineer role") == 4      # degree != career
+    both = ("8+ years of total software engineering experience, "
+            "including 2+ years hands-on in ai/ml")
+    assert floor(both) == 2                                        # default: min
+    # A labelled field whose whole value is a years figure counts, even when no
+    # experience word is anywhere near it — and a labelled DURATION does not.
+    # Verbatim from the Netradyne template that put a 10-year role at the top of a
+    # 2-year candidate's shortlist.
+    assert floor("job title : salesforce techno functional consultant "
+                 "department/group : business systems group "
+                 "business systems group : 10+ years location : bangalore") == 10
+    assert floor("experience : 3+ years") == 3
+    assert floor("contract duration : 2 years") is None
+    assert floor("internship : 1 year") is None
+    assert floor("education : 15 years full time") is None
+    assert floor("with growth exceeding 4x year over year") is None
+
+    agg = SETTINGS.get("experience_aggregate")
+    SETTINGS["experience_aggregate"] = "max"
+    try:
+        assert floor(both) == 8
+        assert floor("3+ years of experience in full stack development") == 3
+        # Accenture's template, verbatim. The "(s)" used to make this read as
+        # "not stated", so every 5- and 8-year role ranked as if unbounded.
+        assert floor("minimum 5 year(s) of experience is required") == 5
+        assert floor("skills : java full stack development minimum 3 year(s) of "
+                     "experience is required educational qualification : 15 "
+                     "years full time education") == 3      # 15 is the degree
+        assert floor("1 year of experience in software development") == 1
+        # Ranges read as their LOWER bound whichever separator is used. Both
+        # verbatim from Accenture JDs; both used to report the upper number.
+        assert floor("experience 10-18+ years of overall it experience") == 10
+        assert floor("10–18+ years of overall it experience") == 10
+        assert floor("experience: 5 to 12 years of hands-on experience in "
+                     "full-stack development") == 5
+        assert floor("3-5 years of experience building web apps") == 3
+    finally:
+        SETTINGS["experience_aggregate"] = agg
+
+    # The title gate fails SILENTLY — a wrong answer doesn't raise, it quietly
+    # changes which jobs exist. An exclude must beat an include, because the
+    # titles worth excluding contain an include term by construction.
+    saved = ATS_TITLE_HINTS[:], ATS_TITLE_EXCLUDE[:]
+    try:
+        ATS_TITLE_HINTS[:] = ["software engineer", "ml engineer", "full stack"]
+        ATS_TITLE_EXCLUDE[:] = ["data engineer", "automation testing"]
+        assert is_dev_title("Senior AI/ML Engineer - LLM, RAG and Agentic AI")
+        assert is_dev_title("Lead Full Stack Engineer - Java FSD")
+        assert not is_dev_title("Senior Software Engineer I (Data Engineer - Spark)")
+        assert not is_dev_title("Senior Software Engineer I - AWS Automation Testing")
+        assert not is_dev_title("Senior Data Analyst - Power BI")   # no hint at all
+        ATS_TITLE_EXCLUDE[:] = []
+        assert is_dev_title("Senior Software Engineer I (Data Engineer - Spark)")
+    finally:
+        ATS_TITLE_HINTS[:], ATS_TITLE_EXCLUDE[:] = saved
 
     # Timezone gap down-ranks but never removes, and only past the free window.
-    near = sj("React Developer", "Remote across Europe. 2 years experience.")
-    far = sj("React Developer", "Remote in the US. 2 years experience.")
+    near = sj("Zorb", "Remote across Europe. 2 years experience.")
+    far = sj("Zorb", "Remote in the US. 2 years experience.")
     assert near is not None and far is not None
     assert near["tz_gap"] == 4.5 and far["tz_gap"] == 11.5
     assert near["score"] > far["score"], (near["score"], far["score"])
     # 4.5h is inside TZ_FREE_HOURS, so the near role pays nothing at all.
-    assert near["score"] == sj("React Developer", "2 years experience.")["score"]
+    assert near["score"] == sj("Zorb", "2 years experience.")["score"]
 
     # A geo-locked role is rescued only when the EMPLOYER hires at home.
     orig = SETTINGS["remote_scopes"], SETTINGS["keep_restricted_if_hires_home"]
     SETTINGS["remote_scopes"] = ["worldwide"]
     SETTINGS["keep_restricted_if_hires_home"] = True
     try:
-        base = {"Title": "React Developer", "Description": "2 years experience.",
+        base = {"Title": "Zorb", "Description": "2 years experience.",
                 "Location": "New York, NY (HQ), Remote"}
         assert len(finalize([dict(base, Company="A", hires_home="yes")])) == 1
         assert len(finalize([dict(base, Company="B", hires_home="no")])) == 0
         assert len(finalize([dict(base, Company="C", hires_home="")])) == 0  # feeds
         # ...or when the lock is TO home: "remote within India" is the most
         # reachable role there is, whatever the employer's other postings say.
-        home = {"Title": "React Developer", "Description": "2 years experience.",
+        home = {"Title": "Zorb", "Description": "2 years experience.",
                 "Location": "Remote, India", "Company": "D", "hires_home": ""}
         got = finalize([dict(home)])
         assert len(got) == 1 and got[0]["remote_scope"] == "restricted", got
@@ -1162,9 +1520,9 @@ def demo():
     # The stamp is what makes an India-locked remote row survive: city location
     # alone reads as "not stated" and is dropped.
     plain = enrich.enrich({"Location": "Bengaluru, Karnataka, India",
-                           "Title": "React Developer", "Description": "Build UIs."})
+                           "Title": "Zorb", "Description": "Build UIs."})
     stamped = enrich.enrich({"Location": "Bengaluru, Karnataka, India, Remote",
-                             "Title": "React Developer", "Description": "Build UIs."})
+                             "Title": "Zorb", "Description": "Build UIs."})
     assert plain["remote_scope"] == "", plain
     assert stamped["remote_scope"] == "restricted", stamped
     assert stamped["remote_regions"] == "India", stamped
@@ -1215,6 +1573,11 @@ def demo():
         assert location_allowed("Berlin, Germany") is False
         assert location_allowed("Pune, India") is True
         assert location_allowed("") is True                     # unspecified -> keep
+        # Word boundaries, not substrings: US Indiana is not India, and matched a
+        # quarter of the cards an India-only sweep was keeping.
+        assert location_allowed("Indianapolis, Indiana") is False
+        assert location_allowed("New Albany, Indiana") is False
+        assert location_allowed("Indiana, Pennsylvania") is False
     finally:
         LOCATION_HINTS = original
     print("demo ok")
@@ -1238,9 +1601,11 @@ def main():
     # --no-free or a specific Apify --site was requested.
     n_boards = sum(len(b) for b in ATS_BOARDS.values())
     n_feeds = sum(1 for c in FEEDS.values() if c.get("enabled"))
+    n_optum = 1 if OPTUM.get("enabled") else 0
+    n_ent = len(ENTERPRISE.get("employers") or []) if ENTERPRISE.get("enabled") else 0
     run_free = ((args.site in FREE_SITES or args.site is None)
                 and not args.test and not args.no_free
-                and bool(n_boards or n_feeds))
+                and bool(n_boards or n_feeds or n_optum or n_ent))
 
     if not plans and not run_free:
         sys.exit("Nothing to run — no sites enabled and no free sources configured.")
@@ -1250,7 +1615,11 @@ def main():
     if run_free:
         print(f"Free sources: {n_boards} ATS boards "
               f"({', '.join(k for k, v in ATS_BOARDS.items() if v)}) "
-              f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})\n")
+              f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})"
+              + (f" + {OPTUM['company']} careers ({_optum_scope()}, "
+                 f"live-verified)" if n_optum else "")
+              + (f" + {n_ent} enterprise careers sites "
+                 f"({', '.join(ENTERPRISE['employers'])})" if n_ent else "") + "\n")
 
     if args.dry_run:
         print("Sample actor inputs (first combo per site):")
@@ -1351,8 +1720,14 @@ def main():
             actor_id = SITES[site_key]["actor"]
             print(f"\n{site_key} ({actor_id})")
             for i, search in enumerate(plan, 1):
-                label = f"{search['keywords']} @ {search['location']}"
-                combo_key = f"{today}|{site_key}|{search['keywords']}|{search['location']}"
+                # The company is part of a combo's identity, not decoration:
+                # four company-filtered searches share an empty keyword and one
+                # location, so without it they collapse to a single key and
+                # three of the four paid runs silently "skip (done)".
+                who = f" [{search['company']}]" if search.get("company") else ""
+                label = f"{search['keywords'] or '(all)'}{who} @ {search['location']}"
+                combo_key = (f"{today}|{site_key}|{search['keywords']}|"
+                             f"{search['location']}|{search.get('company') or ''}")
                 if combo_key in done:
                     print(f"  [{i}/{len(plan)}] {label:<46} — skip (done)")
                     continue

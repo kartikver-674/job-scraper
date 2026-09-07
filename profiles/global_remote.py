@@ -7,9 +7,12 @@ Indeed's ~$0.005, and Indeed's strength is domestic listings that skew onsite.
     python scraper.py --profile global_remote --dry-run    # cost check, spends nothing
     python scraper.py --profile global_remote --yes
 
-Cost = keywords x countries x max_results x $0.001. As configured below that is
-5 x 12 x 25 = 1,500 results ~= $1.50 per sweep. Widen `countries` or
-`max_results` and it scales linearly; see the table in the README.
+Cost, MEASURED rather than assumed: a 48-search sweep on 2026-08-25 billed $2.20,
+i.e. ~$0.046 per search of 25 results (~$0.0018/result, not the $0.001 this file
+used to claim). As configured below that is 5 x 12 = 60 searches ~= $2.76 — well
+under the $4.50 max_spend_usd cap, which stays where main measured it so widening
+`countries` or `role_keywords` a little doesn't silently truncate the last few
+searches. Widen `countries` or `max_results` and it scales linearly.
 
 Every geoId used here was verified with `python verify_geoids.py` — a wrong one
 is not a soft failure, LinkedIn returns US results and bills you in full.
@@ -99,7 +102,7 @@ SETTINGS = {
 
     # A hard stop well under the estimate above, so a mis-set dial can't run away
     # with the credit. Raise it deliberately, never "just to see".
-    "max_spend_usd": 4.00,
+    "max_spend_usd": 4.50,
     # 84 planned runs is far past the default prompt threshold; keep the
     # confirmation rather than discovering the bill afterwards.
     "confirm_above_runs": 12,
