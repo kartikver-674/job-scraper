@@ -542,6 +542,44 @@ SCORING = {
         # usefully, inside "internal" or "international".
         "intern", "internship", "trainee", "fresher", "apprentice", "co-op",
         "new grad", "graduate", "junior", "jr",
+        # SHE DOES NOT WRITE CODE. This was the last thing in the model still
+        # tuned to the previous résumé, where "developer" was the TARGET — so
+        # nothing anywhere said a dev title disqualifies a functional
+        # consultant, and 41 of the 177 rows on the first real sweep were
+        # engineering roles: "Salesforce Developer" x9, "Custom Software
+        # Engineer" at 37, "Sr Software Engineer Salesforce".
+        #
+        # Scoring cannot fix this and shouldn't try. penalty_terms already
+        # carries "salesforce developer": -8, but it is competing with
+        # salesforce +10, sales cloud +8, service cloud +8 and the +6 bonus —
+        # and "Custom Software Engineer" names no penalty term at all, so it
+        # collected the full platform score with nothing to offset it.
+        #
+        # Here rather than in ATS_TITLE_EXCLUDE because that list only gates the
+        # FREE sources (scraper.fetch_free passes is_dev_title; the paid rows
+        # never see it), and LinkedIn keyword drift is where these came from.
+        # hard_drop_terms runs on paid rows too and is re-applied to stored rows
+        # at merge time, so the 81 already on disk clear without re-scraping.
+        "developer", "engineer", "engineering",
+        # Pure-Salesforce-dev title markers, for the roles that never say
+        # "developer": PwC posts its build work as "Salesforce LwC Agentforce-SA"
+        # and "Salesforce Omnistudio- Sr. Associate".
+        #
+        # TITLE-ONLY, which is what makes this safe: penalty_terms deliberately
+        # keeps "apex" mild at -3 because an Admin JD listing "knowledge of Apex"
+        # as a NICE-TO-HAVE is normal and -6 was cancelling two ideal Twilio
+        # roles. A title that says Apex is not a nice-to-have. Both rules stand.
+        "lwc", "apex", "omnistudio",
+        #
+        # SIDE EFFECT, stated rather than discovered later: profiles that do NOT
+        # override SCORING inherit this list, and five of the ones merged from
+        # main target dev roles outright — kartik_reachable, global_all,
+        # bigtech_paid, bigtech_capgemini, india_free. They return almost
+        # nothing now. That is correct on THIS branch: they are the previous
+        # candidate's profiles and were never hers to sweep with. Her own four
+        # (parul_reachable, global_remote, remote_intl, india_remote) all want
+        # this rule. bigtech.py and optum.py define their own SCORING and are
+        # unaffected either way.
     ],
     # soft_drop_terms: usually inflated titling, especially in international
     # remote, where "Senior" routinely means 3-4 years. NEVER dropped — only
