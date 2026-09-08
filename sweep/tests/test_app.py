@@ -957,7 +957,7 @@ RUNNING_PLAN = {
 
 
 class TestRunningScreen(unittest.TestCase):
-    def _app(self, done=(), alive=True, read_spend=None):
+    def _app(self, done=(), alive=True, read_spend=None, now=None):
         proc = FakeProc()
         if not alive:
             proc.poll = lambda: 0
@@ -966,13 +966,17 @@ class TestRunningScreen(unittest.TestCase):
                  "raw_plan": RUNNING_PLAN, "plan": {"total": 2.70,
                                                 "total_searches": 46,
                                                 "over_cap": False, "lines": []}}
+        kwargs = {}
+        if now is not None:
+            kwargs["now"] = now
         app = app_module.create_app(
             state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
             check_token=lambda t: (8.41, None),
             fetch_plan=lambda profile: RUNNING_PLAN,
             start_sweep=lambda profile: proc,
             read_spend=read_spend or (lambda: 2.42),
-            read_done=lambda profile, day: set(done))
+            read_done=lambda profile, day: set(done),
+            **kwargs)
         app.config.update(TESTING=True)
         return app, state, proc
 
@@ -1034,6 +1038,89 @@ class TestRunningScreen(unittest.TestCase):
         payload = app.test_client().get("/progress").get_json()
         self.assertIsNone(payload["spend"])
         self.assertFalse(payload["spend_known"])
+
+    # -- Review round 1: /progress and /events reachable on empty state ----
+
+    def test_progress_without_a_plan_is_409_not_a_500(self):
+        # Reachable without going through /run — a bookmark, a stale tab
+        # after a reset, curl during manual testing. snapshot() reaches
+        # state["raw_plan"]/["profile"] by bracket access, so this must not
+        # fall through to a KeyError-driven 500.
+        app = app_module.create_app(state={})
+        app.config.update(TESTING=True)
+        r = app.test_client().get("/progress")
+        self.assertEqual(r.status_code, 409)
+
+    def test_events_without_a_plan_is_409_not_a_500(self):
+        # Same guard as /progress. A plain error status, not the 302
+        # /running redirects with — EventSource would follow a redirect
+        # into HTML rather than treat it as a closed stream.
+        app = app_module.create_app(state={})
+        app.config.update(TESTING=True)
+        r = app.test_client().get("/events")
+        self.assertEqual(r.status_code, 409)
+
+    # -- Review round 1: A3's throttle has to actually skip a re-read -----
+
+    def test_spend_is_read_once_across_two_requests_within_the_poll_window(self):
+        calls = []
+
+        def read_spend():
+            calls.append(1)
+            return 2.42
+
+        clock = [100.0]
+        app, _, _ = self._app(read_spend=read_spend, now=lambda: clock[0])
+        client = app.test_client()
+        client.get("/progress")
+        client.get("/progress")
+        self.assertEqual(len(calls), 1)
+
+    def test_spend_is_reread_once_the_poll_window_elapses(self):
+        calls = []
+
+        def read_spend():
+            calls.append(1)
+            return 2.42
+
+        clock = [100.0]
+        app, _, _ = self._app(read_spend=read_spend, now=lambda: clock[0])
+        client = app.test_client()
+        client.get("/progress")
+        clock[0] += app_module.SPEND_POLL_SECONDS + 1
+        client.get("/progress")
+        self.assertEqual(len(calls), 2)
+
+    # -- Review round 1: the amber/teal tile mapping needs direct coverage -
+
+    def test_tile_free_flag_matches_site_rates(self):
+        plan = {
+            "profile": "kanav",
+            "sites": {
+                "linkedin": [{"keywords": "kw0", "location": "India",
+                              "company": ""}],
+                # Not in config.SITE_RATES, so it's the free/teal case.
+                "remoteok": [{"keywords": "kw0", "location": "Remote",
+                             "company": ""}],
+            },
+            "free_sources": 0,
+        }
+        state = {"profile": "kanav", "cap_usd": 8.41, "proc": FakeProc(),
+                 "baseline_usd": 1.00, "raw_plan": plan,
+                 "plan": {"total": 0.045, "total_searches": 2,
+                          "over_cap": False, "lines": []}}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: plan,
+            start_sweep=lambda profile: state["proc"],
+            read_spend=lambda: 2.42,
+            read_done=lambda profile, day: set())
+        app.config.update(TESTING=True)
+        payload = app.test_client().get("/progress").get_json()
+        tiles_by_site = {t["site"]: t for t in payload["tiles"]}
+        self.assertFalse(tiles_by_site["linkedin"]["free"])
+        self.assertTrue(tiles_by_site["remoteok"]["free"])
 
 
 if __name__ == "__main__":

@@ -198,7 +198,7 @@ def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
                check_token=None, env_path=None, fetch_plan=None,
                start_sweep=None, read_spend=None, output_dir=None,
-               read_done=None):
+               read_done=None, now=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -210,6 +210,10 @@ def create_app(state=None, extract=None, resume_dir=None,
     # with one — output/ holds real paid-sweep results with no git history
     # to fall back on.
     output_dir = output_dir if output_dir is not None else os.path.join(REPO_ROOT, "output")
+    # Injected so a test can advance the spend-poll throttle (SPEND_POLL_SECONDS
+    # below) without a real sleep — a sleeping test is a slow test forever.
+    import time as _time_mod
+    now = now if now is not None else _time_mod.monotonic
 
     if extract is None:
         import resume_parser
@@ -321,7 +325,6 @@ def create_app(state=None, extract=None, resume_dir=None,
     def snapshot():
         """One progress reading. Spend is a delta from the recorded baseline,
         because account_usage_usd is month-to-date, not per-run."""
-        import time
         from sweep import runs as runs_mod
 
         planned = planned_keys(app.state)
@@ -335,23 +338,23 @@ def create_app(state=None, extract=None, resume_dir=None,
             tile["free"] = config.SITE_RATES.get(tile["site"], 0.0) == 0.0
 
         last_at = app.state.get("spend_read_at")
-        if last_at is None or (time.monotonic() - last_at) >= SPEND_POLL_SECONDS:
+        if last_at is None or (now() - last_at) >= SPEND_POLL_SECONDS:
             app.state["spend_read_val"] = read_spend()
-            app.state["spend_read_at"] = time.monotonic()
-        now = app.state["spend_read_val"]
+            app.state["spend_read_at"] = now()
+        spend_now = app.state["spend_read_val"]
 
         baseline = app.state.get("baseline_usd")
         p["baseline_known"] = baseline is not None
-        p["spend_known"] = now is not None
-        if now is None:
+        p["spend_known"] = spend_now is not None
+        if spend_now is None:
             # No reading at all. Don't invent a figure for a money display.
             p["spend"] = None
         elif baseline is None:
             # Month-to-date with no baseline to subtract. Report it as what
             # it is, not as this sweep's cost.
-            p["spend"] = round(now, 4)
+            p["spend"] = round(spend_now, 4)
         else:
-            p["spend"] = round(max(0.0, now - baseline), 4)
+            p["spend"] = round(max(0.0, spend_now - baseline), 4)
         app.state["spend"] = p["spend"] or 0.0
 
         proc = app.state.get("proc")
@@ -652,6 +655,12 @@ def create_app(state=None, extract=None, resume_dir=None,
     @app.get("/progress")
     def progress():
         from flask import jsonify
+        # Reachable without going through /run, same as /running — a
+        # bookmark, a stale tab after a reset, curl during manual testing.
+        # snapshot() reaches state["raw_plan"]/["profile"] by bracket
+        # access, so this must not fall through to it on empty state.
+        if not app.state.get("raw_plan"):
+            return jsonify({"error": "No sweep running."}), 409
         return jsonify(snapshot())
 
     @app.get("/events")
@@ -659,6 +668,14 @@ def create_app(state=None, extract=None, resume_dir=None,
         import json
         import time
         from flask import Response
+
+        # Same guard as /progress. A 302 here is what /running redirects
+        # with, but EventSource treats a redirect response as HTML to load,
+        # not a stream to read — so this closes the connection with a plain
+        # error status instead of redirecting into it.
+        if not app.state.get("raw_plan"):
+            return Response('{"error": "No sweep running."}', status=409,
+                            mimetype="application/json")
 
         def stream():
             while True:
