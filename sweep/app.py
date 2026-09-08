@@ -31,7 +31,7 @@ import config  # noqa: E402
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    _valid_profile_name, bucket_rows, worst_filter)
+    _valid_profile_name, bucket_rows, fill_pct, worst_filter)
 
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
          ("configure", "Configure"), ("confirm", "Confirm"),
@@ -284,8 +284,7 @@ def create_app(state=None, extract=None, resume_dir=None,
             # it is, not as this sweep's cost.
             p["spend"] = round(spend_now, 4)
         else:
-            p["spend"] = round(max(0.0, spend_now - baseline), 4)
-        app.state["spend"] = p["spend"] or 0.0
+            p["spend"] = spend_delta()
 
         proc = app.state.get("proc")
         running_now = proc is not None and proc.poll() is None
@@ -330,13 +329,38 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         return app.state.get("cap_usd") is None
 
-    def shell(step, **kw):
+    def shell(step, spend=0.0, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
-        figure carried over from another step."""
-        return dict(steps=STEPS, step=step,
-                    spend=app.state.get("spend", 0.0),
-                    cap_usd=app.state.get("cap_usd"),
-                    fill_pct=app.state.get("fill_pct", 0), **kw)
+        figure carried over from another step.
+
+        `spend` is an ARGUMENT, not a lookup: it used to be read from
+        app.state["spend"], which /configure set to the estimate and no later
+        screen overwrote — so /results showed the estimate under the label
+        "Spent" with nothing spent at all. A shared mutable figure cannot
+        satisfy the rule in the line above, so there isn't one.
+
+        None means "not known" and renders as that, never as $0.00: a
+        fabricated zero on a money display is the same defect pointing the
+        other way.
+        """
+        cap = app.state.get("cap_usd")
+        return dict(steps=STEPS, step=step, spend=spend, cap_usd=cap,
+                    fill_pct=fill_pct(spend, cap), **kw)
+
+    def spend_delta():
+        """This sweep's own spend, or None when it cannot be known.
+
+        account_usage_usd is month-to-date, so a baseline is subtracted; a
+        None baseline means "unknown" and must never be subtracted as zero,
+        which would report the account's whole month as this sweep's cost.
+        One implementation, shared with snapshot(), so the running screen and
+        the results screen cannot report different figures for one sweep.
+        """
+        spend_now = app.state.get("spend_read_val")
+        baseline = app.state.get("baseline_usd")
+        if spend_now is None or baseline is None:
+            return None
+        return round(max(0.0, spend_now - baseline), 4)
 
     limit_mb = max_upload_bytes / (1024 * 1024)
 
@@ -459,9 +483,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         if no_key_yet():
             return redirect(url_for("key"))
         estimate = costed(app.state["profile"])
-        app.state["spend"] = estimate["total"]
         return render_template("configure.html", **shell(
-            "configure", estimate=estimate))
+            "configure", spend=estimate["total"], estimate=estimate))
 
     @app.post("/estimate")
     def estimate():
@@ -530,7 +553,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         # screen's own state, never a figure carried over from an earlier one.
         plan = costed(app.state["profile"])
         return render_template("confirm.html", **shell(
-            "confirm", plan=plan, spans_midnight=datetime.now().hour >= 22))
+            "confirm", spend=plan["total"], plan=plan,
+            spans_midnight=datetime.now().hour >= 22))
 
     @app.post("/run")
     def run():
@@ -545,7 +569,8 @@ def create_app(state=None, extract=None, resume_dir=None,
             return "No key connected — connect one before running.", 400
         if plan_now.get("over_cap"):
             return render_template("confirm.html", **shell(
-                "confirm", plan=plan_now, spans_midnight=False,
+                "confirm", spend=plan_now["total"], plan=plan_now,
+                spans_midnight=False,
                 error="Attach a second key or narrow the search first.")), 400
 
         # Stamp the real cap into the profile BEFORE the child starts.
@@ -587,18 +612,21 @@ def create_app(state=None, extract=None, resume_dir=None,
         if token and token in (os.environ.get("APIFY_TOKEN"),
                                 os.environ.get("APIFY_TOKEN_2")):
             return render_template("confirm.html", **shell(
-                "confirm", plan=plan_now, spans_midnight=False,
+                "confirm", spend=plan_now["total"], plan=plan_now,
+                spans_midnight=False,
                 error="That's the same key already on file — it adds no "
                       "new credit.")), 400
 
         available, error = check_token(token)
         if error:
             return render_template("confirm.html", **shell(
-                "confirm", plan=plan_now, spans_midnight=False,
+                "confirm", spend=plan_now["total"], plan=plan_now,
+                spans_midnight=False,
                 error=error)), 400
         if available <= 0:
             return render_template("confirm.html", **shell(
-                "confirm", plan=plan_now, spans_midnight=False,
+                "confirm", spend=plan_now["total"], plan=plan_now,
+                spans_midnight=False,
                 error="That key verified, but it has no credit "
                       "available.")), 400
 
@@ -614,8 +642,10 @@ def create_app(state=None, extract=None, resume_dir=None,
     def running():
         if not app.state.get("raw_plan"):
             return redirect(url_for("configure"))
+        progress_now = snapshot()
         return render_template("running.html", **shell(
-            "running", progress=snapshot(), plan=app.state["plan"]))
+            "running", spend=progress_now["spend"], progress=progress_now,
+            plan=app.state["plan"]))
 
     @app.get("/progress")
     def progress():
@@ -691,7 +721,10 @@ def create_app(state=None, extract=None, resume_dir=None,
                            if r.get("source_site")})
 
         return render_template("results.html", **shell(
-            "results", buckets=bucket_rows(rows), sections=SECTIONS,
+            # What this sweep actually cost, or None when no run recorded a
+            # baseline to subtract from. Never the estimate.
+            "results", spend=spend_delta(),
+            buckets=bucket_rows(rows), sections=SECTIONS,
             total=len(rows), all_total=len(all_rows),
             min_score=min_score, source=source, q=q, sources=sources,
             # Same rule plan.cost() and snapshot() use — a site listed at a

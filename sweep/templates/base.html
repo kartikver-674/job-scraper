@@ -18,9 +18,14 @@
 <div{% block meter_scope %}{% endblock %}>
   <div class="meter {{ 'over' if spend and cap_usd is not none and spend > cap_usd }}"{% block meter_class_bind %}{% endblock %}>
     <span class="muted">{% block meter_label %}Current spend{% endblock %}</span>
-    <span class="numeral"{% block meter_numeral_bind %}{% endblock %}>${{ '%.2f'|format(spend or 0) }}</span>
+    {# None means the figure genuinely is not known (no baseline to subtract,
+       or the account-usage call failed). It renders as that, never as
+       $0.00 — a fabricated zero on a money display is its own defect. #}
+    <span class="numeral{{ ' unknown' if spend is none }}"{% block meter_numeral_bind %}{% endblock %}>
+      {%- if spend is none %}not known{% else %}${{ '%.2f'|format(spend) }}{% endif -%}
+    </span>
     <div class="meter-track">
-      <div class="meter-fill" style="width: {{ fill_pct or 0 }}%"></div>
+      <div class="meter-fill" style="width: {{ fill_pct }}%"{% block meter_fill_bind %}{% endblock %}></div>
       {% if cap_usd is not none %}<div class="meter-cap" style="left: 100%"></div>{% endif %}
     </div>
   </div>

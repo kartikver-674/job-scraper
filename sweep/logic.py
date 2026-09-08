@@ -237,3 +237,20 @@ def worst_filter(all_rows, min_score, source, q):
     name = max(removed, key=removed.get)
     return name, removed[name]
 
+
+
+def fill_pct(spend, cap):
+    """How much of the connected credit a figure represents, 0-100.
+
+    The meter bar and the cap marker at left:100% are the only thing on the
+    page that shows PROXIMITY to the limit rather than an absolute figure, so
+    it has to be a real number — it was hardcoded to 0% on every screen.
+    Clamped at 100 because a plan can exceed the credit, and the bar turning
+    red (.meter.over) is what says so, not a bar overflowing its track.
+    """
+    if spend is None or cap is None:
+        return 0
+    if cap <= 0:
+        # A real zero-credit account. Anything at all is "all of it".
+        return 100 if spend > 0 else 0
+    return min(100, round(spend / cap * 100))

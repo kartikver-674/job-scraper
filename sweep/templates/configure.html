@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Configure the sweep — Sweep{% endblock %}
 {% block meter_label %}Estimated cost{% endblock %}
-{% block meter_scope %} x-data="{ est: {{ estimate|tojson }} }"{% endblock %}
+{# SINGLE-quoted: |tojson escapes ' < & but not ", so inside a
+   double-quoted attribute the value ends at the JSON's first " and Alpine
+   silently never initialises — on the screen whose whole job is a live cost. #}
+{% block meter_scope %} x-data='{ est: {{ estimate|tojson }} }'{% endblock %}
 {% block meter_numeral_bind %} x-text="'$' + est.total.toFixed(2)"{% endblock %}
 {% block meter_class_bind %} :class="{ over: est.over_cap }"{% endblock %}
 {% block body %}

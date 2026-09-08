@@ -8,6 +8,57 @@ from unittest import mock
 from sweep import app as app_module
 
 
+def alpine_scope(body):
+    """The x-data attribute value as a real HTML parser sees it.
+
+    `|tojson` escapes ' < & so its output can sit inside a SINGLE-quoted
+    attribute; it leaves " alone. Interpolated into a double-quoted one, the
+    attribute ends at the JSON's first " — so the browser reads x-data as
+    '{ p: {' , Alpine fails to evaluate the component, and every binding on
+    the screen is dead. That is silent: no error on the page, just a cost
+    panel and a progress meter that never populate.
+    """
+    from html.parser import HTMLParser
+
+    found = []
+
+    class Scan(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            for key, value in attrs:
+                if key == "x-data":
+                    found.append(value or "")
+
+    Scan().feed(body)
+    return found
+
+
+class TestAlpineScopeSurvivesHtmlParsing(unittest.TestCase):
+    """Every screen whose figures update in place depends on one x-data
+    attribute parsing. A test that only greps the raw body cannot see this."""
+
+    def test_the_configure_cost_scope_parses_whole(self):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, s: None
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        scopes = alpine_scope(body)
+        self.assertEqual(len(scopes), 1)
+        self.assertIn("total", scopes[0])
+        self.assertIn("lines", scopes[0])
+
+    def test_the_running_progress_scope_parses_whole(self):
+        app, _, _ = TestRunningScreen()._app()
+        body = app.test_client().get("/running").get_data(as_text=True)
+        scopes = alpine_scope(body)
+        self.assertEqual(len(scopes), 1)
+        self.assertIn("spend", scopes[0])
+        self.assertIn("tiles", scopes[0])
+
+
 class TestUploadScreen(unittest.TestCase):
     def setUp(self):
         self.app = app_module.create_app(state={})
@@ -553,12 +604,15 @@ class TestConfigureScreen(unittest.TestCase):
         # source of truth (the same x-data scope and the same `est` object)
         # so a form change can never leave the two money figures disagreeing.
         body = self._app().test_client().get("/configure").get_data(as_text=True)
-        self.assertIn('x-data="{ est:', body)
+        # Single-quoted: |tojson leaves " raw, so a double-quoted attribute
+        # ends at the JSON's first quote. This assertion used to require the
+        # double-quoted form, which is how it came to pin a broken screen.
+        self.assertIn("x-data='{ est:", body)
         self.assertIn("x-text=\"'$' + est.total.toFixed(2)\"", body)
         self.assertIn(':class="{ over: est.over_cap }"', body)
         # The meter's x-data must be on an ancestor of <main>, not a second,
         # disconnected scope — otherwise Alpine can't reach it from the form.
-        data_pos = body.index('x-data="{ est:')
+        data_pos = body.index("x-data='{ est:")
         main_pos = body.index("<main>")
         self.assertLess(data_pos, main_pos)
 
@@ -1097,6 +1151,22 @@ class TestRunningScreen(unittest.TestCase):
         body = app.test_client().get("/running").get_data(as_text=True)
         self.assertIn("46", body)
 
+    def test_the_header_meter_tracks_the_sweep_instead_of_freezing(self):
+        # running.html overrode meter_label but not meter_scope or
+        # meter_numeral_bind, so the header numeral sat at its first value
+        # for the whole ~40-minute sweep while the body updated over SSE.
+        body = self._app()[0].test_client().get("/running").get_data(as_text=True)
+        self.assertIn("Spent so far", body)
+        # Same Alpine scope the body already uses, and the numeral bound to
+        # the same p.spend the body reads.
+        self.assertIn("p.spend", body.split("<main>")[0])
+        self.assertIn('x-text', body.split("<main>")[0])
+
+    def test_the_meter_bar_shows_the_share_of_credit_used(self):
+        # 2.42 read minus a 1.00 baseline is 1.42 of 8.41 credit = 17%.
+        body = self._app()[0].test_client().get("/running").get_data(as_text=True)
+        self.assertIn("width: 17%", body)
+
     def test_progress_reports_spend_as_a_delta_from_the_baseline(self):
         app, _, _ = self._app()
         payload = app.test_client().get("/progress").get_json()
@@ -1446,6 +1516,35 @@ class TestResultsScreen(unittest.TestCase):
             body = self._app().test_client().get("/results").get_data(as_text=True)
         self.assertIn("Onsite abroad", body)
         self.assertEqual(calls, [])
+
+    def test_the_results_meter_never_shows_the_estimate_as_money_spent(self):
+        # /configure wrote app.state["spend"] = estimate["total"] and
+        # /results never overwrote it, so the meter read the ESTIMATE under
+        # the label "Spent" even when nothing had been spent at all.
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=lambda profile: ROWS)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, s: None
+        client = app.test_client()
+        configure = client.get("/configure").get_data(as_text=True)
+        self.assertIn("$2.70", configure)             # the estimate, correctly
+        header = client.get("/results").get_data(as_text=True).split("<main>")[0]
+        self.assertNotIn("2.70", header)
+        self.assertIn("not known", header)
+
+    def test_the_results_meter_shows_the_real_delta_once_a_run_recorded_one(self):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41,
+                   "baseline_usd": 1.00, "spend_read_val": 2.42},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            read_rows=lambda profile: ROWS)
+        app.config.update(TESTING=True)
+        header = app.test_client().get("/results").get_data(as_text=True).split("<main>")[0]
+        self.assertIn("$1.42", header)
 
     def test_results_with_no_sweep_yet_goes_back_to_upload(self):
         app = app_module.create_app(state={}, extract=lambda p: "x",
