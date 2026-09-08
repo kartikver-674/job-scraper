@@ -25,6 +25,14 @@ import make_profile  # noqa: E402
 sys.path.insert(0, REPO_ROOT)
 import config  # noqa: E402
 
+# Flask-free logic lives in sweep.logic — form validation, the reachability
+# split, the empty-result diagnosis. Re-exported here because these are part
+# of this module's surface for its callers and tests, and because the split
+# exists to make them reachable WITHOUT a Flask test client, not to hide them.
+from sweep.logic import (  # noqa: E402,F401
+    SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
+    _valid_profile_name, bucket_rows, worst_filter)
+
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
          ("configure", "Configure"), ("confirm", "Confirm"),
          ("running", "Running"), ("results", "Results")]
@@ -58,14 +66,6 @@ def planned_keys(state):
     return runs_mod.combo_keys(state["raw_plan"], runs_mod.today())
 
 
-# A profile name becomes both a filesystem path (profiles/<name>.py) and a
-# Python module (config.py does importlib.import_module(f"profiles.{name}")),
-# so it is checked against an allowlist rather than merely stripped — a name
-# like "../../../../tmp/x" or an absolute path survives os.path.join(), which
-# silently discards everything before an absolute later component. A leading
-# digit is rejected too since that would not be a valid module name.
-_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
-
 # A .env value with an embedded newline turns one write into two lines —
 # the second one an attacker-chosen KEY=VALUE the file's own reader (and
 # python-dotenv) will parse as a real entry, silently overwriting whichever
@@ -79,202 +79,6 @@ _NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
 # closes newline/CR/NUL/tab/unicode line separators in one rule.
 _ENV_KEY_RE = re.compile(r"[A-Z][A-Z0-9_]*")
 _ENV_VALUE_RE = re.compile(r"[\x21-\x7E]+")
-
-
-def _valid_profile_name(name):
-    return bool(_NAME_RE.fullmatch(name))
-
-
-# Configure-screen scope -> real config keys. "locations"/"remote_scopes" feed
-# SEARCH.locations / SETTINGS.remote_scopes (every site); "linkedin_locations"
-# additionally overrides SITES.linkedin.locations, because
-# SITES[site].get("locations", SEARCH["locations"]) means LinkedIn — the most
-# expensive site — otherwise keeps searching config.py's default (India +
-# Remote) no matter what SEARCH.locations says (scraper.plan_for_site).
-#
-# Every LinkedIn location below is a config.LINKEDIN_GEO_IDS key, verified per
-# that table's own comments (python verify_geoids.py) — never a name invented
-# here. make_profile.render() checks this again against the live config, since
-# that guard has to hold for the CLI path too, not just this form.
-_INDIA_CITIES = ["Delhi", "Gurgaon", "Bengaluru", "Hyderabad", "Pune", "Mumbai"]
-# Same set profiles/global_remote.py and profiles/global_all.py already use —
-# reused rather than re-picked, so "verified" keeps meaning the same thing.
-_VERIFIED_COUNTRIES = ["United States", "United Kingdom", "Canada", "Ireland",
-                       "Germany", "Netherlands", "Australia", "Singapore",
-                       "United Arab Emirates"]
-
-_SCOPE = {
-    # India only, onsite/hybrid: no "Remote" in the mix — that is what the
-    # "remote" scope is for.
-    "india": {"remote_scopes": [], "locations": _INDIA_CITIES,
-              "linkedin_locations": _INDIA_CITIES, "linkedin_remote_only": False},
-    # LinkedIn has no worldwide-remote search: f_WT=2 filters workplace type
-    # WITHIN one geography, so paying for it across many countries buys
-    # inventory this repo already measured as unreachable — see
-    # profiles/kartik_reachable.py's docstring: of a 2026-07-26 sweep's 480
-    # "remote" rows at score >= 10, only 27 were actually reachable from
-    # India; 245 of the top 252 were remote-only-within Germany / Spain /
-    # UAE / the UK. So LinkedIn here buys the SAME India-remote-only
-    # inventory kartik_reachable.py does — locations=["Remote"], one
-    # geography (remote_geo inherits config.py's "India" — see render()) —
-    # not nine countries. Worldwide remote is left to the free feeds
-    # (RemoteOK, WWR, Remotive, Jobicy, Himalayas): built for exactly this,
-    # they carry far more of it than LinkedIn, and they're already on by
-    # default, so there's nothing to switch on here.
-    "remote": {"remote_scopes": ["worldwide", "remote"], "locations": ["Remote"],
-               "linkedin_locations": ["Remote"], "linkedin_remote_only": False},
-    # Global onsite: same countries, without the remote filter.
-    "global": {"remote_scopes": [], "locations": _VERIFIED_COUNTRIES,
-               "linkedin_locations": _VERIFIED_COUNTRIES,
-               "linkedin_remote_only": False},
-}
-
-# Real stack names need '.', '+', '#', '/', '-' ("node.js", "c++", "c#",
-# "ci/cd", "full-stack"); nothing else has a legitimate reason to be in a
-# skip-term, so it is rejected rather than guessed at.
-_CHIP_RE = re.compile(r"[A-Za-z0-9 .+#/-]+")
-
-
-class _FormError(ValueError):
-    """A Configure-screen field failed validation. str(exc) is safe to show
-    the user — never echoes the raw input back."""
-
-
-def _parse_int(raw, lo, hi, label):
-    """Strict integer parse within [lo, hi]. Never pass an unvalidated string
-    from a form into config — this is the one gate every numeric field goes
-    through before it can reach a profile."""
-    try:
-        value = int(str(raw).strip())
-    except (TypeError, ValueError):
-        raise _FormError(f"{label} must be a whole number.")
-    if not (lo <= value <= hi):
-        raise _FormError(f"{label} must be between {lo} and {hi}.")
-    return value
-
-
-def _parse_chips(raw, label):
-    """Comma-separated free text -> a validated list of terms. Rejected, not
-    sanitised, so the response says exactly what is wrong."""
-    terms = [t.strip() for t in str(raw).split(",") if t.strip()]
-    for term in terms:
-        if not _CHIP_RE.fullmatch(term):
-            raise _FormError(
-                f"{label} can only use letters, digits, spaces and . + # / - "
-                f"— check {term!r}.")
-    return terms
-
-
-def _configure_overrides(form):
-    """Validate the posted Configure-screen form and map it onto the state
-    keys _prefs() understands. Returns {} for a form with no recognised
-    field (the plain re-plan the estimate route always does). Raises
-    _FormError, with nothing applied yet, on the first invalid field — a
-    partial form must never partially write, since that could widen the
-    sweep on a field the caller thought they hadn't touched.
-    """
-    out = {}
-
-    if "scope" in form:
-        scope = form["scope"]
-        if scope not in _SCOPE:
-            raise _FormError("Choose where you can work.")
-        out.update(_SCOPE[scope])
-
-    if "max_age_days" in form:
-        out["max_age_days"] = _parse_int(
-            form["max_age_days"], 1, 365, "Freshness window")
-
-    # Both are plain text/number inputs that live in the same <form> as every
-    # other control, so an unrelated change elsewhere in the form resubmits
-    # them too, blank, every time — not just on their own change event.
-    # Blank has to mean "no opinion this round", the same as absent, or the
-    # very first click anywhere on the screen would 400.
-    if form.get("max_results"):
-        out["max_results"] = _parse_int(
-            form["max_results"], 1, 200, "Results per search")
-
-    # keep_unstated is a checkbox: FormData omits it entirely when unchecked,
-    # so its mere presence (however Alpine/HTML encodes "on") means checked.
-    if "keep_unstated" in form:
-        out["min_comp_usd"] = None
-    elif "min_comp_usd" in form:
-        raw = str(form["min_comp_usd"]).strip()
-        if not raw:
-            raise _FormError(
-                "Enter a pay floor, or keep listings that don't state pay.")
-        out["min_comp_usd"] = _parse_int(raw, 0, 100_000_000, "Minimum pay")
-
-    if form.get("skip_terms"):
-        out["skip_terms"] = _parse_chips(form["skip_terms"], "Skip-terms")
-
-    return out
-
-
-SECTIONS = [
-    ("local", "You can work here now",
-     "Onsite or hybrid where you already have the right to work"),
-    ("remote", "Genuinely remote from anywhere",
-     "Reachable from where you are, with no relocation"),
-    ("visa", "Needs visa sponsorship",
-     "Requires sponsorship or existing work authorisation"),
-]
-
-
-def bucket_rows(rows):
-    """Split rows by whether the person can actually take the job.
-
-    Mirrors the split profiles/kartik_reachable.py exists to buy: two thirds of
-    a global sweep was onsite abroad and needed sponsorship, so it has to be
-    visible rather than mixed in with reachable work.
-    """
-    buckets = {"local": [], "remote": [], "visa": []}
-    for row in rows:
-        if (row.get("visa") or "").strip():
-            buckets["visa"].append(row)
-        elif str(row.get("remote?", "")).lower() == "true":
-            buckets["remote"].append(row)
-        else:
-            buckets["local"].append(row)
-    return buckets
-
-
-def _as_int(value):
-    """Scores arrive from CSV as text and can be blank or non-numeric."""
-    try:
-        return int(float(value))
-    except (TypeError, ValueError):
-        return 0
-
-
-def worst_filter(all_rows, min_score, source, q):
-    """Which single active filter would remove the most rows alone, and how
-    many. Returns (name, count), or None when no filter is active.
-
-    Applied one at a time against the UNFILTERED set — with three filters
-    combined, a hardcoded guess at which one is "the" culprit can be simply
-    false.
-    """
-    removed = {}
-    if min_score:
-        removed["minimum score"] = sum(
-            1 for r in all_rows if _as_int(r.get("score")) < min_score)
-    if source:
-        removed["source"] = sum(
-            1 for r in all_rows if r.get("source_site") != source)
-    if q:
-        needle = q.lower()
-        removed["search text"] = sum(
-            1 for r in all_rows
-            if needle not in f"{r.get('title', '')} {r.get('company', '')}".lower())
-    # A filter that removed nothing is not the culprit. With no shortlist on
-    # disk yet, every branch counts 0 and max() would still name one — telling
-    # the user "the minimum score filter removed the most — 0 of 0" and
-    # pointing them at the wrong remedy.
-    if not removed or max(removed.values()) == 0:
-        return None
-    name = max(removed, key=removed.get)
-    return name, removed[name]
 
 
 def create_app(state=None, extract=None, resume_dir=None,
@@ -894,7 +698,11 @@ def create_app(state=None, extract=None, resume_dir=None,
             # $0.00 rate is free either way, never a second "is this site
             # free" rule that could disagree with them.
             rates=config.SITE_RATES, merged=merged,
-            worst=worst_filter(all_rows, min_score, source, q),
+            # Only consumed when nothing survived the filters, and it makes
+            # one pass over every unfiltered row per active filter — three
+            # passes over up to 1607 rows, thrown away, on every page load.
+            worst=(worst_filter(all_rows, min_score, source, q)
+                   if not rows else None),
             rescoring=_rescore_in_flight(),
             notice=notice, error=error))
 

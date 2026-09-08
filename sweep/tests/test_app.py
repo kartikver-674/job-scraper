@@ -1238,19 +1238,115 @@ class TestRunningScreen(unittest.TestCase):
 # Column names are the REAL ones from output/<profile>/jobs_*.csv, verified
 # against output/global_all/jobs_combined.csv. Lowercase snake_case, and the
 # remote flag is literally "remote?" including the question mark.
+# Six real rows, copied verbatim out of output/global_all/jobs_combined.csv
+# (a paid 1607-row sweep), at the CSV line numbers named below. Every column
+# is kept, because the classification reads remote_scope / remote_regions /
+# location and the previous hand-written fixture omitted remote_scope
+# entirely — and used "visa": "needs sponsorship", a value the pipeline
+# cannot emit (enrich.visa returns only "", "no" or "yes"). That fixture is
+# why review passed a split that mis-filed 1307 of those 1607 rows.
+#
+# Four of the six were classified WRONGLY by the rule this replaces, so the
+# fixture can fail: lines 102, 25, 476 and 890 below.
 ROWS = [
-    {"score": "96", "title": "Senior React Native Engineer", "company": "Razorpay",
-     "location": "Bengaluru, KA", "salary": "₹45L - 60L", "remote?": "False",
-     "visa": "", "source_site": "linkedin", "apply_url": "https://x/1",
-     "matched_skills": "react native, typescript"},
-    {"score": "95", "title": "Lead React Native", "company": "Supabase",
-     "location": "Anywhere Worldwide", "salary": "$150,000", "remote?": "True",
-     "visa": "", "source_site": "remoteok", "apply_url": "https://x/2",
-     "matched_skills": "react native"},
-    {"score": "80", "title": "Mobile Engineer", "company": "Zalando",
-     "location": "Berlin, Germany", "salary": "", "remote?": "False",
-     "visa": "needs sponsorship", "source_site": "linkedin", "apply_url": "https://x/3",
-     "matched_skills": "react native"},
+    # line 25: bucket() -> 'abroad'. Remote but geo-locked OUTSIDE India, so
+    # unreachable from here. The old rule read remote? == "True" and called it
+    # "Genuinely remote from anywhere" — 170 rows on the real file.
+    {
+        'score': '47',
+        'matched_skills': 'node, node.js, express, mongodb, redis, websockets, jwt, oauth, restful, mysql, ci/cd, agile',
+        'is_fullstack': 'True', 'title': 'Node.JS Developer',
+        'company': 'Inetum', 'location': 'Morocco, Remote', 'remote?': 'True',
+        'remote_scope': 'restricted', 'hires_home': '', 'tz_gap': '4.5',
+        'remote_regions': '', 'visa': '', 'eor': '', 'timezones': 'UTC+1',
+        'experience_required': 'Full Time', 'salary': '', 'hr_email': '',
+        'hr_phone': '', 'source_site': 'himalayas',
+        'apply_url': 'https://himalayas.app/companies/inetum/jobs/node-js-developer-8086996543',
+        'date_posted': '2026-08-25', 'req_number': '', 'grade': '',
+        'verified_live': ''
+    },
+    # line 74: bucket() -> 'remote'. Genuinely location-independent.
+    {
+        'score': '39',
+        'matched_skills': 'node, node.js, express, react, react.js, typescript, mongodb, redis, restful, mysql, ci/cd, html, css',
+        'is_fullstack': 'True',
+        'title': 'Senior Full Stack Developer - PHP Laravel',
+        'company': 'Newrich Network', 'location': 'Anywhere in the World',
+        'remote?': 'True', 'remote_scope': 'worldwide', 'hires_home': '',
+        'tz_gap': '', 'remote_regions': '', 'visa': '', 'eor': '',
+        'timezones': '', 'experience_required': '', 'salary': '', 'hr_email': '',
+        'hr_phone': '', 'source_site': 'wwr',
+        'apply_url': 'https://weworkremotely.com/remote-jobs/newrich-network-senior-full-stack-developer-php-laravel',
+        'date_posted': '2026-08-19', 'req_number': '', 'grade': '',
+        'verified_live': ''
+    },
+    # line 102: bucket() -> 'abroad'. Onsite in Taipei. The old rule saw an
+    # empty visa and remote? == "False" and filed it under "You can work here
+    # now" — 1046 rows on the real file.
+    {
+        'score': '36',
+        'matched_skills': 'node, node.js, react, typescript, javascript, redux, jest, html, css, agile',
+        'is_fullstack': 'True', 'title': 'Frontend Developer(UniFi Connect)',
+        'company': 'Ubiquiti', 'location': 'Taipei', 'remote?': 'False',
+        'remote_scope': '', 'hires_home': 'no', 'tz_gap': '',
+        'remote_regions': '', 'visa': '', 'eor': '', 'timezones': '',
+        'experience_required': '', 'salary': '', 'hr_email': '', 'hr_phone': '',
+        'source_site': 'greenhouse:ubiquiti',
+        'apply_url': 'https://job-boards.greenhouse.io/ubiquiti/jobs/4193274009',
+        'date_posted': '2026-08-14', 'req_number': '', 'grade': '',
+        'verified_live': ''
+    },
+    # line 413: bucket() -> 'india'. Onsite in Bengaluru.
+    {
+        'score': '22',
+        'matched_skills': 'node, node.js, react, react.js, ci/cd, agile, llm, llms, langchain, agentic, ai agent, ai agents, prompt engineering, python',
+        'is_fullstack': 'True', 'title': 'Full Stack Developer (AI Agents)',
+        'company': 'Databricks', 'location': 'Bengaluru, India',
+        'remote?': 'False', 'remote_scope': '', 'hires_home': 'yes',
+        'tz_gap': '', 'remote_regions': '', 'visa': '', 'eor': '',
+        'timezones': '', 'experience_required': '3+', 'salary': '',
+        'hr_email': '', 'hr_phone': '', 'source_site': 'greenhouse:databricks',
+        'apply_url': 'https://databricks.com/company/careers/open-positions/job?gh_jid=8632126002',
+        'date_posted': '2026-09-01', 'req_number': '', 'grade': '',
+        'verified_live': ''
+    },
+    # line 476: bucket() -> 'abroad'. visa == "no" is an explicit REFUSAL to
+    # sponsor (enrich.visa; scraper.py:1179 prints "refuse visa sponsorship").
+    # The old rule filed any non-empty visa under "Needs visa sponsorship" —
+    # the inverse of the label, 91 rows on the real file.
+    {
+        'score': '20',
+        'matched_skills': 'typescript, restful, ci/cd, agile, llm, agentic, ai agent, prompt engineering, openai, mcp, python',
+        'is_fullstack': 'True',
+        'title': 'Software Engineer, Enterprise Integrations',
+        'company': 'Cloudflare', 'location': 'Hybrid', 'remote?': 'False',
+        'remote_scope': 'hybrid', 'hires_home': 'yes', 'tz_gap': '11.5',
+        'remote_regions': 'US', 'visa': 'no', 'eor': 'Multiplier',
+        'timezones': '', 'experience_required': '3+', 'salary': '',
+        'hr_email': 'hr@cloudflare.com', 'hr_phone': '',
+        'source_site': 'greenhouse:cloudflare',
+        'apply_url': 'https://boards.greenhouse.io/cloudflare/jobs/8155495?gh_jid=8155495',
+        'date_posted': '2026-08-25', 'req_number': '', 'grade': '',
+        'verified_live': ''
+    },
+    # line 890: bucket() -> 'india'. Remote, geo-locked to a list that
+    # INCLUDES India, so it is reachable from here. The old rule filed it as
+    # "Genuinely remote from anywhere", which it is not.
+    {
+        'score': '9',
+        'matched_skills': 'agile, agentic, python, artificial intelligence',
+        'is_fullstack': 'True',
+        'title': 'Senior Backend Engineer (Ruby on Rails), Plan: Planning Views',
+        'company': 'GitLab', 'location': 'Bangalore, India', 'remote?': 'True',
+        'remote_scope': 'restricted', 'hires_home': 'yes', 'tz_gap': '0.0',
+        'remote_regions': 'Australia, India, Europe', 'visa': '',
+        'eor': 'Multiplier', 'timezones': '', 'experience_required': '',
+        'salary': '', 'hr_email': '', 'hr_phone': '',
+        'source_site': 'greenhouse:gitlab',
+        'apply_url': 'https://job-boards.greenhouse.io/gitlab/jobs/8695815002',
+        'date_posted': '2026-08-25', 'req_number': '', 'grade': '',
+        'verified_live': ''
+    },
 ]
 
 
@@ -1269,26 +1365,87 @@ class TestResultsScreen(unittest.TestCase):
 
     def test_rows_are_grouped_into_the_three_reachability_buckets(self):
         body = self._app().test_client().get("/results").get_data(as_text=True)
-        self.assertIn("You can work here now", body)
-        self.assertIn("Genuinely remote from anywhere", body)
-        self.assertIn("Needs visa sponsorship", body)
+        self.assertIn("Onsite and hybrid in India", body)
+        self.assertIn("Fully remote", body)
+        self.assertIn("Onsite abroad", body)
 
     def test_each_row_lands_in_exactly_one_bucket(self):
         buckets = app_module.bucket_rows(ROWS)
-        self.assertEqual(len(buckets["local"]), 1)
-        self.assertEqual(len(buckets["remote"]), 1)
-        self.assertEqual(len(buckets["visa"]), 1)
+        # Counted from the real rows, not from the split's own opinion: the
+        # Taipei and Morocco rows are abroad, the Cloudflare refusal is
+        # abroad too, and the India-locked GitLab remote row is reachable.
+        self.assertEqual([r["company"] for r in buckets["india"]],
+                         ["Databricks", "GitLab"])
+        self.assertEqual([r["company"] for r in buckets["remote"]],
+                         ["Newrich Network"])
+        self.assertEqual([r["company"] for r in buckets["abroad"]],
+                         ["Inetum", "Ubiquiti", "Cloudflare"])
         self.assertEqual(sum(len(v) for v in buckets.values()), len(ROWS))
 
+    def test_the_split_is_the_ported_one_not_a_fourth_rule(self):
+        # The spec called this screen a port of linkedin_shortlist.bucket().
+        # If this screen ever grows its own classification again, this fails.
+        import linkedin_shortlist
+        buckets = app_module.bucket_rows(ROWS)
+        for key, rows in buckets.items():
+            for row in rows:
+                self.assertEqual(linkedin_shortlist.bucket(row), key,
+                                 row["company"])
+
+    def test_an_explicit_sponsorship_refusal_is_not_labelled_as_needing_one(self):
+        # enrich.visa returns "no" when the posting REFUSES to sponsor, "" in
+        # the common case where it never mentions it, "yes" when it offers.
+        # The old rule read any non-empty value as "needs sponsorship".
+        refusal = [r for r in ROWS if r["visa"] == "no"]
+        self.assertEqual(len(refusal), 1)
+        self.assertEqual(app_module.bucket_rows(refusal),
+                         {"india": [], "remote": [], "abroad": refusal})
+
     def test_filtering_by_score_is_free_and_says_so(self):
-        body = self._app().test_client().get("/results?min=90").get_data(as_text=True)
+        body = self._app().test_client().get("/results?min=40").get_data(as_text=True)
         self.assertIn("Filtering and re-ranking these is free", body)
-        self.assertNotIn("Mobile Engineer", body)
+        self.assertIn("Node.JS Developer", body)          # score 47
+        self.assertNotIn("Full Stack Developer (AI Agents)", body)   # score 22
 
     def test_an_empty_result_names_the_filter_that_removed_the_most(self):
-        body = self._app().test_client().get("/results?min=999").get_data(as_text=True)
-        self.assertIn("score", body.lower())
-        self.assertIn("0 listings", body)
+        # Asserted as the rendered SENTENCE with its numbers. "score" alone is
+        # satisfied by the "Minimum score" input label and "0 listings" by a
+        # static heading, so neither reached the feature: replacing
+        # worst_filter's body with `return None` left the suite green.
+        body = self._app().test_client().get(
+            "/results?min=999&source=wwr").get_data(as_text=True)
+        flat = " ".join(body.split())
+        self.assertIn("The minimum score filter removed the most — 6 of 6. "
+                      "Loosen it to see more.", flat)
+        # The clear-link must drop only the blamed filter and carry the rest.
+        self.assertIn('href="/results?source=wwr"', body)
+
+    def test_the_clear_link_drops_the_blamed_filter_and_keeps_the_others(self):
+        # min=1 removes nothing (every fixture score is >= 9), so the source
+        # filter is the culprit and the link has to preserve min.
+        body = self._app().test_client().get(
+            "/results?min=1&source=nosuchboard").get_data(as_text=True)
+        flat = " ".join(body.split())
+        self.assertIn("The source filter removed the most — 6 of 6. "
+                      "Loosen it to see more.", flat)
+        self.assertIn('href="/results?min=1"', body)
+
+    def test_the_text_filter_can_be_the_one_blamed(self):
+        body = self._app().test_client().get(
+            "/results?min=1&q=nothingmatchesthis").get_data(as_text=True)
+        flat = " ".join(body.split())
+        self.assertIn("The search text filter removed the most — 6 of 6. "
+                      "Loosen it to see more.", flat)
+        self.assertIn('href="/results?min=1"', body)
+
+    def test_the_empty_result_diagnosis_is_not_computed_when_rows_survive(self):
+        # Three passes over up to 1607 rows, consumed only when total == 0.
+        calls = []
+        with mock.patch.object(app_module, "worst_filter",
+                               lambda *a: calls.append(a)):
+            body = self._app().test_client().get("/results").get_data(as_text=True)
+        self.assertIn("Onsite abroad", body)
+        self.assertEqual(calls, [])
 
     def test_results_with_no_sweep_yet_goes_back_to_upload(self):
         app = app_module.create_app(state={}, extract=lambda p: "x",
@@ -1318,25 +1475,25 @@ class TestResultsScreen(unittest.TestCase):
 
     def test_the_source_filter_keeps_only_that_source(self):
         body = self._app().test_client().get(
-            "/results?source=remoteok").get_data(as_text=True)
-        self.assertIn("Lead React Native", body)
-        self.assertNotIn("Senior React Native Engineer", body)
+            "/results?source=wwr").get_data(as_text=True)
+        self.assertIn("Senior Full Stack Developer - PHP Laravel", body)
+        self.assertNotIn("Node.JS Developer", body)
 
     def test_the_text_filter_matches_title_and_company(self):
         client = self._app().test_client()
-        by_company = client.get("/results?q=razorpay").get_data(as_text=True)
-        self.assertIn("Senior React Native Engineer", by_company)
-        self.assertNotIn("Lead React Native", by_company)
-        by_title = client.get("/results?q=mobile+engineer").get_data(as_text=True)
-        self.assertIn("Mobile Engineer", by_title)
-        self.assertNotIn("Senior React Native Engineer", by_title)
+        by_company = client.get("/results?q=databricks").get_data(as_text=True)
+        self.assertIn("Full Stack Developer (AI Agents)", by_company)
+        self.assertNotIn("Node.JS Developer", by_company)
+        by_title = client.get("/results?q=node.js+developer").get_data(as_text=True)
+        self.assertIn("Node.JS Developer", by_title)
+        self.assertNotIn("Full Stack Developer (AI Agents)", by_title)
 
     def test_active_filters_survive_in_the_rendered_form(self):
         body = self._app().test_client().get(
-            "/results?min=90&source=linkedin&q=razorpay").get_data(as_text=True)
-        self.assertIn('name="min" value="90"', body)
-        self.assertIn('value="linkedin" selected', body)
-        self.assertIn('name="q" value="razorpay"', body)
+            "/results?min=40&source=wwr&q=newrich").get_data(as_text=True)
+        self.assertIn('name="min" value="40"', body)
+        self.assertIn('value="wwr" selected', body)
+        self.assertIn('name="q" value="newrich"', body)
 
     def test_rows_are_sorted_by_score_within_a_bucket(self):
         # Both rows must land in the SAME bucket, or SECTIONS' own order

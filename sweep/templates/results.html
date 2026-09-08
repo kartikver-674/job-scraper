@@ -95,11 +95,11 @@
       <p>The {{ worst[0] }} filter removed the most —
         {{ worst[1] }} of {{ all_total }}. Loosen it to see more.</p>
       {% if worst[0] == 'minimum score' %}
-        <a class="secondary" href="{{ url_for('results', source=source, q=q) }}">Clear the minimum score</a>
+        <a class="secondary" href="{{ url_for('results', source=source or none, q=q or none) }}">Clear the minimum score</a>
       {% elif worst[0] == 'source' %}
-        <a class="secondary" href="{{ url_for('results', min=min_score, q=q) }}">Clear the source filter</a>
+        <a class="secondary" href="{{ url_for('results', min=min_score or none, q=q or none) }}">Clear the source filter</a>
       {% else %}
-        <a class="secondary" href="{{ url_for('results', min=min_score, source=source) }}">Clear the search text</a>
+        <a class="secondary" href="{{ url_for('results', min=min_score or none, source=source or none) }}">Clear the search text</a>
       {% endif %}
     {% else %}
       <p>Nothing was found for this profile yet.</p>
@@ -110,7 +110,7 @@
 
 {% for key, heading, note in sections %}
   {% if buckets[key] %}
-    {% if key == 'visa' %}
+    {% if key == 'abroad' %}
       <details>
         <summary>{{ heading }} — {{ buckets[key]|length }} listings</summary>
         <p class="muted">{{ note }}</p>
