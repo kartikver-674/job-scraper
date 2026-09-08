@@ -178,12 +178,18 @@ def _configure_overrides(form):
 def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
                check_token=None, env_path=None, fetch_plan=None,
-               start_sweep=None, read_spend=None):
+               start_sweep=None, read_spend=None, output_dir=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
     resume_dir = resume_dir if resume_dir is not None else RESUME_DIR
     env_path = env_path if env_path is not None else os.path.join(REPO_ROOT, ".env")
+    # Same shape as resume_dir/env_path: a real run writes under
+    # REPO_ROOT/output/<profile>, but a test must never be able to reach a
+    # real profile's output dir just because it picked a name that collides
+    # with one — output/ holds real paid-sweep results with no git history
+    # to fall back on.
+    output_dir = output_dir if output_dir is not None else os.path.join(REPO_ROOT, "output")
 
     if extract is None:
         import resume_parser
@@ -494,7 +500,7 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         app.state["baseline_usd"] = read_spend() or 0.0
         app.state["proc"] = start_sweep(app.state["profile"])
-        _write_run_json(app.state)
+        _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))
 
     @app.post("/second-key")
@@ -522,10 +528,10 @@ def create_app(state=None, extract=None, resume_dir=None,
     return app
 
 
-def _write_run_json(state):
+def _write_run_json(state, output_dir):
     """Persist what a reload needs: which profile, and the spend baseline."""
     import json
-    out_dir = os.path.join(REPO_ROOT, "output", state["profile"])
+    out_dir = os.path.join(output_dir, state["profile"])
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, "run.json"), "w") as fh:
         json.dump({"profile": state["profile"],

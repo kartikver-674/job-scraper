@@ -780,24 +780,21 @@ class FakeProc:
 
 
 class TestConfirmScreen(unittest.TestCase):
-    def tearDown(self):
-        # /run and _write_run_json write into the real output/kanav dir
-        # (untracked, gitignored — same as any real sweep's output), since
-        # _write_run_json has no injectable out_dir. Clean up the artifact
-        # so repeated test runs don't leave stray files behind.
-        path = os.path.join(app_module.REPO_ROOT, "output", "kanav", "run.json")
-        if os.path.exists(path):
-            os.remove(path)
-
     def _app(self, cap=8.41):
+        # output_dir is injected — never the real output/kanav, which holds
+        # real paid-sweep results with no git history to fall back on.
+        output_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, output_dir)
         app = app_module.create_app(
             state={"profile": "kanav", "cap_usd": cap},
             extract=lambda p: "x", derive=lambda t, p: DERIVED,
             check_token=lambda t: (cap, None),
             fetch_plan=lambda profile: RAW_PLAN,
             start_sweep=lambda profile: FakeProc(),
-            read_spend=lambda: 1.00)
+            read_spend=lambda: 1.00,
+            output_dir=output_dir)
         app.config.update(TESTING=True)
+        app.output_dir = output_dir  # so tests can assert where run.json landed
         return app
 
     def test_confirm_names_the_amount_on_the_button(self):
@@ -824,6 +821,18 @@ class TestConfirmScreen(unittest.TestCase):
         # would show the whole month instead of this sweep.
         self.assertAlmostEqual(app.state["baseline_usd"], 1.00, places=2)
         self.assertIsNotNone(app.state["proc"])
+
+    def test_run_json_lands_in_the_injected_output_dir_not_the_real_one(self):
+        # Isolation enforced by a test, not by convention — a hardcoded
+        # REPO_ROOT/output/<profile> here would let a later test collide
+        # with a real profile's real (unrecoverable, gitignored) results.
+        app = self._app()
+        app.test_client().get("/confirm")
+        app.test_client().post("/run")
+        run_path = os.path.join(app.output_dir, "kanav", "run.json")
+        self.assertTrue(os.path.exists(run_path))
+        real_path = os.path.join(app_module.REPO_ROOT, "output", "kanav", "run.json")
+        self.assertFalse(os.path.exists(real_path))
 
     def test_a_sweep_over_the_cap_cannot_be_started_from_the_ui(self):
         app = self._app(cap=1.00)
