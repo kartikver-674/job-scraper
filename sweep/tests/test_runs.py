@@ -1,4 +1,7 @@
 import os
+import signal
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -91,6 +94,76 @@ class TestProgress(unittest.TestCase):
         p = runs.progress([], set())
         self.assertEqual(p["planned"], 0)
         self.assertEqual(p["fraction"], 0.0)
+
+
+class FakePopen:
+    """Captures arguments to start() without spawning a real process."""
+    def __init__(self, argv, cwd=None, env=None, stdout=None, stderr=None, text=False):
+        self.argv = argv
+        self.cwd = cwd
+        self.env = env
+        self.stdout = stdout
+        self.stderr = stderr
+        self.text = text
+        self.signals_sent = []
+
+    def poll(self):
+        return None
+
+    def send_signal(self, sig):
+        self.signals_sent.append(sig)
+
+
+class FakeExitedProcess:
+    """Fake process that already exited."""
+    def __init__(self):
+        self.signals_sent = []
+
+    def poll(self):
+        return 0
+
+    def send_signal(self, sig):
+        self.signals_sent.append(sig)
+
+
+class TestStart(unittest.TestCase):
+    def test_start_builds_correct_argv(self):
+        fake_popen = FakePopen
+        proc = runs.start("myprofile", popen=fake_popen)
+        self.assertEqual(proc.argv[0], sys.executable)
+        self.assertEqual(proc.argv[1], "scraper.py")
+        self.assertEqual(proc.argv[2], "--profile")
+        self.assertEqual(proc.argv[3], "myprofile")
+        self.assertEqual(proc.argv[4], "--yes")
+
+    def test_start_sets_cwd_to_repo_root(self):
+        fake_popen = FakePopen
+        proc = runs.start("myprofile", popen=fake_popen)
+        self.assertTrue(proc.cwd.endswith("job-scraper"))
+
+    def test_start_silences_stdout_and_captures_stderr(self):
+        fake_popen = FakePopen
+        proc = runs.start("myprofile", popen=fake_popen)
+        self.assertEqual(proc.stdout, subprocess.DEVNULL)
+        self.assertEqual(proc.stderr, subprocess.PIPE)
+        self.assertTrue(proc.text)
+
+
+class TestStop(unittest.TestCase):
+    def test_stop_sends_sigint_when_process_running(self):
+        proc = FakePopen([], cwd="/tmp", env={})
+        runs.stop(proc)
+        self.assertIn(signal.SIGINT, proc.signals_sent)
+
+    def test_stop_does_not_signal_already_exited_process(self):
+        proc = FakeExitedProcess()
+        runs.stop(proc)
+        self.assertEqual(len(proc.signals_sent), 0)
+
+    def test_stop_returns_exit_code(self):
+        proc = FakeExitedProcess()
+        result = runs.stop(proc)
+        self.assertEqual(result, 0)
 
 
 if __name__ == "__main__":

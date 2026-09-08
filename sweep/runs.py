@@ -1,9 +1,9 @@
 """Read a sweep's real progress, and start and stop the engine.
 
 Progress comes from output/<profile>/.done_combos, which scraper.py appends to
-as each search finishes. That file is what the engine already trusts to resume a
-capped sweep without re-billing, which makes it the honest record — stdout is a
-formatting detail that would break in silence.
+as each search finishes (scraper.py:1743-1744). That file is what the engine
+already trusts to resume a capped sweep without re-billing, which makes it the
+honest record — stdout is a formatting detail that would break in silence.
 """
 
 import os
@@ -22,7 +22,7 @@ def today():
 def combo_keys(raw_plan, day):
     """Every ledger key this plan intends to write, in plan order.
 
-    Must match scraper.py:1729 byte for byte:
+    Must match scraper.py:1743-1744 byte for byte:
         {date}|{site}|{keywords}|{location}|{company or ''}
     """
     keys = []
@@ -36,7 +36,7 @@ def combo_keys(raw_plan, day):
 def done_keys(done_path, day):
     """Keys already finished TODAY. Yesterday's lines are not progress.
 
-    scraper.py:1702 loads the ledger filtered to today, so a sweep that spans
+    scraper.py:1716 loads the ledger filtered to today, so a sweep that spans
     midnight re-runs and re-bills everything. Mirror that here rather than
     reporting progress the engine will not honour.
     """
@@ -50,6 +50,8 @@ def progress(planned, done):
     """Per-tile state plus counts. Never divides by zero on an empty plan."""
     tiles = []
     for key in planned:
+        # ponytail: no escaping of | in keywords; if keywords contain |, label is garbled.
+        # Matches scraper.py:1743-1744's own non-escaping, so staying aligned is worth it.
         _, site, keywords, location, _company = key.split("|", 4)
         tiles.append({
             "site": site,
