@@ -304,7 +304,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         from sweep import plan as plan_mod
 
         raw = fetch_plan(profile)
-        out = plan_mod.cost(raw, config.SITE_RATES)
+        out = plan_mod.cost(raw, config.SITE_RATES, config.SITE_RATE_BASIS)
         cap = app.state.get("cap_usd")
         out["over_cap"] = bool(cap is not None and out["total"] > cap)
         out["shortfall"] = (round(max(0.0, out["total"] - cap), 4)
@@ -353,8 +353,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         account_usage_usd is month-to-date, so a baseline is subtracted; a
         None baseline means "unknown" and must never be subtracted as zero,
         which would report the account's whole month as this sweep's cost.
-        One implementation, shared with snapshot(), so the running screen and
-        the results screen cannot report different figures for one sweep.
+        Shared with snapshot() so the two screens cannot disagree about a
+        KNOWN figure. They do differ deliberately when the baseline is
+        unknown: snapshot() branches before this and shows month-to-date with
+        a caveat, because a running sweep is better served by a real number
+        it can qualify than by nothing, while /results shows "not known"
+        rather than attribute a whole month to one sweep.
         """
         spend_now = app.state.get("spend_read_val")
         baseline = app.state.get("baseline_usd")
@@ -581,12 +585,24 @@ def create_app(state=None, extract=None, resume_dir=None,
         app.write_profile(app.state["profile"], make_profile.render(
             app.state["profile"], app.state["derived"], _prefs(app.state)))
 
-        # baseline_usd may be None (see read_spend's docstring) — recorded
-        # as-is, never coerced to 0.0, so Task 8 can tell "unknown" from
-        # "no spend yet".
-        app.state["baseline_usd"] = read_spend()
-        app.state["proc"] = start_sweep(app.state["profile"])
-        _write_run_json(app.state, output_dir)
+        # Checked and set under one lock, the same shape /rescore uses. The
+        # dev server is threaded, this route makes a live Apify call before it
+        # redirects, and /second-key sends the user back to /confirm with a
+        # live Run button while the first sweep is still going — so a second
+        # launch is a double-click or a documented gesture away, and it spends
+        # real money.
+        with _run_lock:
+            if _sweep_in_flight():
+                return _confirm_page(
+                    error="A sweep is already running. Watch it on the "
+                          "running screen, or stop it before starting "
+                          "another.", status=409)
+            # baseline_usd may be None (see read_spend's docstring) —
+            # recorded as-is, never coerced to 0.0, so the meter can tell
+            # "unknown" from "no spend yet".
+            app.state["baseline_usd"] = read_spend()
+            app.state["proc"] = start_sweep(app.state["profile"])
+            _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))
 
     @app.post("/second-key")
@@ -754,7 +770,30 @@ def create_app(state=None, extract=None, resume_dir=None,
             "confirm", spend=plan_now["total"], plan=plan_now,
             spans_midnight=_spans_midnight(), error=error)), status
 
+    _run_lock = threading.Lock()
     _rescore_lock = threading.Lock()
+
+    def _sweep_in_flight():
+        """Whether a sweep child is still running.
+
+        Two sweeps on one profile append to the same .done_combos and
+        truncate the same jobs_*.json, so the second re-bills searches the
+        first already paid for and the output interleaves. Worse,
+        app.state["proc"] holds one child, so a second launch orphans the
+        first: POST /stop can only signal the one it can see.
+        """
+        proc = app.state.get("proc")
+        return proc is not None and proc.poll() is None
+
+    def _results_url():
+        """/results carrying whatever filters the request arrived with, so a
+        redirect does not silently clear them. The error paths were fixed for
+        this and the success path was left bare, which is the same
+        one-instance-only fix this branch keeps making."""
+        return url_for("results",
+                       min=request.args.get("min", type=int) or None,
+                       source=request.args.get("source") or None,
+                       q=(request.args.get("q") or "").strip() or None)
 
     def _rescore_in_flight():
         """Whether a re-score child is still running.
@@ -802,7 +841,7 @@ def create_app(state=None, extract=None, resume_dir=None,
                            "to see the new ranking."), 409
             app.state["rescore_proc"] = start_rescore(
                 app.state["profile"], hours)
-        return redirect(url_for("results"))
+        return redirect(_results_url())
 
     return app
 

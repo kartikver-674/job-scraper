@@ -17,8 +17,10 @@
       </tr>
     {% endfor %}
   </table>
-  <p class="muted">Rates are measured at 25 results per search and scaled to
-    the depth you chose, because a pay-per-event actor bills per result.</p>
+  <p class="muted">Each rate is scaled from the depth it was measured at to
+    the depth this sweep will run at, because a pay-per-event actor bills per
+    result. Naukri is the exception — its charge is a per-run minimum at a
+    fixed depth of its own, so the depth control does not move it.</p>
   <p class="numeral {{ 'over' if plan.over_cap }}">${{ '%.2f'|format(plan.total) }}</p>
   <p class="muted">Hard stop at ${{ '%.2f'|format(plan.spend_cap) }}. The sweep
     is told to stop spending there and will, even if searches are left.</p>

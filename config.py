@@ -376,6 +376,24 @@ SITE_RATES = {
     "naukri": 0.50,      # $0.50 per run MINIMUM — bad value at small budgets
 }
 
+# The result count each rate above was measured at. A pay-per-event actor bills
+# per result, so a rate means nothing without the depth it was measured at, and
+# these three were measured at three different depths:
+#   linkedin — the comment above says max_results=25.
+#   indeed   — $0.09/run at the ~$0.03-per-5-results rate noted in SETTINGS
+#              below is 15 results, which is also SEARCH["max_results"].
+#   naukri   — its own results_per_run is 50 and the $0.50 is a per-run
+#              MINIMUM, not a per-result price. Its basis therefore equals the
+#              depth it always runs at, which makes it unscalable on purpose:
+#              the depth control cannot move it, and a floor does not halve.
+# Scaling every rate from one basis over-charges naukri 2x unconditionally and
+# under-states indeed by 40% at the default depth.
+SITE_RATE_BASIS = {
+    "linkedin": 25,
+    "indeed": 15,
+    "naukri": 50,
+}
+
 
 # ===========================================================================
 # 3. SCORING — resume-based relevance layer

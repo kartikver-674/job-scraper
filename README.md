@@ -57,7 +57,12 @@ Four things worth knowing:
   search launches — and Sweep writes it into the profile from the plan you
   confirmed, at 25% headroom over the estimate so a sweep that lands a little
   high still finishes. The confirm screen shows that hard stop next to the
-  estimate. So a wrong estimate can cost you up to that figure, and not more.
+  estimate. So a wrong estimate normally costs you up to that figure and no
+  more — with one caveat worth knowing: the cap is measured against your
+  account's month-to-date spend, and if Apify will not report that figure
+  mid-sweep, `scraper.py` falls back to the actors' own cost reports, which
+  on a measured 84-run sweep undercounted the real bill roughly threefold.
+  The cap still stops the sweep; it can stop it later than the number says.
 - The resume ledger (`output/<profile>/.done_combos`) is scoped to a single
   day, so a sweep that runs past midnight re-runs and re-bills searches it had
   already finished. Start long sweeps early — the confirm screen warns you

@@ -21,28 +21,37 @@ def fetch(profile, runner=None):
     return json.loads(run(argv))
 
 
-# config.SITE_RATES records the LinkedIn figure as "measured at
-# max_results=25" (config.py:374). Every rate there is therefore a per-search
-# price at THIS depth, and a sweep run deeper or shallower costs proportionally
-# more or less — pay-per-event actors bill per result returned.
-RATE_BASIS_RESULTS = 25
+# A pay-per-event actor bills per result, so a per-search rate means nothing
+# without the depth it was measured at — and config.SITE_RATES' three rates were
+# measured at three different depths, which config.SITE_RATE_BASIS records
+# beside them. Pricing all three from one basis over-charges naukri 2x
+# unconditionally (its $0.50 is a per-run MINIMUM at its own fixed depth of 50,
+# which the depth control cannot move and a floor does not halve) and
+# under-states indeed by 40% at the default depth of 15.
+DEFAULT_RATE_BASIS = 25
 
 
-def cost(raw, rates):
+def cost(raw, rates, basis=None):
     """Add per-site subtotals and a total. A site with no rate is free.
 
-    Each rate is scaled from RATE_BASIS_RESULTS to the depth the plan will
-    actually run at, because max_results multiplies real spend: it reaches the
-    actors as maxItemsPerSearch / count / maxJobs. `rate` stays the EFFECTIVE
-    per-search rate, so rate x searches == subtotal still holds.
+    Each rate is scaled from the depth it was MEASURED at to the depth this
+    plan will actually run at, because max_results multiplies real spend: it
+    reaches the actors as maxItemsPerSearch / count / maxJobs. `rate` stays the
+    EFFECTIVE per-search rate, so rate x searches == subtotal still holds.
+
+    `basis` is per site (config.SITE_RATE_BASIS). A site whose basis equals the
+    depth it always runs at is therefore unscaled, which is what naukri needs:
+    a per-run minimum is not a per-result price.
     """
+    basis = basis or {}
     depth = raw.get("max_results") or {}
     lines = []
     for site, searches in raw["sites"].items():
-        # An absent depth means "priced at the basis" — never 0, which would
-        # reprice a paid site to free.
-        results = depth.get(site) or RATE_BASIS_RESULTS
-        rate = rates.get(site, 0.0) * results / RATE_BASIS_RESULTS
+        site_basis = basis.get(site) or DEFAULT_RATE_BASIS
+        # An absent depth means "priced at its own basis" — never 0, which
+        # would reprice a paid site to free.
+        results = depth.get(site) or site_basis
+        rate = rates.get(site, 0.0) * results / site_basis
         lines.append({
             "site": site,
             "searches": len(searches),

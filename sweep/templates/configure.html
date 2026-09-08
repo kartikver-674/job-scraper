@@ -52,8 +52,10 @@
     <h2>Depth</h2>
     <label>Results per search
       <input type="number" name="max_results" placeholder="15" min="1" max="200"></label>
-    <p class="muted">Raising this raises the cost — it multiplies against
-      every search, and the estimate above moves with it.</p>
+    <p class="muted">Raising this raises the cost of the LinkedIn and
+      Indeed searches, which bill per result, and the estimate above
+      moves with it. It does not change Naukri, which charges a
+      per-run minimum at its own fixed depth.</p>
   </form>
 
   <div class="panel">
@@ -69,8 +71,10 @@
         </tr>
       </template>
     </table>
-    <p class="muted">Rates are measured at 25 results per search and scaled to
-      the depth you chose, because a pay-per-event actor bills per result.</p>
+    <p class="muted">Each rate is scaled from the depth it was measured at to
+      the depth you choose, because a pay-per-event actor bills per result.
+      Naukri is the exception — its charge is a per-run minimum at a fixed
+      depth of its own, so this control does not move it.</p>
     <p class="numeral" x-text="'$' + est.total.toFixed(2)"></p>
     <p class="over" x-show="est.over_cap"
        x-text="'That is $' + est.shortfall.toFixed(2) + ' more than your key has.'"></p>

@@ -802,7 +802,9 @@ def build_input(site_key, s):
     if site_key == "linkedin":
         return {
             "urls": [_build_linkedin_url(s)],
-            "count": s["max_results"],  # >= 10, floored in effective_search
+            # Floored in effective_search too; kept here because the actor
+            # rejects count < 10 and three call sites now reach this.
+            "count": max(10, s["max_results"]),
             "scrapeCompany": False,
         }
     if site_key == "naukri":
@@ -1015,6 +1017,8 @@ def print_plan(plans):
     print(f"Actor runs: {total_runs} total\n")
     for site_key, plan in plans.items():
         per_run = SITES[site_key].get("results_per_run", SEARCH["max_results"])
+        if site_key == "linkedin":
+            per_run = max(10, per_run)      # match what the actor is sent
         print(f"  {site_key}: {len(plan)} searches (max {per_run} results each)")
         for s in plan:
             # The company matters more than the keyword when a plan is

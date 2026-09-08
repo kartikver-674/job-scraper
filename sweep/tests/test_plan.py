@@ -157,3 +157,65 @@ class TestDryRunJsonCarriesDepth(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPerSiteRateBasis(unittest.TestCase):
+    """config.SITE_RATES' three rates were measured at three different depths,
+    and pricing them all from one basis over-charged naukri 2x unconditionally
+    while under-stating indeed by 40% at the default depth. These assert
+    against the REAL config rather than a hand-made rates dict, because a
+    fixture would just re-encode whichever assumption the code makes."""
+
+    def setUp(self):
+        # The repo root is already on sys.path via `from sweep import plan`
+        # resolving from the test root; importing config here reads the real
+        # rates rather than a fixture that would re-encode the assumption.
+        import config
+        self.rates, self.basis = config.SITE_RATES, config.SITE_RATE_BASIS
+
+    def _one(self, site, depth, searches=1):
+        raw = {"profile": "t",
+               "sites": {site: [{"keywords": "k", "location": "l",
+                                  "company": ""}] * searches},
+               "max_results": {site: depth}, "free_sources": 0}
+        return plan.cost(raw, self.rates, self.basis)["lines"][0]
+
+    def test_each_rate_is_itself_at_the_depth_it_was_measured_at(self):
+        self.assertAlmostEqual(self._one("linkedin", 25)["rate"], 0.045, places=6)
+        self.assertAlmostEqual(self._one("indeed", 15)["rate"], 0.09, places=6)
+        self.assertAlmostEqual(self._one("naukri", 50)["rate"], 0.50, places=6)
+
+    def test_naukri_is_not_scaled_by_the_depth_control(self):
+        # Its results_per_run is a site override the control cannot move, and
+        # $0.50 is a per-run MINIMUM — a floor does not halve.
+        for depth in (10, 50, 200):
+            self.assertAlmostEqual(self._one("naukri", depth or 50)["rate"],
+                                    0.50 * (depth / 50), places=6)
+        self.assertAlmostEqual(self._one("naukri", 50)["rate"], 0.50, places=6)
+
+    def test_indeed_at_the_default_depth_is_not_understated(self):
+        # The single-basis version priced this at 0.09 * 15/25 = 0.054, a 40%
+        # understatement — which makes the written spend cap 0.75 of the real
+        # cost, so a sweep aborts having paid for three quarters of itself.
+        self.assertAlmostEqual(self._one("indeed", 15)["rate"], 0.09, places=6)
+        self.assertGreater(self._one("indeed", 15)["rate"], 0.054)
+
+    def test_the_invariant_holds_at_every_depth_for_every_site(self):
+        for site in ("linkedin", "indeed", "naukri"):
+            for depth in (1, 15, 25, 50, 200):
+                for n in (1, 7, 64):
+                    line = self._one(site, depth, n)
+                    self.assertAlmostEqual(
+                        line["rate"] * line["searches"], line["subtotal"],
+                        places=6,
+                        msg=f"{site} depth={depth} n={n}")
+
+    def test_an_absent_depth_prices_at_that_sites_own_basis(self):
+        raw = {"profile": "t",
+               "sites": {"naukri": [{"keywords": "k", "location": "l",
+                                      "company": ""}]},
+               "free_sources": 0}
+        line = plan.cost(raw, self.rates, self.basis)["lines"][0]
+        self.assertEqual(line["results"], 50)          # naukri's own, not 25
+        self.assertAlmostEqual(line["rate"], 0.50, places=6)
+        self.assertFalse(line["free"])                 # never repriced to free

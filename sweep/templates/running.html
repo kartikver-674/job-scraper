@@ -5,13 +5,16 @@
    numeral and bar follow the SSE stream instead of sitting at their first
    value for the whole ~40-minute sweep. Same p.spend the body reads. #}
 {# Single-quoted for the reason in configure.html: |tojson leaves " raw. #}
-{% block meter_scope %} x-data='{ p: {{ progress|tojson }} }'
+{% block meter_scope %} x-data='{ p: {{ progress|tojson }}, cap: {{ cap_usd|tojson }} }'
      x-init="const es = new EventSource('{{ url_for('events') }}');
              es.onmessage = e => { p = JSON.parse(e.data);
                                    if (p.finished || p.interrupted) es.close(); }"{% endblock %}
+{# cap is carried in the single-quoted x-data above, never interpolated into
+   these double-quoted attributes: {{ cap|tojson }} inside one of them is the
+   same defect R65 fixed, and a non-numeric cap would break it silently. #}
 {% block meter_numeral_bind %} x-text="p.spend === null ? 'not known' : '$' + p.spend.toFixed(2)"{% endblock %}
-{% block meter_class_bind %} :class="{ over: p.spend !== null && {{ cap_usd|tojson }} !== null && p.spend > {{ cap_usd|tojson }} }"{% endblock %}
-{% block meter_fill_bind %} :style="'width: ' + (p.spend === null || !{{ cap_usd|tojson }} ? 0 : Math.min(100, Math.round(p.spend / {{ cap_usd|tojson }} * 100))) + '%'"{% endblock %}
+{% block meter_class_bind %} :class="{ over: p.spend !== null && cap !== null && p.spend > cap }"{% endblock %}
+{% block meter_fill_bind %} :style="'width: ' + (p.spend === null || !cap ? 0 : Math.min(100, Math.round(p.spend / cap * 100))) + '%'"{% endblock %}
 {% block body %}
 <div>
 

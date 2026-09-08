@@ -63,6 +63,71 @@ class TestPageShell(unittest.TestCase):
         self.assertIn("width=device-width", body)
 
 
+class TestFixesThatHadNoTest(unittest.TestCase):
+    """Six fixes from the whole-branch review shipped with no test, so each
+    could be reverted with the suite still green. The review found them by
+    mutating the code; these pin them instead."""
+
+    def _results_app(self, rows=None):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            read_rows=lambda profile: ROWS if rows is None else rows,
+            start_rescore=lambda profile, hours: None)
+        app.config.update(TESTING=True)
+        return app
+
+    def test_the_rescore_form_carries_the_active_filters(self):
+        body = self._results_app().test_client().get(
+            "/results?min=40&source=linkedin&q=react").get_data(as_text=True)
+        # A bare /rescore action is why the error paths lost the filters.
+        self.assertIn("min=40", body)
+        self.assertIn("source=linkedin", body)
+        self.assertIn("q=react", body)
+
+    def test_a_successful_rescore_redirect_keeps_the_filters(self):
+        # The error paths were fixed for this and the success path was left a
+        # bare redirect — the common path, on the branch's own worst habit.
+        app = self._results_app()
+        r = app.test_client().post(
+            "/rescore?min=40&source=linkedin&q=react", data={"hours": "6"})
+        self.assertEqual(r.status_code, 302)
+        for fragment in ("min=40", "source=linkedin", "q=react"):
+            self.assertIn(fragment, r.headers["Location"])
+
+    def test_the_results_table_scrolls_inside_its_own_box(self):
+        # overflow-x alone let a 989-row shortlist scroll the page body.
+        body = self._results_app().test_client().get("/results").get_data(as_text=True)
+        self.assertIn("max-height", body)
+        self.assertIn("overflow:auto", body)
+
+    def test_the_results_table_has_real_header_cells(self):
+        body = self._results_app().test_client().get("/results").get_data(as_text=True)
+        self.assertIn('<th scope="col">Score</th>', body)
+
+    def test_the_single_sweep_note_shows_even_with_everything_filtered_out(self):
+        # It used to hide on `total`, i.e. exactly when the user most needs to
+        # know which file was read.
+        body = self._results_app().test_client().get(
+            "/results?min=99999").get_data(as_text=True)
+        self.assertIn("most recent sweep only", body)
+
+    def test_an_unknown_baseline_is_not_reported_as_this_sweeps_spend(self):
+        # spend_delta subtracting a None baseline as 0.0 left all 164 tests
+        # green: /progress returns before reaching it, and /results was the
+        # only consumer of that branch.
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41,
+                   "baseline_usd": None, "spend_read_val": 40.0},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            read_rows=lambda profile: ROWS)
+        app.config.update(TESTING=True)
+        body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertIn("not known", body)
+        self.assertNotIn("$40.00", body)
+
+
 class TestAlpineScopeSurvivesHtmlParsing(unittest.TestCase):
     """Every screen whose figures update in place depends on one x-data
     attribute parsing. A test that only greps the raw body cannot see this."""
@@ -589,8 +654,12 @@ class TestConfigureScreen(unittest.TestCase):
         # The rate shown is scaled to the plan's depth, so the screen has to
         # say what depth it was measured at or the figure is unauditable.
         body = self._app().test_client().get("/configure").get_data(as_text=True)
-        self.assertIn("measured at 25 results per search", body)
+        self.assertIn("scaled from the depth it was measured at", body)
         self.assertIn("line.results", body)
+        # Naukri's charge is a per-run minimum at its own fixed depth, so
+        # "raising this raises the cost" is false for the priciest line and
+        # the screen has to say which sites the control actually moves.
+        self.assertIn("Naukri is the exception", body)
 
     def test_estimate_returns_lines_that_multiply_out(self):
         r = self._app().test_client().post("/estimate", json={})
@@ -969,7 +1038,8 @@ class TestConfirmScreen(unittest.TestCase):
     def test_confirm_states_the_depth_each_rate_is_priced_at(self):
         body = self._app().test_client().get("/confirm").get_data(as_text=True)
         self.assertIn("each at 25 results", body)
-        self.assertIn("measured at 25 results per search", body)
+        self.assertIn("scaled from the depth it was measured at", body)
+        self.assertIn("per-run minimum", body)
 
     def test_confirm_states_the_hard_stop_beside_the_estimate(self):
         # The first true statement this screen can make about a real cap, so
@@ -1014,6 +1084,40 @@ class TestConfirmScreen(unittest.TestCase):
         # would show the whole month instead of this sweep.
         self.assertAlmostEqual(app.state["baseline_usd"], 1.00, places=2)
         self.assertIsNotNone(app.state["proc"])
+
+    def test_a_second_sweep_cannot_be_launched_while_one_is_running(self):
+        # The paid operation had no in-flight guard while /rescore, the FREE
+        # one twelve lines below it, had a lock and a docstring explaining
+        # this exact hazard. Two children on one profile append to the same
+        # .done_combos and truncate the same jobs_*.json, so the second
+        # re-bills searches the first already paid for — and app.state["proc"]
+        # holds one child, so the first is orphaned and /stop cannot see it.
+        launches = []
+        app = self._app(start_sweep=lambda profile: (
+            launches.append(profile) or FakeProc()))
+        client = app.test_client()
+        client.get("/confirm")
+        first = client.post("/run")
+        self.assertEqual(first.status_code, 302)
+
+        second = client.post("/run")
+        self.assertEqual(second.status_code, 409)
+        self.assertIn("already running", second.get_data(as_text=True))
+        self.assertEqual(launches, ["kanav"])       # one child, not two
+
+    def test_a_finished_sweep_does_not_block_the_next_one(self):
+        class Finished:
+            def poll(self):
+                return 0
+
+        launches = []
+        app = self._app(start_sweep=lambda profile: (
+            launches.append(profile) or Finished()))
+        client = app.test_client()
+        client.get("/confirm")
+        client.post("/run")
+        self.assertEqual(client.post("/run").status_code, 302)
+        self.assertEqual(launches, ["kanav", "kanav"])
 
     def test_run_stamps_a_real_spend_cap_into_the_profile_before_launching(self):
         # The one guard that actually stops an overspend is
