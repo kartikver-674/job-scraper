@@ -15,13 +15,15 @@
   {% if cap_usd is not none %}<span class="muted">Credit left ${{ '%.2f'|format(cap_usd) }}</span>{% endif %}
 </header>
 
-<div class="meter {{ 'over' if spend and cap_usd is not none and spend > cap_usd }}">
-  <span class="muted">{% block meter_label %}Current spend{% endblock %}</span>
-  <span class="numeral">${{ '%.2f'|format(spend or 0) }}</span>
-  <div class="meter-track">
-    <div class="meter-fill" style="width: {{ fill_pct or 0 }}%"></div>
-    {% if cap_usd is not none %}<div class="meter-cap" style="left: 100%"></div>{% endif %}
+<div{% block meter_scope %}{% endblock %}>
+  <div class="meter {{ 'over' if spend and cap_usd is not none and spend > cap_usd }}"{% block meter_class_bind %}{% endblock %}>
+    <span class="muted">{% block meter_label %}Current spend{% endblock %}</span>
+    <span class="numeral"{% block meter_numeral_bind %}{% endblock %}>${{ '%.2f'|format(spend or 0) }}</span>
+    <div class="meter-track">
+      <div class="meter-fill" style="width: {{ fill_pct or 0 }}%"></div>
+      {% if cap_usd is not none %}<div class="meter-cap" style="left: 100%"></div>{% endif %}
+    </div>
   </div>
-</div>
 
-<main>{% block body %}{% endblock %}</main>
+  <main>{% block body %}{% endblock %}</main>
+</div>

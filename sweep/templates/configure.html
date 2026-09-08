@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Configure the sweep — Sweep{% endblock %}
 {% block meter_label %}Estimated cost{% endblock %}
+{% block meter_scope %} x-data="{ est: {{ estimate|tojson }} }"{% endblock %}
+{% block meter_numeral_bind %} x-text="'$' + est.total.toFixed(2)"{% endblock %}
+{% block meter_class_bind %} :class="{ over: est.over_cap }"{% endblock %}
 {% block body %}
-<div x-data="{ est: {{ estimate|tojson }} }">
   <h1>Configure the sweep</h1>
   <p class="muted">Every change updates the cost above before anything is spent.</p>
 
@@ -58,8 +60,8 @@
         <tr :class="line.free && 'free'">
           <td x-text="line.site"></td>
           <td x-text="line.searches + ' searches'"></td>
-          <td x-text="'$' + line.rate.toFixed(3) + ' each'"></td>
-          <td x-text="'$' + line.subtotal.toFixed(2)"></td>
+          <td :class="!line.free && 'paid'" x-text="'$' + line.rate.toFixed(3) + ' each'"></td>
+          <td :class="!line.free && 'paid'" x-text="'$' + line.subtotal.toFixed(2)"></td>
         </tr>
       </template>
     </table>
@@ -70,5 +72,4 @@
   </div>
 
   <a class="primary" href="{{ url_for('confirm') }}">Review spend plan</a>
-</div>
 {% endblock %}

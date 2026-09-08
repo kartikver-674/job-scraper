@@ -264,7 +264,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         out = plan_mod.cost(raw, config.SITE_RATES)
         cap = app.state.get("cap_usd")
         out["over_cap"] = bool(cap is not None and out["total"] > cap)
-        out["shortfall"] = round(max(0.0, out["total"] - cap), 4) if cap else 0.0
+        out["shortfall"] = (round(max(0.0, out["total"] - cap), 4)
+                             if cap is not None else 0.0)
         app.state["raw_plan"] = raw
         app.state["plan"] = out
         return out

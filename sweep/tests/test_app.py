@@ -523,6 +523,46 @@ class TestConfigureScreen(unittest.TestCase):
         self.assertTrue(data["over_cap"])
         self.assertAlmostEqual(data["shortfall"], 1.70, places=2)
 
+    def test_shortfall_is_nonzero_when_credit_is_exactly_exhausted(self):
+        # cap_usd=0.0 is a real value (the key has $0 left), not the same as
+        # "no cap" (cap_usd=None) — `if cap` treats both as falsy, which
+        # made shortfall report $0.00 for a user who is genuinely short the
+        # full total. Must use `cap is not None`, same fix as base.html's
+        # meter took in an earlier task for the identical falsy-zero bug.
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 0.0},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (0.0, None),
+            fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        data = app.test_client().post("/estimate", json={}).get_json()
+        self.assertTrue(data["over_cap"])
+        self.assertAlmostEqual(data["shortfall"], 2.70, places=2)
+        self.assertNotEqual(data["shortfall"], 0.0)
+
+    def test_meter_binds_to_the_same_estimate_the_panel_uses(self):
+        # The meter above the form is server-rendered by base.html; the
+        # panel's total is Alpine-driven from `est`. They must share one
+        # source of truth (the same x-data scope and the same `est` object)
+        # so a form change can never leave the two money figures disagreeing.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn('x-data="{ est:', body)
+        self.assertIn("x-text=\"'$' + est.total.toFixed(2)\"", body)
+        self.assertIn(':class="{ over: est.over_cap }"', body)
+        # The meter's x-data must be on an ancestor of <main>, not a second,
+        # disconnected scope — otherwise Alpine can't reach it from the form.
+        data_pos = body.index('x-data="{ est:')
+        main_pos = body.index("<main>")
+        self.assertLess(data_pos, main_pos)
+
+    def test_paid_rate_and_subtotal_cells_are_amber_free_rows_stay_teal(self):
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn(":class=\"!line.free && 'paid'\"", body)
+        # The row itself carries .free for zero-rate sites; per-cell .paid
+        # must be conditioned on the same flag so a free row's money stays
+        # teal, never amber, and a paid row's search count stays chalk.
+        self.assertIn(':class="line.free && \'free\'"', body)
+
     def test_configure_without_a_profile_goes_back_to_review(self):
         app = app_module.create_app(state={}, extract=lambda p: "x",
                                     derive=lambda t, p: DERIVED)
