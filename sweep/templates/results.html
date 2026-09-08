@@ -49,7 +49,7 @@
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
 {% if notice %}<p class="muted">{{ notice }}</p>{% endif %}
 
-{% if rescoring %}
+{% if rescoring and not notice %}
   <p class="panel muted">Re-ranking now. Reload in a moment to see the new
     ranking — the shortlist below is still the old one.</p>
 {% endif %}

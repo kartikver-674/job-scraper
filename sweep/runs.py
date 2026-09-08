@@ -73,10 +73,18 @@ def done_path_for(output_dir):
 
 
 def start(profile, env=None, popen=subprocess.Popen):
-    """Launch a sweep. --yes because the UI already took the confirmation."""
+    """Launch a sweep. --yes because the UI already took the confirmation.
+
+    stderr is inherited, not piped: nothing in this app ever reads a child's
+    stderr — progress comes from .done_combos and liveness from poll() — and
+    an undrained pipe blocks the child once its ~64KB buffer fills, which
+    poll() then reports as permanently running. Inheriting costs nothing and
+    puts the engine's own errors in the terminal the server is already
+    printing to.
+    """
     return popen([sys.executable, "scraper.py", "--profile", profile, "--yes"],
                  cwd=REPO_ROOT, env=env or os.environ.copy(),
-                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+                 stdout=subprocess.DEVNULL, stderr=None, text=True)
 
 
 def start_rescore(profile, hours, env=None, popen=subprocess.Popen):
@@ -87,12 +95,15 @@ def start_rescore(profile, hours, env=None, popen=subprocess.Popen):
     (config.py:632-640), which is also what redirects the output directory.
     """
     child = dict(env or os.environ, JOB_PROFILE=profile)
-    # stderr is DEVNULL, not PIPE: nobody reads a re-score's stderr, and an
-    # undrained pipe blocks the child once it fills — which poll() would then
-    # report as permanently in flight, wedging the button for good.
+    # stderr inherited for the reason in start(), and DEVNULL would be worse
+    # than either: rescore_from_apify.py's two expected outcomes are
+    # sys.exit("No APIFY_TOKEN* found...") and sys.exit("Nothing to re-score.
+    # Widen --hours/--limit..."), both on stderr, and the UI shows only
+    # liveness — so discarding them deletes the explanation for a re-score
+    # that appears to do nothing.
     return popen([sys.executable, "rescore_from_apify.py", "--hours", str(hours)],
                  cwd=REPO_ROOT, env=child,
-                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
+                 stdout=subprocess.DEVNULL, stderr=None, text=True)
 
 
 def stop(proc):

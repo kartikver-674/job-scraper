@@ -141,11 +141,52 @@ class TestStart(unittest.TestCase):
         proc = runs.start("myprofile", popen=fake_popen)
         self.assertTrue(proc.cwd.endswith("job-scraper"))
 
-    def test_start_silences_stdout_and_captures_stderr(self):
+    def test_start_silences_stdout_and_inherits_stderr(self):
         fake_popen = FakePopen
         proc = runs.start("myprofile", popen=fake_popen)
         self.assertEqual(proc.stdout, subprocess.DEVNULL)
-        self.assertEqual(proc.stderr, subprocess.PIPE)
+        # Not PIPE: nothing reads it, and a full buffer would block the child
+        # while poll() still reported it as running.
+        self.assertIsNone(proc.stderr)
+        self.assertTrue(proc.text)
+
+
+class TestStartRescore(unittest.TestCase):
+    """start_rescore is the only function here that spawns a real process
+    against a real profile's real output directory, and it had no direct
+    coverage at all — argv, cwd, the profile hand-off and the streams were
+    each asserted nowhere."""
+
+    def test_start_rescore_builds_correct_argv(self):
+        proc = runs.start_rescore("myprofile", 6, popen=FakePopen)
+        self.assertEqual(proc.argv[0], sys.executable)
+        self.assertEqual(proc.argv[1], "rescore_from_apify.py")
+        self.assertEqual(proc.argv[2], "--hours")
+        self.assertEqual(proc.argv[3], "6")
+        # No --profile flag: config.py resolves it from JOB_PROFILE instead.
+        self.assertNotIn("--profile", proc.argv)
+
+    def test_start_rescore_passes_the_profile_through_the_environment(self):
+        proc = runs.start_rescore("myprofile", 6, env={"PATH": "/usr/bin"},
+                                   popen=FakePopen)
+        self.assertEqual(proc.env["JOB_PROFILE"], "myprofile")
+        self.assertEqual(proc.env["PATH"], "/usr/bin")
+
+    def test_start_rescore_does_not_mutate_the_environment_it_was_given(self):
+        given = {"PATH": "/usr/bin"}
+        runs.start_rescore("myprofile", 6, env=given, popen=FakePopen)
+        self.assertNotIn("JOB_PROFILE", given)
+
+    def test_start_rescore_sets_cwd_to_repo_root(self):
+        proc = runs.start_rescore("myprofile", 6, popen=FakePopen)
+        self.assertTrue(proc.cwd.endswith("job-scraper"))
+
+    def test_start_rescore_silences_stdout_and_inherits_stderr(self):
+        proc = runs.start_rescore("myprofile", 6, popen=FakePopen)
+        self.assertEqual(proc.stdout, subprocess.DEVNULL)
+        # Neither PIPE (wedges on a full buffer) nor DEVNULL (discards the
+        # "Nothing to re-score" message that explains a no-op re-rank).
+        self.assertIsNone(proc.stderr)
         self.assertTrue(proc.text)
 
 

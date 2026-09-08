@@ -1262,6 +1262,9 @@ class TestResultsScreen(unittest.TestCase):
         self.assertIn("already running", body)
         # class="error" is painted the red reserved for over-cap.
         self.assertNotIn('class="error"', body)
+        # The notice IS the response to this click, so the standing banner
+        # must not restate the same fact in a second treatment beside it.
+        self.assertEqual(body.count("Reload in a moment"), 1)
 
     def test_an_uppercase_scheme_keeps_its_apply_link(self):
         app = self._app(rows=[dict(ROWS[0], apply_url="HTTPS://Board.example/job")])
