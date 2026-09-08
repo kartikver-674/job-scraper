@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Results — Sweep{% endblock %}
+{% block meter_label %}Spent{% endblock %}
+
+{# One table, used by every section. The sponsorship section wraps it in a
+   <details> and the others don't, which is the only difference between them —
+   not a reason to carry two copies of the row markup. #}
+{% macro listings_table(rows) %}
+  <div style="overflow-x:auto">
+    <table class="panel" style="width:100%">
+      <tr class="muted">
+        <td>Source</td><td>Score</td><td>Role</td>
+        <td>Location</td><td>Pay</td><td>Experience</td>
+        <td>Matched skills</td><td></td>
+      </tr>
+      {% for row in rows %}
+        <tr>
+          {# Same rule plan.cost() and the running screen's tiles use: a site
+             listed at a $0.00 rate is free either way. #}
+          <td class="{{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">•
+            {{ row['source_site'] }}</td>
+          <td>{{ row['score'] }}</td>
+          <td>{{ row['title'] }}<br><span class="muted">{{ row['company'] }}</span></td>
+          <td>{{ row['location'] }}</td>
+          <td>{{ row['salary'] or 'Not stated' }}</td>
+          <td>{{ row['experience_required'] or 'Not stated' }}</td>
+          <td class="muted">{{ row['matched_skills'] }}</td>
+          <td><a href="{{ row['apply_url'] }}" target="_blank" rel="noopener">Apply</a></td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endmacro %}
+
+{% block body %}
+<h1>{{ total }} listings kept</h1>
+<p class="muted">Filtering and re-ranking these is free and costs no extra credit.</p>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form class="panel" method="get">
+  <label>Minimum score <input type="number" name="min" value="{{ min_score }}"></label>
+  <label>Source
+    <select name="source">
+      <option value="">All sources</option>
+      {% for s in sources %}
+        <option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Title or company <input type="text" name="q" value="{{ q }}"></label>
+  <button class="secondary" type="submit">Apply filter</button>
+</form>
+
+<details class="panel">
+  <summary>Re-rank against your current weights</summary>
+  <p class="muted">Re-ranks every search run on this key within the window you
+    choose below, against your current weights — not only this sweep's runs, so
+    on a key you share it can pull in another profile's searches. Reading data
+    you already paid for is free. The shortlist is rewritten in place, not
+    added to.</p>
+  <form method="post" action="{{ url_for('rescore') }}">
+    <label>Hours to look back
+      <input type="number" name="hours" value="6" min="1" max="168"></label>
+    <button class="secondary" type="submit">Re-rank</button>
+  </form>
+</details>
+
+{% if total == 0 %}
+  <div class="panel">
+    <h2>0 listings match</h2>
+    {% if worst %}
+      <p>The {{ worst[0] }} filter removed the most —
+        {{ worst[1] }} of {{ all_total }}. Loosen it to see more.</p>
+      {% if worst[0] == 'minimum score' %}
+        <a class="secondary" href="{{ url_for('results', source=source, q=q) }}">Clear the minimum score</a>
+      {% elif worst[0] == 'source' %}
+        <a class="secondary" href="{{ url_for('results', min=min_score, q=q) }}">Clear the source filter</a>
+      {% else %}
+        <a class="secondary" href="{{ url_for('results', min=min_score, source=source) }}">Clear the search text</a>
+      {% endif %}
+    {% else %}
+      <p>Nothing was found for this profile yet.</p>
+    {% endif %}
+    <a class="secondary" href="{{ url_for('results') }}">Clear every filter</a>
+  </div>
+{% endif %}
+
+{% for key, heading, note in sections %}
+  {% if buckets[key] %}
+    {% if key == 'visa' %}
+      <details>
+        <summary>{{ heading }} — {{ buckets[key]|length }} listings</summary>
+        <p class="muted">{{ note }}</p>
+        {{ listings_table(buckets[key]) }}
+      </details>
+    {% else %}
+      <h2>{{ heading }}</h2>
+      <p class="muted">{{ note }} — {{ buckets[key]|length }} listings</p>
+      {{ listings_table(buckets[key]) }}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% endblock %}

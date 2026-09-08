@@ -79,6 +79,19 @@ def start(profile, env=None, popen=subprocess.Popen):
                  stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
 
 
+def start_rescore(profile, hours, env=None, popen=subprocess.Popen):
+    """Re-score already-paid Apify datasets against this profile's weights.
+
+    Free: reading a dataset costs no actor events. JOB_PROFILE is how
+    config.py picks the profile when there is no --profile in argv
+    (config.py:632-640), which is also what redirects the output directory.
+    """
+    child = dict(env or os.environ, JOB_PROFILE=profile)
+    return popen([sys.executable, "rescore_from_apify.py", "--hours", str(hours)],
+                 cwd=REPO_ROOT, env=child,
+                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+
+
 def stop(proc):
     """Ask the engine to stop. Everything already fetched is already on disk:
     scraper.py emits after every search, so SIGINT never loses rows."""

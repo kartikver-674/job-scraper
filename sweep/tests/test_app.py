@@ -1123,5 +1123,88 @@ class TestRunningScreen(unittest.TestCase):
         self.assertTrue(tiles_by_site["remoteok"]["free"])
 
 
+# Column names are the REAL ones from output/<profile>/jobs_*.csv, verified
+# against output/global_all/jobs_combined.csv. Lowercase snake_case, and the
+# remote flag is literally "remote?" including the question mark.
+ROWS = [
+    {"score": "96", "title": "Senior React Native Engineer", "company": "Razorpay",
+     "location": "Bengaluru, KA", "salary": "₹45L - 60L", "remote?": "False",
+     "visa": "", "source_site": "linkedin", "apply_url": "https://x/1",
+     "matched_skills": "react native, typescript"},
+    {"score": "95", "title": "Lead React Native", "company": "Supabase",
+     "location": "Anywhere Worldwide", "salary": "$150,000", "remote?": "True",
+     "visa": "", "source_site": "remoteok", "apply_url": "https://x/2",
+     "matched_skills": "react native"},
+    {"score": "80", "title": "Mobile Engineer", "company": "Zalando",
+     "location": "Berlin, Germany", "salary": "", "remote?": "False",
+     "visa": "needs sponsorship", "source_site": "linkedin", "apply_url": "https://x/3",
+     "matched_skills": "react native"},
+]
+
+
+class TestResultsScreen(unittest.TestCase):
+    def _app(self, rows=None, start_rescore=None):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "spend": 2.70,
+                   "plan": {"total": 2.70, "total_searches": 46, "lines": []}},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=lambda profile: ROWS if rows is None else rows,
+            start_rescore=start_rescore)
+        app.config.update(TESTING=True)
+        return app
+
+    def test_rows_are_grouped_into_the_three_reachability_buckets(self):
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        self.assertIn("You can work here now", body)
+        self.assertIn("Genuinely remote from anywhere", body)
+        self.assertIn("Needs visa sponsorship", body)
+
+    def test_each_row_lands_in_exactly_one_bucket(self):
+        app = self._app()
+        buckets = app_module.bucket_rows(ROWS)
+        self.assertEqual(len(buckets["local"]), 1)
+        self.assertEqual(len(buckets["remote"]), 1)
+        self.assertEqual(len(buckets["visa"]), 1)
+        self.assertEqual(sum(len(v) for v in buckets.values()), len(ROWS))
+
+    def test_filtering_by_score_is_free_and_says_so(self):
+        body = self._app().test_client().get("/results?min=90").get_data(as_text=True)
+        self.assertIn("free", body.lower())
+        self.assertNotIn("Mobile Engineer", body)
+
+    def test_an_empty_result_names_the_filter_that_removed_the_most(self):
+        body = self._app().test_client().get("/results?min=999").get_data(as_text=True)
+        self.assertIn("score", body.lower())
+        self.assertIn("0 listings", body)
+
+    def test_results_with_no_sweep_yet_goes_back_to_upload(self):
+        app = app_module.create_app(state={}, extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED)
+        app.config.update(TESTING=True)
+        self.assertEqual(app.test_client().get("/results").status_code, 302)
+
+    def test_rescoring_runs_the_free_rescore_for_this_profile(self):
+        calls = []
+        app = self._app(start_rescore=lambda profile, hours: calls.append((profile, hours)))
+        r = app.test_client().post("/rescore", data={"hours": "6"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(calls, [("kanav", 6)])
+
+    def test_an_out_of_range_hours_value_is_rejected_and_nothing_runs(self):
+        calls = []
+        app = self._app(start_rescore=lambda profile, hours: calls.append((profile, hours)))
+        r = app.test_client().post("/rescore", data={"hours": "9999"})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(calls, [])
+
+    def test_a_site_listed_at_zero_is_free_not_paid(self):
+        app = self._app(rows=[dict(ROWS[0], source_site="freebie")])
+        with mock.patch.dict(app_module.config.SITE_RATES, {"freebie": 0.0}):
+            body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertIn('class="free"', body)
+
+
 if __name__ == "__main__":
     unittest.main()

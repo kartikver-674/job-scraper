@@ -194,11 +194,73 @@ def _configure_overrides(form):
     return out
 
 
+SECTIONS = [
+    ("local", "You can work here now",
+     "Onsite or hybrid where you already have the right to work"),
+    ("remote", "Genuinely remote from anywhere",
+     "Reachable from where you are, with no relocation"),
+    ("visa", "Needs visa sponsorship",
+     "Requires sponsorship or existing work authorisation"),
+]
+
+
+def bucket_rows(rows):
+    """Split rows by whether the person can actually take the job.
+
+    Mirrors the split profiles/kartik_reachable.py exists to buy: two thirds of
+    a global sweep was onsite abroad and needed sponsorship, so it has to be
+    visible rather than mixed in with reachable work.
+    """
+    buckets = {"local": [], "remote": [], "visa": []}
+    for row in rows:
+        if (row.get("visa") or "").strip():
+            buckets["visa"].append(row)
+        elif str(row.get("remote?", "")).lower() == "true":
+            buckets["remote"].append(row)
+        else:
+            buckets["local"].append(row)
+    return buckets
+
+
+def _as_int(value):
+    """Scores arrive from CSV as text and can be blank or non-numeric."""
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def worst_filter(all_rows, min_score, source, q):
+    """Which single active filter would remove the most rows alone, and how
+    many. Returns (name, count), or None when no filter is active.
+
+    Applied one at a time against the UNFILTERED set — with three filters
+    combined, a hardcoded guess at which one is "the" culprit can be simply
+    false.
+    """
+    removed = {}
+    if min_score:
+        removed["minimum score"] = sum(
+            1 for r in all_rows if _as_int(r.get("score")) < min_score)
+    if source:
+        removed["source"] = sum(
+            1 for r in all_rows if r.get("source_site") != source)
+    if q:
+        needle = q.lower()
+        removed["search text"] = sum(
+            1 for r in all_rows
+            if needle not in f"{r.get('title', '')} {r.get('company', '')}".lower())
+    if not removed:
+        return None
+    name = max(removed, key=removed.get)
+    return name, removed[name]
+
+
 def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
                check_token=None, env_path=None, fetch_plan=None,
                start_sweep=None, read_spend=None, output_dir=None,
-               read_done=None, now=None):
+               read_done=None, now=None, read_rows=None, start_rescore=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -321,6 +383,30 @@ def create_app(state=None, extract=None, resume_dir=None,
             from sweep import runs as runs_mod
             out_dir = os.path.join(output_dir, profile)
             return runs_mod.done_keys(runs_mod.done_path_for(out_dir), day)
+
+    if read_rows is None:
+        def read_rows(profile):
+            """Newest merged shortlist for this profile, or [] if none yet.
+
+            jobs_combined*.csv only — the per-sweep jobs_<date>_<time>.csv
+            files each hold part of a sweep, and picking one by mtime would
+            show a partial set as if it were the whole result. Reads through
+            the injected output_dir, same as read_done, so a test can never
+            reach a real profile's real (paid, unrecoverable) output
+            directory just by picking a colliding profile name.
+            """
+            import csv
+            import glob
+            pattern = os.path.join(output_dir, profile, "jobs_combined*.csv")
+            files = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
+            if not files:
+                return []
+            with open(files[0], newline="", encoding="utf-8") as fh:
+                return list(csv.DictReader(fh))
+
+    if start_rescore is None:
+        from sweep import runs as runs_mod
+        start_rescore = runs_mod.start_rescore
 
     def snapshot():
         """One progress reading. Spend is a delta from the recorded baseline,
@@ -696,9 +782,60 @@ def create_app(state=None, extract=None, resume_dir=None,
             runs_mod.stop(proc)
         return redirect(url_for("running"))
 
+    def _results_page(error=None):
+        """Shared by GET /results and a failed POST /rescore, so an
+        out-of-range hours value re-renders the same screen with an error
+        instead of a bare 400."""
+        profile = app.state["profile"]
+        all_rows = read_rows(profile)
+
+        min_score = request.args.get("min", type=int) or 0
+        source = request.args.get("source") or ""
+        q = (request.args.get("q") or "").strip()
+
+        rows = [r for r in all_rows if _as_int(r.get("score")) >= min_score]
+        if source:
+            rows = [r for r in rows if r.get("source_site") == source]
+        if q:
+            needle = q.lower()
+            rows = [r for r in rows if needle in
+                    f"{r.get('title', '')} {r.get('company', '')}".lower()]
+        # Sorted explicitly rather than trusting the CSV's own order — the
+        # real files happen to arrive score-descending today, but that's
+        # another script's undocumented behaviour, not a guarantee.
+        rows.sort(key=lambda r: _as_int(r.get("score")), reverse=True)
+
+        sources = sorted({r.get("source_site") for r in all_rows
+                           if r.get("source_site")})
+
+        return render_template("results.html", **shell(
+            "results", buckets=bucket_rows(rows), sections=SECTIONS,
+            total=len(rows), all_total=len(all_rows),
+            min_score=min_score, source=source, q=q, sources=sources,
+            # Same rule plan.cost() and snapshot() use — a site listed at a
+            # $0.00 rate is free either way, never a second "is this site
+            # free" rule that could disagree with them.
+            rates=config.SITE_RATES,
+            worst=worst_filter(all_rows, min_score, source, q),
+            error=error))
+
     @app.get("/results")
     def results():
-        return "results"         # Task 9 replaces this
+        if not app.state.get("profile"):
+            return redirect(url_for("upload"))
+        return _results_page()
+
+    @app.post("/rescore")
+    def rescore():
+        if not app.state.get("profile"):
+            return redirect(url_for("upload"))
+        try:
+            hours = _parse_int(request.form.get("hours") or "6", 1, 168,
+                                "hours to re-score")
+        except _FormError as exc:
+            return _results_page(error=str(exc)), 400
+        start_rescore(app.state["profile"], hours)
+        return redirect(url_for("results"))
 
     return app
 
