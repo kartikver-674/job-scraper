@@ -46,6 +46,12 @@
 <h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
 <p class="muted">Filtering and re-ranking these is free and costs no extra credit.</p>
 
+{% if total and not merged %}
+  <p class="muted">Showing your most recent sweep only. Run
+    <code>python merge_jobs.py</code> to fold in earlier sweeps for this
+    profile.</p>
+{% endif %}
+
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
 {% if notice %}<p class="muted">{{ notice }}</p>{% endif %}
 

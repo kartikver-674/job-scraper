@@ -36,6 +36,35 @@ python scraper.py --only-new                          # skip what earlier runs r
 Output: `output/jobs_<timestamp>.csv` + `.json`, ranked best-first (or
 `output/<profile>/` for a named profile).
 
+## The browser UI
+
+```bash
+python -m sweep
+```
+
+Serves on 127.0.0.1 and opens a browser: upload a résumé, review the skill
+weights it derived, connect an Apify key, price the sweep before running it,
+watch it, read the results. Nothing leaves your machine, and nothing is billed
+until you confirm a plan.
+
+Four things worth knowing:
+
+- The cost shown is an estimate from measured per-search rates. The real guard
+  is `SETTINGS["max_spend_usd"]` in the profile, enforced inside `scraper.py`
+  before each search launches. A wrong estimate cannot cause an overspend.
+- The resume ledger (`output/<profile>/.done_combos`) is scoped to a single
+  day, so a sweep that runs past midnight re-runs and re-bills searches it had
+  already finished. Start long sweeps early — the confirm screen warns you
+  after 22:00.
+- The results screen shows the merged shortlist (`jobs_combined.csv`) when one
+  exists, and otherwise your most recent sweep, because `scraper.py` does not
+  write a combined file — only `merge_jobs.py` and a re-score do. Run
+  `python merge_jobs.py` to fold several sweeps together.
+- Re-ranking reads datasets you have already paid for, so it costs nothing.
+  It re-scores every run on every Apify key in your `.env` inside the window
+  you pick, not only the sweep you just ran, and it rewrites
+  `jobs_combined.csv` in place.
+
 ## Profiles
 
 One scraper, several searches. A profile is `profiles/<name>.py` listing **only**

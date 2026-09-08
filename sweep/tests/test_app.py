@@ -1355,6 +1355,25 @@ class TestReadRowsDefault(unittest.TestCase):
         self.assertIn("From combined", body)
         self.assertNotIn("From partial", body)
 
+    def test_a_swept_profile_with_no_merge_still_shows_its_results(self):
+        # scraper.py never writes a combined file — only merge_jobs.py and a
+        # re-score do. Without the fallback a paid sweep finishes and the
+        # screen says nothing was found. 8 of 16 real profile directories in
+        # this repo are in exactly this state.
+        out = self._out_dir()
+        self._write(out, "jobs_2026-09-08_1200.csv", "96", "From the sweep")
+        body = self._app(out).test_client().get("/results").get_data(as_text=True)
+        self.assertIn("From the sweep", body)
+        self.assertNotIn("Nothing was found for this profile yet", body)
+        self.assertIn("most recent sweep only", body)
+
+    def test_a_merged_shortlist_is_not_labelled_as_one_sweep(self):
+        out = self._out_dir()
+        self._write(out, "jobs_combined.csv", "96", "From combined")
+        body = self._app(out).test_client().get("/results").get_data(as_text=True)
+        self.assertIn("From combined", body)
+        self.assertNotIn("most recent sweep only", body)
+
     def test_no_shortlist_yet_reads_as_empty_not_an_error(self):
         out = self._out_dir()
         r = self._app(out).test_client().get("/results")

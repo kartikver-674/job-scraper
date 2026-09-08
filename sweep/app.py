@@ -391,23 +391,42 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     if read_rows is None:
         def read_rows(profile):
-            """Newest merged shortlist for this profile, or [] if none yet.
+            """This profile's shortlist, newest first, or [] if none yet.
 
-            jobs_combined*.csv only — the per-sweep jobs_<date>_<time>.csv
-            files each hold part of a sweep, and picking one by mtime would
-            show a partial set as if it were the whole result. Reads through
-            the injected output_dir, same as read_done, so a test can never
-            reach a real profile's real (paid, unrecoverable) output
-            directory just by picking a colliding profile name.
+            Prefers jobs_combined*.csv, which merge_jobs.py and
+            rescore_from_apify.py write and which spans every sweep. Falls
+            back to the newest jobs_<date>_<time>.csv, because **scraper.py
+            never writes a combined file** — only merge_jobs.py and a
+            re-score do. Without the fallback a UI-driven sweep finishes, is
+            billed, and the results screen says nothing was found: 8 of the 16
+            profile directories in this repo today have stamped sweep output
+            and no combined file at all.
+
+            The fallback is safe to show whole: scraper.py's emit() writes the
+            cumulative row set at every checkpoint (scraper.py:1686-1697), so
+            a stamped file is the full sweep so far, not a fragment of it.
+
+            Reads through the injected output_dir, same as read_done, so a
+            test can never reach a real profile's real (paid, unrecoverable)
+            output directory by picking a colliding profile name.
             """
             import csv
             import glob
-            pattern = os.path.join(output_dir, profile, "jobs_combined*.csv")
-            files = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
+            base = os.path.join(output_dir, profile)
+            merged = sorted(glob.glob(os.path.join(base, "jobs_combined*.csv")),
+                            key=os.path.getmtime, reverse=True)
+            stamped = sorted(glob.glob(os.path.join(base, "jobs_2*.csv")),
+                             key=os.path.getmtime, reverse=True)
+            files = merged or stamped
             if not files:
                 return []
             with open(files[0], newline="", encoding="utf-8") as fh:
-                return list(csv.DictReader(fh))
+                rows = list(csv.DictReader(fh))
+            for row in rows:
+                # Which file this came from, so the screen can say whether it
+                # is showing every sweep or only the most recent one.
+                row.setdefault("_merged", "1" if merged else "")
+            return rows
 
     if start_rescore is None:
         from sweep import runs as runs_mod
@@ -793,6 +812,9 @@ def create_app(state=None, extract=None, resume_dir=None,
         instead of a bare 400."""
         profile = app.state["profile"]
         all_rows = read_rows(profile)
+        # A single sweep's file is complete for that sweep but does not span
+        # earlier ones, and merge_jobs.py is what combines them.
+        merged = bool(all_rows) and all_rows[0].get("_merged") == "1"
 
         min_score = request.args.get("min", type=int) or 0
         source = request.args.get("source") or ""
@@ -820,7 +842,7 @@ def create_app(state=None, extract=None, resume_dir=None,
             # Same rule plan.cost() and snapshot() use — a site listed at a
             # $0.00 rate is free either way, never a second "is this site
             # free" rule that could disagree with them.
-            rates=config.SITE_RATES,
+            rates=config.SITE_RATES, merged=merged,
             worst=worst_filter(all_rows, min_score, source, q),
             rescoring=_rescore_in_flight(),
             notice=notice, error=error))

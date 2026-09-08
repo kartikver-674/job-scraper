@@ -8,8 +8,15 @@ pull the raw items back for free and re-run them through config.py as it stands 
 
 Reading a dataset costs no actor events — this is a free operation.
 
-    python rescore_from_apify.py            # last 200 runs, writes output/jobs_rescored.*
+    python rescore_from_apify.py            # last 200 runs
     python rescore_from_apify.py --hours 6   # only runs started in the last 6 hours
+    JOB_PROFILE=name python rescore_from_apify.py   # a profile's own output dir
+
+Writes jobs_combined.csv/.json in the active output directory, overwriting them
+in place — not "jobs_rescored.*", which this line claimed for a while. That IS
+the canonical merged shortlist, and merge_jobs.py skips any filename
+containing "combined", so re-running the merge can never fold it back in
+alongside the stale per-run files.
 
 Only runs whose actor is in config.SITES is considered, so unrelated Apify usage on
 the same account is ignored.
