@@ -1,6 +1,7 @@
 """Routes. Business logic lives in sweep.plan and sweep.runs."""
 
 import os
+import re
 import sys
 
 from flask import (Flask, redirect, render_template, request, url_for)
@@ -20,6 +21,18 @@ import make_profile  # noqa: E402
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
          ("configure", "Configure"), ("confirm", "Confirm"),
          ("running", "Running"), ("results", "Results")]
+
+# A profile name becomes both a filesystem path (profiles/<name>.py) and a
+# Python module (config.py does importlib.import_module(f"profiles.{name}")),
+# so it is checked against an allowlist rather than merely stripped — a name
+# like "../../../../tmp/x" or an absolute path survives os.path.join(), which
+# silently discards everything before an absolute later component. A leading
+# digit is rejected too since that would not be a valid module name.
+_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
+
+
+def _valid_profile_name(name):
+    return bool(_NAME_RE.fullmatch(name))
 
 
 def create_app(state=None, extract=None, resume_dir=None,
@@ -45,6 +58,8 @@ def create_app(state=None, extract=None, resume_dir=None,
                 tailor.get_client(api_key), cfg.MODEL, resume_text, prefs)
 
     def default_write_profile(name, source):
+        if not _valid_profile_name(name):
+            raise ValueError(f"not a valid profile name: {name!r}")
         path = os.path.join(REPO_ROOT, "profiles", f"{name}.py")
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(source)
@@ -119,6 +134,8 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     @app.post("/review")
     def review_post():
+        if not app.state.get("resume_text"):
+            return redirect(url_for("upload"))
         name = (request.form.get("name") or "").strip()
         derived = derived_for_state()
         commodity = [w["term"] for w in derived["skill_weights"]
@@ -128,6 +145,12 @@ def create_app(state=None, extract=None, resume_dir=None,
                 "review", derived=derived, commodity=commodity,
                 suggested_name="",
                 error="Give the profile a name.")), 400
+        if not _valid_profile_name(name):
+            return render_template("review.html", **shell(
+                "review", derived=derived, commodity=commodity,
+                suggested_name=name,
+                error="Use letters, numbers, dashes and underscores only "
+                      "— this becomes a filename.")), 400
 
         dropped = set(request.form.getlist("drop"))
         kept = dict(derived)

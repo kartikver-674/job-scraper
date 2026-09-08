@@ -164,6 +164,45 @@ class TestReviewScreen(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertIn("name", r.get_data(as_text=True).lower())
 
+    def test_a_name_with_a_path_separator_is_rejected_not_written(self):
+        # profile name -> profiles/<name>.py; os.path.join silently drops
+        # everything before a later absolute component, so this must be
+        # blocked before it ever reaches a filesystem write.
+        app, _ = self._app()
+        written = {}
+        app.write_profile = lambda name, source: written.update(
+            {"name": name, "source": source})
+        r = app.test_client().post("/review", data={"name": "/tmp/x"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("letters, numbers, dashes", r.get_data(as_text=True))
+        self.assertEqual(written, {})
+
+    def test_a_name_with_dot_dot_is_rejected_not_written(self):
+        app, _ = self._app()
+        written = {}
+        app.write_profile = lambda name, source: written.update(
+            {"name": name, "source": source})
+        r = app.test_client().post(
+            "/review", data={"name": "../../../../tmp/x"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("letters, numbers, dashes", r.get_data(as_text=True))
+        self.assertEqual(written, {})
+
+    def test_posting_review_without_a_resume_sends_you_back_to_upload(self):
+        app, _ = self._app(state={})
+        r = app.test_client().post("/review", data={"name": "kanav"})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].endswith("/"),
+                        f"should redirect to upload, got {r.headers['Location']}")
+
+    def test_default_write_profile_also_rejects_a_bad_name(self):
+        # Belt and suspenders: default_write_profile is the single write
+        # funnel, so it validates independently of the route's own check —
+        # a future caller can't reintroduce the path-traversal hole.
+        app, _ = self._app()
+        with self.assertRaises(ValueError):
+            app.write_profile("../evil", "source")
+
 
 if __name__ == "__main__":
     unittest.main()
