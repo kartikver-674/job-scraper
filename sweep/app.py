@@ -37,11 +37,12 @@ def _valid_profile_name(name):
 
 def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
-               check_token=None):
+               check_token=None, env_path=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
     resume_dir = resume_dir if resume_dir is not None else RESUME_DIR
+    env_path = env_path if env_path is not None else os.path.join(REPO_ROOT, ".env")
 
     if extract is None:
         import resume_parser
@@ -76,25 +77,29 @@ def create_app(state=None, extract=None, resume_dir=None,
             from apify_client import ApifyClient
             try:
                 limits = ApifyClient(token).user().limits().model_dump()
+                current = (limits.get("current") or {}).get("monthly_usage_usd") or 0
+                allowed = (limits.get("limits") or {}).get("max_monthly_usage_usd")
+                if allowed is None:
+                    return None, (
+                        "Apify did not report a monthly limit for this "
+                        "account, so Sweep cannot work out your remaining "
+                        "credit. Enter your budget on the next screen.")
+                return float(allowed) - float(current), None
             except Exception:
                 return None, "That token was rejected by Apify. Check and retry."
-            current = (limits.get("current") or {}).get("monthly_usage_usd") or 0
-            allowed = (limits.get("limits") or {}).get("max_monthly_usage_usd")
-            if allowed is None:
-                return None, ("Apify did not report a monthly limit for this "
-                              "account, so Sweep cannot work out your remaining "
-                              "credit. Enter your budget on the next screen.")
-            return float(allowed) - float(current), None
 
     def default_write_env(env_key, value):
-        """Upsert one key in .env, leaving every other line untouched."""
-        path = os.path.join(REPO_ROOT, ".env")
+        """Upsert one key in .env, leaving every other line untouched. Lines
+        are normalised to end with '\\n' before appending — the real .env
+        does not end with one, and writelines() glues text together with no
+        separator otherwise, corrupting whichever key happened to be last."""
         lines = []
-        if os.path.exists(path):
-            with open(path) as fh:
-                lines = [ln for ln in fh if not ln.startswith(f"{env_key}=")]
+        if os.path.exists(env_path):
+            with open(env_path) as fh:
+                lines = [ln if ln.endswith("\n") else ln + "\n"
+                         for ln in fh if not ln.startswith(f"{env_key}=")]
         lines.append(f"{env_key}={value}\n")
-        with open(path, "w") as fh:
+        with open(env_path, "w") as fh:
             fh.writelines(lines)
 
     app.write_env = default_write_env
@@ -211,7 +216,9 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         app.write_env("APIFY_TOKEN", token)
         os.environ["APIFY_TOKEN"] = token
-        app.state["cap_usd"] = available
+        # A cap can never go negative — the account may already be over its
+        # own monthly limit, but a negative number makes the meter meaningless.
+        app.state["cap_usd"] = max(0.0, available)
         app.state["token_ok"] = True
         return redirect(url_for("configure"))
 

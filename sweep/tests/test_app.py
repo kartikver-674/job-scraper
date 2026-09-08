@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 from sweep import app as app_module
 
@@ -24,6 +25,16 @@ class TestUploadScreen(unittest.TestCase):
         # base.html renders the credit block only when cap_usd is set.
         body = self.client.get("/").get_data(as_text=True)
         self.assertNotIn("Credit left", body)
+
+    def test_meter_shows_a_real_zero_cap_once_credit_is_exhausted(self):
+        # cap_usd=0.0 is a genuine value (the account has $0 left), not the
+        # same as "no key connected yet" (cap_usd=None) — Jinja treats both
+        # as falsy under a plain {% if cap_usd %}, so this must use an
+        # explicit "is not none" check to tell them apart.
+        app = app_module.create_app(state={"cap_usd": 0.0})
+        app.config.update(TESTING=True)
+        body = app.test_client().get("/").get_data(as_text=True)
+        self.assertIn("Credit left $0.00", body)
 
     def test_posting_no_file_is_rejected_not_guessed(self):
         r = self.client.post("/resume", data={})
@@ -243,6 +254,98 @@ class TestKeyScreen(unittest.TestCase):
         body = app.test_client().post(
             "/key", data={"token": "apify_api_SECRET"}).get_data(as_text=True)
         self.assertNotIn("apify_api_SECRET", body)
+
+    def test_a_negative_available_credit_is_clamped_to_zero(self):
+        # An account can already be over its own monthly limit — that must
+        # never hand a negative number to the meter on later screens.
+        app, state = self._app(credit=(-3.5, None))
+        r = app.test_client().post("/key", data={"token": "x"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(state["cap_usd"], 0.0)
+
+    def test_a_malformed_limits_response_is_a_400_not_a_500(self):
+        # The float() conversion used to sit outside the try/except in the
+        # real (non-injected) check_token, so a field Apify returns as a
+        # non-numeric value crashed the request into a 500 instead of the
+        # graceful 400 every other bad-input path gets.
+        class FakeLimits:
+            def model_dump(self):
+                return {"current": {"monthly_usage_usd": "oops"},
+                        "limits": {"max_monthly_usage_usd": 5.0}}
+
+        class FakeUser:
+            def limits(self):
+                return FakeLimits()
+
+        class FakeClient:
+            def __init__(self, token):
+                pass
+
+            def user(self):
+                return FakeUser()
+
+        with mock.patch("apify_client.ApifyClient", FakeClient):
+            app = app_module.create_app(
+                state={"profile": "kanav"}, extract=lambda p: "x",
+                derive=lambda t, p: DERIVED)
+            app.write_env = lambda key, value: None
+            r = app.test_client().post("/key", data={"token": "abc"})
+        self.assertEqual(r.status_code, 400)
+
+
+class TestWriteEnv(unittest.TestCase):
+    """The real default_write_env, run against a temp file so no test ever
+    touches the real .env — which holds live working credentials."""
+
+    def _env_file(self, content):
+        fd, path = tempfile.mkstemp()
+        with os.fdopen(fd, "w") as fh:
+            fh.write(content)
+        self.addCleanup(os.remove, path)
+        return path
+
+    def _app(self, env_path):
+        return app_module.create_app(
+            state={}, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            env_path=env_path)
+
+    def test_upserts_the_target_key_and_leaves_every_other_key_intact(self):
+        # Mirrors the real .env: several keys, no trailing newline on the
+        # last line (GEMINI_API_KEY in the real file has none).
+        path = self._env_file(
+            "APIFY_TOKEN=old\nGROQ_API_KEY=g\nGEMINI_API_KEY=e")
+        app = self._app(path)
+        app.write_env("APIFY_TOKEN", "new")
+        with open(path) as fh:
+            pairs = dict(ln.split("=", 1) for ln in fh.read().splitlines())
+        self.assertEqual(pairs, {
+            "APIFY_TOKEN": "new", "GROQ_API_KEY": "g", "GEMINI_API_KEY": "e"})
+
+    def test_a_missing_trailing_newline_does_not_corrupt_the_last_line(self):
+        path = self._env_file("GROQ_API_KEY=g\nGEMINI_API_KEY=e")  # no \n
+        app = self._app(path)
+        app.write_env("APIFY_TOKEN", "new")
+        with open(path) as fh:
+            lines = fh.read().splitlines()
+        self.assertIn("GEMINI_API_KEY=e", lines)
+        self.assertIn("APIFY_TOKEN=new", lines)
+        self.assertEqual(len(lines), 3)
+
+    def test_a_missing_env_file_is_created(self):
+        path = os.path.join(tempfile.mkdtemp(), ".env")
+        self.addCleanup(shutil.rmtree, os.path.dirname(path))
+        app = self._app(path)
+        app.write_env("APIFY_TOKEN", "new")
+        with open(path) as fh:
+            self.assertEqual(fh.read().splitlines(), ["APIFY_TOKEN=new"])
+
+    def test_a_value_containing_an_equals_sign_round_trips(self):
+        path = self._env_file("GROQ_API_KEY=g\n")
+        app = self._app(path)
+        app.write_env("GEMINI_API_KEY", "a=b=c")
+        with open(path) as fh:
+            lines = fh.read().splitlines()
+        self.assertIn("GEMINI_API_KEY=a=b=c", lines)
 
 
 if __name__ == "__main__":
