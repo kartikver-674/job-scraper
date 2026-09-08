@@ -503,6 +503,13 @@ class TestConfigureScreen(unittest.TestCase):
         self.assertIn("0.045", body)
         self.assertIn("linkedin", body)
 
+    def test_configure_states_the_depth_the_rates_are_measured_at(self):
+        # The rate shown is scaled to the plan's depth, so the screen has to
+        # say what depth it was measured at or the figure is unauditable.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("measured at 25 results per search", body)
+        self.assertIn("line.results", body)
+
     def test_estimate_returns_lines_that_multiply_out(self):
         r = self._app().test_client().post("/estimate", json={})
         self.assertEqual(r.status_code, 200)
@@ -569,6 +576,32 @@ class TestConfigureScreen(unittest.TestCase):
         app.config.update(TESTING=True)
         r = app.test_client().get("/configure")
         self.assertEqual(r.status_code, 302)
+
+    def test_configure_without_a_connected_key_goes_to_the_key_screen(self):
+        # Without a key there is no credit figure, so cap_usd stays None and
+        # costed()'s over_cap is False for ANY total — the advisory cap is
+        # unreachable and the engine quietly runs on whatever APIFY_TOKEN is
+        # already in .env. Fail closed, the same shape /run uses.
+        app = app_module.create_app(state={"profile": "kanav"},
+                                    extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED,
+                                    fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        r = app.test_client().get("/configure")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/key", r.headers["Location"])
+
+    def test_estimate_without_a_connected_key_refuses(self):
+        # /configure's own twin: it reprices AND rewrites the profile, so a
+        # guard on one and not the other leaves the whole screen reachable.
+        app = app_module.create_app(state={"profile": "kanav"},
+                                    extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED,
+                                    fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, s: self.fail("wrote a profile with no key")
+        r = app.test_client().post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(r.status_code, 409)
 
     # -- POST /estimate actually writing the form back into the profile ----
 
@@ -786,7 +819,10 @@ class TestConfirmScreen(unittest.TestCase):
         # real paid-sweep results with no git history to fall back on.
         output_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, output_dir)
-        base_state = {"profile": "kanav", "cap_usd": cap}
+        # "derived" because POST /run re-renders the profile to stamp the
+        # spend cap into it, exactly as /estimate does — by the time a real
+        # session has a profile, review_post() has already populated it.
+        base_state = {"profile": "kanav", "cap_usd": cap, "derived": DERIVED}
         base_state.update(state or {})
         app = app_module.create_app(
             state=base_state,
@@ -802,12 +838,29 @@ class TestConfirmScreen(unittest.TestCase):
         # because this harness didn't inject env_path. write_env's own
         # allowlist behaviour is Task 5's to test; here it's a pure stub.
         app.write_env = lambda key, value: None
+        # POST /run writes profiles/<name>.py to stamp the spend cap in.
+        # Stubbed and RECORDED, never the real profiles/ directory — the
+        # sources land in app.written for the cap assertions below.
+        app.written = []
+        app.write_profile = lambda n, s: app.written.append((n, s))
         return app
 
     def test_confirm_names_the_amount_on_the_button(self):
         body = self._app().test_client().get("/confirm").get_data(as_text=True)
         self.assertIn("2.70", body)
         self.assertIn("Run the sweep", body)
+
+    def test_confirm_states_the_depth_each_rate_is_priced_at(self):
+        body = self._app().test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn("each at 25 results", body)
+        self.assertIn("measured at 25 results per search", body)
+
+    def test_confirm_states_the_hard_stop_beside_the_estimate(self):
+        # The first true statement this screen can make about a real cap, so
+        # it sits next to the figure. 2.70 x 1.25 = 3.38.
+        body = self._app().test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn("$3.38", body)
+        self.assertIn("even if searches are left", body)
 
     def test_over_cap_offers_a_second_key_instead_of_the_run_button(self):
         body = self._app(cap=1.00).test_client().get("/confirm").get_data(as_text=True)
@@ -846,6 +899,43 @@ class TestConfirmScreen(unittest.TestCase):
         self.assertAlmostEqual(app.state["baseline_usd"], 1.00, places=2)
         self.assertIsNotNone(app.state["proc"])
 
+    def test_run_stamps_a_real_spend_cap_into_the_profile_before_launching(self):
+        # The one guard that actually stops an overspend is
+        # SETTINGS["max_spend_usd"] inside scraper.py. Everything this UI
+        # displays is advisory, so the cap has to be WRITTEN — and written
+        # before the child starts, or the sweep it is meant to bound is
+        # already running uncapped. Order-recorded, not just asserted
+        # present: a write that happened after the launch would otherwise
+        # pass identically.
+        calls = []
+        app = self._app(start_sweep=lambda profile: calls.append("start_sweep") or FakeProc(),
+                        read_spend=lambda: calls.append("read_spend") or 1.00)
+        app.write_profile = lambda n, s: calls.append("write_profile") or app.written.append((n, s))
+        app.test_client().get("/confirm")
+        r = app.test_client().post("/run")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(calls, ["write_profile", "read_spend", "start_sweep"])
+
+        name, source = app.written[-1]
+        self.assertEqual(name, "kanav")
+        # 2.70 estimate x 1.25 headroom. A cap equal to the estimate would
+        # abort a sweep that lands 10% high, which /confirm tells the user
+        # to expect.
+        self.assertIn('"max_spend_usd": 3.38', source)
+        self.assertAlmostEqual(app.state["max_spend_usd"], 3.38, places=2)
+
+    def test_a_tiny_sweep_is_not_capped_below_a_single_search(self):
+        # Naukri alone is $0.50 per run minimum, so a cap under that would
+        # stop the sweep before its first search could complete.
+        app = self._app()
+        with mock.patch.dict(app_module.config.SITE_RATES,
+                             {"linkedin": 0.001, "indeed": 0.0}, clear=True):
+            app.test_client().get("/confirm")
+            app.test_client().post("/run")
+        self.assertAlmostEqual(app.state["max_spend_usd"],
+                               app_module.SPEND_CAP_FLOOR_USD, places=2)
+        self.assertIn('"max_spend_usd": 0.5', app.written[-1][1])
+
     def test_a_missing_spend_reading_is_recorded_as_unknown_not_zero(self):
         # read_spend() returning None (no token, or the account-usage call
         # failed) must not collapse into a $0.00 baseline — Task 8 would
@@ -879,6 +969,28 @@ class TestConfirmScreen(unittest.TestCase):
         r = app.test_client().post("/run")
         self.assertEqual(r.status_code, 400)
         self.assertIsNone(app.state.get("proc"))
+
+    def test_confirm_without_a_connected_key_goes_to_the_key_screen(self):
+        app = app_module.create_app(state={"profile": "kanav"},
+                                    extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED,
+                                    fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        r = app.test_client().get("/confirm")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/key", r.headers["Location"])
+
+    def test_run_without_a_connected_key_refuses_and_launches_nothing(self):
+        # A cap of None makes over_cap False for any total, so this must not
+        # fall through to "under cap, go ahead".
+        app = self._app(state={"plan": dict(RAW_PLAN, total=2.70,
+                                            total_searches=46, over_cap=False,
+                                            spend_cap=3.38)})
+        app.state.pop("cap_usd")
+        r = app.test_client().post("/run")
+        self.assertEqual(r.status_code, 400)
+        self.assertIsNone(app.state.get("proc"))
+        self.assertEqual(app.written, [])
 
     def test_run_with_no_plan_at_all_fails_closed(self):
         # A direct POST /run against empty state (never went through

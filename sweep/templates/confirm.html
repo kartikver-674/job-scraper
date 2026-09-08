@@ -12,12 +12,16 @@
       <tr class="{{ 'free' if line.free }}">
         <td>{{ line.site }}</td>
         <td>{{ line.searches }} searches</td>
-        <td>${{ '%.3f'|format(line.rate) }} each</td>
+        <td>${{ '%.3f'|format(line.rate) }} each at {{ line.results }} results</td>
         <td>${{ '%.2f'|format(line.subtotal) }}</td>
       </tr>
     {% endfor %}
   </table>
+  <p class="muted">Rates are measured at 25 results per search and scaled to
+    the depth you chose, because a pay-per-event actor bills per result.</p>
   <p class="numeral {{ 'over' if plan.over_cap }}">${{ '%.2f'|format(plan.total) }}</p>
+  <p class="muted">Hard stop at ${{ '%.2f'|format(plan.spend_cap) }}. The sweep
+    is told to stop spending there and will, even if searches are left.</p>
 </div>
 
 {% if plan.over_cap %}

@@ -50,8 +50,11 @@ until you confirm a plan.
 Four things worth knowing:
 
 - The cost shown is an estimate from measured per-search rates. The real guard
-  is `SETTINGS["max_spend_usd"]` in the profile, enforced inside `scraper.py`
-  before each search launches. A wrong estimate cannot cause an overspend.
+  is `SETTINGS["max_spend_usd"]`, enforced inside `scraper.py` before each
+  search launches — and Sweep writes it into the profile from the plan you
+  confirmed, at 25% headroom over the estimate so a sweep that lands a little
+  high still finishes. The confirm screen shows that hard stop next to the
+  estimate. So a wrong estimate can cost you up to that figure, and not more.
 - The resume ledger (`output/<profile>/.done_combos`) is scoped to a single
   day, so a sweep that runs past midnight re-runs and re-bills searches it had
   already finished. Start long sweeps early — the confirm screen warns you

@@ -210,7 +210,8 @@ def _fmt(value, indent=8):
 def render(name, data, prefs):
     """Render profiles/<name>.py source from the model's JSON and the preferences.
 
-    max_results / max_age_days / remote_scopes / linkedin_locations are
+    max_spend_usd / max_results / max_age_days / remote_scopes /
+    linkedin_locations are
     optional overrides (from Sweep's Configure screen, sweep/app.py) —
     omitted from `prefs` (None), they are left out of the rendered section
     entirely so config.py's own default silently applies, per the
@@ -222,7 +223,7 @@ def render(name, data, prefs):
         "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min",
                    "max_results"],
         "SETTINGS": ["max_experience_years", "min_comp_usd", "max_age_days",
-                     "remote_scopes"],
+                     "remote_scopes", "max_spend_usd"],
         "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
                     "backend_terms", "fullstack_title_terms", "fullstack_bonus",
                     "hard_drop_terms"],
@@ -236,6 +237,16 @@ def render(name, data, prefs):
     extra_search = (f'    "max_results": {int(prefs["max_results"])!r},\n'
                      if prefs.get("max_results") is not None else "")
     extra_settings = ""
+    # The only real spend guard in the system: scraper.py:1748 re-reads the
+    # account after every search and stops launching once this is crossed.
+    # config.py defaults it to None and that check is `if budget is not None`,
+    # so a profile that omits this key has NO cap — which is why Sweep always
+    # passes one. Omitted here still means "inherit from config.py", the same
+    # rule as every other optional key: never emit None, which would write the
+    # no-cap value in and read as a deliberate choice.
+    if prefs.get("max_spend_usd") is not None:
+        extra_settings += (
+            f'    "max_spend_usd": {float(prefs["max_spend_usd"])!r},\n')
     if prefs.get("max_age_days") is not None:
         extra_settings += f'    "max_age_days": {int(prefs["max_age_days"])!r},\n'
     if prefs.get("remote_scopes") is not None:
@@ -292,6 +303,14 @@ def render(name, data, prefs):
             f'}}\n\n'
         )
 
+    spend_note = (
+        f'Spending stops at ${float(prefs["max_spend_usd"]):.2f}: '
+        f'max_spend_usd below is re-checked against the account after every '
+        f'search, and the sweep stops there even with searches left.'
+        if prefs.get("max_spend_usd") is not None else
+        "COSTS MONEY BY DEFAULT. This file sets no max_spend_usd."
+    )
+
     sites_note = (
         "This file sets no SITES, so it inherits config.py's — LinkedIn + "
         "Indeed + Naukri all enabled. Run --dry-run first and read the run "
@@ -330,7 +349,7 @@ also appear in an unwanted job is weighted low however core it is to this
 person. Locations, pay floor, avoid-list and excluded seniority came from the
 command line, not from the résumé. Anything absent here inherits from config.py.
 
-COSTS MONEY BY DEFAULT. This file sets no max_spend_usd. {sites_note}
+{spend_note} {sites_note}
 
 Re-scoring is free — after editing weights run `python rescore_from_apify.py`
 rather than paying to scrape again.

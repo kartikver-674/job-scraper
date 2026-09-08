@@ -802,7 +802,7 @@ def build_input(site_key, s):
     if site_key == "linkedin":
         return {
             "urls": [_build_linkedin_url(s)],
-            "count": max(10, s["max_results"]),  # actor requires count >= 10
+            "count": s["max_results"],  # >= 10, floored in effective_search
             "scrapeCompany": False,
         }
     if site_key == "naukri":
@@ -902,11 +902,29 @@ def plan_for_site(site_key, args):
 # ===========================================================================
 # Running
 # ===========================================================================
+# Actor-side minimums on the per-search result count. Applied in
+# effective_search below — the ONE place a search's billable depth is decided
+# — rather than inside build_input, so `--dry-run --json` (and therefore
+# Sweep's cost estimate) reports the depth that will actually be BILLED, not
+# the smaller one that was asked for.
+ACTOR_MIN_RESULTS = {"linkedin": 10}   # apimaestro/linkedin actor requires count >= 10
+
+
 def effective_search(site_key, search):
     """Apply a site's results_per_run override (some actors, e.g. naukri, have a
-    per-run minimum charge so it's wasteful to pull only a few results)."""
+    per-run minimum charge so it's wasteful to pull only a few results), then
+    any actor-side minimum on the result count.
+
+    Every build_input() call goes through here (scraper.py:951, 1650, 1667), so
+    this is the authoritative billable depth for a search.
+    """
     per_run = SITES[site_key].get("results_per_run")
-    return {**search, "max_results": per_run} if per_run is not None else search
+    if per_run is not None:
+        search = {**search, "max_results": per_run}
+    floor = ACTOR_MIN_RESULTS.get(site_key)
+    if floor is not None and search["max_results"] < floor:
+        search = {**search, "max_results": floor}
+    return search
 
 
 def account_usage_usd(client):
@@ -1631,6 +1649,14 @@ def main():
                                   "company": s.get("company") or ""}
                                  for s in plan]
                       for site_key, plan in plans.items()},
+            # Results per search, which is what a pay-per-event actor bills
+            # on (build_input maps it to maxItemsPerSearch / count / maxJobs).
+            # Read through effective_search, the SAME call the actor input
+            # goes through, so the figure a cost estimate is built from and
+            # the figure the actor is handed cannot drift apart.
+            "max_results": {
+                site_key: effective_search(site_key, plan[0])["max_results"]
+                for site_key, plan in plans.items()},
             "free_sources": n_boards + n_feeds + n_optum + n_ent,
         }))
         return

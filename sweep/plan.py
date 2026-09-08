@@ -21,14 +21,32 @@ def fetch(profile, runner=None):
     return json.loads(run(argv))
 
 
+# config.SITE_RATES records the LinkedIn figure as "measured at
+# max_results=25" (config.py:374). Every rate there is therefore a per-search
+# price at THIS depth, and a sweep run deeper or shallower costs proportionally
+# more or less — pay-per-event actors bill per result returned.
+RATE_BASIS_RESULTS = 25
+
+
 def cost(raw, rates):
-    """Add per-site subtotals and a total. A site with no rate is free."""
+    """Add per-site subtotals and a total. A site with no rate is free.
+
+    Each rate is scaled from RATE_BASIS_RESULTS to the depth the plan will
+    actually run at, because max_results multiplies real spend: it reaches the
+    actors as maxItemsPerSearch / count / maxJobs. `rate` stays the EFFECTIVE
+    per-search rate, so rate x searches == subtotal still holds.
+    """
+    depth = raw.get("max_results") or {}
     lines = []
     for site, searches in raw["sites"].items():
-        rate = rates.get(site, 0.0)
+        # An absent depth means "priced at the basis" — never 0, which would
+        # reprice a paid site to free.
+        results = depth.get(site) or RATE_BASIS_RESULTS
+        rate = rates.get(site, 0.0) * results / RATE_BASIS_RESULTS
         lines.append({
             "site": site,
             "searches": len(searches),
+            "results": results,
             "rate": rate,
             "subtotal": round(len(searches) * rate, 4),
             "free": rate == 0.0,

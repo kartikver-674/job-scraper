@@ -35,6 +35,22 @@ STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
 # be ~1200 live requests for a figure that moves slowly.
 SPEND_POLL_SECONDS = 15
 
+# The cap POST /run stamps into the profile is the ESTIMATE times this, not
+# the estimate itself. SITE_RATES are measured averages, so a real sweep lands
+# near the estimate but not on it — and /confirm says so in as many words. A
+# cap equal to the estimate would abort a sweep that came in 10% high, having
+# already paid for most of it, which is a worse outcome than the small
+# overshoot it prevents.
+SPEND_CAP_HEADROOM = 1.25
+# Naukri alone is $0.50 per run minimum (config.SITE_RATES), so a cap below
+# that would stop the sweep before its first search could finish.
+SPEND_CAP_FLOOR_USD = 0.50
+
+
+def spend_cap_for(estimate_usd):
+    """The hard stop to write into the profile for a plan estimated at this."""
+    return round(max(SPEND_CAP_FLOOR_USD, estimate_usd * SPEND_CAP_HEADROOM), 2)
+
 
 def planned_keys(state):
     """Ledger keys this sweep intends to write, in plan order."""
@@ -490,9 +506,25 @@ def create_app(state=None, extract=None, resume_dir=None,
         out["over_cap"] = bool(cap is not None and out["total"] > cap)
         out["shortfall"] = (round(max(0.0, out["total"] - cap), 4)
                              if cap is not None else 0.0)
+        # The hard stop POST /run will write into the profile. Computed here,
+        # once, so the figure /confirm promises the user and the figure the
+        # engine enforces cannot be two different numbers.
+        out["spend_cap"] = spend_cap_for(out["total"])
         app.state["raw_plan"] = raw
         app.state["plan"] = out
         return out
+
+    def no_key_yet():
+        """No verified key on file, so no credit figure to be honest against.
+
+        cap_usd is the flag with a reader: costed()'s over_cap is
+        `cap is not None and total > cap`, which is False for ANY total while
+        it is None — so every money screen downstream of here would show an
+        advisory cap that can never trip, and the engine would run on
+        whatever APIFY_TOKEN happens to already be in .env. Every route that
+        prices or launches a sweep fails closed on this, not just one.
+        """
+        return app.state.get("cap_usd") is None
 
     def shell(step, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
@@ -614,13 +646,14 @@ def create_app(state=None, extract=None, resume_dir=None,
         # A cap can never go negative — the account may already be over its
         # own monthly limit, but a negative number makes the meter meaningless.
         app.state["cap_usd"] = max(0.0, available)
-        app.state["token_ok"] = True
         return redirect(url_for("configure"))
 
     @app.get("/configure")
     def configure():
         if not app.state.get("profile"):
             return redirect(url_for("review"))
+        if no_key_yet():
+            return redirect(url_for("key"))
         estimate = costed(app.state["profile"])
         app.state["spend"] = estimate["total"]
         return render_template("configure.html", **shell(
@@ -631,6 +664,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         from flask import jsonify
         if not app.state.get("profile"):
             return jsonify({"error": "No profile yet — approve the review first."}), 409
+        if no_key_yet():
+            return jsonify({"error": "Connect your Apify key first."}), 409
 
         form = request.get_json(silent=True) or {}
         try:
@@ -684,6 +719,8 @@ def create_app(state=None, extract=None, resume_dir=None,
     def confirm():
         if not app.state.get("profile"):
             return redirect(url_for("configure"))
+        if no_key_yet():
+            return redirect(url_for("key"))
         from datetime import datetime
         # Re-costed on every visit, like /configure — the meter shows this
         # screen's own state, never a figure carried over from an earlier one.
@@ -700,10 +737,24 @@ def create_app(state=None, extract=None, resume_dir=None,
         plan_now = app.state.get("plan")
         if not plan_now:
             return "No plan to run — start from Configure.", 400
+        if no_key_yet():
+            return "No key connected — connect one before running.", 400
         if plan_now.get("over_cap"):
             return render_template("confirm.html", **shell(
                 "confirm", plan=plan_now, spans_midnight=False,
                 error="Attach a second key or narrow the search first.")), 400
+
+        # Stamp the real cap into the profile BEFORE the child starts.
+        # SETTINGS["max_spend_usd"] is the only guard that can actually stop
+        # an overspend — scraper.py:1748 re-reads the account after every
+        # search — and make_profile.render() omitting the key means "inherit
+        # config.py's None", i.e. no cap at all. So this is what makes the
+        # README's "a wrong estimate cannot cause an overspend" true.
+        # Written through render(), never an f-string: it is also what
+        # validates every key against the live config.
+        app.state["max_spend_usd"] = plan_now["spend_cap"]
+        app.write_profile(app.state["profile"], make_profile.render(
+            app.state["profile"], app.state["derived"], _prefs(app.state)))
 
         # baseline_usd may be None (see read_spend's docstring) — recorded
         # as-is, never coerced to 0.0, so Task 8 can tell "unknown" from
@@ -926,6 +977,9 @@ def _prefs(state):
                               "new grad", "junior", "jr"],
         "avoid": state.get("avoid") or [],
         "min_comp_usd": state.get("min_comp_usd"),
+        # Set by POST /run only (see spend_cap_for). Unset means the profile
+        # inherits config.py's None, i.e. no cap — so /run must always set it.
+        "max_spend_usd": state.get("max_spend_usd"),
         # Unset (None) means "not touched by the Configure screen yet" —
         # make_profile.render() omits the key entirely in that case, so
         # config.py's own default silently applies instead of being reset.

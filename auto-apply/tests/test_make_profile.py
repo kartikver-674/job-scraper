@@ -120,6 +120,23 @@ class TestRender(unittest.TestCase):
         # soft_drop_terms is deliberately inherited from config.py, not emitted.
         self.assertNotIn("soft_drop_terms", ns["SCORING"])
 
+    def test_a_spend_cap_is_emitted_into_settings_when_given(self):
+        # SETTINGS["max_spend_usd"] is the ONLY real spend guard: scraper.py
+        # reads the account mid-sweep and refuses to launch another search
+        # once it is crossed. config.py defaults it to None, and
+        # `if budget is not None` means a profile that omits it has no cap at
+        # all — so every profile Sweep generates has to carry one.
+        ns = rendered_namespace(prefs=dict(PREFS, max_spend_usd=3.38))
+        self.assertEqual(ns["SETTINGS"]["max_spend_usd"], 3.38)
+        self.assertNotIn("This file sets no max_spend_usd", ns["__doc__"])
+
+    def test_no_spend_cap_means_inherit_from_config_not_an_emitted_none(self):
+        # Same rule as every other optional key: absent means "inherit".
+        # Emitting None would write the no-cap value in and look deliberate.
+        ns = rendered_namespace()
+        self.assertNotIn("max_spend_usd", ns["SETTINGS"])
+        self.assertIn("This file sets no max_spend_usd", ns["__doc__"])
+
     def test_empty_collections_render_without_crashing(self):
         payload = dict(PAYLOAD, domain_half_a=[], domain_half_b=[],
                        domain_title_terms=[], domain_bonus=0)
