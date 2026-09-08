@@ -252,18 +252,33 @@ def render(name, data, prefs):
     # app's own code instead of a form.
     extra_sites = ""
     if prefs.get("linkedin_locations") is not None:
-        unverified = [loc for loc in prefs["linkedin_locations"]
-                      if loc not in config.LINKEDIN_GEO_IDS]
+        locations = list(prefs["linkedin_locations"])
+        # A bare "Remote" isn't itself a LINKEDIN_GEO_IDS entry — it is a
+        # special token _build_linkedin_url resolves via remote_geo (f_WT=2
+        # filters workplace type WITHIN that one geography). So it is
+        # verified differently: remote_geo itself has to be a real,
+        # verified geoId, not "Remote" against the geography table.
+        non_remote = [loc for loc in locations if loc.lower() != "remote"]
+        unverified = [loc for loc in non_remote if loc not in config.LINKEDIN_GEO_IDS]
         if unverified:
             raise KeyError(
                 f"not a verified LinkedIn geography: {', '.join(unverified)} "
                 f"— add to config.LINKEDIN_GEO_IDS and confirm with "
                 f"`python verify_geoids.py` before using it here.")
         # The whole SITES["linkedin"] dict is REPLACED, not deep-merged (see
-        # config._overlay), so "enabled"/"actor" have to be carried forward
-        # explicitly or the profile would silently switch LinkedIn off.
+        # config._overlay), so "enabled"/"actor"/"remote_geo" have to be
+        # carried forward explicitly or the profile would silently switch
+        # LinkedIn off (or leave a bare "Remote" location with no region).
         linkedin_site = dict(config.SITES["linkedin"])
-        linkedin_site["locations"] = list(prefs["linkedin_locations"])
+        if len(non_remote) < len(locations):
+            remote_geo = linkedin_site.get("remote_geo")
+            if not remote_geo or remote_geo not in config.LINKEDIN_GEO_IDS:
+                raise KeyError(
+                    f"config.SITES['linkedin']['remote_geo'] is "
+                    f"{remote_geo!r}, not a verified LinkedIn geography — "
+                    f"a bare 'Remote' location needs one to mean anything "
+                    f"(see scraper._build_linkedin_url).")
+        linkedin_site["locations"] = locations
         linkedin_site["remote_only"] = bool(prefs.get("linkedin_remote_only"))
         extra_sites = (
             f'SITES = {{\n'

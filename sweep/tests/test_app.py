@@ -621,8 +621,14 @@ class TestConfigureScreen(unittest.TestCase):
 
         client.post("/estimate", json={"scope": "remote"})
         remote_source = writes[-1][1]
-        self.assertIn('"remote_only": True', remote_source)
-        self.assertIn("'United States'", remote_source)  # countries, not "Remote"
+        # kartik_reachable.py's own shape: worldwide remote through LinkedIn
+        # is inventory this repo already measured as ~94% unreachable (see
+        # its docstring), so "remote" buys India-remote only — one
+        # geography — through LinkedIn, and leaves worldwide remote to the
+        # free feeds, which are built for it and cost nothing.
+        self.assertIn("'Remote'", remote_source)
+        self.assertNotIn("'United States'", remote_source)
+        self.assertIn('"remote_geo": \'India\'', remote_source)
 
     def test_no_scope_submitted_emits_no_sites_block(self):
         app, writes = self._app_with_spy()
@@ -649,6 +655,13 @@ class TestConfigureScreen(unittest.TestCase):
         body = self._app().test_client().get("/configure").get_data(as_text=True)
         self.assertIn('name="skip_terms"', body)
         self.assertIn('name="max_results"', body)
+
+    def test_configure_screen_explains_why_remote_stays_on_linkedin_india(self):
+        # The user is choosing where their money goes — the reason has to be
+        # on the screen, not only in a code comment.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("no worldwide-remote search", body)
+        self.assertIn("free feeds", body)
 
     def test_a_blank_skip_terms_or_depth_field_does_not_reject_other_changes(self):
         # Both fields live in the same <form> as everything else, so a

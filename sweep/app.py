@@ -72,14 +72,21 @@ _SCOPE = {
     # "remote" scope is for.
     "india": {"remote_scopes": [], "locations": _INDIA_CITIES,
               "linkedin_locations": _INDIA_CITIES, "linkedin_remote_only": False},
-    # LinkedIn's f_WT=2 filters workplace type WITHIN one geography — there is
-    # no worldwide-remote search — so "genuinely remote from anywhere" means
-    # remote_only=True over every verified country, same mechanism
-    # profiles/global_remote.py already uses, not a bare "Remote" location
-    # (which would need exactly one region and defeat the point).
+    # LinkedIn has no worldwide-remote search: f_WT=2 filters workplace type
+    # WITHIN one geography, so paying for it across many countries buys
+    # inventory this repo already measured as unreachable — see
+    # profiles/kartik_reachable.py's docstring: of a 2026-07-26 sweep's 480
+    # "remote" rows at score >= 10, only 27 were actually reachable from
+    # India; 245 of the top 252 were remote-only-within Germany / Spain /
+    # UAE / the UK. So LinkedIn here buys the SAME India-remote-only
+    # inventory kartik_reachable.py does — locations=["Remote"], one
+    # geography (remote_geo inherits config.py's "India" — see render()) —
+    # not nine countries. Worldwide remote is left to the free feeds
+    # (RemoteOK, WWR, Remotive, Jobicy, Himalayas): built for exactly this,
+    # they carry far more of it than LinkedIn, and they're already on by
+    # default, so there's nothing to switch on here.
     "remote": {"remote_scopes": ["worldwide", "remote"], "locations": ["Remote"],
-               "linkedin_locations": _VERIFIED_COUNTRIES,
-               "linkedin_remote_only": True},
+               "linkedin_locations": ["Remote"], "linkedin_remote_only": False},
     # Global onsite: same countries, without the remote filter.
     "global": {"remote_scopes": [], "locations": _VERIFIED_COUNTRIES,
                "linkedin_locations": _VERIFIED_COUNTRIES,
