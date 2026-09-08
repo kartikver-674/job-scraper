@@ -36,7 +36,8 @@ def _valid_profile_name(name):
 
 
 def create_app(state=None, extract=None, resume_dir=None,
-               max_upload_bytes=15 * 1024 * 1024, derive=None):
+               max_upload_bytes=15 * 1024 * 1024, derive=None,
+               check_token=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -66,6 +67,37 @@ def create_app(state=None, extract=None, resume_dir=None,
         return path
 
     app.write_profile = default_write_profile
+
+    if check_token is None:
+        def check_token(token):
+            """Return (available_usd, error). Available credit is the account's
+            monthly limit minus month-to-date usage, both from the same call
+            scraper.py trusts for its spend cap."""
+            from apify_client import ApifyClient
+            try:
+                limits = ApifyClient(token).user().limits().model_dump()
+            except Exception:
+                return None, "That token was rejected by Apify. Check and retry."
+            current = (limits.get("current") or {}).get("monthly_usage_usd") or 0
+            allowed = (limits.get("limits") or {}).get("max_monthly_usage_usd")
+            if allowed is None:
+                return None, ("Apify did not report a monthly limit for this "
+                              "account, so Sweep cannot work out your remaining "
+                              "credit. Enter your budget on the next screen.")
+            return float(allowed) - float(current), None
+
+    def default_write_env(env_key, value):
+        """Upsert one key in .env, leaving every other line untouched."""
+        path = os.path.join(REPO_ROOT, ".env")
+        lines = []
+        if os.path.exists(path):
+            with open(path) as fh:
+                lines = [ln for ln in fh if not ln.startswith(f"{env_key}=")]
+        lines.append(f"{env_key}={value}\n")
+        with open(path, "w") as fh:
+            fh.writelines(lines)
+
+    app.write_env = default_write_env
 
     def shell(step, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
@@ -163,7 +195,25 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     @app.get("/key")
     def key():
-        return "key"             # Task 5 replaces this
+        return render_template("key.html", **shell("key"))
+
+    @app.post("/key")
+    def key_post():
+        token = (request.form.get("token") or "").strip()
+        if not token:
+            return render_template("key.html", **shell(
+                "key", error="Paste your Apify token.")), 400
+
+        available, error = check_token(token)
+        if error:
+            # Never render the token back into the page.
+            return render_template("key.html", **shell("key", error=error)), 400
+
+        app.write_env("APIFY_TOKEN", token)
+        os.environ["APIFY_TOKEN"] = token
+        app.state["cap_usd"] = available
+        app.state["token_ok"] = True
+        return redirect(url_for("configure"))
 
     @app.get("/configure")
     def configure():

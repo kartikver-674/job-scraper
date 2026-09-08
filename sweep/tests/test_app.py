@@ -204,5 +204,46 @@ class TestReviewScreen(unittest.TestCase):
             app.write_profile("../evil", "source")
 
 
+class TestKeyScreen(unittest.TestCase):
+    def _app(self, credit=(8.41, None), state=None):
+        state = state if state is not None else {"profile": "kanav"}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x",
+            derive=lambda t, p: DERIVED,
+            check_token=lambda token: credit)
+        app.config.update(TESTING=True)
+        app.write_env = lambda key, value: None
+        return app, state
+
+    def test_key_screen_renders(self):
+        app, _ = self._app()
+        self.assertEqual(app.test_client().get("/key").status_code, 200)
+
+    def test_a_good_token_sets_the_cap_and_moves_on(self):
+        app, state = self._app(credit=(8.41, None))
+        r = app.test_client().post("/key", data={"token": "apify_api_xxx"})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/configure", r.headers["Location"])
+        self.assertAlmostEqual(state["cap_usd"], 8.41, places=2)
+
+    def test_a_rejected_token_stops_here_with_the_reason(self):
+        app, state = self._app(credit=(None, "That token was rejected by Apify."))
+        r = app.test_client().post("/key", data={"token": "bad"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("rejected", r.get_data(as_text=True))
+        self.assertNotIn("cap_usd", state)
+
+    def test_an_empty_token_is_rejected(self):
+        app, _ = self._app()
+        r = app.test_client().post("/key", data={"token": "  "})
+        self.assertEqual(r.status_code, 400)
+
+    def test_the_token_is_never_echoed_back_into_the_page(self):
+        app, _ = self._app(credit=(None, "That token was rejected by Apify."))
+        body = app.test_client().post(
+            "/key", data={"token": "apify_api_SECRET"}).get_data(as_text=True)
+        self.assertNotIn("apify_api_SECRET", body)
+
+
 if __name__ == "__main__":
     unittest.main()
