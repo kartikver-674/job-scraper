@@ -1,4 +1,7 @@
 import io
+import os
+import shutil
+import tempfile
 import unittest
 
 from sweep import app as app_module
@@ -29,8 +32,10 @@ class TestUploadScreen(unittest.TestCase):
 
     def test_a_pdf_with_no_extractable_text_says_so(self):
         state = {}
+        resume_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, resume_dir)
         app = app_module.create_app(
-            state=state, extract=lambda path: "")
+            state=state, extract=lambda path: "", resume_dir=resume_dir)
         app.config.update(TESTING=True)
         r = app.test_client().post(
             "/resume",
@@ -41,8 +46,11 @@ class TestUploadScreen(unittest.TestCase):
 
     def test_a_good_pdf_is_stored_and_redirects_to_review(self):
         state = {}
+        resume_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, resume_dir)
         app = app_module.create_app(
-            state=state, extract=lambda path: "Kartik — React Native developer")
+            state=state, extract=lambda path: "Kartik — React Native developer",
+            resume_dir=resume_dir)
         app.config.update(TESTING=True)
         r = app.test_client().post(
             "/resume",
@@ -51,6 +59,27 @@ class TestUploadScreen(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn("/review", r.headers["Location"])
         self.assertIn("React Native", state["resume_text"])
+
+    def test_the_upload_is_saved_under_the_injected_resume_dir_not_the_real_one(self):
+        real_path = os.path.join(app_module.RESUME_DIR, "resume.pdf")
+        real_mtime_before = os.path.getmtime(real_path)
+
+        state = {}
+        resume_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, resume_dir)
+        app = app_module.create_app(
+            state=state, extract=lambda path: "Kartik — React Native developer",
+            resume_dir=resume_dir)
+        app.config.update(TESTING=True)
+        app.test_client().post(
+            "/resume",
+            data={"resume": (io.BytesIO(b"%PDF-1.7 fake"), "cv.pdf")},
+            content_type="multipart/form-data")
+
+        self.assertEqual(
+            state["resume_path"], os.path.join(resume_dir, "resume.pdf"))
+        self.assertTrue(os.path.exists(os.path.join(resume_dir, "resume.pdf")))
+        self.assertEqual(os.path.getmtime(real_path), real_mtime_before)
 
 
 if __name__ == "__main__":

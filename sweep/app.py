@@ -12,9 +12,10 @@ STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
          ("running", "Running"), ("results", "Results")]
 
 
-def create_app(state=None, extract=None):
+def create_app(state=None, extract=None, resume_dir=None):
     app = Flask(__name__)
     app.state = state if state is not None else {}
+    resume_dir = resume_dir if resume_dir is not None else RESUME_DIR
     if extract is None:
         import sys
         sys.path.insert(0, os.path.join(REPO_ROOT, "auto-apply"))
@@ -40,8 +41,8 @@ def create_app(state=None, extract=None):
             return render_template(
                 "upload.html", **shell("upload", error="Choose a PDF to upload.")), 400
 
-        os.makedirs(RESUME_DIR, exist_ok=True)
-        path = os.path.join(RESUME_DIR, "resume.pdf")
+        os.makedirs(resume_dir, exist_ok=True)
+        path = os.path.join(resume_dir, "resume.pdf")
         upload_file.save(path)
 
         text = extract(path)
