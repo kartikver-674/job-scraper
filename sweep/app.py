@@ -14,6 +14,7 @@ STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
 
 def create_app(state=None, extract=None, resume_dir=None):
     app = Flask(__name__)
+    app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024
     app.state = state if state is not None else {}
     resume_dir = resume_dir if resume_dir is not None else RESUME_DIR
     if extract is None:
@@ -29,6 +30,13 @@ def create_app(state=None, extract=None, resume_dir=None):
                     spend=app.state.get("spend", 0.0),
                     cap_usd=app.state.get("cap_usd"),
                     fill_pct=app.state.get("fill_pct", 0), **kw)
+
+    @app.errorhandler(413)
+    def too_large(e):
+        return render_template("upload.html", **shell(
+            "upload",
+            error="That file is larger than 15 MB. Export a smaller PDF "
+                  "and try again.")), 413
 
     @app.get("/")
     def upload():
