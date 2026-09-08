@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Sweep running — Sweep{% endblock %}
+{% block meter_label %}Spent so far{% endblock %}
+{% block body %}
+<div x-data="{ p: {{ progress|tojson }} }"
+     x-init="const es = new EventSource('{{ url_for('events') }}');
+             es.onmessage = e => { p = JSON.parse(e.data);
+                                   if (p.finished || p.interrupted) es.close(); }">
+
+  <h1>Running the sweep</h1>
+  <p x-show="p.spend === null">Spend is unavailable right now — the sweep is
+    still running and everything already fetched is saved.</p>
+  <p x-show="p.spend !== null"
+     x-text="(p.baseline_known
+                ? 'Spent so far $' + p.spend.toFixed(2)
+                : 'Account spend this month $' + p.spend.toFixed(2)
+                  + ' — this sweep\'s own share is unknown')
+             + ' of ${{ '%.2f'|format(plan.total) }} planned, ' + p.remaining_text"></p>
+
+  <div class="panel">
+    <h2>Searches</h2>
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px">
+      <template x-for="(t, i) in p.tiles" :key="i">
+        <div :title="t.label"
+             :style="'height:28px;border:1px solid var(--rule);background:' +
+                     (t.state === 'done'
+                        ? (t.free ? 'var(--free)' : 'var(--paid)')
+                        : 'var(--well)')"></div>
+      </template>
+    </div>
+    <p class="muted" x-text="p.done + ' of ' + p.planned + ' finished'"></p>
+    {% if plan.free_sources %}
+      <p class="muted">{{ plan.free_sources }} free sources also run, at no cost.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel" x-show="p.interrupted">
+    <h2>The sweep stopped early</h2>
+    <p x-text="p.outstanding + ' searches did not run.'"></p>
+    <p class="muted">This usually means the key ran out of credit. Everything
+      already fetched is saved, and finished searches will not be re-run or
+      re-billed.</p>
+    <form method="post" action="{{ url_for('second_key') }}">
+      <label>Another Apify token
+        <input type="password" name="token" autocomplete="off" required></label>
+      <button class="primary" type="submit">Resume with this key</button>
+    </form>
+  </div>
+
+  <form method="post" action="{{ url_for('stop') }}" x-show="!p.finished && !p.interrupted">
+    <button class="secondary" type="submit">Stop the sweep</button>
+    <span class="muted">Everything already fetched is kept.</span>
+  </form>
+
+  <a class="primary" x-show="p.finished" href="{{ url_for('results') }}">See the results</a>
+</div>
+{% endblock %}

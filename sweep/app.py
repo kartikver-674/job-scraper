@@ -18,9 +18,28 @@ RESUME_DIR = os.path.join(REPO_ROOT, "auto-apply", "resume")
 sys.path.insert(0, os.path.join(REPO_ROOT, "auto-apply"))
 import make_profile  # noqa: E402
 
+# Needed by snapshot() below (site free/paid classification) on every SSE
+# tick — imported once here, at module load, rather than inside snapshot()
+# itself, which would grow sys.path without bound over a 40-minute sweep.
+sys.path.insert(0, REPO_ROOT)
+import config  # noqa: E402
+
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
          ("configure", "Configure"), ("confirm", "Confirm"),
          ("running", "Running"), ("results", "Results")]
+
+# account_usage_usd is a live Apify call. /events polls snapshot() every 2s
+# for up to a ~40-minute sweep — read_spend is throttled to once per this
+# many seconds and the value cached on app.state in between, or that would
+# be ~1200 live requests for a figure that moves slowly.
+SPEND_POLL_SECONDS = 15
+
+
+def planned_keys(state):
+    """Ledger keys this sweep intends to write, in plan order."""
+    from sweep import runs as runs_mod
+    return runs_mod.combo_keys(state["raw_plan"], runs_mod.today())
+
 
 # A profile name becomes both a filesystem path (profiles/<name>.py) and a
 # Python module (config.py does importlib.import_module(f"profiles.{name}")),
@@ -178,7 +197,8 @@ def _configure_overrides(form):
 def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
                check_token=None, env_path=None, fetch_plan=None,
-               start_sweep=None, read_spend=None, output_dir=None):
+               start_sweep=None, read_spend=None, output_dir=None,
+               read_done=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -285,6 +305,63 @@ def create_app(state=None, extract=None, resume_dir=None,
                 return scraper.account_usage_usd(ApifyClient(token))
             except Exception:
                 return None
+
+    if read_done is None:
+        def read_done(profile, day):
+            """Keys finished today, straight from output/<profile>/.done_combos
+            — never parsed from stdout, which is a formatting detail the
+            engine itself doesn't trust to resume a capped sweep. Reads
+            through the injected output_dir, same as _write_run_json, so a
+            test can never reach a real profile's real (paid, unrecoverable)
+            output directory just by picking a colliding profile name."""
+            from sweep import runs as runs_mod
+            out_dir = os.path.join(output_dir, profile)
+            return runs_mod.done_keys(runs_mod.done_path_for(out_dir), day)
+
+    def snapshot():
+        """One progress reading. Spend is a delta from the recorded baseline,
+        because account_usage_usd is month-to-date, not per-run."""
+        import time
+        from sweep import runs as runs_mod
+
+        planned = planned_keys(app.state)
+        done = read_done(app.state["profile"], runs_mod.today())
+        p = runs_mod.progress(planned, done)
+
+        for tile in p["tiles"]:
+            # Same rule plan.cost() already uses (a site listed at a $0.00
+            # rate is free either way) rather than a second implementation
+            # of "is this site free" that could disagree with it.
+            tile["free"] = config.SITE_RATES.get(tile["site"], 0.0) == 0.0
+
+        last_at = app.state.get("spend_read_at")
+        if last_at is None or (time.monotonic() - last_at) >= SPEND_POLL_SECONDS:
+            app.state["spend_read_val"] = read_spend()
+            app.state["spend_read_at"] = time.monotonic()
+        now = app.state["spend_read_val"]
+
+        baseline = app.state.get("baseline_usd")
+        p["baseline_known"] = baseline is not None
+        p["spend_known"] = now is not None
+        if now is None:
+            # No reading at all. Don't invent a figure for a money display.
+            p["spend"] = None
+        elif baseline is None:
+            # Month-to-date with no baseline to subtract. Report it as what
+            # it is, not as this sweep's cost.
+            p["spend"] = round(now, 4)
+        else:
+            p["spend"] = round(max(0.0, now - baseline), 4)
+        app.state["spend"] = p["spend"] or 0.0
+
+        proc = app.state.get("proc")
+        running_now = proc is not None and proc.poll() is None
+        p["finished"] = (not running_now) and p["outstanding"] == 0
+        p["interrupted"] = (not running_now) and p["outstanding"] > 0
+        p["remaining_text"] = (
+            f"{p['outstanding']} searches left" if running_now else
+            ("finished" if p["finished"] else "stopped early"))
+        return p
 
     def costed(profile):
         """Cost the plan and say whether it exceeds the key's credit. The
@@ -567,7 +644,40 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     @app.get("/running")
     def running():
-        return "running"         # Task 8 replaces this
+        if not app.state.get("raw_plan"):
+            return redirect(url_for("configure"))
+        return render_template("running.html", **shell(
+            "running", progress=snapshot(), plan=app.state["plan"]))
+
+    @app.get("/progress")
+    def progress():
+        from flask import jsonify
+        return jsonify(snapshot())
+
+    @app.get("/events")
+    def events():
+        import json
+        import time
+        from flask import Response
+
+        def stream():
+            while True:
+                p = snapshot()
+                yield f"data: {json.dumps(p)}\n\n"
+                if p["finished"] or p["interrupted"]:
+                    return
+                time.sleep(2)
+
+        return Response(stream(), mimetype="text/event-stream",
+                        headers={"Cache-Control": "no-cache"})
+
+    @app.post("/stop")
+    def stop():
+        from sweep import runs as runs_mod
+        proc = app.state.get("proc")
+        if proc is not None:
+            runs_mod.stop(proc)
+        return redirect(url_for("running"))
 
     @app.get("/results")
     def results():

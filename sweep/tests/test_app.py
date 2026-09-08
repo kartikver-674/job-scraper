@@ -935,5 +935,106 @@ class TestConfirmScreen(unittest.TestCase):
         self.assertAlmostEqual(app.state["cap_usd"], 1.00, places=2)
 
 
+import json as _json
+import signal as _signal
+
+
+# RAW_PLAN builds its searches as [{...}] * 32 — 32 references to one
+# identical dict, so combo_keys yields 32 byte-identical keys and
+# done=keys[:5] collapses to a one-element set. This fixture uses distinct
+# keywords per search so done/outstanding counts are real (see task-8-brief
+# Amendment A1). 46 searches total, matching every "46" the given tests check.
+RUNNING_PLAN = {
+    "profile": "kanav",
+    "sites": {
+        "linkedin": [{"keywords": f"kw{i}", "location": "India", "company": ""}
+                     for i in range(32)],
+        "indeed": [{"keywords": f"kw{i}", "location": "Pune", "company": ""}
+                   for i in range(14)],
+    },
+    "free_sources": 6,
+}
+
+
+class TestRunningScreen(unittest.TestCase):
+    def _app(self, done=(), alive=True, read_spend=None):
+        proc = FakeProc()
+        if not alive:
+            proc.poll = lambda: 0
+        state = {"profile": "kanav", "cap_usd": 8.41, "proc": proc,
+                 "baseline_usd": 1.00,
+                 "raw_plan": RUNNING_PLAN, "plan": {"total": 2.70,
+                                                "total_searches": 46,
+                                                "over_cap": False, "lines": []}}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RUNNING_PLAN,
+            start_sweep=lambda profile: proc,
+            read_spend=read_spend or (lambda: 2.42),
+            read_done=lambda profile, day: set(done))
+        app.config.update(TESTING=True)
+        return app, state, proc
+
+    def test_running_renders_one_tile_per_planned_search(self):
+        app, _, _ = self._app()
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn("46", body)
+
+    def test_progress_reports_spend_as_a_delta_from_the_baseline(self):
+        app, _, _ = self._app()
+        payload = app.test_client().get("/progress").get_json()
+        # 2.42 read now minus 1.00 baseline
+        self.assertAlmostEqual(payload["spend"], 1.42, places=2)
+
+    def test_progress_counts_finished_searches(self):
+        app, state, _ = self._app()
+        keys = app_module.planned_keys(state)
+        app, state, _ = self._app(done=keys[:5])
+        payload = app.test_client().get("/progress").get_json()
+        self.assertEqual(payload["done"], 5)
+        self.assertEqual(payload["planned"], 46)
+
+    def test_a_dead_process_with_work_left_is_reported_as_interrupted(self):
+        app, state, _ = self._app(done=[], alive=False)
+        payload = app.test_client().get("/progress").get_json()
+        self.assertTrue(payload["interrupted"])
+        self.assertEqual(payload["outstanding"], 46)
+
+    def test_a_dead_process_with_no_work_left_is_finished_not_interrupted(self):
+        app, state, _ = self._app()
+        keys = app_module.planned_keys(state)
+        app, state, _ = self._app(done=keys, alive=False)
+        payload = app.test_client().get("/progress").get_json()
+        self.assertFalse(payload["interrupted"])
+        self.assertTrue(payload["finished"])
+
+    def test_the_event_stream_is_sse(self):
+        app, _, _ = self._app()
+        r = app.test_client().get("/events")
+        self.assertTrue(r.headers["Content-Type"].startswith("text/event-stream"))
+
+    def test_stopping_signals_the_process_and_keeps_what_was_fetched(self):
+        app, state, proc = self._app()
+        r = app.test_client().post("/stop")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn(_signal.SIGINT, proc.signals)
+
+    # -- Amendment A2: a None baseline must not be subtracted as if it were 0
+
+    def test_an_unknown_baseline_is_not_subtracted_as_zero(self):
+        app, state, _ = self._app()
+        state["baseline_usd"] = None
+        payload = app.test_client().get("/progress").get_json()
+        self.assertAlmostEqual(payload["spend"], 2.42, places=2)
+        self.assertFalse(payload["baseline_known"])
+
+    def test_an_unavailable_spend_reading_is_null_not_zero(self):
+        app, state, _ = self._app(read_spend=lambda: None)
+        payload = app.test_client().get("/progress").get_json()
+        self.assertIsNone(payload["spend"])
+        self.assertFalse(payload["spend_known"])
+
+
 if __name__ == "__main__":
     unittest.main()
