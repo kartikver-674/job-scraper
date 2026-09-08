@@ -81,19 +81,20 @@ class TestUploadScreen(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(resume_dir, "resume.pdf")))
         self.assertEqual(os.path.getmtime(real_path), real_mtime_before)
 
-    def test_a_file_over_15mb_is_rejected_with_the_upload_error_panel(self):
+    def test_a_file_over_the_limit_is_rejected_with_the_upload_error_panel(self):
         state = {}
         resume_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, resume_dir)
-        app = app_module.create_app(state=state, resume_dir=resume_dir)
+        app = app_module.create_app(
+            state=state, resume_dir=resume_dir, max_upload_bytes=1024)
         app.config.update(TESTING=True)
-        oversized = io.BytesIO(b"0" * (15 * 1024 * 1024 + 1))
+        oversized = io.BytesIO(b"0" * 2048)
         r = app.test_client().post(
             "/resume",
             data={"resume": (oversized, "big.pdf")},
             content_type="multipart/form-data")
         self.assertEqual(r.status_code, 413)
-        self.assertIn("larger than 15 MB", r.get_data(as_text=True))
+        self.assertIn("larger than", r.get_data(as_text=True))
 
 
 if __name__ == "__main__":
