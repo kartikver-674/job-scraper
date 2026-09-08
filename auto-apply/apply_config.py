@@ -31,10 +31,19 @@ PER_RUN_CAP = 5           # default cap; --limit overrides
 SEND_DELAY_SECONDS = 20   # delay between sends on --send
 
 # --- Tailoring -------------------------------------------------------------
-# gemini-2.5-flash 404s ("no longer available to new users") for this API key.
-# Use gemini-2.0-flash: a pinned, GA flash model this key can call. (The
-# gemini-flash-latest alias is also callable but tends to hit transient 503s.)
-MODEL = "gemini-2.0-flash"
+# Read by tailor.draft_email (one call per job) and make_profile.py (one call
+# per résumé). Retired models 404 with "no longer available", which is silent
+# until you spend: gemini-2.5-flash went first, then gemini-2.0-flash, which is
+# what this was pinned to until 2026-09-08.
+#
+# gemini-3.6-flash is the replacement the API itself names in that 404. Still a
+# pin, not the gemini-flash-latest alias, because the alias hits the same
+# transient 503s and the pin is the version we have actually measured — flash
+# reproduced the discriminative-weighting fix on the Salesforce résumé that
+# RESUME_AUTOCONFIG_PROMPT.md documents, so a bigger model buys nothing here.
+# The 503s are handled by retry (make_profile.generate), not by model choice.
+# gemini-3.1-pro-preview is NOT usable: 429 RESOURCE_EXHAUSTED, no pro quota.
+MODEL = "gemini-3.6-flash"
 DRY_RUN_DEFAULT = True
 
 # --- Applicant contact block (used in the email signature) -----------------
