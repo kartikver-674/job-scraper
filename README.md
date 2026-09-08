@@ -44,8 +44,11 @@ python -m sweep
 
 Serves on 127.0.0.1 and opens a browser: upload a résumé, review the skill
 weights it derived, connect an Apify key, price the sweep before running it,
-watch it, read the results. Nothing leaves your machine, and nothing is billed
-until you confirm a plan.
+watch it, read the results. Your résumé and your keys stay on your machine —
+the only thing the pages fetch is the web font from Google, so each page view
+sends Google a request. Delete the two font links in `sweep/templates/base.html`
+if you would rather it fetched nothing; the layout falls back to system fonts.
+Nothing is billed until you confirm a plan.
 
 Four things worth knowing:
 

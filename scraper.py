@@ -1243,7 +1243,14 @@ def parse_args():
     p.add_argument("--only-new", action="store_true",
                    help="Report only postings no earlier run reported "
                         "(uses output/[profile/]seen.tsv).")
-    return p.parse_args()
+    args = p.parse_args()
+    # --json only ever changes --dry-run's output. On its own it was accepted
+    # and silently did nothing, so a caller expecting machine-readable output
+    # got prose and no indication why.
+    if args.json and not args.dry_run:
+        p.error("--json only applies with --dry-run. "
+                "Use: --dry-run --json to print the plan as JSON.")
+    return args
 
 
 def _token_headroom(token):

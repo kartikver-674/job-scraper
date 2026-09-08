@@ -1,9 +1,21 @@
 <!doctype html>
+<html lang="en">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Sweep{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='sweep.css') }}">
+{# Fonts come from Google; the typography is part of the design the spec
+   asked for, and a stylesheet cannot execute code. It does mean each page
+   view sends a request to Google, which the README says plainly rather than
+   claiming more privacy than this delivers. Removing the link costs only the
+   display face — every stack in sweep.css has a system fallback. #}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Chivo:wght@400;500;600&display=swap" rel="stylesheet">
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.14.1/cdn.min.js"></script>
+{# Alpine is vendored, not loaded from a CDN. This page is also /key, where
+   the user pastes the one credential this tool exists to protect, and a
+   third-party script that can read the DOM does not belong there. A CDN that
+   cannot be reached also takes the live cost meter down silently, which
+   reads as "the estimate stopped moving" — on the money screen. #}
+<script defer src="{{ url_for('static', filename='alpine-3.14.1.min.js') }}"></script>
 
 <header>
   <strong>Sweep</strong>

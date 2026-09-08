@@ -43,3 +43,7 @@ select:focus-visible, summary:focus-visible { outline: 1px solid var(--chalk); o
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 /* "not known" is not a figure, so it is not typeset as one. */
 .numeral.unknown { font-size: 18px; font-weight: 500; color: var(--slate); }
+/* A header cell that exists for screen readers, not for the eye. */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Header cells inherit the table's quiet weight rather than bold. */
+th { text-align: left; font-weight: 500; }

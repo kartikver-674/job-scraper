@@ -38,11 +38,11 @@
     <p class="muted">A wider window buys more listings at the same price.</p>
 
     <h2>Pay floor</h2>
-    <label>Minimum yearly pay, USD <input type="number" name="min_comp_usd"></label>
-    <label><input type="checkbox" name="keep_unstated" checked>
-      Keep listings that don't state pay</label>
-    <p class="muted">Most listings don't state pay, so turning this off
-      discards a lot.</p>
+    <label>Minimum yearly pay, USD
+      <input type="number" name="min_comp_usd" min="0" placeholder="No floor"></label>
+    <p class="muted">Listings that don't state pay are kept either way — most
+      don't state it, and dropping them would discard the majority of a
+      sweep. The floor only removes listings that state a figure below it.</p>
 
     <h2>Skip these</h2>
     <label>Stacks or domains to down-rank, comma-separated

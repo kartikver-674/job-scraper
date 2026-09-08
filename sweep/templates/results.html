@@ -6,12 +6,13 @@
    <details> and the others don't, which is the only difference between them —
    not a reason to carry two copies of the row markup. #}
 {% macro listings_table(rows) %}
-  <div style="overflow-x:auto">
+  <div style="overflow:auto;max-height:70vh">
     <table class="panel" style="width:100%">
       <tr class="muted">
-        <td>Source</td><td>Score</td><td>Role</td>
-        <td>Location</td><td>Pay</td><td>Experience</td>
-        <td>Matched skills</td><td></td>
+        <th scope="col">Source</th><th scope="col">Score</th>
+        <th scope="col">Role</th><th scope="col">Location</th>
+        <th scope="col">Pay</th><th scope="col">Experience</th>
+        <th scope="col">Matched skills</th><th scope="col"><span class="visually-hidden">Apply</span></th>
       </tr>
       {% for row in rows %}
         <tr>
@@ -46,7 +47,7 @@
 <h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
 <p class="muted">Filtering and re-ranking these is free and costs no extra credit.</p>
 
-{% if total and not merged %}
+{% if all_total and not merged %}
   <p class="muted">Showing your most recent sweep only. Run
     <code>python merge_jobs.py</code> to fold in earlier sweeps for this
     profile.</p>
@@ -81,7 +82,8 @@
     not only this sweep's runs, so on a key you share it can pull in another
     profile's searches. Reading data you already paid for is free. The
     shortlist is rewritten in place, not added to.</p>
-  <form method="post" action="{{ url_for('rescore') }}">
+  <form method="post"
+        action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
     <label>Hours to look back
       <input type="number" name="hours" value="6" min="1" max="168"></label>
     <button class="secondary" type="submit">Re-rank</button>

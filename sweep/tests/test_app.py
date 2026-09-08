@@ -32,6 +32,37 @@ def alpine_scope(body):
     return found
 
 
+class TestPageShell(unittest.TestCase):
+    def _app(self):
+        app = app_module.create_app(state={}, extract=lambda p: "x",
+                                     derive=lambda t, p: DERIVED)
+        app.config.update(TESTING=True)
+        return app
+
+    def test_alpine_is_served_locally_not_from_a_cdn(self):
+        # /key renders this same shell, and that is where the user pastes the
+        # credential this tool exists to protect. A third-party script that
+        # can read the DOM does not belong on it — and an unreachable CDN
+        # takes the live cost meter down silently.
+        client = self._app().test_client()
+        body = client.get("/").get_data(as_text=True)
+        self.assertNotIn("cdnjs", body)
+        self.assertIn("alpine-3.14.1.min.js", body)
+        served = client.get("/static/alpine-3.14.1.min.js")
+        try:
+            self.assertEqual(served.status_code, 200)
+            self.assertIn(b"Alpine", served.get_data())
+        finally:
+            # Flask streams a static file from an open handle; without this
+            # the suite reports a ResourceWarning for the unclosed reader.
+            served.close()
+
+    def test_the_shell_declares_a_language_and_a_viewport(self):
+        body = self._app().test_client().get("/").get_data(as_text=True)
+        self.assertIn('lang="en"', body)
+        self.assertIn("width=device-width", body)
+
+
 class TestAlpineScopeSurvivesHtmlParsing(unittest.TestCase):
     """Every screen whose figures update in place depends on one x-data
     attribute parsing. A test that only greps the raw body cannot see this."""
@@ -659,7 +690,7 @@ class TestConfigureScreen(unittest.TestCase):
 
     # -- POST /estimate actually writing the form back into the profile ----
 
-    def _app_with_spy(self, extra_state=None):
+    def _app_with_spy(self, extra_state=None, hour_now=None):
         """Like _app(), but app.write_profile records every call instead of
         discarding it, so tests can assert on the rendered source."""
         state = {"profile": "kanav", "cap_usd": 8.41, "derived": dict(DERIVED)}
@@ -667,6 +698,7 @@ class TestConfigureScreen(unittest.TestCase):
         app = app_module.create_app(
             state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
             check_token=lambda t: (8.41, None),
+            hour_now=hour_now,
             fetch_plan=lambda profile: RAW_PLAN)
         app.config.update(TESTING=True)
         writes = []
@@ -706,7 +738,7 @@ class TestConfigureScreen(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(writes, [])
 
-    def test_estimate_maps_scope_and_the_pay_floor_toggle(self):
+    def test_estimate_maps_scope_and_the_pay_floor(self):
         app, writes = self._app_with_spy()
         client = app.test_client()
 
@@ -714,11 +746,41 @@ class TestConfigureScreen(unittest.TestCase):
         self.assertIn('"remote_scopes": [', writes[-1][1])
         self.assertIn("'worldwide'", writes[-1][1])
 
-        client.post("/estimate", json={"keep_unstated": "on"})
-        self.assertIn('"min_comp_usd": None', writes[-1][1])
-
         client.post("/estimate", json={"min_comp_usd": "20000"})
         self.assertIn('"min_comp_usd": 20000', writes[-1][1])
+
+        # Blank is "no floor", a real choice rather than a validation error.
+        client.post("/estimate", json={"min_comp_usd": ""})
+        self.assertIn('"min_comp_usd": None', writes[-1][1])
+
+    def test_a_late_start_warns_about_the_midnight_re_bill(self):
+        # .done_combos is scoped to a single day, so a sweep still running
+        # after midnight re-runs and re-bills everything it had finished.
+        # This warning was previously untestable: hardcoding it to False left
+        # the whole suite green.
+        app, _ = self._app_with_spy(hour_now=lambda: 23)
+        app.test_client().post("/estimate", json={})
+        body = app.test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn("midnight", body.lower())
+
+    def test_an_early_start_does_not_warn(self):
+        app, _ = self._app_with_spy(hour_now=lambda: 9)
+        app.test_client().post("/estimate", json={})
+        body = app.test_client().get("/confirm").get_data(as_text=True)
+        self.assertNotIn("midnight", body.lower())
+
+    def test_a_pay_floor_is_never_silently_discarded(self):
+        # This screen used to carry a "keep listings that don't state pay"
+        # checkbox, default ON, whose only real effect was to throw away the
+        # floor the user had just typed. The engine keeps unstated pay either
+        # way (scraper.comp_ok returns True when the pay is unstated), so the
+        # toggle was offering a choice that did not exist and destroying a
+        # real one. Whatever else the form carries, a submitted floor arrives.
+        app, writes = self._app_with_spy()
+        app.test_client().post("/estimate", json={
+            "min_comp_usd": "80000", "keep_unstated": "on", "scope": "india"})
+        self.assertIn('"min_comp_usd": 80000', writes[-1][1])
+        self.assertNotIn('"min_comp_usd": None', writes[-1][1])
 
     def test_scope_overrides_linkedins_locations_not_just_search_locations(self):
         # SITES["linkedin"].get("locations", SEARCH["locations"]) means
@@ -1089,6 +1151,31 @@ class TestConfirmScreen(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertIn("same key", r.get_data(as_text=True).lower())
         self.assertAlmostEqual(app.state["cap_usd"], 1.00, places=2)
+
+    def test_second_key_rejects_an_empty_token_the_way_the_key_screen_does(self):
+        # /key answered this with "Paste your Apify token."; /second-key sent
+        # the blank straight to check_token and reported it as "rejected by
+        # Apify", blaming the service for the user's empty field.
+        calls = []
+        app = self._app(check_token=lambda t: calls.append(t) or (5.0, None))
+        client = app.test_client()
+        client.get("/confirm")          # establishes the plan
+        r = client.post("/second-key", data={"token": "  "})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Paste your Apify token", r.get_data(as_text=True))
+        self.assertEqual(calls, [])          # no network call for a blank
+
+    def test_second_key_rejects_a_malformed_token_before_the_write_funnel(self):
+        # A value with a space used to reach app.write_env, where the
+        # allowlist raises ValueError — a 500 rather than a clean message.
+        calls = []
+        app = self._app(check_token=lambda t: calls.append(t) or (5.0, None))
+        client = app.test_client()
+        client.get("/confirm")          # establishes the plan
+        r = client.post("/second-key", data={"token": "abc def"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("printable characters", r.get_data(as_text=True))
+        self.assertEqual(calls, [])
 
     def test_second_key_that_verifies_with_zero_credit_shows_a_message(self):
         app = self._app(cap=1.00, check_token=lambda t: (0.0, None))

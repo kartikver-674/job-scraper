@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import threading
+from datetime import datetime
 
 from flask import (Flask, redirect, render_template, request, url_for)
 
@@ -85,7 +86,8 @@ def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
                check_token=None, env_path=None, fetch_plan=None,
                start_sweep=None, read_spend=None, output_dir=None,
-               read_done=None, now=None, read_rows=None, start_rescore=None):
+               read_done=None, now=None, read_rows=None,
+               start_rescore=None, hour_now=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -141,7 +143,9 @@ def create_app(state=None, extract=None, resume_dir=None,
                     return None, (
                         "Apify did not report a monthly limit for this "
                         "account, so Sweep cannot work out your remaining "
-                        "credit. Enter your budget on the next screen.")
+                        "credit and will not guess at it. Set a monthly "
+                        "limit on the account, or run from the command line, "
+                        "where the profile's own cap is the only guard.")
                 return float(allowed) - float(current), None
             except Exception:
                 return None, "That token was rejected by Apify. Check and retry."
@@ -186,7 +190,6 @@ def create_app(state=None, extract=None, resume_dir=None,
             the raw current spend with a caveat rather than treat it as a
             zero baseline, which would report the account's entire
             month-to-date spend as this one sweep's cost."""
-            sys.path.insert(0, REPO_ROOT)
             import scraper
             from apify_client import ApifyClient
             token = os.environ.get("APIFY_TOKEN")
@@ -298,9 +301,6 @@ def create_app(state=None, extract=None, resume_dir=None,
     def costed(profile):
         """Cost the plan and say whether it exceeds the key's credit. The
         over-cap flag is advisory: SETTINGS["max_spend_usd"] is the real guard."""
-        import sys
-        sys.path.insert(0, REPO_ROOT)
-        import config
         from sweep import plan as plan_mod
 
         raw = fetch_plan(profile)
@@ -548,13 +548,12 @@ def create_app(state=None, extract=None, resume_dir=None,
             return redirect(url_for("configure"))
         if no_key_yet():
             return redirect(url_for("key"))
-        from datetime import datetime
         # Re-costed on every visit, like /configure — the meter shows this
         # screen's own state, never a figure carried over from an earlier one.
         plan = costed(app.state["profile"])
         return render_template("confirm.html", **shell(
             "confirm", spend=plan["total"], plan=plan,
-            spans_midnight=datetime.now().hour >= 22))
+            spans_midnight=_spans_midnight()))
 
     @app.post("/run")
     def run():
@@ -568,10 +567,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         if no_key_yet():
             return "No key connected — connect one before running.", 400
         if plan_now.get("over_cap"):
-            return render_template("confirm.html", **shell(
-                "confirm", spend=plan_now["total"], plan=plan_now,
-                spans_midnight=False,
-                error="Attach a second key or narrow the search first.")), 400
+            return _confirm_page(error="Attach a second key or narrow the search first.", status=400)
 
         # Stamp the real cap into the profile BEFORE the child starts.
         # SETTINGS["max_spend_usd"] is the only guard that can actually stop
@@ -611,24 +607,21 @@ def create_app(state=None, extract=None, resume_dir=None,
         # exactly the wasted-spend outcome this screen exists to prevent.
         if token and token in (os.environ.get("APIFY_TOKEN"),
                                 os.environ.get("APIFY_TOKEN_2")):
-            return render_template("confirm.html", **shell(
-                "confirm", spend=plan_now["total"], plan=plan_now,
-                spans_midnight=False,
-                error="That's the same key already on file — it adds no "
-                      "new credit.")), 400
+            return _confirm_page(error="That's the same key already on file — it adds no "
+                      "new credit.", status=400)
 
+        if not token:
+            return _confirm_page(error="Paste your Apify token.", status=400)
+        if not _ENV_VALUE_RE.fullmatch(token):
+            return _confirm_page(
+                error="That doesn't look like an Apify token — printable "
+                      "characters, no spaces.", status=400)
         available, error = check_token(token)
         if error:
-            return render_template("confirm.html", **shell(
-                "confirm", spend=plan_now["total"], plan=plan_now,
-                spans_midnight=False,
-                error=error)), 400
+            return _confirm_page(error=error, status=400)
         if available <= 0:
-            return render_template("confirm.html", **shell(
-                "confirm", spend=plan_now["total"], plan=plan_now,
-                spans_midnight=False,
-                error="That key verified, but it has no credit "
-                      "available.")), 400
+            return _confirm_page(error="That key verified, but it has no credit "
+                      "available.", status=400)
 
         app.write_env("APIFY_TOKEN_2", token)
         os.environ["APIFY_TOKEN_2"] = token
@@ -738,6 +731,28 @@ def create_app(state=None, extract=None, resume_dir=None,
                    if not rows else None),
             rescoring=_rescore_in_flight(),
             notice=notice, error=error))
+
+    # Wall-clock hour, injectable so the midnight re-bill warning is
+    # testable. Separate from `now`, which is a monotonic clock for the
+    # spend-poll throttle and says nothing about the time of day.
+    if hour_now is None:
+        def hour_now():
+            return datetime.now().hour
+
+    def _spans_midnight():
+        """A sweep started this late will still be running after midnight,
+        and .done_combos is scoped to a single day — so every search it had
+        already finished gets re-run and re-billed."""
+        return hour_now() >= 22
+
+    def _confirm_page(error=None, status=200):
+        """confirm.html with the live plan. Four routes rendered this inline
+        with spans_midnight hardcoded False, so any error after 22:00 threw
+        away the one warning that prevents a real double bill."""
+        plan_now = app.state.get("plan")
+        return render_template("confirm.html", **shell(
+            "confirm", spend=plan_now["total"], plan=plan_now,
+            spans_midnight=_spans_midnight(), error=error)), status
 
     _rescore_lock = threading.Lock()
 

@@ -144,16 +144,18 @@ def _configure_overrides(form):
         out["max_results"] = _parse_int(
             form["max_results"], 1, 200, "Results per search")
 
-    # keep_unstated is a checkbox: FormData omits it entirely when unchecked,
-    # so its mere presence (however Alpine/HTML encodes "on") means checked.
-    if "keep_unstated" in form:
-        out["min_comp_usd"] = None
-    elif "min_comp_usd" in form:
+    # A pay floor and "keep listings with no stated pay" are not a choice the
+    # engine offers: comp_ok() returns True whenever the pay is unstated
+    # (scraper.py, `return True if top is None else top >= min_usd`), so
+    # unstated rows survive a floor unconditionally. The screen used to carry
+    # a checkbox for it, default on, whose only real effect was to discard
+    # whatever floor the user had just typed. The floor now always applies,
+    # and the copy states what actually happens to unstated pay.
+    if "min_comp_usd" in form:
         raw = str(form["min_comp_usd"]).strip()
-        if not raw:
-            raise _FormError(
-                "Enter a pay floor, or keep listings that don't state pay.")
-        out["min_comp_usd"] = _parse_int(raw, 0, 100_000_000, "Minimum pay")
+        # Blank means "no floor", which is a legitimate choice, not an error.
+        out["min_comp_usd"] = (
+            _parse_int(raw, 0, 100_000_000, "Minimum pay") if raw else None)
 
     if form.get("skip_terms"):
         out["skip_terms"] = _parse_chips(form["skip_terms"], "Skip-terms")

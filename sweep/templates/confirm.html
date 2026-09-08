@@ -48,7 +48,6 @@
       {% for line in plan.lines if not line.free %}
         <li>Drop {{ line.site }} — saves ${{ '%.2f'|format(line.subtotal) }}</li>
       {% endfor %}
-      <li>Shorten the date window — fewer listings at the same price per search</li>
     </ul>
     <a class="secondary" href="{{ url_for('configure') }}">Narrow the search instead</a>
   </div>
