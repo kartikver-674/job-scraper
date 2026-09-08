@@ -530,6 +530,122 @@ class TestConfigureScreen(unittest.TestCase):
         r = app.test_client().get("/configure")
         self.assertEqual(r.status_code, 302)
 
+    # -- POST /estimate actually writing the form back into the profile ----
+
+    def _app_with_spy(self, extra_state=None):
+        """Like _app(), but app.write_profile records every call instead of
+        discarding it, so tests can assert on the rendered source."""
+        state = {"profile": "kanav", "cap_usd": 8.41, "derived": dict(DERIVED)}
+        state.update(extra_state or {})
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        writes = []
+        app.write_profile = lambda n, s: writes.append((n, s))
+        return app, writes
+
+    def test_estimate_writes_submitted_values_and_leaves_the_rest_alone(self):
+        app, writes = self._app_with_spy()
+        client = app.test_client()
+
+        r1 = client.post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(len(writes), 1)
+        self.assertIn('"max_age_days": 7', writes[-1][1])
+
+        r2 = client.post("/estimate", json={"skip_terms": "docker, on-call"})
+        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(len(writes), 2)
+        second_source = writes[-1][1]
+        self.assertIn("docker", second_source)
+        self.assertIn("on-call", second_source)
+        # max_age_days came from an earlier POST that this one never
+        # mentioned — it must still be there, not reset.
+        self.assertIn('"max_age_days": 7', second_source)
+
+    def test_estimate_rejects_a_bad_number_and_writes_nothing(self):
+        app, writes = self._app_with_spy()
+        r = app.test_client().post("/estimate", json={"max_age_days": "soon"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("error", r.get_json())
+        self.assertEqual(writes, [])
+
+    def test_estimate_rejects_a_skip_term_with_disallowed_characters(self):
+        app, writes = self._app_with_spy()
+        r = app.test_client().post(
+            "/estimate", json={"skip_terms": "docker; rm -rf /"})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(writes, [])
+
+    def test_estimate_maps_scope_and_the_pay_floor_toggle(self):
+        app, writes = self._app_with_spy()
+        client = app.test_client()
+
+        client.post("/estimate", json={"scope": "remote"})
+        self.assertIn('"remote_scopes": [', writes[-1][1])
+        self.assertIn("'worldwide'", writes[-1][1])
+
+        client.post("/estimate", json={"keep_unstated": "on"})
+        self.assertIn('"min_comp_usd": None', writes[-1][1])
+
+        client.post("/estimate", json={"min_comp_usd": "20000"})
+        self.assertIn('"min_comp_usd": 20000', writes[-1][1])
+
+    def test_estimate_reprices_after_the_profile_is_rewritten(self):
+        # fetch_plan here is intentionally sensitive to whether write_profile
+        # has already run, so this proves the ORDER — write, then re-plan —
+        # not just that both happen somewhere. A fetch_plan that ignores its
+        # argument (as elsewhere in this file) would hide exactly the bug
+        # this task fixes.
+        written = []
+        smaller_plan = {
+            "profile": "kanav",
+            "sites": {"linkedin": [{"keywords": "A", "location": "India",
+                                     "company": ""}] * 5},
+            "free_sources": 6,
+        }
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": dict(DERIVED)},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: smaller_plan if written else RAW_PLAN)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, s: written.append((n, s))
+
+        data = app.test_client().post(
+            "/estimate", json={"max_results": "5"}).get_json()
+
+        self.assertEqual(len(written), 1)
+        self.assertAlmostEqual(data["total"], 0.225, places=3)
+        self.assertNotAlmostEqual(data["total"], 2.70, places=2)
+
+    def test_render_survives_hostile_penalty_terms(self):
+        # Defense-in-depth check on make_profile.render() itself, independent
+        # of sweep.app's character allowlist (which would reject these
+        # characters at the HTTP boundary before they ever reached here) —
+        # any input that reaches render(), from any source, must still come
+        # out as an inert string literal.
+        quote_term = "quote's here"
+        backslash_term = r"back\slash"
+        data = dict(DERIVED)
+        data["penalty_terms"] = [
+            {"term": quote_term, "weight": 12},
+            {"term": backslash_term, "weight": 12},
+            {"term": '; import os; os.system("echo pwned") #', "weight": 12},
+        ]
+        prefs = {"locations": ["Remote"], "exclude_levels": [],
+                 "min_comp_usd": None}
+        source = app_module.make_profile.render("hostile_check", data, prefs)
+        compile(source, "<hostile_check>", "exec")  # still valid Python
+        # repr() is what render() uses to write these — checking for the
+        # escaped literal, not the raw term, is what proves the quote/
+        # backslash round-tripped as DATA rather than breaking the source.
+        self.assertIn(repr(quote_term), source)
+        self.assertIn(repr(backslash_term), source)
+        self.assertIn('import os', source)
+
 
 if __name__ == "__main__":
     unittest.main()

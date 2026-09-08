@@ -196,10 +196,21 @@ def _fmt(value, indent=8):
 
 
 def render(name, data, prefs):
-    """Render profiles/<name>.py source from the model's JSON and the preferences."""
+    """Render profiles/<name>.py source from the model's JSON and the preferences.
+
+    max_results / max_age_days / remote_scopes are optional overrides (from
+    Sweep's Configure screen, sweep/app.py) — omitted from `prefs` (None),
+    they are left out of the rendered section entirely so config.py's own
+    default silently applies, per the one-level-deep profile merge in
+    config.py's PROFILES section. A profile must never widen the sweep by
+    accident, so "not set" has to mean "inherit", not "reset to some default
+    picked here".
+    """
     sections = {
-        "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min"],
-        "SETTINGS": ["max_experience_years", "min_comp_usd"],
+        "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min",
+                   "max_results"],
+        "SETTINGS": ["max_experience_years", "min_comp_usd", "max_age_days",
+                     "remote_scopes"],
         "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
                     "backend_terms", "fullstack_title_terms", "fullstack_bonus",
                     "hard_drop_terms"],
@@ -208,6 +219,14 @@ def render(name, data, prefs):
 
     years = int(data["years_experience"])
     skills = _weights(data["skill_weights"])
+
+    extra_search = (f'    "max_results": {int(prefs["max_results"])!r},\n'
+                     if prefs.get("max_results") is not None else "")
+    extra_settings = ""
+    if prefs.get("max_age_days") is not None:
+        extra_settings += f'    "max_age_days": {int(prefs["max_age_days"])!r},\n'
+    if prefs.get("remote_scopes") is not None:
+        extra_settings += f'    "remote_scopes": {_fmt(prefs["remote_scopes"])},\n'
 
     # The model reliably copies the excluded seniority words into penalty_terms
     # as well, even when told they are already handled. With drop_excluded True
@@ -249,13 +268,13 @@ SEARCH = {{
     "experience_years": {years},
     "locations": {_fmt(prefs["locations"])},
     "salary_min": None,
-}}
+{extra_search}}}
 
 SETTINGS = {{
     # Title bands are a label; this reads the years a posting actually demands.
     "max_experience_years": {years + 3},
     "min_comp_usd": {prefs["min_comp_usd"]!r},
-}}
+{extra_settings}}}
 
 SCORING = {{
     "skill_weights": {_fmt(skills)},

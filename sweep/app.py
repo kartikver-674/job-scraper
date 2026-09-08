@@ -49,6 +49,95 @@ def _valid_profile_name(name):
     return bool(_NAME_RE.fullmatch(name))
 
 
+# Configure-screen form -> real config keys (see profiles/*.py and config.py's
+# SEARCH/SETTINGS for what these actually do). "global" and "india" both
+# resolve to the same locations/remote_scopes here: reaching abroad for real
+# needs a SITES-level override (per-site "locations", see config.py section 2)
+# that this generic render() does not touch, so through this route the two
+# scopes differ from each other in name only for now.
+_SCOPE_REMOTE_SCOPES = {
+    "india": [], "remote": ["worldwide", "remote"], "global": [],
+}
+
+# Real stack names need '.', '+', '#', '/', '-' ("node.js", "c++", "c#",
+# "ci/cd", "full-stack"); nothing else has a legitimate reason to be in a
+# skip-term, so it is rejected rather than guessed at.
+_CHIP_RE = re.compile(r"[A-Za-z0-9 .+#/-]+")
+
+
+class _FormError(ValueError):
+    """A Configure-screen field failed validation. str(exc) is safe to show
+    the user — never echoes the raw input back."""
+
+
+def _parse_int(raw, lo, hi, label):
+    """Strict integer parse within [lo, hi]. Never pass an unvalidated string
+    from a form into config — this is the one gate every numeric field goes
+    through before it can reach a profile."""
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        raise _FormError(f"{label} must be a whole number.")
+    if not (lo <= value <= hi):
+        raise _FormError(f"{label} must be between {lo} and {hi}.")
+    return value
+
+
+def _parse_chips(raw, label):
+    """Comma-separated free text -> a validated list of terms. Rejected, not
+    sanitised, so the response says exactly what is wrong."""
+    terms = [t.strip() for t in str(raw).split(",") if t.strip()]
+    for term in terms:
+        if not _CHIP_RE.fullmatch(term):
+            raise _FormError(
+                f"{label} can only use letters, digits, spaces and . + # / - "
+                f"— check {term!r}.")
+    return terms
+
+
+def _configure_overrides(form):
+    """Validate the posted Configure-screen form and map it onto the state
+    keys _prefs() understands. Returns {} for a form with no recognised
+    field (the plain re-plan the estimate route always does). Raises
+    _FormError, with nothing applied yet, on the first invalid field — a
+    partial form must never partially write, since that could widen the
+    sweep on a field the caller thought they hadn't touched.
+    """
+    out = {}
+
+    if "scope" in form:
+        scope = form["scope"]
+        if scope not in _SCOPE_REMOTE_SCOPES:
+            raise _FormError("Choose where you can work.")
+        out["remote_scopes"] = _SCOPE_REMOTE_SCOPES[scope]
+        if scope == "remote":
+            out["locations"] = ["Remote"]
+
+    if "max_age_days" in form:
+        out["max_age_days"] = _parse_int(
+            form["max_age_days"], 1, 365, "Freshness window")
+
+    if "max_results" in form:
+        out["max_results"] = _parse_int(
+            form["max_results"], 1, 200, "Results per search")
+
+    # keep_unstated is a checkbox: FormData omits it entirely when unchecked,
+    # so its mere presence (however Alpine/HTML encodes "on") means checked.
+    if "keep_unstated" in form:
+        out["min_comp_usd"] = None
+    elif "min_comp_usd" in form:
+        raw = str(form["min_comp_usd"]).strip()
+        if not raw:
+            raise _FormError(
+                "Enter a pay floor, or keep listings that don't state pay.")
+        out["min_comp_usd"] = _parse_int(raw, 0, 100_000_000, "Minimum pay")
+
+    if "skip_terms" in form:
+        out["skip_terms"] = _parse_chips(form["skip_terms"], "Skip-terms")
+
+    return out
+
+
 def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
                check_token=None, env_path=None, fetch_plan=None):
@@ -280,10 +369,45 @@ def create_app(state=None, extract=None, resume_dir=None,
         from flask import jsonify
         if not app.state.get("profile"):
             return jsonify({"error": "No profile yet — approve the review first."}), 409
+
         form = request.get_json(silent=True) or {}
-        if form:
-            app.state["form"] = form
-        return jsonify(costed(app.state["profile"]))
+        try:
+            overrides = _configure_overrides(form)
+        except _FormError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        # A partial form only patches the keys it named — everything else in
+        # the profile stays exactly what an earlier POST (or the review
+        # screen) left it as. That's why this updates app.state in place
+        # rather than replacing it: state is the only place "the current
+        # value of a key nobody re-submitted this time" lives.
+        skip_terms = overrides.pop("skip_terms", None)
+        if overrides:
+            app.state.update(overrides)
+        if skip_terms is not None:
+            # By the time a profile exists (checked above), review_post()
+            # has already populated app.state["derived"] — Configure never
+            # regenerates it from a résumé, only patches it in place.
+            derived = dict(app.state["derived"])
+            penalty_terms = list(derived.get("penalty_terms") or [])
+            seen = {p["term"].strip().lower() for p in penalty_terms}
+            for term in skip_terms:
+                if term.lower() not in seen:
+                    # Severity on the 1-12 scale generate() uses for
+                    # penalty_terms (see make_profile.RESPONSE_SCHEMA) — a
+                    # term the person explicitly asked to skip is as strong a
+                    # signal as this scale has.
+                    penalty_terms.append({"term": term, "weight": 12})
+                    seen.add(term.lower())
+            derived["penalty_terms"] = penalty_terms
+            app.state["derived"] = derived
+
+        name = app.state["profile"]
+        if overrides or skip_terms is not None:
+            source = make_profile.render(name, app.state["derived"], _prefs(app.state))
+            app.write_profile(name, source)
+
+        return jsonify(costed(name))
 
     @app.get("/confirm")
     def confirm():
@@ -308,4 +432,10 @@ def _prefs(state):
                               "new grad", "junior", "jr"],
         "avoid": state.get("avoid") or [],
         "min_comp_usd": state.get("min_comp_usd"),
+        # Unset (None) means "not touched by the Configure screen yet" —
+        # make_profile.render() omits the key entirely in that case, so
+        # config.py's own default silently applies instead of being reset.
+        "remote_scopes": state.get("remote_scopes"),
+        "max_age_days": state.get("max_age_days"),
+        "max_results": state.get("max_results"),
     }
