@@ -477,5 +477,59 @@ class TestWriteEnv(unittest.TestCase):
         self.assertIn("APIFY_TOKEN=apify_api_ABC123", lines)
 
 
+RAW_PLAN = {
+    "profile": "kanav",
+    "sites": {
+        "linkedin": [{"keywords": "A", "location": "India", "company": ""}] * 32,
+        "indeed": [{"keywords": "A", "location": "Pune", "company": ""}] * 14,
+    },
+    "free_sources": 6,
+}
+
+
+class TestConfigureScreen(unittest.TestCase):
+    def _app(self):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, s: None
+        return app
+
+    def test_configure_renders_the_measured_rates(self):
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("0.045", body)
+        self.assertIn("linkedin", body)
+
+    def test_estimate_returns_lines_that_multiply_out(self):
+        r = self._app().test_client().post("/estimate", json={})
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json()
+        self.assertAlmostEqual(data["total"], 2.70, places=2)
+        for line in data["lines"]:
+            self.assertAlmostEqual(
+                line["subtotal"], line["searches"] * line["rate"], places=6)
+
+    def test_estimate_flags_when_the_plan_exceeds_available_credit(self):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 1.00},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (1.00, None),
+            fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        data = app.test_client().post("/estimate", json={}).get_json()
+        self.assertTrue(data["over_cap"])
+        self.assertAlmostEqual(data["shortfall"], 1.70, places=2)
+
+    def test_configure_without_a_profile_goes_back_to_review(self):
+        app = app_module.create_app(state={}, extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED)
+        app.config.update(TESTING=True)
+        r = app.test_client().get("/configure")
+        self.assertEqual(r.status_code, 302)
+
+
 if __name__ == "__main__":
     unittest.main()

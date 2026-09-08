@@ -51,7 +51,7 @@ def _valid_profile_name(name):
 
 def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
-               check_token=None, env_path=None):
+               check_token=None, env_path=None, fetch_plan=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -121,6 +121,27 @@ def create_app(state=None, extract=None, resume_dir=None,
             fh.writelines(lines)
 
     app.write_env = default_write_env
+
+    if fetch_plan is None:
+        from sweep import plan as plan_mod
+        fetch_plan = plan_mod.fetch
+
+    def costed(profile):
+        """Cost the plan and say whether it exceeds the key's credit. The
+        over-cap flag is advisory: SETTINGS["max_spend_usd"] is the real guard."""
+        import sys
+        sys.path.insert(0, REPO_ROOT)
+        import config
+        from sweep import plan as plan_mod
+
+        raw = fetch_plan(profile)
+        out = plan_mod.cost(raw, config.SITE_RATES)
+        cap = app.state.get("cap_usd")
+        out["over_cap"] = bool(cap is not None and out["total"] > cap)
+        out["shortfall"] = round(max(0.0, out["total"] - cap), 4) if cap else 0.0
+        app.state["raw_plan"] = raw
+        app.state["plan"] = out
+        return out
 
     def shell(step, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
@@ -247,7 +268,22 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     @app.get("/configure")
     def configure():
-        return "configure"       # Task 6 replaces this
+        if not app.state.get("profile"):
+            return redirect(url_for("review"))
+        estimate = costed(app.state["profile"])
+        app.state["spend"] = estimate["total"]
+        return render_template("configure.html", **shell(
+            "configure", estimate=estimate))
+
+    @app.post("/estimate")
+    def estimate():
+        from flask import jsonify
+        if not app.state.get("profile"):
+            return jsonify({"error": "No profile yet — approve the review first."}), 409
+        form = request.get_json(silent=True) or {}
+        if form:
+            app.state["form"] = form
+        return jsonify(costed(app.state["profile"]))
 
     @app.get("/confirm")
     def confirm():
