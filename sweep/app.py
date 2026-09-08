@@ -1,11 +1,21 @@
 """Routes. Business logic lives in sweep.plan and sweep.runs."""
 
 import os
+import sys
 
 from flask import (Flask, redirect, render_template, request, url_for)
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESUME_DIR = os.path.join(REPO_ROOT, "auto-apply", "resume")
+
+# make_profile.render() is used at POST /review time regardless of whether
+# extract/derive are injected, so it's imported once here at module load —
+# matching how auto-apply's own tests import it, so the DeprecationWarning
+# google.genai raises on its first import lands during test collection
+# (silenced by Python's default filters) rather than during a test run
+# (where unittest turns warnings back on).
+sys.path.insert(0, os.path.join(REPO_ROOT, "auto-apply"))
+import make_profile  # noqa: E402
 
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
          ("configure", "Configure"), ("confirm", "Confirm"),
@@ -13,16 +23,34 @@ STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
 
 
 def create_app(state=None, extract=None, resume_dir=None,
-               max_upload_bytes=15 * 1024 * 1024):
+               max_upload_bytes=15 * 1024 * 1024, derive=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
     resume_dir = resume_dir if resume_dir is not None else RESUME_DIR
+
     if extract is None:
-        import sys
-        sys.path.insert(0, os.path.join(REPO_ROOT, "auto-apply"))
         import resume_parser
         extract = resume_parser.extract_text
+
+    if derive is None:
+        import apply_config as cfg
+        import tailor
+
+        def derive(resume_text, prefs):
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                raise RuntimeError("GEMINI_API_KEY is missing from .env.")
+            return make_profile.generate(
+                tailor.get_client(api_key), cfg.MODEL, resume_text, prefs)
+
+    def default_write_profile(name, source):
+        path = os.path.join(REPO_ROOT, "profiles", f"{name}.py")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(source)
+        return path
+
+    app.write_profile = default_write_profile
 
     def shell(step, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
@@ -67,9 +95,48 @@ def create_app(state=None, extract=None, resume_dir=None,
         app.state["resume_text"] = text
         return redirect(url_for("review"))
 
+    COMMODITY_WEIGHT = 2
+
+    def derived_for_state():
+        """The model call is made once per résumé and cached on state — a
+        cost, so never repeated just because the review screen reloads."""
+        derived = app.state.get("derived")
+        if derived is None:
+            derived = derive(app.state["resume_text"], _prefs(app.state))
+            app.state["derived"] = derived
+        return derived
+
     @app.get("/review")
     def review():
-        return "review"          # Task 4 replaces this
+        if not app.state.get("resume_text"):
+            return redirect(url_for("upload"))
+        derived = derived_for_state()
+        commodity = [w["term"] for w in derived["skill_weights"]
+                     if w["weight"] <= COMMODITY_WEIGHT]
+        return render_template("review.html", **shell(
+            "review", derived=derived, commodity=commodity,
+            suggested_name=app.state.get("profile", "")))
+
+    @app.post("/review")
+    def review_post():
+        name = (request.form.get("name") or "").strip()
+        derived = derived_for_state()
+        commodity = [w["term"] for w in derived["skill_weights"]
+                     if w["weight"] <= COMMODITY_WEIGHT]
+        if not name:
+            return render_template("review.html", **shell(
+                "review", derived=derived, commodity=commodity,
+                suggested_name="",
+                error="Give the profile a name.")), 400
+
+        dropped = set(request.form.getlist("drop"))
+        kept = dict(derived)
+        kept["skill_weights"] = [w for w in derived["skill_weights"]
+                                 if w["term"] not in dropped]
+        source = make_profile.render(name, kept, _prefs(app.state))
+        app.write_profile(name, source)
+        app.state["profile"] = name
+        return redirect(url_for("key"))
 
     @app.get("/key")
     def key():
@@ -92,3 +159,14 @@ def create_app(state=None, extract=None, resume_dir=None,
         return "results"         # Task 9 replaces this
 
     return app
+
+
+def _prefs(state):
+    return {
+        "locations": state.get("locations") or ["Remote"],
+        "exclude_levels": state.get("exclude_levels")
+                          or ["intern", "internship", "fresher", "trainee",
+                              "new grad", "junior", "jr"],
+        "avoid": state.get("avoid") or [],
+        "min_comp_usd": state.get("min_comp_usd"),
+    }

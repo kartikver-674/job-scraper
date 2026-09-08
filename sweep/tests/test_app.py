@@ -97,5 +97,73 @@ class TestUploadScreen(unittest.TestCase):
         self.assertIn("larger than", r.get_data(as_text=True))
 
 
+DERIVED = {
+    "field_summary": "Full-stack React Native developer, about 2 years.",
+    "years_experience": 2,
+    "role_keywords": ["React Native Developer", "Full Stack Engineer"],
+    "skill_weights": [
+        {"term": "react native", "weight": 5},
+        {"term": "node.js", "weight": 5},
+        {"term": "javascript", "weight": 2},
+        {"term": "git", "weight": 1},
+    ],
+    "penalty_terms": [{"term": "salesforce", "weight": 5}],
+    "domain_half_a": ["react native"], "domain_half_b": ["node.js"],
+    "domain_title_terms": ["react native developer"], "domain_bonus": 5,
+    "notes": "Platform terms dominate.",
+}
+
+
+class TestReviewScreen(unittest.TestCase):
+    def _app(self, state=None):
+        state = state if state is not None else {"resume_text": "a résumé"}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x",
+            derive=lambda resume_text, prefs: DERIVED)
+        app.config.update(TESTING=True)
+        return app, state
+
+    def test_shows_the_derived_titles_and_weights(self):
+        app, _ = self._app()
+        body = app.test_client().get("/review").get_data(as_text=True)
+        self.assertIn("React Native Developer", body)
+        self.assertIn("react native", body)
+        self.assertIn("Full-stack React Native developer", body)
+
+    def test_low_weight_commodity_terms_are_flagged_for_removal(self):
+        # 'git' and 'javascript' appear in most postings and carry no signal.
+        app, _ = self._app()
+        body = app.test_client().get("/review").get_data(as_text=True)
+        self.assertIn("Worth removing", body)
+        self.assertIn("git", body)
+
+    def test_review_without_a_resume_sends_you_back_to_upload(self):
+        app, _ = self._app(state={})
+        r = app.test_client().get("/review")
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].endswith("/"),
+                        f"should redirect to upload, got {r.headers['Location']}")
+
+    def test_approving_writes_the_profile_and_moves_to_the_key_screen(self):
+        app, state = self._app()
+        written = {}
+        app.write_profile = lambda name, source: written.update(
+            {"name": name, "source": source})
+        r = app.test_client().post("/review", data={
+            "name": "kanav", "drop": ["git"]})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/key", r.headers["Location"])
+        self.assertEqual(written["name"], "kanav")
+        self.assertNotIn("'git'", written["source"])
+        self.assertIn("react native", written["source"])
+        self.assertEqual(state["profile"], "kanav")
+
+    def test_a_missing_name_is_rejected_not_defaulted(self):
+        app, _ = self._app()
+        r = app.test_client().post("/review", data={"name": ""})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("name", r.get_data(as_text=True).lower())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Review what it read — Sweep{% endblock %}
+{% block body %}
+<h1>Review what it read</h1>
+<p class="muted">{{ derived.field_summary }}</p>
+<p class="muted">Correct bad guesses before spending anything.</p>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form method="post" action="{{ url_for('review') }}">
+  <div class="panel">
+    <label>Name this profile
+      <input name="name" value="{{ suggested_name }}" required>
+    </label>
+    <p class="muted">Saved as profiles/&lt;name&gt;.py, so you can re-run it later.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Titles it will search for</h2>
+    <ul>{% for title in derived.role_keywords %}<li>{{ title }}</li>{% endfor %}</ul>
+  </div>
+
+  <div class="panel">
+    <h2>Skill weights, 1 to 5</h2>
+    <p class="muted">Weighted by how well a term picks out jobs you want. A word
+      that also appears in jobs you don't want scores low, however central it is
+      to your work.</p>
+
+    {% if commodity %}
+      <p><strong>Worth removing.</strong>
+        {{ commodity|join(' and ') }} appear in most job descriptions, so they
+        add no signal and every posting scores a little higher for free.</p>
+    {% endif %}
+
+    <table>
+      {% for w in derived.skill_weights|sort(attribute='weight', reverse=true) %}
+        <tr>
+          <td><label>
+            <input type="checkbox" name="drop" value="{{ w.term }}"
+                   {{ 'checked' if w.term in commodity }}> remove
+          </label></td>
+          <td>{{ w.term }}</td>
+          <td>{{ w.weight }} / 5</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <button class="primary" type="submit">Looks right</button>
+  <a class="muted" href="{{ url_for('upload') }}">Start over with a different résumé</a>
+</form>
+{% endblock %}
