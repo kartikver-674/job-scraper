@@ -1162,7 +1162,6 @@ class TestResultsScreen(unittest.TestCase):
         self.assertIn("Needs visa sponsorship", body)
 
     def test_each_row_lands_in_exactly_one_bucket(self):
-        app = self._app()
         buckets = app_module.bucket_rows(ROWS)
         self.assertEqual(len(buckets["local"]), 1)
         self.assertEqual(len(buckets["remote"]), 1)
@@ -1171,7 +1170,7 @@ class TestResultsScreen(unittest.TestCase):
 
     def test_filtering_by_score_is_free_and_says_so(self):
         body = self._app().test_client().get("/results?min=90").get_data(as_text=True)
-        self.assertIn("free", body.lower())
+        self.assertIn("Filtering and re-ranking these is free", body)
         self.assertNotIn("Mobile Engineer", body)
 
     def test_an_empty_result_names_the_filter_that_removed_the_most(self):
@@ -1204,6 +1203,126 @@ class TestResultsScreen(unittest.TestCase):
         with mock.patch.dict(app_module.config.SITE_RATES, {"freebie": 0.0}):
             body = app.test_client().get("/results").get_data(as_text=True)
         self.assertIn('class="free"', body)
+
+    def test_the_source_filter_keeps_only_that_source(self):
+        body = self._app().test_client().get(
+            "/results?source=remoteok").get_data(as_text=True)
+        self.assertIn("Lead React Native", body)
+        self.assertNotIn("Senior React Native Engineer", body)
+
+    def test_the_text_filter_matches_title_and_company(self):
+        client = self._app().test_client()
+        by_company = client.get("/results?q=razorpay").get_data(as_text=True)
+        self.assertIn("Senior React Native Engineer", by_company)
+        self.assertNotIn("Lead React Native", by_company)
+        by_title = client.get("/results?q=mobile+engineer").get_data(as_text=True)
+        self.assertIn("Mobile Engineer", by_title)
+        self.assertNotIn("Senior React Native Engineer", by_title)
+
+    def test_active_filters_survive_in_the_rendered_form(self):
+        body = self._app().test_client().get(
+            "/results?min=90&source=linkedin&q=razorpay").get_data(as_text=True)
+        self.assertIn('name="min" value="90"', body)
+        self.assertIn('value="linkedin" selected', body)
+        self.assertIn('name="q" value="razorpay"', body)
+
+    def test_rows_are_sorted_by_score_regardless_of_input_order(self):
+        # Reversed on the way in, so passing can't come from the fixture's
+        # own order — this is the guard against trusting the CSV's ordering.
+        app = self._app(rows=list(reversed(ROWS)))
+        body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertLess(body.index("Senior React Native Engineer"),
+                        body.index("Mobile Engineer"))
+
+    def test_a_filter_that_removed_nothing_is_not_blamed(self):
+        # No shortlist on disk yet: every branch counts 0 removals, and the
+        # page must not claim a filter removed "0 of 0".
+        app = self._app(rows=[])
+        body = app.test_client().get("/results?min=90").get_data(as_text=True)
+        self.assertIn("Nothing was found for this profile yet", body)
+        self.assertNotIn("removed the most", body)
+
+    def test_a_second_rescore_is_refused_while_one_is_still_running(self):
+        calls = []
+
+        class Running:
+            def poll(self):
+                return None
+
+        app = self._app(start_rescore=lambda profile, hours: (
+            calls.append((profile, hours)) or Running()))
+        client = app.test_client()
+        self.assertEqual(client.post("/rescore", data={"hours": "6"}).status_code, 302)
+        second = client.post("/rescore", data={"hours": "6"})
+        self.assertEqual(second.status_code, 409)
+        self.assertIn("still running", second.get_data(as_text=True))
+        # rescore_from_apify.py truncates jobs_combined.csv in place, so the
+        # second child must never have been started.
+        self.assertEqual(calls, [("kanav", 6)])
+
+    def test_a_finished_rescore_does_not_block_the_next_one(self):
+        calls = []
+
+        class Finished:
+            def poll(self):
+                return 0
+
+        app = self._app(start_rescore=lambda profile, hours: (
+            calls.append((profile, hours)) or Finished()))
+        client = app.test_client()
+        client.post("/rescore", data={"hours": "6"})
+        self.assertEqual(client.post("/rescore", data={"hours": "12"}).status_code, 302)
+        self.assertEqual(calls, [("kanav", 6), ("kanav", 12)])
+
+    def test_a_non_http_apply_url_is_not_rendered_as_a_link(self):
+        app = self._app(rows=[dict(ROWS[0], apply_url="javascript:alert(1)")])
+        body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertNotIn("javascript:alert(1)", body)
+        self.assertIn("No link", body)
+
+
+class TestReadRowsDefault(unittest.TestCase):
+    """The default read_rows closure. Every route test injects read_rows, so
+    without this the jobs_combined-not-jobs_* rule A2 exists to enforce runs
+    in production and nowhere else."""
+
+    def _out_dir(self):
+        out = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, out)
+        os.makedirs(os.path.join(out, "kanav"))
+        return out
+
+    def _write(self, out, name, score, title):
+        path = os.path.join(out, "kanav", name)
+        with open(path, "w", newline="", encoding="utf-8") as fh:
+            fh.write("score,title\n%s,%s\n" % (score, title))
+        return path
+
+    def _app(self, out):
+        app = app_module.create_app(
+            state={"profile": "kanav"}, extract=lambda p: "x",
+            derive=lambda t, p: DERIVED, output_dir=out)
+        app.config.update(TESTING=True)
+        return app
+
+    def test_the_merged_shortlist_wins_over_a_newer_partial_file(self):
+        out = self._out_dir()
+        combined = self._write(out, "jobs_combined.csv", "96", "From combined")
+        partial = self._write(out, "jobs_2026-09-08_1200.csv", "50", "From partial")
+        # Partial file deliberately NEWER — a jobs_*.csv glob would pick it and
+        # show a fraction of the sweep as if it were the whole result.
+        os.utime(combined, (1_000_000, 1_000_000))
+        os.utime(partial, (2_000_000, 2_000_000))
+        body = self._app(out).test_client().get("/results").get_data(as_text=True)
+        self.assertIn("From combined", body)
+        self.assertNotIn("From partial", body)
+
+    def test_no_shortlist_yet_reads_as_empty_not_an_error(self):
+        out = self._out_dir()
+        r = self._app(out).test_client().get("/results")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("Nothing was found for this profile yet",
+                      r.get_data(as_text=True))
 
 
 if __name__ == "__main__":

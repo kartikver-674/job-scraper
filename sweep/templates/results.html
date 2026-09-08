@@ -25,7 +25,13 @@
           <td>{{ row['salary'] or 'Not stated' }}</td>
           <td>{{ row['experience_required'] or 'Not stated' }}</td>
           <td class="muted">{{ row['matched_skills'] }}</td>
-          <td><a href="{{ row['apply_url'] }}" target="_blank" rel="noopener">Apply</a></td>
+          <td>
+            {%- if (row['apply_url'] or '').startswith('http') %}
+              <a href="{{ row['apply_url'] }}" target="_blank" rel="noopener">Apply</a>
+            {%- else %}
+              <span class="muted">No link</span>
+            {%- endif %}
+          </td>
         </tr>
       {% endfor %}
     </table>
@@ -33,7 +39,7 @@
 {% endmacro %}
 
 {% block body %}
-<h1>{{ total }} listings kept</h1>
+<h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
 <p class="muted">Filtering and re-ranking these is free and costs no extra credit.</p>
 
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
@@ -54,11 +60,15 @@
 
 <details class="panel">
   <summary>Re-rank against your current weights</summary>
-  <p class="muted">Re-ranks every search run on this key within the window you
-    choose below, against your current weights — not only this sweep's runs, so
-    on a key you share it can pull in another profile's searches. Reading data
-    you already paid for is free. The shortlist is rewritten in place, not
-    added to.</p>
+  <p class="muted">Re-ranks every search run on this key, for the sites you
+    have configured, within the window you choose below — not only this
+    sweep's runs, so on a key you share it can pull in another profile's
+    searches. Reading data you already paid for is free. The shortlist is
+    rewritten in place, not added to.</p>
+  {% if rescoring %}
+    <p class="muted">Re-ranking now. Reload in a moment to see the new
+      ranking — the shortlist below is still the old one.</p>
+  {% endif %}
   <form method="post" action="{{ url_for('rescore') }}">
     <label>Hours to look back
       <input type="number" name="hours" value="6" min="1" max="168"></label>

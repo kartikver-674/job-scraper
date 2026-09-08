@@ -250,7 +250,11 @@ def worst_filter(all_rows, min_score, source, q):
         removed["search text"] = sum(
             1 for r in all_rows
             if needle not in f"{r.get('title', '')} {r.get('company', '')}".lower())
-    if not removed:
+    # A filter that removed nothing is not the culprit. With no shortlist on
+    # disk yet, every branch counts 0 and max() would still name one — telling
+    # the user "the minimum score filter removed the most — 0 of 0" and
+    # pointing them at the wrong remedy.
+    if not removed or max(removed.values()) == 0:
         return None
     name = max(removed, key=removed.get)
     return name, removed[name]
@@ -817,7 +821,15 @@ def create_app(state=None, extract=None, resume_dir=None,
             # free" rule that could disagree with them.
             rates=config.SITE_RATES,
             worst=worst_filter(all_rows, min_score, source, q),
+            rescoring=_rescore_in_flight(),
             error=error))
+
+    def _rescore_in_flight():
+        """Whether a re-score child is still running. rescore_from_apify.py
+        truncates jobs_combined.csv and .json in place with no lock, so two of
+        them overlapping would interleave writes to the same files."""
+        proc = app.state.get("rescore_proc")
+        return proc is not None and proc.poll() is None
 
     @app.get("/results")
     def results():
@@ -829,12 +841,22 @@ def create_app(state=None, extract=None, resume_dir=None,
     def rescore():
         if not app.state.get("profile"):
             return redirect(url_for("upload"))
+        # Re-reading the shortlist takes seconds to minutes, so without this
+        # the page comes back unchanged and the honest reading is that the
+        # button did nothing — which invites a second click, and a second
+        # child truncating the same file the first is still writing.
+        if _rescore_in_flight():
+            return _results_page(
+                error="A re-score is still running. Reload in a moment to see "
+                      "the new ranking."), 409
         try:
+            # Label matches the field's own visible text, so the error names
+            # the control the user is looking at.
             hours = _parse_int(request.form.get("hours") or "6", 1, 168,
-                                "hours to re-score")
+                                "Hours to look back")
         except _FormError as exc:
             return _results_page(error=str(exc)), 400
-        start_rescore(app.state["profile"], hours)
+        app.state["rescore_proc"] = start_rescore(app.state["profile"], hours)
         return redirect(url_for("results"))
 
     return app
