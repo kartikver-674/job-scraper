@@ -1202,6 +1202,8 @@ def parse_args():
     p = argparse.ArgumentParser(description="Full-stack job scraper (Apify -> ranked CSV/JSON)")
     p.add_argument("--dry-run", action="store_true",
                    help="Print the plan + per-site inputs; run no actors (zero cost).")
+    p.add_argument("--json", action="store_true",
+                   help="With --dry-run, print the plan as JSON instead of prose.")
     p.add_argument("--test", action="store_true",
                    help="Tiny real run: first keyword x first location, indeed only.")
     p.add_argument("--site", help="Restrict to one site: indeed/naukri/linkedin, "
@@ -1588,7 +1590,7 @@ def main():
     if args.demo:
         demo()
         return
-    if config.PROFILE:
+    if config.PROFILE and not (args.dry_run and args.json):
         print(f"Profile:   {config.PROFILE} "
               f"(overrides {', '.join(config.PROFILE_CHANGED) or 'nothing'}) "
               f"-> {SETTINGS['output_dir']}/\n")
@@ -1610,9 +1612,9 @@ def main():
     if not plans and not run_free:
         sys.exit("Nothing to run — no sites enabled and no free sources configured.")
 
-    if plans:
+    if plans and not (args.dry_run and args.json):
         print_plan(plans)
-    if run_free:
+    if run_free and not (args.dry_run and args.json):
         print(f"Free sources: {n_boards} ATS boards "
               f"({', '.join(k for k, v in ATS_BOARDS.items() if v)}) "
               f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})"
@@ -1620,6 +1622,18 @@ def main():
                  f"live-verified)" if n_optum else "")
               + (f" + {n_ent} enterprise careers sites "
                  f"({', '.join(ENTERPRISE['employers'])})" if n_ent else "") + "\n")
+
+    if args.dry_run and args.json:
+        print(json.dumps({
+            "profile": config.PROFILE,
+            "sites": {site_key: [{"keywords": s["keywords"],
+                                  "location": s["location"],
+                                  "company": s.get("company") or ""}
+                                 for s in plan]
+                      for site_key, plan in plans.items()},
+            "free_sources": n_boards + n_feeds + n_optum + n_ent,
+        }))
+        return
 
     if args.dry_run:
         print("Sample actor inputs (first combo per site):")

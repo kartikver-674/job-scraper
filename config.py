@@ -363,6 +363,19 @@ NAUKRI_CITY_IDS = {
     "Mumbai": "134",
 }
 
+# Measured cost per paid search, in USD. Every figure here came from a real
+# sweep's billing, not from an actor's self-report — those undercount roughly 3x
+# (see scraper.account_usage_usd). A site absent from this table is free.
+#
+# These are ESTIMATES for planning only. The real guard is
+# SETTINGS["max_spend_usd"], which reads the account mid-sweep and refuses to
+# launch another search once crossed.
+SITE_RATES = {
+    "linkedin": 0.045,   # measured at max_results=25
+    "indeed": 0.09,      # ~$0.09 per run
+    "naukri": 0.50,      # $0.50 per run MINIMUM — bad value at small budgets
+}
+
 
 # ===========================================================================
 # 3. SCORING — resume-based relevance layer
