@@ -780,21 +780,28 @@ class FakeProc:
 
 
 class TestConfirmScreen(unittest.TestCase):
-    def _app(self, cap=8.41):
+    def _app(self, cap=8.41, start_sweep=None, read_spend=None, check_token=None,
+              state=None):
         # output_dir is injected — never the real output/kanav, which holds
         # real paid-sweep results with no git history to fall back on.
         output_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, output_dir)
+        base_state = {"profile": "kanav", "cap_usd": cap}
+        base_state.update(state or {})
         app = app_module.create_app(
-            state={"profile": "kanav", "cap_usd": cap},
+            state=base_state,
             extract=lambda p: "x", derive=lambda t, p: DERIVED,
-            check_token=lambda t: (cap, None),
+            check_token=check_token or (lambda t: (cap, None)),
             fetch_plan=lambda profile: RAW_PLAN,
-            start_sweep=lambda profile: FakeProc(),
-            read_spend=lambda: 1.00,
+            start_sweep=start_sweep or (lambda profile: FakeProc()),
+            read_spend=read_spend or (lambda: 1.00),
             output_dir=output_dir)
         app.config.update(TESTING=True)
         app.output_dir = output_dir  # so tests can assert where run.json landed
+        # /second-key's success path writes .env — never the real one just
+        # because this harness didn't inject env_path. write_env's own
+        # allowlist behaviour is Task 5's to test; here it's a pure stub.
+        app.write_env = lambda key, value: None
         return app
 
     def test_confirm_names_the_amount_on_the_button(self):
@@ -812,15 +819,47 @@ class TestConfirmScreen(unittest.TestCase):
         self.assertIn("1.70", body)
 
     def test_running_records_the_spend_baseline_so_the_meter_shows_a_delta(self):
-        app = self._app()
+        # Order-sensitive: read_spend must run BEFORE start_sweep, since
+        # account_usage_usd is month-to-date and the baseline has to be
+        # captured before the sweep can add to it. A test where both fakes
+        # return fixed, order-insensitive values would pass identically if
+        # the two lines in /run were swapped — so both fakes record into a
+        # shared list instead.
+        calls = []
+
+        def read_spend():
+            calls.append("read_spend")
+            return 1.00
+
+        def start_sweep(profile):
+            calls.append("start_sweep")
+            return FakeProc()
+
+        app = self._app(start_sweep=start_sweep, read_spend=read_spend)
         app.test_client().get("/confirm")
         r = app.test_client().post("/run")
         self.assertEqual(r.status_code, 302)
         self.assertIn("/running", r.headers["Location"])
+        self.assertEqual(calls, ["read_spend", "start_sweep"])
         # account_usage_usd is month-to-date, so without a baseline the meter
         # would show the whole month instead of this sweep.
         self.assertAlmostEqual(app.state["baseline_usd"], 1.00, places=2)
         self.assertIsNotNone(app.state["proc"])
+
+    def test_a_missing_spend_reading_is_recorded_as_unknown_not_zero(self):
+        # read_spend() returning None (no token, or the account-usage call
+        # failed) must not collapse into a $0.00 baseline — Task 8 would
+        # then subtract 0 from month-to-date spend and report the user's
+        # entire month as this one sweep's cost.
+        app = self._app(read_spend=lambda: None)
+        app.test_client().get("/confirm")
+        r = app.test_client().post("/run")
+        self.assertEqual(r.status_code, 302)
+        self.assertIsNone(app.state["baseline_usd"])
+        run_path = os.path.join(app.output_dir, "kanav", "run.json")
+        with open(run_path) as fh:
+            import json
+            self.assertIsNone(json.load(fh)["baseline_usd"])
 
     def test_run_json_lands_in_the_injected_output_dir_not_the_real_one(self):
         # Isolation enforced by a test, not by convention — a hardcoded
@@ -840,6 +879,60 @@ class TestConfirmScreen(unittest.TestCase):
         r = app.test_client().post("/run")
         self.assertEqual(r.status_code, 400)
         self.assertIsNone(app.state.get("proc"))
+
+    def test_run_with_no_plan_at_all_fails_closed(self):
+        # A direct POST /run against empty state (never went through
+        # /confirm, no plan computed at all) must refuse exactly like an
+        # over-cap plan does — not launch an uncapped subprocess because a
+        # missing plan's .get("over_cap") reads just as falsy as a real
+        # "under cap" plan would.
+        output_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, output_dir)
+        app = app_module.create_app(
+            state={}, start_sweep=lambda p: FakeProc(), read_spend=lambda: 1.00,
+            output_dir=output_dir)
+        app.config.update(TESTING=True)
+        r = app.test_client().post("/run")
+        self.assertEqual(r.status_code, 400)
+        self.assertIsNone(app.state.get("proc"))
+        self.assertIsNone(app.state.get("baseline_usd"))
+        self.assertEqual(os.listdir(output_dir), [])
+
+    def test_second_key_with_no_plan_fails_closed_not_500(self):
+        app = app_module.create_app(state={"cap_usd": 8.41})
+        app.config.update(TESTING=True)
+        r = app.test_client().post("/second-key", data={"token": "whatever"})
+        self.assertEqual(r.status_code, 400)
+        self.assertAlmostEqual(app.state["cap_usd"], 8.41, places=2)
+
+    def test_second_key_with_a_different_token_raises_the_cap(self):
+        app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
+        with mock.patch.dict(os.environ, {"APIFY_TOKEN": "primary-tok"}):
+            app.test_client().get("/confirm")
+            r = app.test_client().post(
+                "/second-key", data={"token": "different-tok"})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/confirm", r.headers["Location"])
+        self.assertAlmostEqual(app.state["cap_usd"], 3.00, places=2)
+
+    def test_second_key_rejects_the_token_already_on_file(self):
+        app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
+        with mock.patch.dict(os.environ, {"APIFY_TOKEN": "same-tok"}):
+            app.test_client().get("/confirm")
+            r = app.test_client().post("/second-key", data={"token": "same-tok"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("same key", r.get_data(as_text=True).lower())
+        self.assertAlmostEqual(app.state["cap_usd"], 1.00, places=2)
+
+    def test_second_key_that_verifies_with_zero_credit_shows_a_message(self):
+        app = self._app(cap=1.00, check_token=lambda t: (0.0, None))
+        with mock.patch.dict(os.environ, {"APIFY_TOKEN": "primary-tok"}):
+            app.test_client().get("/confirm")
+            r = app.test_client().post(
+                "/second-key", data={"token": "zero-credit-tok"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("no credit", r.get_data(as_text=True).lower())
+        self.assertAlmostEqual(app.state["cap_usd"], 1.00, places=2)
 
 
 if __name__ == "__main__":

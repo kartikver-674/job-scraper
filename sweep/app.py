@@ -266,14 +266,25 @@ def create_app(state=None, extract=None, resume_dir=None,
     if read_spend is None:
         def read_spend():
             """Month-to-date account spend, the authoritative figure. Actor
-            self-reports undercount roughly 3x (scraper.py:912)."""
+            self-reports undercount roughly 3x (scraper.py:912).
+
+            Returns None — never a fabricated 0.0 — when the figure isn't
+            available: no token set, or the call itself failed (network,
+            Apify outage). /run persists whatever this returns as
+            baseline_usd; None there means "unknown", and Task 8 must show
+            the raw current spend with a caveat rather than treat it as a
+            zero baseline, which would report the account's entire
+            month-to-date spend as this one sweep's cost."""
             sys.path.insert(0, REPO_ROOT)
             import scraper
             from apify_client import ApifyClient
             token = os.environ.get("APIFY_TOKEN")
             if not token:
                 return None
-            return scraper.account_usage_usd(ApifyClient(token))
+            try:
+                return scraper.account_usage_usd(ApifyClient(token))
+            except Exception:
+                return None
 
     def costed(profile):
         """Cost the plan and say whether it exceeds the key's credit. The
@@ -492,13 +503,22 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     @app.post("/run")
     def run():
-        plan_now = app.state.get("plan") or {}
+        # Fail closed: no plan at all (a /run hit that never went through
+        # /confirm) must refuse exactly like an over-cap plan does, not
+        # launch an uncapped subprocess because an empty dict's .get()
+        # reads as falsy the same as a real "under cap" plan would.
+        plan_now = app.state.get("plan")
+        if not plan_now:
+            return "No plan to run — start from Configure.", 400
         if plan_now.get("over_cap"):
             return render_template("confirm.html", **shell(
                 "confirm", plan=plan_now, spans_midnight=False,
                 error="Attach a second key or narrow the search first.")), 400
 
-        app.state["baseline_usd"] = read_spend() or 0.0
+        # baseline_usd may be None (see read_spend's docstring) — recorded
+        # as-is, never coerced to 0.0, so Task 8 can tell "unknown" from
+        # "no spend yet".
+        app.state["baseline_usd"] = read_spend()
         app.state["proc"] = start_sweep(app.state["profile"])
         _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))
@@ -506,15 +526,43 @@ def create_app(state=None, extract=None, resume_dir=None,
     @app.post("/second-key")
     def second_key():
         token = (request.form.get("token") or "").strip()
+        # No plan at all (a /second-key hit that never went through
+        # /confirm) can't be rendered back into confirm.html — plan.lines
+        # etc. would be undefined — so this fails the same simple way /run
+        # does for the same precondition, rather than a 500 on a missing key.
+        plan_now = app.state.get("plan")
+        if not plan_now:
+            return "No plan to attach a key to — start from Configure.", 400
+
+        # Re-pasting the key already on file (the first key, or an earlier
+        # second key) would otherwise add the same credit again: check_token
+        # returns roughly the same available balance, cap_usd is inflated a
+        # second time, and the UI believes an unaffordable sweep is fine —
+        # exactly the wasted-spend outcome this screen exists to prevent.
+        if token and token in (os.environ.get("APIFY_TOKEN"),
+                                os.environ.get("APIFY_TOKEN_2")):
+            return render_template("confirm.html", **shell(
+                "confirm", plan=plan_now, spans_midnight=False,
+                error="That's the same key already on file — it adds no "
+                      "new credit.")), 400
+
         available, error = check_token(token)
         if error:
             return render_template("confirm.html", **shell(
-                "confirm", plan=app.state["plan"], spans_midnight=False,
+                "confirm", plan=plan_now, spans_midnight=False,
                 error=error)), 400
+        if available <= 0:
+            return render_template("confirm.html", **shell(
+                "confirm", plan=plan_now, spans_midnight=False,
+                error="That key verified, but it has no credit "
+                      "available.")), 400
+
         app.write_env("APIFY_TOKEN_2", token)
+        os.environ["APIFY_TOKEN_2"] = token
         app.state["cap_usd"] = (app.state.get("cap_usd") or 0) + available
-        app.state["plan"]["over_cap"] = (
-            app.state["plan"]["total"] > app.state["cap_usd"])
+        # over_cap is not patched here — GET /confirm re-costs the whole
+        # plan via costed() on the redirect below, so any value written
+        # here would be discarded before ever being read.
         return redirect(url_for("confirm"))
 
     @app.get("/running")
@@ -529,7 +577,14 @@ def create_app(state=None, extract=None, resume_dir=None,
 
 
 def _write_run_json(state, output_dir):
-    """Persist what a reload needs: which profile, and the spend baseline."""
+    """Persist what a reload needs: which profile, and the spend baseline.
+
+    baseline_usd may be None (json.dump writes it as null) — that means
+    read_spend() couldn't get a figure, not that the account has spent
+    nothing. Task 8 must treat a None baseline as "show the raw current
+    spend with a caveat", never subtract it as if it were 0 — that would
+    report the account's whole month-to-date spend as this sweep's cost.
+    """
     import json
     out_dir = os.path.join(output_dir, state["profile"])
     os.makedirs(out_dir, exist_ok=True)
