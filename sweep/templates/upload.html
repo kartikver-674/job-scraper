@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Upload your résumé — Sweep{% endblock %}
+{% block body %}
+<h1>Point it at your résumé</h1>
+<p class="muted">Your résumé decides which jobs get searched for and how they are ranked.</p>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form class="panel" method="post" action="{{ url_for('resume') }}" enctype="multipart/form-data">
+  <input type="file" name="resume" accept="application/pdf">
+  <p class="muted">PDF only, up to 15 MB. A scanned image without a text layer will not work.</p>
+  <button class="primary" type="submit">Read my résumé</button>
+</form>
+
+<p class="muted">Your résumé is sent to a model to derive your search terms.
+No scraping credit is spent until you approve the plan.</p>
+{% endblock %}

@@ -1,0 +1,27 @@
+<!doctype html>
+<title>{% block title %}Sweep{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='sweep.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Chivo:wght@400;500;600&display=swap" rel="stylesheet">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.14.1/cdn.min.js"></script>
+
+<header>
+  <strong>Sweep</strong>
+  <nav>
+    {% for slug, label in steps %}
+      <a href="{{ url_for(slug) }}" class="{{ 'on' if slug == step }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+  {% if cap_usd %}<span class="muted">Credit left ${{ '%.2f'|format(cap_usd) }}</span>{% endif %}
+</header>
+
+<div class="meter {{ 'over' if spend and cap_usd and spend > cap_usd }}">
+  <span class="muted">{% block meter_label %}Current spend{% endblock %}</span>
+  <span class="numeral">${{ '%.2f'|format(spend or 0) }}</span>
+  <div class="meter-track">
+    <div class="meter-fill" style="width: {{ fill_pct or 0 }}%"></div>
+    {% if cap_usd %}<div class="meter-cap" style="left: 100%"></div>{% endif %}
+  </div>
+</div>
+
+<main>{% block body %}{% endblock %}</main>
