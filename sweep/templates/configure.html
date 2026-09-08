@@ -33,6 +33,17 @@
       Keep listings that don't state pay</label>
     <p class="muted">Most listings don't state pay, so turning this off
       discards a lot.</p>
+
+    <h2>Skip these</h2>
+    <label>Stacks or domains to down-rank, comma-separated
+      <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"></label>
+    <p class="muted">Letters, digits, spaces and . + # / - only.</p>
+
+    <h2>Depth</h2>
+    <label>Results per search
+      <input type="number" name="max_results" placeholder="15" min="1" max="200"></label>
+    <p class="muted">Raising this raises the cost — it multiplies against
+      every search, at the per-source rates below.</p>
   </form>
 
   <div class="panel">

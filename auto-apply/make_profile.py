@@ -158,30 +158,42 @@ def _weights(entries, sign=1):
             if e["term"].strip()}
 
 
+def _load_config():
+    """Import config.py with sys.argv neutralised — it reads --profile from
+    argv at import time, so importing it under a test runner's own argv (or
+    while JOB_PROFILE is set for an unrelated run) would pick the wrong
+    profile or exit outright. Shared by validate_keys() and render(), which
+    both need the live config as the single source of truth."""
+    argv, job_profile = sys.argv, os.environ.pop("JOB_PROFILE", None)
+    sys.argv = [argv[0]]
+    try:
+        sys.path.insert(0, cfg.REPO_ROOT)
+        import config
+        return config
+    finally:
+        sys.argv = argv
+        if job_profile is not None:
+            os.environ["JOB_PROFILE"] = job_profile
+
+
 def validate_keys(rendered_keys):
-    """Reject any config key that config.py does not actually define.
+    """Reject any config key that config.py does not actually define. Returns
+    the live config module so callers that already paid for this import (i.e.
+    render()) don't have to import it a second time.
 
     Profile merge is a plain dict.update(), so a misspelled key is accepted in
     silence and does nothing — which is how RESUME_AUTOCONFIG_PROMPT.md came to
     name `SCORING.drop_terms` and `SETTINGS.min_ctc_lpa`, neither of which has
     ever existed. Checked against the live config so it cannot drift again.
     """
-    argv, job_profile = sys.argv, os.environ.pop("JOB_PROFILE", None)
-    sys.argv = [argv[0]]          # config.py reads --profile from argv at import
-    try:
-        sys.path.insert(0, cfg.REPO_ROOT)
-        import config
-    finally:
-        sys.argv = argv
-        if job_profile is not None:
-            os.environ["JOB_PROFILE"] = job_profile
-
+    config = _load_config()
     known = {"SEARCH": config.SEARCH, "SETTINGS": config.SETTINGS,
-             "SCORING": config.SCORING}
+             "SCORING": config.SCORING, "SITES": config.SITES}
     unknown = [f"{section}.{key}" for section, keys in rendered_keys.items()
                for key in keys if key not in known[section]]
     if unknown:
         raise KeyError(f"not real config keys: {', '.join(unknown)}")
+    return config
 
 
 def _fmt(value, indent=8):
@@ -198,13 +210,13 @@ def _fmt(value, indent=8):
 def render(name, data, prefs):
     """Render profiles/<name>.py source from the model's JSON and the preferences.
 
-    max_results / max_age_days / remote_scopes are optional overrides (from
-    Sweep's Configure screen, sweep/app.py) — omitted from `prefs` (None),
-    they are left out of the rendered section entirely so config.py's own
-    default silently applies, per the one-level-deep profile merge in
-    config.py's PROFILES section. A profile must never widen the sweep by
-    accident, so "not set" has to mean "inherit", not "reset to some default
-    picked here".
+    max_results / max_age_days / remote_scopes / linkedin_locations are
+    optional overrides (from Sweep's Configure screen, sweep/app.py) —
+    omitted from `prefs` (None), they are left out of the rendered section
+    entirely so config.py's own default silently applies, per the
+    one-level-deep profile merge in config.py's PROFILES section. A profile
+    must never widen the sweep by accident, so "not set" has to mean
+    "inherit", not "reset to some default picked here".
     """
     sections = {
         "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min",
@@ -214,8 +226,9 @@ def render(name, data, prefs):
         "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
                     "backend_terms", "fullstack_title_terms", "fullstack_bonus",
                     "hard_drop_terms"],
+        "SITES": ["linkedin"],
     }
-    validate_keys(sections)
+    config = validate_keys(sections)
 
     years = int(data["years_experience"])
     skills = _weights(data["skill_weights"])
@@ -227,6 +240,56 @@ def render(name, data, prefs):
         extra_settings += f'    "max_age_days": {int(prefs["max_age_days"])!r},\n'
     if prefs.get("remote_scopes") is not None:
         extra_settings += f'    "remote_scopes": {_fmt(prefs["remote_scopes"])},\n'
+
+    # SITES[site].get("locations", SEARCH["locations"]) means LinkedIn — the
+    # most expensive site — keeps searching whatever config.py's SITES.linkedin
+    # already says (India + Remote) no matter what SEARCH.locations above is
+    # set to, unless this profile overrides it too (see scraper.plan_for_site).
+    # A wrong or invented LinkedIn location doesn't error, it silently returns
+    # US results and bills in full (see config.LINKEDIN_GEO_IDS), so every
+    # location here is checked against that VERIFIED table — never passed
+    # through on trust, and never trusted just because it came from this
+    # app's own code instead of a form.
+    extra_sites = ""
+    if prefs.get("linkedin_locations") is not None:
+        unverified = [loc for loc in prefs["linkedin_locations"]
+                      if loc not in config.LINKEDIN_GEO_IDS]
+        if unverified:
+            raise KeyError(
+                f"not a verified LinkedIn geography: {', '.join(unverified)} "
+                f"— add to config.LINKEDIN_GEO_IDS and confirm with "
+                f"`python verify_geoids.py` before using it here.")
+        # The whole SITES["linkedin"] dict is REPLACED, not deep-merged (see
+        # config._overlay), so "enabled"/"actor" have to be carried forward
+        # explicitly or the profile would silently switch LinkedIn off.
+        linkedin_site = dict(config.SITES["linkedin"])
+        linkedin_site["locations"] = list(prefs["linkedin_locations"])
+        linkedin_site["remote_only"] = bool(prefs.get("linkedin_remote_only"))
+        extra_sites = (
+            f'SITES = {{\n'
+            f'    "linkedin": {{\n'
+            f'        "enabled": {linkedin_site["enabled"]!r},\n'
+            f'        "actor": {linkedin_site["actor"]!r},\n'
+            f'        "locations": {_fmt(linkedin_site["locations"], indent=12)},\n'
+            f'        "remote_only": {linkedin_site["remote_only"]!r},\n'
+            f'        "remote_geo": {linkedin_site.get("remote_geo")!r},\n'
+            f'    }},\n'
+            f'}}\n\n'
+        )
+
+    sites_note = (
+        "This file sets no SITES, so it inherits config.py's — LinkedIn + "
+        "Indeed + Naukri all enabled. Run --dry-run first and read the run "
+        "count; Naukri alone is ~$0.50/run minimum. To narrow it, copy the "
+        "SITES block from profiles/kartik_reachable.py. LinkedIn searches the "
+        "geoIds in SITES, NOT the locations above, so city-level LinkedIn "
+        "needs that block too."
+        if not extra_sites else
+        "This file DOES set SITES (below) — Configure chose it. LinkedIn "
+        "searches only the geoIds listed there, not SEARCH.locations above; "
+        "Indeed and Naukri still follow config.py's defaults unless narrowed "
+        "too. Naukri alone is ~$0.50/run minimum — run --dry-run first."
+    )
 
     # The model reliably copies the excluded seniority words into penalty_terms
     # as well, even when told they are already handled. With drop_excluded True
@@ -252,18 +315,13 @@ also appear in an unwanted job is weighted low however core it is to this
 person. Locations, pay floor, avoid-list and excluded seniority came from the
 command line, not from the résumé. Anything absent here inherits from config.py.
 
-COSTS MONEY BY DEFAULT. This file sets no SITES and no max_spend_usd, so it
-inherits config.py's — LinkedIn + Indeed + Naukri all enabled. Run --dry-run
-first and read the run count; Naukri alone is ~$0.50/run minimum. To narrow it,
-copy the SITES block from profiles/kartik_reachable.py. LinkedIn searches the
-geoIds in SITES, NOT the locations above, so city-level LinkedIn needs that
-block too.
+COSTS MONEY BY DEFAULT. This file sets no max_spend_usd. {sites_note}
 
 Re-scoring is free — after editing weights run `python rescore_from_apify.py`
 rather than paying to scrape again.
 """
 
-SEARCH = {{
+{extra_sites}SEARCH = {{
     "role_keywords": {_fmt(data["role_keywords"])},
     "experience_years": {years},
     "locations": {_fmt(prefs["locations"])},

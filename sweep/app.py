@@ -49,14 +49,41 @@ def _valid_profile_name(name):
     return bool(_NAME_RE.fullmatch(name))
 
 
-# Configure-screen form -> real config keys (see profiles/*.py and config.py's
-# SEARCH/SETTINGS for what these actually do). "global" and "india" both
-# resolve to the same locations/remote_scopes here: reaching abroad for real
-# needs a SITES-level override (per-site "locations", see config.py section 2)
-# that this generic render() does not touch, so through this route the two
-# scopes differ from each other in name only for now.
-_SCOPE_REMOTE_SCOPES = {
-    "india": [], "remote": ["worldwide", "remote"], "global": [],
+# Configure-screen scope -> real config keys. "locations"/"remote_scopes" feed
+# SEARCH.locations / SETTINGS.remote_scopes (every site); "linkedin_locations"
+# additionally overrides SITES.linkedin.locations, because
+# SITES[site].get("locations", SEARCH["locations"]) means LinkedIn — the most
+# expensive site — otherwise keeps searching config.py's default (India +
+# Remote) no matter what SEARCH.locations says (scraper.plan_for_site).
+#
+# Every LinkedIn location below is a config.LINKEDIN_GEO_IDS key, verified per
+# that table's own comments (python verify_geoids.py) — never a name invented
+# here. make_profile.render() checks this again against the live config, since
+# that guard has to hold for the CLI path too, not just this form.
+_INDIA_CITIES = ["Delhi", "Gurgaon", "Bengaluru", "Hyderabad", "Pune", "Mumbai"]
+# Same set profiles/global_remote.py and profiles/global_all.py already use —
+# reused rather than re-picked, so "verified" keeps meaning the same thing.
+_VERIFIED_COUNTRIES = ["United States", "United Kingdom", "Canada", "Ireland",
+                       "Germany", "Netherlands", "Australia", "Singapore",
+                       "United Arab Emirates"]
+
+_SCOPE = {
+    # India only, onsite/hybrid: no "Remote" in the mix — that is what the
+    # "remote" scope is for.
+    "india": {"remote_scopes": [], "locations": _INDIA_CITIES,
+              "linkedin_locations": _INDIA_CITIES, "linkedin_remote_only": False},
+    # LinkedIn's f_WT=2 filters workplace type WITHIN one geography — there is
+    # no worldwide-remote search — so "genuinely remote from anywhere" means
+    # remote_only=True over every verified country, same mechanism
+    # profiles/global_remote.py already uses, not a bare "Remote" location
+    # (which would need exactly one region and defeat the point).
+    "remote": {"remote_scopes": ["worldwide", "remote"], "locations": ["Remote"],
+               "linkedin_locations": _VERIFIED_COUNTRIES,
+               "linkedin_remote_only": True},
+    # Global onsite: same countries, without the remote filter.
+    "global": {"remote_scopes": [], "locations": _VERIFIED_COUNTRIES,
+               "linkedin_locations": _VERIFIED_COUNTRIES,
+               "linkedin_remote_only": False},
 }
 
 # Real stack names need '.', '+', '#', '/', '-' ("node.js", "c++", "c#",
@@ -107,17 +134,20 @@ def _configure_overrides(form):
 
     if "scope" in form:
         scope = form["scope"]
-        if scope not in _SCOPE_REMOTE_SCOPES:
+        if scope not in _SCOPE:
             raise _FormError("Choose where you can work.")
-        out["remote_scopes"] = _SCOPE_REMOTE_SCOPES[scope]
-        if scope == "remote":
-            out["locations"] = ["Remote"]
+        out.update(_SCOPE[scope])
 
     if "max_age_days" in form:
         out["max_age_days"] = _parse_int(
             form["max_age_days"], 1, 365, "Freshness window")
 
-    if "max_results" in form:
+    # Both are plain text/number inputs that live in the same <form> as every
+    # other control, so an unrelated change elsewhere in the form resubmits
+    # them too, blank, every time — not just on their own change event.
+    # Blank has to mean "no opinion this round", the same as absent, or the
+    # very first click anywhere on the screen would 400.
+    if form.get("max_results"):
         out["max_results"] = _parse_int(
             form["max_results"], 1, 200, "Results per search")
 
@@ -132,7 +162,7 @@ def _configure_overrides(form):
                 "Enter a pay floor, or keep listings that don't state pay.")
         out["min_comp_usd"] = _parse_int(raw, 0, 100_000_000, "Minimum pay")
 
-    if "skip_terms" in form:
+    if form.get("skip_terms"):
         out["skip_terms"] = _parse_chips(form["skip_terms"], "Skip-terms")
 
     return out
@@ -378,12 +408,15 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         # A partial form only patches the keys it named — everything else in
         # the profile stays exactly what an earlier POST (or the review
-        # screen) left it as. That's why this updates app.state in place
-        # rather than replacing it: state is the only place "the current
-        # value of a key nobody re-submitted this time" lives.
+        # screen) left it as. Built on a COPY of state/derived, not applied
+        # to app.state directly, until make_profile.render() has actually
+        # succeeded — render() is where an unverified LinkedIn geography or
+        # an unknown config key gets caught (shared with the CLI path), and
+        # that failure must leave nothing applied either, same as a plain
+        # invalid field.
         skip_terms = overrides.pop("skip_terms", None)
-        if overrides:
-            app.state.update(overrides)
+        new_state = dict(app.state)
+        new_state.update(overrides)
         if skip_terms is not None:
             # By the time a profile exists (checked above), review_post()
             # has already populated app.state["derived"] — Configure never
@@ -400,14 +433,20 @@ def create_app(state=None, extract=None, resume_dir=None,
                     penalty_terms.append({"term": term, "weight": 12})
                     seen.add(term.lower())
             derived["penalty_terms"] = penalty_terms
-            app.state["derived"] = derived
+            new_state["derived"] = derived
 
         name = app.state["profile"]
         if overrides or skip_terms is not None:
-            source = make_profile.render(name, app.state["derived"], _prefs(app.state))
+            try:
+                source = make_profile.render(
+                    name, new_state["derived"], _prefs(new_state))
+            except KeyError as exc:
+                return jsonify({"error": str(exc)}), 400
             app.write_profile(name, source)
+            app.state.clear()
+            app.state.update(new_state)
 
-        return jsonify(costed(name))
+        return jsonify(costed(app.state["profile"]))
 
     @app.get("/confirm")
     def confirm():
@@ -438,4 +477,6 @@ def _prefs(state):
         "remote_scopes": state.get("remote_scopes"),
         "max_age_days": state.get("max_age_days"),
         "max_results": state.get("max_results"),
+        "linkedin_locations": state.get("linkedin_locations"),
+        "linkedin_remote_only": state.get("linkedin_remote_only"),
     }

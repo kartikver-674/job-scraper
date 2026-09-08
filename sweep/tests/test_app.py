@@ -593,6 +593,74 @@ class TestConfigureScreen(unittest.TestCase):
         client.post("/estimate", json={"min_comp_usd": "20000"})
         self.assertIn('"min_comp_usd": 20000', writes[-1][1])
 
+    def test_scope_overrides_linkedins_locations_not_just_search_locations(self):
+        # SITES["linkedin"].get("locations", SEARCH["locations"]) means
+        # LinkedIn — the priciest site — ignores SEARCH.locations entirely
+        # unless the profile ALSO overrides SITES.linkedin. This is the
+        # mechanism that made "global" and "india" scope indistinguishable
+        # before this fix.
+        app, writes = self._app_with_spy()
+        client = app.test_client()
+
+        client.post("/estimate", json={"scope": "india"})
+        india_source = writes[-1][1]
+        self.assertIn('SITES = {', india_source)
+        self.assertIn('"linkedin"', india_source)
+        self.assertIn("'Delhi'", india_source)
+        self.assertIn('"remote_only": False', india_source)
+        # enabled/actor must survive the rewrite — SITES["linkedin"] is
+        # replaced wholesale by config._overlay's one-level-deep merge, not
+        # deep-merged, so dropping them would silently disable the site.
+        self.assertIn('"enabled": True', india_source)
+        self.assertIn("curious_coder/linkedin-jobs-scraper", india_source)
+
+        client.post("/estimate", json={"scope": "global"})
+        global_source = writes[-1][1]
+        self.assertIn("'United States'", global_source)
+        self.assertNotIn("'Delhi'", global_source)
+
+        client.post("/estimate", json={"scope": "remote"})
+        remote_source = writes[-1][1]
+        self.assertIn('"remote_only": True', remote_source)
+        self.assertIn("'United States'", remote_source)  # countries, not "Remote"
+
+    def test_no_scope_submitted_emits_no_sites_block(self):
+        app, writes = self._app_with_spy()
+        app.test_client().post("/estimate", json={"max_age_days": "7"})
+        self.assertNotIn("SITES = {", writes[-1][1])
+
+    def test_an_unverified_linkedin_location_is_rejected_and_writes_nothing(self):
+        # Scope is a closed enum in production, so this can only be reached
+        # by a bug in _SCOPE itself — proving render()'s own check catches
+        # that, rather than silently billing an unverified geography. Same
+        # guard applies to the CLI path, since it lives in render().
+        app, writes = self._app_with_spy()
+        original = dict(app_module._SCOPE["india"])
+        app_module._SCOPE["india"] = dict(
+            original, linkedin_locations=["Atlantis"])
+        try:
+            r = app.test_client().post("/estimate", json={"scope": "india"})
+        finally:
+            app_module._SCOPE["india"] = original
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(writes, [])
+
+    def test_configure_screen_has_controls_for_skip_terms_and_depth(self):
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn('name="skip_terms"', body)
+        self.assertIn('name="max_results"', body)
+
+    def test_a_blank_skip_terms_or_depth_field_does_not_reject_other_changes(self):
+        # Both fields live in the same <form> as everything else, so a
+        # change to max_age_days resubmits them too, blank — that must not
+        # 400 the whole screen the very first time anyone touches a control.
+        app, writes = self._app_with_spy()
+        r = app.test_client().post(
+            "/estimate",
+            json={"max_age_days": "7", "skip_terms": "", "max_results": ""})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(writes), 1)
+
     def test_estimate_reprices_after_the_profile_is_rewritten(self):
         # fetch_plan here is intentionally sensitive to whether write_profile
         # has already run, so this proves the ORDER — write, then re-plan —
