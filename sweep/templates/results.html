@@ -25,9 +25,13 @@
           <td>{{ row['salary'] or 'Not stated' }}</td>
           <td>{{ row['experience_required'] or 'Not stated' }}</td>
           <td class="muted">{{ row['matched_skills'] }}</td>
+          {# Allowlist the scheme: an apply_url is scraped third-party data,
+             and autoescape stops attribute breakout but not javascript:.
+             Lowercased so a legitimate HTTPS:// keeps its link. #}
+          {%- set href = (row['apply_url'] or '')|trim %}
           <td>
-            {%- if (row['apply_url'] or '').startswith('http') %}
-              <a href="{{ row['apply_url'] }}" target="_blank" rel="noopener">Apply</a>
+            {%- if (href|lower).startswith(('http://', 'https://')) %}
+              <a href="{{ href }}" target="_blank" rel="noopener">Apply</a>
             {%- else %}
               <span class="muted">No link</span>
             {%- endif %}
@@ -43,6 +47,12 @@
 <p class="muted">Filtering and re-ranking these is free and costs no extra credit.</p>
 
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if notice %}<p class="muted">{{ notice }}</p>{% endif %}
+
+{% if rescoring %}
+  <p class="panel muted">Re-ranking now. Reload in a moment to see the new
+    ranking — the shortlist below is still the old one.</p>
+{% endif %}
 
 <form class="panel" method="get">
   <label>Minimum score <input type="number" name="min" value="{{ min_score }}"></label>
@@ -60,15 +70,11 @@
 
 <details class="panel">
   <summary>Re-rank against your current weights</summary>
-  <p class="muted">Re-ranks every search run on this key, for the sites you
-    have configured, within the window you choose below — not only this
-    sweep's runs, so on a key you share it can pull in another profile's
-    searches. Reading data you already paid for is free. The shortlist is
-    rewritten in place, not added to.</p>
-  {% if rescoring %}
-    <p class="muted">Re-ranking now. Reload in a moment to see the new
-      ranking — the shortlist below is still the old one.</p>
-  {% endif %}
+  <p class="muted">Re-ranks every search run on any Apify key in your .env,
+    for the sites you have configured, within the window you choose below —
+    not only this sweep's runs, so on a key you share it can pull in another
+    profile's searches. Reading data you already paid for is free. The
+    shortlist is rewritten in place, not added to.</p>
   <form method="post" action="{{ url_for('rescore') }}">
     <label>Hours to look back
       <input type="number" name="hours" value="6" min="1" max="168"></label>

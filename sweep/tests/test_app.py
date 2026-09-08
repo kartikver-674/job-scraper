@@ -1226,13 +1226,48 @@ class TestResultsScreen(unittest.TestCase):
         self.assertIn('value="linkedin" selected', body)
         self.assertIn('name="q" value="razorpay"', body)
 
-    def test_rows_are_sorted_by_score_regardless_of_input_order(self):
-        # Reversed on the way in, so passing can't come from the fixture's
-        # own order — this is the guard against trusting the CSV's ordering.
-        app = self._app(rows=list(reversed(ROWS)))
+    def test_rows_are_sorted_by_score_within_a_bucket(self):
+        # Both rows must land in the SAME bucket, or SECTIONS' own order
+        # decides the comparison and the test passes with no sort at all.
+        low = dict(ROWS[0], score="10", title="Lower scoring role")
+        high = dict(ROWS[0], score="99", title="Higher scoring role")
+        app = self._app(rows=[low, high])          # worst first on input
         body = app.test_client().get("/results").get_data(as_text=True)
-        self.assertLess(body.index("Senior React Native Engineer"),
-                        body.index("Mobile Engineer"))
+        self.assertLess(body.index("Higher scoring role"),
+                        body.index("Lower scoring role"))
+
+    def test_a_running_rescore_says_so_on_the_page_it_redirects_to(self):
+        # The signal has to survive the 302: it was previously nested inside
+        # the re-rank <details>, which comes back collapsed after navigation.
+        class Running:
+            def poll(self):
+                return None
+
+        app = self._app(start_rescore=lambda profile, hours: Running())
+        client = app.test_client()
+        client.post("/rescore", data={"hours": "6"})
+        body = client.get("/results").get_data(as_text=True)
+        self.assertIn("Re-ranking now", body)
+        self.assertLess(body.index("Re-ranking now"), body.index("<details"))
+
+    def test_a_busy_rescore_message_is_not_styled_as_an_error(self):
+        class Running:
+            def poll(self):
+                return None
+
+        app = self._app(start_rescore=lambda profile, hours: Running())
+        client = app.test_client()
+        client.post("/rescore", data={"hours": "6"})
+        body = client.post("/rescore", data={"hours": "6"}).get_data(as_text=True)
+        self.assertIn("already running", body)
+        # class="error" is painted the red reserved for over-cap.
+        self.assertNotIn('class="error"', body)
+
+    def test_an_uppercase_scheme_keeps_its_apply_link(self):
+        app = self._app(rows=[dict(ROWS[0], apply_url="HTTPS://Board.example/job")])
+        body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertIn("HTTPS://Board.example/job", body)
+        self.assertNotIn("No link", body)
 
     def test_a_filter_that_removed_nothing_is_not_blamed(self):
         # No shortlist on disk yet: every branch counts 0 removals, and the
@@ -1255,7 +1290,7 @@ class TestResultsScreen(unittest.TestCase):
         self.assertEqual(client.post("/rescore", data={"hours": "6"}).status_code, 302)
         second = client.post("/rescore", data={"hours": "6"})
         self.assertEqual(second.status_code, 409)
-        self.assertIn("still running", second.get_data(as_text=True))
+        self.assertIn("already running", second.get_data(as_text=True))
         # rescore_from_apify.py truncates jobs_combined.csv in place, so the
         # second child must never have been started.
         self.assertEqual(calls, [("kanav", 6)])

@@ -3,6 +3,7 @@
 import os
 import re
 import sys
+import threading
 
 from flask import (Flask, redirect, render_template, request, url_for)
 
@@ -786,7 +787,7 @@ def create_app(state=None, extract=None, resume_dir=None,
             runs_mod.stop(proc)
         return redirect(url_for("running"))
 
-    def _results_page(error=None):
+    def _results_page(error=None, notice=None):
         """Shared by GET /results and a failed POST /rescore, so an
         out-of-range hours value re-renders the same screen with an error
         instead of a bare 400."""
@@ -822,12 +823,24 @@ def create_app(state=None, extract=None, resume_dir=None,
             rates=config.SITE_RATES,
             worst=worst_filter(all_rows, min_score, source, q),
             rescoring=_rescore_in_flight(),
-            error=error))
+            notice=notice, error=error))
+
+    _rescore_lock = threading.Lock()
 
     def _rescore_in_flight():
-        """Whether a re-score child is still running. rescore_from_apify.py
-        truncates jobs_combined.csv and .json in place with no lock, so two of
-        them overlapping would interleave writes to the same files."""
+        """Whether a re-score child is still running.
+
+        rescore_from_apify.py truncates jobs_combined.csv and .json in place
+        with no lock of its own, so two overlapping children interleave writes
+        to the same two files.
+
+        ponytail: in-memory and single-process. Restarting the server while a
+        child runs loses this and orphans it, and there is no way to cancel a
+        running re-score from the UI — POST /stop signals app.state["proc"]
+        only. Both are acceptable for one local user driving one button by
+        hand; persist it alongside run.json if a second entry point ever
+        starts a re-score.
+        """
         proc = app.state.get("rescore_proc")
         return proc is not None and proc.poll() is None
 
@@ -841,14 +854,6 @@ def create_app(state=None, extract=None, resume_dir=None,
     def rescore():
         if not app.state.get("profile"):
             return redirect(url_for("upload"))
-        # Re-reading the shortlist takes seconds to minutes, so without this
-        # the page comes back unchanged and the honest reading is that the
-        # button did nothing — which invites a second click, and a second
-        # child truncating the same file the first is still writing.
-        if _rescore_in_flight():
-            return _results_page(
-                error="A re-score is still running. Reload in a moment to see "
-                      "the new ranking."), 409
         try:
             # Label matches the field's own visible text, so the error names
             # the control the user is looking at.
@@ -856,7 +861,18 @@ def create_app(state=None, extract=None, resume_dir=None,
                                 "Hours to look back")
         except _FormError as exc:
             return _results_page(error=str(exc)), 400
-        app.state["rescore_proc"] = start_rescore(app.state["profile"], hours)
+        # Checked and set under one lock. The dev server runs threaded, so
+        # without it two clicks a few milliseconds apart both read "nothing
+        # running" and both spawn a child truncating the same file.
+        with _rescore_lock:
+            if _rescore_in_flight():
+                # A status, not a failure — so it must not go through `error`,
+                # which is painted the red reserved for over-cap.
+                return _results_page(
+                    notice="A re-score is already running. Reload in a moment "
+                           "to see the new ranking."), 409
+            app.state["rescore_proc"] = start_rescore(
+                app.state["profile"], hours)
         return redirect(url_for("results"))
 
     return app

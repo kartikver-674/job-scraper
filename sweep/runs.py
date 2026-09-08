@@ -87,9 +87,12 @@ def start_rescore(profile, hours, env=None, popen=subprocess.Popen):
     (config.py:632-640), which is also what redirects the output directory.
     """
     child = dict(env or os.environ, JOB_PROFILE=profile)
+    # stderr is DEVNULL, not PIPE: nobody reads a re-score's stderr, and an
+    # undrained pipe blocks the child once it fills — which poll() would then
+    # report as permanently in flight, wedging the button for good.
     return popen([sys.executable, "rescore_from_apify.py", "--hours", str(hours)],
                  cwd=REPO_ROOT, env=child,
-                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
 
 
 def stop(proc):
