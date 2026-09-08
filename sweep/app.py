@@ -30,6 +30,13 @@ STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
 # digit is rejected too since that would not be a valid module name.
 _NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
 
+# A .env value with an embedded newline turns one write into two lines —
+# the second one an attacker-chosen KEY=VALUE the file's own reader (and
+# python-dotenv) will parse as a real entry, silently overwriting whichever
+# key it names. So env_key/value are checked here, at the single write
+# funnel, rather than trusting every future caller to have checked upstream.
+_ENV_KEY_RE = re.compile(r"[A-Z][A-Z0-9_]*")
+
 
 def _valid_profile_name(name):
     return bool(_NAME_RE.fullmatch(name))
@@ -93,6 +100,10 @@ def create_app(state=None, extract=None, resume_dir=None,
         are normalised to end with '\\n' before appending — the real .env
         does not end with one, and writelines() glues text together with no
         separator otherwise, corrupting whichever key happened to be last."""
+        if not _ENV_KEY_RE.fullmatch(env_key):
+            raise ValueError(f"not a valid env key: {env_key!r}")
+        if "\n" in value or "\r" in value:
+            raise ValueError("env value must not contain a newline")
         lines = []
         if os.path.exists(env_path):
             with open(env_path) as fh:
@@ -208,6 +219,11 @@ def create_app(state=None, extract=None, resume_dir=None,
         if not token:
             return render_template("key.html", **shell(
                 "key", error="Paste your Apify token.")), 400
+        if "\n" in token or "\r" in token:
+            # Never echo the token back — say what's wrong, not what it was.
+            return render_template("key.html", **shell(
+                "key", error="That doesn't look like a token — remove any "
+                              "extra lines and paste it again.")), 400
 
         available, error = check_token(token)
         if error:

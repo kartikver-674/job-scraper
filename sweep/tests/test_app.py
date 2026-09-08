@@ -347,6 +347,76 @@ class TestWriteEnv(unittest.TestCase):
             lines = fh.read().splitlines()
         self.assertIn("GEMINI_API_KEY=a=b=c", lines)
 
+    def test_write_env_rejects_a_value_containing_a_newline(self):
+        # A newline in the value would turn one write into two lines — the
+        # second one an attacker-chosen KEY=VALUE that overwrites whatever
+        # real key it names. The write must not happen at all.
+        path = self._env_file("GROQ_API_KEY=g\n")
+        with open(path) as fh:
+            before = fh.read()
+        app = self._app(path)
+        with self.assertRaises(ValueError):
+            app.write_env("APIFY_TOKEN", "abc\nGROQ_API_KEY=INJECTED")
+        with open(path) as fh:
+            self.assertEqual(fh.read(), before)
+
+    def test_write_env_rejects_a_value_containing_a_carriage_return(self):
+        path = self._env_file("GROQ_API_KEY=g\n")
+        app = self._app(path)
+        with self.assertRaises(ValueError):
+            app.write_env("APIFY_TOKEN", "abc\rGROQ_API_KEY=INJECTED")
+
+    def test_write_env_rejects_a_malformed_key(self):
+        path = self._env_file("GROQ_API_KEY=g\n")
+        app = self._app(path)
+        with self.assertRaises(ValueError):
+            app.write_env("apify_token", "x")
+
+    def test_a_token_with_a_newline_is_rejected_and_env_is_left_untouched(self):
+        # The same injection, arriving through the real /key route rather
+        # than a direct write_env call — reproduces the coordinator's exact
+        # curl-shaped attack and confirms nothing gets written at all.
+        path = self._env_file(
+            "APIFY_TOKEN=old\nGROQ_API_KEY=g\nGEMINI_API_KEY=e")
+        with open(path) as fh:
+            before = fh.read()
+        app = app_module.create_app(
+            state={"profile": "kanav"}, extract=lambda p: "x",
+            derive=lambda t, p: DERIVED,
+            check_token=lambda token: (5.0, None), env_path=path)
+        app.config.update(TESTING=True)
+        r = app.test_client().post(
+            "/key", data={"token": "apify_api_abc\nGROQ_API_KEY=INJECTED"})
+        self.assertEqual(r.status_code, 400)
+        with open(path) as fh:
+            self.assertEqual(fh.read(), before)
+
+    def test_a_token_with_a_carriage_return_is_rejected(self):
+        app = app_module.create_app(
+            state={"profile": "kanav"}, extract=lambda p: "x",
+            derive=lambda t, p: DERIVED,
+            check_token=lambda token: (5.0, None),
+            env_path=self._env_file("GROQ_API_KEY=g\n"))
+        app.config.update(TESTING=True)
+        r = app.test_client().post(
+            "/key", data={"token": "apify_api_abc\rGROQ_API_KEY=INJECTED"})
+        self.assertEqual(r.status_code, 400)
+
+    def test_a_well_formed_token_still_succeeds(self):
+        # The newline/CR guard must not be over-tight: a normal token still
+        # makes it all the way through the real route and the real write.
+        path = self._env_file("GROQ_API_KEY=g\n")
+        app = app_module.create_app(
+            state={"profile": "kanav"}, extract=lambda p: "x",
+            derive=lambda t, p: DERIVED,
+            check_token=lambda token: (5.0, None), env_path=path)
+        app.config.update(TESTING=True)
+        r = app.test_client().post("/key", data={"token": "apify_api_ABC123"})
+        self.assertEqual(r.status_code, 302)
+        with open(path) as fh:
+            lines = fh.read().splitlines()
+        self.assertIn("APIFY_TOKEN=apify_api_ABC123", lines)
+
 
 if __name__ == "__main__":
     unittest.main()
