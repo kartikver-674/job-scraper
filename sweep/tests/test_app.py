@@ -768,5 +768,70 @@ class TestConfigureScreen(unittest.TestCase):
         self.assertIn('import os', source)
 
 
+class FakeProc:
+    def __init__(self):
+        self.signals = []
+
+    def poll(self):
+        return None
+
+    def send_signal(self, sig):
+        self.signals.append(sig)
+
+
+class TestConfirmScreen(unittest.TestCase):
+    def tearDown(self):
+        # /run and _write_run_json write into the real output/kanav dir
+        # (untracked, gitignored — same as any real sweep's output), since
+        # _write_run_json has no injectable out_dir. Clean up the artifact
+        # so repeated test runs don't leave stray files behind.
+        path = os.path.join(app_module.REPO_ROOT, "output", "kanav", "run.json")
+        if os.path.exists(path):
+            os.remove(path)
+
+    def _app(self, cap=8.41):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": cap},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (cap, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            start_sweep=lambda profile: FakeProc(),
+            read_spend=lambda: 1.00)
+        app.config.update(TESTING=True)
+        return app
+
+    def test_confirm_names_the_amount_on_the_button(self):
+        body = self._app().test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn("2.70", body)
+        self.assertIn("Run the sweep", body)
+
+    def test_over_cap_offers_a_second_key_instead_of_the_run_button(self):
+        body = self._app(cap=1.00).test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn("second key", body.lower())
+        self.assertNotIn("Run the sweep", body)
+
+    def test_over_cap_says_how_much_to_cut(self):
+        body = self._app(cap=1.00).test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn("1.70", body)
+
+    def test_running_records_the_spend_baseline_so_the_meter_shows_a_delta(self):
+        app = self._app()
+        app.test_client().get("/confirm")
+        r = app.test_client().post("/run")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/running", r.headers["Location"])
+        # account_usage_usd is month-to-date, so without a baseline the meter
+        # would show the whole month instead of this sweep.
+        self.assertAlmostEqual(app.state["baseline_usd"], 1.00, places=2)
+        self.assertIsNotNone(app.state["proc"])
+
+    def test_a_sweep_over_the_cap_cannot_be_started_from_the_ui(self):
+        app = self._app(cap=1.00)
+        app.test_client().get("/confirm")
+        r = app.test_client().post("/run")
+        self.assertEqual(r.status_code, 400)
+        self.assertIsNone(app.state.get("proc"))
+
+
 if __name__ == "__main__":
     unittest.main()

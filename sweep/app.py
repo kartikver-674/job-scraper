@@ -177,7 +177,8 @@ def _configure_overrides(form):
 
 def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
-               check_token=None, env_path=None, fetch_plan=None):
+               check_token=None, env_path=None, fetch_plan=None,
+               start_sweep=None, read_spend=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -251,6 +252,22 @@ def create_app(state=None, extract=None, resume_dir=None,
     if fetch_plan is None:
         from sweep import plan as plan_mod
         fetch_plan = plan_mod.fetch
+
+    if start_sweep is None:
+        from sweep import runs as runs_mod
+        start_sweep = runs_mod.start
+
+    if read_spend is None:
+        def read_spend():
+            """Month-to-date account spend, the authoritative figure. Actor
+            self-reports undercount roughly 3x (scraper.py:912)."""
+            sys.path.insert(0, REPO_ROOT)
+            import scraper
+            from apify_client import ApifyClient
+            token = os.environ.get("APIFY_TOKEN")
+            if not token:
+                return None
+            return scraper.account_usage_usd(ApifyClient(token))
 
     def costed(profile):
         """Cost the plan and say whether it exceeds the key's credit. The
@@ -458,7 +475,41 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     @app.get("/confirm")
     def confirm():
-        return "confirm"         # Task 7 replaces this
+        if not app.state.get("profile"):
+            return redirect(url_for("configure"))
+        from datetime import datetime
+        # Re-costed on every visit, like /configure — the meter shows this
+        # screen's own state, never a figure carried over from an earlier one.
+        plan = costed(app.state["profile"])
+        return render_template("confirm.html", **shell(
+            "confirm", plan=plan, spans_midnight=datetime.now().hour >= 22))
+
+    @app.post("/run")
+    def run():
+        plan_now = app.state.get("plan") or {}
+        if plan_now.get("over_cap"):
+            return render_template("confirm.html", **shell(
+                "confirm", plan=plan_now, spans_midnight=False,
+                error="Attach a second key or narrow the search first.")), 400
+
+        app.state["baseline_usd"] = read_spend() or 0.0
+        app.state["proc"] = start_sweep(app.state["profile"])
+        _write_run_json(app.state)
+        return redirect(url_for("running"))
+
+    @app.post("/second-key")
+    def second_key():
+        token = (request.form.get("token") or "").strip()
+        available, error = check_token(token)
+        if error:
+            return render_template("confirm.html", **shell(
+                "confirm", plan=app.state["plan"], spans_midnight=False,
+                error=error)), 400
+        app.write_env("APIFY_TOKEN_2", token)
+        app.state["cap_usd"] = (app.state.get("cap_usd") or 0) + available
+        app.state["plan"]["over_cap"] = (
+            app.state["plan"]["total"] > app.state["cap_usd"])
+        return redirect(url_for("confirm"))
 
     @app.get("/running")
     def running():
@@ -469,6 +520,17 @@ def create_app(state=None, extract=None, resume_dir=None,
         return "results"         # Task 9 replaces this
 
     return app
+
+
+def _write_run_json(state):
+    """Persist what a reload needs: which profile, and the spend baseline."""
+    import json
+    out_dir = os.path.join(REPO_ROOT, "output", state["profile"])
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, "run.json"), "w") as fh:
+        json.dump({"profile": state["profile"],
+                   "baseline_usd": state["baseline_usd"],
+                   "planned": state["plan"]["total_searches"]}, fh)
 
 
 def _prefs(state):
