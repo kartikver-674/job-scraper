@@ -35,7 +35,14 @@ _NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
 # python-dotenv) will parse as a real entry, silently overwriting whichever
 # key it names. So env_key/value are checked here, at the single write
 # funnel, rather than trusting every future caller to have checked upstream.
+#
+# The value is checked with an allowlist, not a blacklist of bad characters
+# — a blacklist for \n and \r alone still let a NUL byte through (harmless
+# to the file's line structure, but os.environ[...] = value raises on it
+# unhandled). Printable, non-space ASCII covers every real Apify token and
+# closes newline/CR/NUL/tab/unicode line separators in one rule.
 _ENV_KEY_RE = re.compile(r"[A-Z][A-Z0-9_]*")
+_ENV_VALUE_RE = re.compile(r"[\x21-\x7E]+")
 
 
 def _valid_profile_name(name):
@@ -102,8 +109,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         separator otherwise, corrupting whichever key happened to be last."""
         if not _ENV_KEY_RE.fullmatch(env_key):
             raise ValueError(f"not a valid env key: {env_key!r}")
-        if "\n" in value or "\r" in value:
-            raise ValueError("env value must not contain a newline")
+        if not isinstance(value, str) or not _ENV_VALUE_RE.fullmatch(value):
+            raise ValueError("env value must be printable, non-space ASCII")
         lines = []
         if os.path.exists(env_path):
             with open(env_path) as fh:
@@ -219,11 +226,11 @@ def create_app(state=None, extract=None, resume_dir=None,
         if not token:
             return render_template("key.html", **shell(
                 "key", error="Paste your Apify token.")), 400
-        if "\n" in token or "\r" in token:
+        if not _ENV_VALUE_RE.fullmatch(token):
             # Never echo the token back — say what's wrong, not what it was.
             return render_template("key.html", **shell(
                 "key", error="That doesn't look like a token — remove any "
-                              "extra lines and paste it again.")), 400
+                              "extra characters and paste it again.")), 400
 
         available, error = check_token(token)
         if error:

@@ -362,9 +362,50 @@ class TestWriteEnv(unittest.TestCase):
 
     def test_write_env_rejects_a_value_containing_a_carriage_return(self):
         path = self._env_file("GROQ_API_KEY=g\n")
+        with open(path) as fh:
+            before = fh.read()
         app = self._app(path)
         with self.assertRaises(ValueError):
             app.write_env("APIFY_TOKEN", "abc\rGROQ_API_KEY=INJECTED")
+        with open(path) as fh:
+            self.assertEqual(fh.read(), before)
+
+    def test_write_env_rejects_a_nul_byte(self):
+        # A NUL doesn't split a line, so the newline/CR blacklist let it
+        # through — it got written to disk, and os.environ[...] = value
+        # then raised ValueError on the NUL, unhandled, for a 500 with a
+        # corrupted value already on disk. The allowlist below closes this
+        # (and any other non-printable variant) in one rule instead of
+        # chasing individual bad characters one bug report at a time.
+        path = self._env_file("GROQ_API_KEY=g\n")
+        with open(path) as fh:
+            before = fh.read()
+        app = self._app(path)
+        with self.assertRaises(ValueError):
+            app.write_env("APIFY_TOKEN", "apify_api_abc\x00INJECT")
+        with open(path) as fh:
+            self.assertEqual(fh.read(), before)
+
+    def test_write_env_rejects_a_tab(self):
+        path = self._env_file("GROQ_API_KEY=g\n")
+        app = self._app(path)
+        with self.assertRaises(ValueError):
+            app.write_env("APIFY_TOKEN", "abc\tdef")
+
+    def test_write_env_rejects_none_as_a_valueerror_not_a_typeerror(self):
+        # "in" on a non-str used to raise TypeError before the isinstance
+        # check existed — a caller catching ValueError (as the route does)
+        # would have missed it entirely.
+        path = self._env_file("GROQ_API_KEY=g\n")
+        app = self._app(path)
+        with self.assertRaises(ValueError):
+            app.write_env("APIFY_TOKEN", None)
+
+    def test_write_env_rejects_a_non_string_value(self):
+        path = self._env_file("GROQ_API_KEY=g\n")
+        app = self._app(path)
+        with self.assertRaises(ValueError):
+            app.write_env("APIFY_TOKEN", 12345)
 
     def test_write_env_rejects_a_malformed_key(self):
         path = self._env_file("GROQ_API_KEY=g\n")
@@ -401,6 +442,24 @@ class TestWriteEnv(unittest.TestCase):
         r = app.test_client().post(
             "/key", data={"token": "apify_api_abc\rGROQ_API_KEY=INJECTED"})
         self.assertEqual(r.status_code, 400)
+
+    def test_a_token_with_a_nul_byte_is_rejected_and_env_is_left_untouched(self):
+        # Route-level version of the NUL case: validation must reject this
+        # before check_token or write_env ever run, so nothing lands on
+        # disk and os.environ[...] = token never gets a chance to crash.
+        path = self._env_file("GROQ_API_KEY=g\n")
+        with open(path) as fh:
+            before = fh.read()
+        app = app_module.create_app(
+            state={"profile": "kanav"}, extract=lambda p: "x",
+            derive=lambda t, p: DERIVED,
+            check_token=lambda token: (5.0, None), env_path=path)
+        app.config.update(TESTING=True)
+        r = app.test_client().post(
+            "/key", data={"token": "apify_api_abc\x00INJECT"})
+        self.assertEqual(r.status_code, 400)
+        with open(path) as fh:
+            self.assertEqual(fh.read(), before)
 
     def test_a_well_formed_token_still_succeeds(self):
         # The newline/CR guard must not be over-tight: a normal token still
