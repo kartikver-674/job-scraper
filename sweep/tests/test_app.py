@@ -3658,6 +3658,48 @@ class TestResultsScreen(unittest.TestCase):
         self.assertNotIn("javascript:alert(1)", body)
         self.assertIn("No link", body)
 
+    # ---- the whole row opens the listing --------------------------------
+    def test_the_row_carries_the_apply_link(self):
+        app = self._app(rows=[dict(ROWS[0], apply_url="https://board.example/job")])
+        body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertIn('<tr class="rowlink" data-href="https://board.example/job">',
+                      body)
+        # And the anchor stays: it is the keyboard and screen-reader path, and
+        # the row is a mouse convenience on top of it.
+        self.assertIn('<a href="https://board.example/job"', body)
+
+    def test_an_unsafe_url_makes_the_row_unclickable_too(self):
+        # data-href is a second place the scraped URL reaches the page. It is
+        # set from the SAME allowlist expression as the anchor, so a scheme
+        # the anchor refuses cannot arrive through the row instead.
+        app = self._app(rows=[dict(ROWS[0], apply_url="javascript:alert(1)")])
+        body = app.test_client().get("/results").get_data(as_text=True)
+        markup = body[:body.index("<script>", body.index("<main>"))]
+        self.assertNotIn("data-href", markup)
+        self.assertNotIn("rowlink", markup)
+
+    def test_a_row_with_no_link_is_not_clickable(self):
+        app = self._app(rows=[dict(ROWS[0], apply_url="")])
+        body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertNotIn("rowlink", body)
+        self.assertIn("No link", body)
+
+    def test_the_row_handler_defers_to_the_controls_inside_it(self):
+        # Clicking Apply must open one tab, not two, and selecting a company
+        # name to copy it must not navigate.
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        script = body[body.index("<script>", body.index("<main>")):]
+        self.assertIn('closest("a, button, input, label, summary")', script)
+        self.assertIn("getSelection", script)
+        self.assertIn('"_blank", "noopener"', script)
+
+    def test_the_row_is_not_a_second_tab_stop(self):
+        # A shortlist runs to hundreds of rows; giving each one a tabindex
+        # would put a duplicate stop in front of every Apply link on the page.
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        self.assertNotIn("tabindex", body)
+        self.assertNotIn('role="link"', body)
+
 
 class TestFilterAndDisclosureUi(unittest.TestCase):
     """Two shapes the results screen gets wrong easily: where a form's action

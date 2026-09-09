@@ -385,6 +385,9 @@ td {
 tr.free td, td.free { color: var(--free); }
 td.paid { color: var(--paid); }
 tbody tr:hover td, table tr:hover td { background: rgba(26, 44, 51, 0.5); }
+/* The whole row opens the listing; the hover shade above is already the
+   affordance, so this only has to say it is clickable. */
+tr.rowlink { cursor: pointer; }
 tr.muted:hover td, tr.muted:hover th { background: none; }
 
 /* ---- Disclosure --------------------------------------------------------- */
