@@ -639,12 +639,22 @@ td.score {
   gap: var(--s5);
 }
 
+/* Motion is the message here: it is the only sign that a model call is
+   running. One entrance and one loop, no more. Both are dropped by the
+   blanket reduced-motion rule above — the entrance is written with `both`,
+   so with animations off the content sits at its natural opacity rather than
+   staying invisible. */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes breathe { 50% { opacity: .5; } }
+.working { animation: rise .4s ease both; }
+.working h1 { animation: breathe 2.2s ease-in-out infinite; }
+
 /* Indeterminate on purpose. There is no progress to report — one model call
    either returns or it doesn't — and a bar that crept to 90%% and waited
    would be inventing a figure, which is the same lie the meter refuses to
    tell about money. */
 .working-bar {
-  width: 100%; max-width: 22rem; height: 4px;
+  width: 22rem; max-width: 100%; height: 4px;
   background: var(--well); border-radius: 2px; overflow: hidden;
 }
 .working-bar span {

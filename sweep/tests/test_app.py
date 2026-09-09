@@ -1093,10 +1093,46 @@ class TestResumeParsingScreen(unittest.TestCase):
     def test_the_working_screen_submits_itself_so_it_stays_on_screen(self):
         body = self._app().test_client().get("/review").get_data(as_text=True)
         self.assertIn('action="/derive"', body)
-        self.assertIn("$el.requestSubmit()", body)
-        # And a button exists regardless, so a missing Alpine is not a dead
-        # end on the one screen with no other way forward.
-        self.assertIn('type="submit"', body)
+        self.assertIn("requestSubmit", body)
+
+    def test_the_submit_does_not_wait_for_alpine(self):
+        # It used to be an x-init. Alpine is deferred, and a deferred script's
+        # execution also waits on the render-blocking font stylesheet, so this
+        # screen could sit showing only its fallback button with no bar — the
+        # one screen that has no other way forward.
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        self.assertIn("<script>", body[body.index("<main>"):])
+        self.assertNotIn("x-init", body)
+        self.assertNotIn("x-data", body)
+
+    def test_the_submit_waits_for_a_paint(self):
+        # Submitting during the load can cancel it before the browser paints,
+        # which leaves the PREVIOUS page on screen for the whole model call —
+        # the exact problem this screen exists to solve.
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        self.assertIn("requestAnimationFrame", body)
+        # And a backstop, because frames do not fire in a hidden tab.
+        self.assertIn("setTimeout", body)
+
+    def test_the_working_screen_has_no_button_to_press(self):
+        # A control on a screen that is already working does nothing. The
+        # only submit left is the one <noscript> needs, so a browser with
+        # scripting off still has a way forward.
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        self.assertEqual(body.count("<button"), 1)
+        before = body[:body.index("<button")]
+        self.assertIn("<noscript>", before)
+        self.assertNotIn("</noscript>", before)
+
+    def test_the_working_screen_looks_busy_from_its_first_frame(self):
+        # The bar was gated on the submit having fired, so the first moment of
+        # this screen was a button and nothing else.
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        self.assertIn('<div class="working-bar"><span></span></div>', body)
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        # Entrance written with `both`, or reduced-motion leaves it invisible.
+        self.assertRegex(css, r"\.working \{ animation: rise [^}]*both")
 
     def test_derive_makes_the_call_then_lands_on_the_real_screen(self):
         app = self._app()
@@ -1133,7 +1169,20 @@ class TestResumeParsingScreen(unittest.TestCase):
             raise RuntimeError("upstream said no")
         body = self._app(derive=boom).test_client().post(
             "/derive").get_data(as_text=True)
-        self.assertNotIn("$el.requestSubmit()", body)
+        self.assertNotIn("requestSubmit", body)
+
+    def test_the_error_screen_keeps_a_real_button(self):
+        # The working screen's only button lives in <noscript> because the
+        # page submits itself. The error screen does NOT submit itself, so
+        # its button has to be a real one or the screen is a dead end.
+        def boom(resume_text, prefs):
+            raise RuntimeError("upstream said no")
+        body = self._app(derive=boom).test_client().post(
+            "/derive").get_data(as_text=True)
+        main = body[body.index("<main>"):]
+        self.assertEqual(main.count("<button"), 1)
+        self.assertNotIn("<noscript>", main)
+        self.assertIn("Upload another PDF", main)
 
     def test_a_failed_derivation_never_echoes_the_upstream_error(self):
         # A client library's exception can carry the request URL, and the keys
@@ -1158,7 +1207,7 @@ class TestResumeParsingScreen(unittest.TestCase):
             body = r.get_data(as_text=True)
             self.assertIn("returned nothing", body)
             # The thing that actually stops the loop.
-            self.assertNotIn("$el.requestSubmit()", body)
+            self.assertNotIn("requestSubmit", body)
 
     def test_derive_without_a_resume_goes_back_to_upload(self):
         app = app_module.create_app(state={}, extract=lambda p: "x",
