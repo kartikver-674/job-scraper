@@ -1,27 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Connect your Apify key — Sweep{% endblock %}
 {% block body %}
-<h1>Connect your scraping key</h1>
-<p class="muted">Sweep spends your own Apify credit to fetch job listings.
-It needs your key to do that, and it does nothing else with it.</p>
+<div class="stack">
+  <div class="stack-tight">
+    <span class="meta">Step 3 of 7</span>
+    <h1>Connect your scraping key</h1>
+    <p class="lede">Sweep spends your own Apify credit to fetch job listings.
+      It needs your key to do that, and it does nothing else with it.</p>
+  </div>
 
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
-<form class="panel" method="post" action="{{ url_for('key') }}">
-  <label>Apify API token
-    <input type="password" name="token" autocomplete="off" required>
-  </label>
-  <button class="primary" type="submit">Verify key</button>
-</form>
+  <div class="split">
+    <form class="panel" method="post" action="{{ url_for('key') }}">
+      <label><span class="label">Apify API token</span>
+        <input type="password" name="token" autocomplete="off" required>
+      </label>
+      <p class="muted">The key is written to the .env file in this folder, on your
+        own machine. Sweep runs locally and has no server to send it to.</p>
+      <button class="primary" type="submit">Verify key</button>
+    </form>
 
-<div class="panel">
-  <h2>Where to find it</h2>
-  <ol>
-    <li>Sign in at console.apify.com</li>
-    <li>Open Settings, then Integrations</li>
-    <li>Copy the personal API token</li>
-  </ol>
-  <p class="muted">The key is written to the .env file in this folder, on your
-  own machine. Sweep runs locally and has no server to send it to.</p>
+    <aside class="aside">
+      <div class="panel">
+        <h2>Where to find it</h2>
+        <ol>
+          <li>Sign in at console.apify.com</li>
+          <li>Open Settings, then Integrations</li>
+          <li>Copy the personal API token</li>
+        </ol>
+      </div>
+    </aside>
+  </div>
 </div>
 {% endblock %}

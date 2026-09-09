@@ -20,25 +20,61 @@
 {% block meter_numeral_bind %} x-text="p.spend === null ? 'not known' : '$' + p.spend.toFixed(2)"{% endblock %}
 {% block meter_class_bind %} :class="{ over: p.baseline_known && p.spend !== null && cap !== null && p.spend > cap }"{% endblock %}
 {% block meter_fill_bind %} :style="'width: ' + (!p.baseline_known || p.spend === null || !cap ? 0 : Math.min(100, Math.round(p.spend / cap * 100))) + '%'"{% endblock %}
+{# <b>, not <span>: the meter label's own <span x-text> has to stay the first
+   one on the page, and no :style may appear above the fill's. #}
+{% block meter_facts %}<b x-text="p.done + ' of ' + p.planned + ' searches'"></b>
+  · ${{ '%.2f'|format(plan.total) }} planned{% endblock %}
 {% block body %}
-<div>
+<div class="stack">
 
-  <h1>Running the sweep</h1>
-  <p x-show="p.spend === null">Spend is unavailable right now — the sweep is
-    still running and everything already fetched is saved.</p>
-  <p x-show="p.spend !== null"
-     x-text="(p.baseline_known
-                ? 'Spent so far $' + p.spend.toFixed(2)
-                : 'Account spend this month $' + p.spend.toFixed(2)
-                  + ' — this sweep\'s own share is unknown')
-             + ' of ${{ '%.2f'|format(plan.total) }} planned, ' + p.remaining_text"></p>
+  <div class="stack-tight">
+    <span class="meta">Step 6 of 7</span>
+    <h1>Running the sweep</h1>
+    <p class="lede" x-show="p.spend === null">Spend is unavailable right now — the sweep is
+      still running and everything already fetched is saved.</p>
+    <p class="lede" x-show="p.spend !== null"
+       x-text="(p.baseline_known
+                  ? 'Spent so far $' + p.spend.toFixed(2)
+                  : 'Account spend this month $' + p.spend.toFixed(2)
+                    + ' — this sweep\'s own share is unknown')
+               + ' of ${{ '%.2f'|format(plan.total) }} planned, ' + p.remaining_text"></p>
+  </div>
+
+  <div class="tiles">
+    <div class="tile">
+      <span class="label">Searches finished</span>
+      <span class="figure" x-text="p.done"></span>
+      <span class="meta" x-text="'of ' + p.planned + ' planned'"></span>
+    </div>
+    <div class="tile">
+      <span class="label">Still to run</span>
+      <span class="figure" x-text="p.outstanding"></span>
+      <span class="meta" x-text="p.remaining_text"></span>
+    </div>
+    {# The label is bound for the same reason the header's is: with no
+       baseline to subtract this figure is the account's month-to-date total,
+       and "Spent so far" over it is a false claim about this sweep. #}
+    <div class="tile">
+      <span class="label" x-text="p.baseline_known ? 'Spent so far'
+              : 'Account spend this month'">{% if spend_is_this_sweep %}Spent so
+        far{% else %}Account spend this month{% endif %}</span>
+      <span class="figure paid"
+            x-text="p.spend === null ? 'not known' : '$' + p.spend.toFixed(2)"></span>
+      <span class="meta">of ${{ '%.2f'|format(plan.total) }} planned</span>
+    </div>
+  </div>
 
   <div class="panel">
-    <h2>Searches</h2>
-    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px">
+    <div class="panel-head">
+      <h2>Searches</h2>
+      <span class="meta"><span class="key paid">paid</span>
+        <span class="key free">free</span>
+        <span class="key">not run yet</span></span>
+    </div>
+    <div class="search-grid">
       <template x-for="(t, i) in p.tiles" :key="i">
         <div :title="t.label"
-             :style="'height:28px;border:1px solid var(--rule);background:' +
+             :style="'border:1px solid var(--rule);background:' +
                      (t.state === 'done'
                         ? (t.free ? 'var(--free)' : 'var(--paid)')
                         : 'var(--well)')"></div>
@@ -57,13 +93,14 @@
       already fetched is saved, and finished searches will not be re-run or
       re-billed.</p>
     <form method="post" action="{{ url_for('second_key') }}">
-      <label>Another Apify token
+      <label><span class="label">Another Apify token</span>
         <input type="password" name="token" autocomplete="off" required></label>
       <button class="primary" type="submit">Resume with this key</button>
     </form>
   </div>
 
-  <form method="post" action="{{ url_for('stop') }}" x-show="!p.finished && !p.interrupted">
+  <form class="actions" method="post" action="{{ url_for('stop') }}"
+        x-show="!p.finished && !p.interrupted">
     <button class="secondary" type="submit">Stop the sweep</button>
     <span class="muted">Everything already fetched is kept.</span>
   </form>

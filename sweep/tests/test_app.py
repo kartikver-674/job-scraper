@@ -2,6 +2,7 @@ import io
 import itertools
 import json
 import os
+import pathlib
 import re
 import shutil
 import subprocess
@@ -343,8 +344,20 @@ class TestFixesThatHadNoTest(unittest.TestCase):
     def test_the_results_table_scrolls_inside_its_own_box(self):
         # overflow-x alone let a 989-row shortlist scroll the page body.
         body = self._results_app().test_client().get("/results").get_data(as_text=True)
-        self.assertIn("max-height", body)
-        self.assertIn("overflow:auto", body)
+        self.assertIn('<div class="listings">', body)
+        # The cap lives in the stylesheet now, so that is where it is checked.
+        # Matching "max-height" anywhere in the HTML passed for any unrelated
+        # inline style; this pins the rule that actually bounds the box.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        rule = re.search(r"\.listings\s*\{([^}]*)\}", css).group(1)
+        self.assertIn("max-height", rule)
+        self.assertIn("overflow", rule)
+        # And the page itself must not scroll sideways. Clipping the box is
+        # not enough: Chrome propagates a min-width table's layout overflow to
+        # the viewport anyway (measured: documentElement.scrollWidth 951 on a
+        # 390 viewport), and containment is what stops it.
+        self.assertIn("contain", rule)
 
     def test_the_results_table_has_real_header_cells(self):
         body = self._results_app().test_client().get("/results").get_data(as_text=True)

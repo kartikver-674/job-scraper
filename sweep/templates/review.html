@@ -1,57 +1,77 @@
 {% extends "base.html" %}
 {% block title %}Review what it read — Sweep{% endblock %}
 {% block body %}
-<h1>Review what it read</h1>
-<p class="muted">{{ derived.field_summary }}</p>
-<p class="muted">Correct bad guesses before spending anything.</p>
-
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
-
-<form method="post" action="{{ url_for('review') }}">
-  <div class="panel">
-    <label>Name this profile
-      <input name="name" value="{{ suggested_name }}" required>
-    </label>
-    <p class="muted">Saved as profiles/&lt;name&gt;.py, so you can re-run it later.
-      An existing profile of the same name is never replaced without asking.</p>
-    {% if clash %}
-      <label><input type="checkbox" name="overwrite" value="yes">
-        Replace the existing {{ clash }} profile</label>
-    {% endif %}
+<div class="stack">
+  <div class="stack-tight">
+    <span class="meta">Step 2 of 7</span>
+    <h1>Review what it read</h1>
+    <p class="lede">{{ derived.field_summary }}</p>
+    <p class="muted">Correct bad guesses before spending anything.</p>
   </div>
 
-  <div class="panel">
-    <h2>Titles it will search for</h2>
-    <ul>{% for title in derived.role_keywords %}<li>{{ title }}</li>{% endfor %}</ul>
-  </div>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
-  <div class="panel">
-    <h2>Skill weights, 1 to 5</h2>
-    <p class="muted">Weighted by how well a term picks out jobs you want. A word
-      that also appears in jobs you don't want scores low, however central it is
-      to your work.</p>
+  <form method="post" action="{{ url_for('review') }}" class="stack">
+    <div class="split">
+      <div class="stack">
+        <div class="panel">
+          <h2>Skill weights, 1 to 5</h2>
+          <p class="muted">Weighted by how well a term picks out jobs you want. A word
+            that also appears in jobs you don't want scores low, however central it is
+            to your work.</p>
 
-    {% if commodity %}
-      <p><strong>Worth removing.</strong>
-        {{ commodity|join(' and ') }} appear in most job descriptions, so they
-        add no signal and every posting scores a little higher for free.</p>
-    {% endif %}
+          {% if commodity %}
+            <p><strong>Worth removing.</strong>
+              {{ commodity|join(' and ') }} appear in most job descriptions, so they
+              add no signal and every posting scores a little higher for free.</p>
+          {% endif %}
 
-    <table>
-      {% for w in derived.skill_weights|sort(attribute='weight', reverse=true) %}
-        <tr>
-          <td><label>
-            <input type="checkbox" name="drop" value="{{ w.term }}"
-                   {{ 'checked' if w.term in commodity }}> remove
-          </label></td>
-          <td>{{ w.term }}</td>
-          <td>{{ w.weight }} / 5</td>
-        </tr>
-      {% endfor %}
-    </table>
-  </div>
+          <div class="scroll-x">
+            <table class="weights">
+              <tr class="muted">
+                <th scope="col">Drop</th>
+                <th scope="col">Term</th>
+                <th scope="col">Weight</th>
+              </tr>
+              {% for w in derived.skill_weights|sort(attribute='weight', reverse=true) %}
+                <tr>
+                  <td><label>
+                    <input type="checkbox" name="drop" value="{{ w.term }}"
+                           {{ 'checked' if w.term in commodity }}> remove
+                  </label></td>
+                  <td>{{ w.term }}</td>
+                  <td class="paid">{{ w.weight }} / 5</td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+        </div>
 
-  <button class="primary" type="submit">Looks right</button>
-  <a class="muted" href="{{ url_for('upload') }}">Start over with a different résumé</a>
-</form>
+        <div class="actions">
+          <button class="primary" type="submit">Looks right</button>
+          <a class="muted" href="{{ url_for('upload') }}">Start over with a different résumé</a>
+        </div>
+      </div>
+
+      <aside class="aside stack">
+        <div class="panel">
+          <label><span class="label">Name this profile</span>
+            <input name="name" value="{{ suggested_name }}" required>
+          </label>
+          <p class="muted">Saved as profiles/&lt;name&gt;.py, so you can re-run it later.
+            An existing profile of the same name is never replaced without asking.</p>
+          {% if clash %}
+            <label class="choice"><input type="checkbox" name="overwrite" value="yes">
+              <span>Replace the existing {{ clash }} profile</span></label>
+          {% endif %}
+        </div>
+
+        <div class="panel">
+          <span class="label">Titles it will search for</span>
+          <ul>{% for title in derived.role_keywords %}<li>{{ title }}</li>{% endfor %}</ul>
+        </div>
+      </aside>
+    </div>
+  </form>
+</div>
 {% endblock %}

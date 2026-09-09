@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Results — Sweep{% endblock %}
 {% block meter_label %}Spent{% endblock %}
+{% block meter_facts %}{{ total }} of {{ all_total }} listings shown{% endblock %}
 
 {# One table, used by every section. The sponsorship section wraps it in a
    <details> and the others don't, which is the only difference between them —
    not a reason to carry two copies of the row markup. #}
 {% macro listings_table(rows) %}
-  <div style="overflow:auto;max-height:70vh">
-    <table class="panel" style="width:100%">
+  <div class="listings">
+    <table>
       <tr class="muted">
         <th scope="col">Source</th><th scope="col">Score</th>
         <th scope="col">Role</th><th scope="col">Location</th>
@@ -18,14 +19,16 @@
         <tr>
           {# Same rule plan.cost() and the running screen's tiles use: a site
              listed at a $0.00 rate is free either way. #}
-          <td class="{{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">•
-            {{ row['source_site'] }}</td>
-          <td>{{ row['score'] }}</td>
-          <td>{{ row['title'] }}<br><span class="muted">{{ row['company'] }}</span></td>
+          <td class="{{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">{{ row['source_site'] }}</td>
+          <td class="score">{{ row['score'] }}</td>
+          <td><b>{{ row['title'] }}</b><br><span class="muted">{{ row['company'] }}</span></td>
           <td>{{ row['location'] }}</td>
           <td>{{ row['salary'] or 'Not stated' }}</td>
           <td>{{ row['experience_required'] or 'Not stated' }}</td>
-          <td class="muted">{{ row['matched_skills'] }}</td>
+          {# Split into tags: the column is a comma-joined string, and at four
+             or five terms it reads as one run-on cell otherwise. #}
+          {%- set skills = (row['matched_skills'] or '')|trim %}
+          <td>{% for s in skills.split(',') if s|trim %}<span class="tag">{{ s|trim }}</span>{% endfor %}</td>
           {# Allowlist the scheme: an apply_url is scraped third-party data,
              and autoescape stops attribute breakout but not javascript:.
              Lowercased so a legitimate HTTPS:// keeps its link. #}
@@ -44,85 +47,102 @@
 {% endmacro %}
 
 {% block body %}
-<h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
-<p class="muted">Filtering and re-ranking these is free and costs no extra credit.</p>
-
-{% if all_total and not merged %}
-  <p class="muted">Showing your most recent sweep only. Run
-    <code>python merge_jobs.py</code> to fold in earlier sweeps for this
-    profile.</p>
-{% endif %}
-
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
-{% if notice %}<p class="muted">{{ notice }}</p>{% endif %}
-
-{% if rescoring and not notice %}
-  <p class="panel muted">Re-ranking now. Reload in a moment to see the new
-    ranking — the shortlist below is still the old one.</p>
-{% endif %}
-
-<form class="panel" method="get">
-  <label>Minimum score <input type="number" name="min" value="{{ min_score }}"></label>
-  <label>Source
-    <select name="source">
-      <option value="">All sources</option>
-      {% for s in sources %}
-        <option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>Title or company <input type="text" name="q" value="{{ q }}"></label>
-  <button class="secondary" type="submit">Apply filter</button>
-</form>
-
-<details class="panel">
-  <summary>Re-rank against your current weights</summary>
-  <p class="muted">Re-ranks every search run on any Apify key in your .env,
-    for the sites you have configured, within the window you choose below —
-    not only this sweep's runs, so on a key you share it can pull in another
-    profile's searches. Reading data you already paid for is free. The
-    shortlist is rewritten in place, not added to.</p>
-  <form method="post"
-        action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
-    <label>Hours to look back
-      <input type="number" name="hours" value="6" min="1" max="168"></label>
-    <button class="secondary" type="submit">Re-rank</button>
-  </form>
-</details>
-
-{% if total == 0 %}
-  <div class="panel">
-    <h2>0 listings match</h2>
-    {% if worst %}
-      <p>The {{ worst[0] }} filter removed the most —
-        {{ worst[1] }} of {{ all_total }}. Loosen it to see more.</p>
-      {% if worst[0] == 'minimum score' %}
-        <a class="secondary" href="{{ url_for('results', source=source or none, q=q or none) }}">Clear the minimum score</a>
-      {% elif worst[0] == 'source' %}
-        <a class="secondary" href="{{ url_for('results', min=min_score or none, q=q or none) }}">Clear the source filter</a>
-      {% else %}
-        <a class="secondary" href="{{ url_for('results', min=min_score or none, source=source or none) }}">Clear the search text</a>
-      {% endif %}
-    {% else %}
-      <p>Nothing was found for this profile yet.</p>
-    {% endif %}
-    <a class="secondary" href="{{ url_for('results') }}">Clear every filter</a>
+<div class="stack">
+  <div class="stack-tight">
+    <span class="meta">Step 7 of 7</span>
+    <h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
+    <p class="lede">Filtering and re-ranking these is free and costs no extra credit.</p>
   </div>
-{% endif %}
 
-{% for key, heading, note in sections %}
-  {% if buckets[key] %}
-    {% if key == 'abroad' %}
-      <details>
-        <summary>{{ heading }} — {{ buckets[key]|length }} listings</summary>
-        <p class="muted">{{ note }}</p>
-        {{ listings_table(buckets[key]) }}
-      </details>
-    {% else %}
-      <h2>{{ heading }}</h2>
-      <p class="muted">{{ note }} — {{ buckets[key]|length }} listings</p>
-      {{ listings_table(buckets[key]) }}
-    {% endif %}
+  {% if all_total and not merged %}
+    <p class="muted">Showing your most recent sweep only. Run
+      <code>python merge_jobs.py</code> to fold in earlier sweeps for this
+      profile.</p>
   {% endif %}
-{% endfor %}
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="muted">{{ notice }}</p>{% endif %}
+
+  {% if rescoring and not notice %}
+    <p class="panel muted">Re-ranking now. Reload in a moment to see the new
+      ranking — the shortlist below is still the old one.</p>
+  {% endif %}
+
+  <form class="panel row" method="get">
+    <label><span class="label">Minimum score</span>
+      <input type="number" name="min" value="{{ min_score }}"></label>
+    <label><span class="label">Source</span>
+      <select name="source">
+        <option value="">All sources</option>
+        {% for s in sources %}
+          <option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label><span class="label">Title or company</span>
+      <input type="text" name="q" value="{{ q }}"></label>
+    <button class="secondary" type="submit">Apply filter</button>
+  </form>
+
+  <details class="panel">
+    <summary>Re-rank against your current weights</summary>
+    <p class="muted">Re-ranks every search run on any Apify key in your .env,
+      for the sites you have configured, within the window you choose below —
+      not only this sweep's runs, so on a key you share it can pull in another
+      profile's searches. Reading data you already paid for is free. The
+      shortlist is rewritten in place, not added to.</p>
+    <form class="row" method="post"
+          action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
+      <label><span class="label">Hours to look back</span>
+        <input type="number" name="hours" value="6" min="1" max="168"></label>
+      <button class="secondary" type="submit">Re-rank</button>
+    </form>
+  </details>
+
+  {% if total == 0 %}
+    <div class="panel">
+      <h2>0 listings match</h2>
+      {% if worst %}
+        <p>The {{ worst[0] }} filter removed the most —
+          {{ worst[1] }} of {{ all_total }}. Loosen it to see more.</p>
+        <div class="actions">
+        {% if worst[0] == 'minimum score' %}
+          <a class="secondary" href="{{ url_for('results', source=source or none, q=q or none) }}">Clear the minimum score</a>
+        {% elif worst[0] == 'source' %}
+          <a class="secondary" href="{{ url_for('results', min=min_score or none, q=q or none) }}">Clear the source filter</a>
+        {% else %}
+          <a class="secondary" href="{{ url_for('results', min=min_score or none, source=source or none) }}">Clear the search text</a>
+        {% endif %}
+          <a class="secondary" href="{{ url_for('results') }}">Clear every filter</a>
+        </div>
+      {% else %}
+        <p>Nothing was found for this profile yet.</p>
+        <a class="secondary" href="{{ url_for('results') }}">Clear every filter</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% for key, heading, note in sections %}
+    {% if buckets[key] %}
+      {% if key == 'abroad' %}
+        <details>
+          <summary>{{ heading }} — {{ buckets[key]|length }}
+            listing{{ "" if buckets[key]|length == 1 else "s" }}</summary>
+          <p class="muted">{{ note }}</p>
+          {{ listings_table(buckets[key]) }}
+        </details>
+      {% else %}
+        <div class="panel">
+          <div class="panel-head">
+            <h2>{{ heading }}</h2>
+            <span class="meta">{{ buckets[key]|length }}
+              listing{{ "" if buckets[key]|length == 1 else "s" }}</span>
+          </div>
+          <p class="muted">{{ note }}</p>
+          {{ listings_table(buckets[key]) }}
+        </div>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+</div>
 {% endblock %}

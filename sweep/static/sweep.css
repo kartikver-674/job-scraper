@@ -1,49 +1,462 @@
+/* Sweep — the v3 Stitch design system, ported to plain CSS.
+   Adopting v3's own Tailwind play CDN was the other route and is rejected on
+   purpose: /key renders this shell too, and that is where the user pastes the
+   one credential this tool exists to protect — base.html already vendors
+   Alpine rather than let a third-party script read that DOM. A stylesheet
+   also cannot leave every screen unstyled when a CDN is unreachable, which on
+   the money screens would read as the page being broken rather than offline. */
+
 :root {
-  --ground: #0F1A1E;
-  --surface: #18262B;
-  --well: #0A1215;
-  --chalk: #E8EDEB;
-  --slate: #7E9199;
-  --paid: #F0A22E;
-  --free: #4FA8A0;
-  --over: #D8543F;
-  --rule: rgba(126, 145, 153, 0.25);
+  /* Palette, tokens taken from the v3 screens. The old names are kept because
+     running.html paints its tiles from var(--paid)/--free/--well/--rule. */
+  --ground: #03161c;      /* page */
+  --well: #001017;        /* recessed: meter track, inputs, empty tiles */
+  --surface: #0f2228;     /* panel */
+  --surface-low: #0b1e24; /* panel nested inside a panel */
+  --surface-high: #1a2c33;
+  --surface-edge: #25373e;
+  --chalk: #d2e6ee;       /* body text */
+  --warm: #d7c3af;        /* secondary text, warm against the teal ground */
+  --slate: #9f8e7b;       /* labels, de-emphasised */
+  --dim: #524435;         /* hints, the quietest readable step */
+  --paid: #f0a22e;        /* money */
+  --paid-lift: #ffc376;   /* money, on a dark fill */
+  --free: #7ed6cd;        /* costs nothing */
+  --free-lift: #9af2e9;
+  --over: #ffb4ab;        /* past the cap */
+  --rule: rgba(37, 55, 62, 0.9);
+
+  --s1: 0.125rem; --s2: 0.25rem; --s3: 0.5rem;
+  --s4: 0.75rem;  --s5: 1rem;    --s6: 1.5rem; --s7: 2rem;
+  --radius: 0.25rem;
+  --header-h: 3.5rem;
+
+  --display: "Bricolage Grotesque", Geist, system-ui, sans-serif;
+  --text: Geist, system-ui, -apple-system, sans-serif;
 }
+
 * { box-sizing: border-box; }
+
 body {
-  margin: 0; background: var(--ground); color: var(--chalk);
-  font: 400 14px/1.5 Chivo, system-ui, sans-serif;
+  margin: 0;
+  background: var(--ground);
+  color: var(--chalk);
+  font: 400 13px/1.4 var(--text);
   font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
-h1, h2, .numeral { font-family: "Bricolage Grotesque", Chivo, sans-serif; }
-h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 4px; }
-.numeral { font-size: 56px; font-weight: 800; letter-spacing: -0.04em; color: var(--paid); }
-header { display: flex; align-items: center; gap: 16px; padding: 12px 24px; border-bottom: 1px solid var(--rule); }
-nav a { color: var(--slate); text-decoration: none; margin-right: 14px; }
-nav a.on { color: var(--chalk); border-bottom: 2px solid var(--paid); }
 
-/* The meter: one per screen, always this screen's own state. */
-.meter { padding: 10px 24px 0; }
-.meter-track { height: 8px; background: var(--well); position: relative; margin-top: 8px; }
-.meter-fill { height: 100%; background: var(--paid); width: 0; transition: width .35s ease; }
-.meter.over .meter-fill { background: var(--over); }
-.meter-cap { position: absolute; top: -3px; width: 1px; height: 14px; background: var(--chalk); }
+/* ---- Type ---------------------------------------------------------------- */
 
-main { padding: 24px; max-width: 1200px; }
-.panel { background: var(--surface); border: 1px solid var(--rule); padding: 16px; margin-bottom: 16px; }
+h1, h2, h3, .numeral { font-family: var(--display); }
+h1 { font-size: 24px; line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; margin: 0; }
+h2 { font-size: 18px; line-height: 1.2; letter-spacing: -0.01em; font-weight: 600; margin: 0; }
+h3 { font-size: 15px; line-height: 1.25; font-weight: 600; margin: var(--s5) 0 0; }
+p  { margin: 0; max-width: 68ch; }
 .muted { color: var(--slate); }
-.free { color: var(--free); }
-.paid { color: var(--paid); }
-.over { color: var(--over); }
-button.primary { background: var(--chalk); color: var(--ground); border: 0; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; }
-button.secondary { background: var(--surface); color: var(--chalk); border: 1px solid var(--rule); padding: 10px 16px; font: inherit; cursor: pointer; }
-.error { border-left: 2px solid var(--over); padding-left: 12px; color: var(--over); }
-a:focus-visible, button:focus-visible, input:focus-visible,
-select:focus-visible, summary:focus-visible { outline: 1px solid var(--chalk); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.free  { color: var(--free); }
+.paid  { color: var(--paid); }
+.over  { color: var(--over); }
+strong, b { font-weight: 600; }
+a { color: var(--free); text-underline-offset: 2px; }
+
+/* Small caps labels and the mono-ish metadata line are part of the v3 system,
+   not decoration: they mark the difference between a figure and its name. */
+.label {
+  display: block;
+  font-size: 10px; line-height: 12px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--slate);
+}
+.meta { font-size: 11px; line-height: 14px; font-weight: 500; color: var(--slate); }
+.lede { font-size: 15px; line-height: 22px; color: var(--warm); max-width: 62ch; }
+
+.numeral {
+  display: block;
+  font-size: 44px; line-height: 1; font-weight: 800; letter-spacing: -0.04em;
+  color: var(--paid); margin: 0;
+}
+.numeral.over { color: var(--over); }
 /* "not known" is not a figure, so it is not typeset as one. */
-.numeral.unknown { font-size: 18px; font-weight: 500; color: var(--slate); }
+.numeral.unknown { font-size: 16px; font-weight: 500; letter-spacing: 0; color: var(--slate); }
+
+/* ---- Shell -------------------------------------------------------------- */
+
+header {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s6);
+  padding: var(--s3) var(--s5);
+  background: var(--well);
+  border-bottom: 1px solid var(--rule);
+}
+.brand > strong {
+  font-family: var(--display); font-size: 22px; font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.brand { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  padding: var(--s1) var(--s2);
+  font-size: 11px; line-height: 14px; font-weight: 500;
+  color: var(--free); background: var(--surface-low);
+  border: 1px solid rgba(126, 214, 205, 0.3); border-radius: var(--radius);
+}
+.chip.quiet { color: var(--slate); border-color: var(--dim); }
+.chip.on::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--free); flex: none;
+}
+
+/* The step rail scrolls sideways on a narrow screen rather than wrapping into
+   a block that pushes the money display below the fold. */
+header nav {
+  display: flex; align-items: stretch; gap: var(--s1);
+  margin-right: auto; min-width: 0;
+  overflow-x: auto; scrollbar-width: none;
+}
+header nav::-webkit-scrollbar { display: none; }
+header nav a {
+  display: flex; align-items: center; white-space: nowrap;
+  padding: var(--s3) var(--s4);
+  font-size: 12px; font-weight: 500; color: var(--slate);
+  text-decoration: none; border-bottom: 2px solid transparent;
+  transition: color .15s ease;
+}
+header nav a:hover { color: var(--chalk); }
+header nav a.on {
+  color: var(--paid); font-weight: 700;
+  background: var(--surface-high); border-bottom-color: var(--paid);
+}
+.credit {
+  margin-left: auto; white-space: nowrap;
+  font-size: 11px; font-weight: 500; color: var(--warm);
+}
+
+/* ---- The meter ---------------------------------------------------------- */
+/* One per screen, always this screen's own state. */
+
+.meter { background: var(--surface); border-bottom: 1px solid var(--rule); }
+.meter-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s5);
+  padding: var(--s3) var(--s5);
+}
+.meter-head .label { flex: none; }
+.meter .numeral { font-size: 30px; letter-spacing: -0.02em; font-weight: 700; }
+.meter-facts { margin-left: auto; color: var(--slate); font-size: 11px; font-weight: 500; }
+.meter-facts b { color: var(--chalk); }
+
+.meter-track {
+  position: relative; height: 8px;
+  background: var(--well); border-top: 1px solid var(--rule);
+}
+.meter-fill { height: 100%; background: var(--paid); width: 0; transition: width .3s ease; }
+.meter.over .meter-fill { background: var(--over); }
+.meter-cap {
+  position: absolute; top: -3px; width: 1px; height: 14px;
+  background: var(--chalk);
+}
+
+main {
+  display: block;
+  max-width: 88rem; margin: 0 auto;
+  padding: var(--s6) var(--s5) var(--s7);
+}
+
+/* ---- Layout ------------------------------------------------------------- */
+
+.stack { display: flex; flex-direction: column; gap: var(--s6); }
+.stack-tight { display: flex; flex-direction: column; gap: var(--s3); }
+
+/* Content plus the cost sidebar. One column until there is room for two. */
+.split { display: grid; gap: var(--s6); align-items: start; }
+.split > * { min-width: 0; }
+
+.grid2 { display: grid; gap: var(--s4); }
+.tiles {
+  display: grid; gap: var(--s4); justify-content: start;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 18rem));
+}
+
+/* ---- Panels ------------------------------------------------------------- */
+
+.panel {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: var(--s5);
+  display: flex; flex-direction: column; gap: var(--s4);
+  margin: 0 0 var(--s5);
+}
+.panel:last-child { margin-bottom: 0; }
+.stack > .panel, .split > * > .panel { margin-bottom: 0; }
+.panel > p { color: var(--warm); }
+.panel > p.muted { color: var(--slate); }
+.panel-head {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  justify-content: space-between; gap: var(--s3);
+}
+.inset {
+  background: var(--surface-low); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: var(--s4);
+}
+.tile {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: var(--s4);
+  display: flex; flex-direction: column; gap: var(--s2);
+}
+.tile .figure {
+  font-family: var(--display); font-size: 28px; line-height: 1;
+  font-weight: 700; letter-spacing: -0.02em;
+}
+.tile .figure small { font-size: 12px; font-weight: 500; color: var(--slate); letter-spacing: 0; }
+
+/* The one screen element that carries the design's weight: the running
+   estimate. Everything around it is deliberately quiet. */
+.headline-figure {
+  background: var(--well); border: 1px solid var(--dim);
+  border-radius: var(--radius); padding: var(--s5);
+  display: flex; flex-direction: column; gap: var(--s2);
+}
+.headline-figure .numeral { color: var(--paid-lift); }
+
+/* ---- Forms -------------------------------------------------------------- */
+
+label { display: block; font-size: 13px; color: var(--chalk); }
+form > label, .panel label { margin: 0; }
+
+/* Selected by exclusion, not by listing text/number/password: an attribute
+   selector matches the attribute, not the resolved type, so <input name="name">
+   with no type= fell through to the UA's light default — which is exactly what
+   the profile-name field on /review did. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]),
+select, textarea {
+  display: block; width: 100%; margin-top: var(--s2);
+  padding: var(--s4) var(--s4);
+  font: 500 13px/16px var(--text); font-variant-numeric: tabular-nums;
+  color: var(--chalk); background: var(--well);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+input::placeholder { color: var(--dim); }
+select {
+  appearance: none;
+  /* Chevron drawn in CSS: an icon font would be one more network dependency
+     on the screen where the estimate has to be readable offline. */
+  background-image: linear-gradient(45deg, transparent 50%, var(--slate) 50%),
+                    linear-gradient(135deg, var(--slate) 50%, transparent 50%);
+  background-position: right 1.1rem center, right 0.85rem center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: var(--s7);
+}
+input[type="file"] {
+  width: 100%; padding: var(--s6) var(--s5);
+  font: 500 13px var(--text); color: var(--warm);
+  background: var(--surface-low); border: 1px dashed var(--dim);
+  border-radius: var(--radius); cursor: pointer;
+}
+input[type="file"]:hover { background: var(--surface-high); border-color: var(--slate); }
+input[type="file"]::file-selector-button {
+  margin-right: var(--s5); padding: var(--s3) var(--s5);
+  font: 600 12px var(--text); color: var(--ground);
+  background: var(--chalk); border: 0; border-radius: var(--radius); cursor: pointer;
+}
+input[type="checkbox"], input[type="radio"] { accent-color: var(--paid); }
+
+/* A radio or checkbox and its prose read as one choice, so they sit on one
+   row rather than the label wrapping under the control. */
+.choice {
+  display: flex; align-items: flex-start; gap: var(--s4);
+  padding: var(--s4);
+  background: var(--surface-low); border: 1px solid var(--rule);
+  border-radius: var(--radius); cursor: pointer;
+}
+.choice:hover { background: var(--surface-high); }
+.choice > input { margin: 2px 0 0; flex: none; }
+.choice > span { display: block; }
+.choice .why { display: block; margin-top: var(--s2); color: var(--slate); font-size: 12px; }
+.choice:has(:checked) { border-color: var(--paid); background: var(--surface-high); }
+.choice:has(:checked) > span > b { color: var(--paid-lift); }
+
+button.primary, a.primary {
+  display: inline-block; align-self: flex-start;
+  padding: var(--s4) var(--s6);
+  font: 600 13px/1 var(--text); color: var(--ground);
+  background: var(--chalk); border: 0; border-radius: var(--radius);
+  cursor: pointer; text-decoration: none;
+}
+button.primary:hover, a.primary:hover { background: #fff; }
+button.secondary, a.secondary {
+  display: inline-block; align-self: flex-start;
+  padding: var(--s4) var(--s5);
+  font: 500 13px/1 var(--text); color: var(--chalk);
+  background: transparent; border: 1px solid var(--slate); border-radius: var(--radius);
+  cursor: pointer; text-decoration: none;
+}
+button.secondary:hover, a.secondary:hover { background: var(--surface-high); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s5); }
+
+.error {
+  border-left: 2px solid var(--over); padding: var(--s3) 0 var(--s3) var(--s4);
+  color: var(--over); background: rgba(255, 180, 171, 0.06);
+}
+
+/* ---- Tables ------------------------------------------------------------- */
+
+/* Two properties here are load-bearing, not tidiness, and both were measured:
+   min-width:0 because .panel is a flex column, so a child keeps min-width:auto
+   and grows to its content — which made the listings table widen the page body
+   instead of scrolling inside its own box. And contain:paint because even once
+   the box clips correctly, Chrome still propagates a min-width table's layout
+   overflow to the viewport: /results measured documentElement.scrollWidth 951
+   against a 390 viewport, so a phone could swipe 561px into empty space.
+   overflow:clip and max-width:100% both leave that at 951; contain:paint
+   returns it to 391. */
+.scroll-x {
+  overflow-x: auto; min-width: 0; contain: paint;
+  margin: 0 calc(var(--s5) * -1); padding: 0 var(--s5);
+}
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 600; }
+/* Column names are labels, not data: same small caps as everywhere else. */
+th[scope="col"] {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--slate); font-weight: 600;
+  padding: 0 var(--s4) var(--s3) 0; white-space: nowrap;
+}
+td {
+  padding: var(--s4) var(--s4) var(--s4) 0;
+  border-top: 1px solid var(--rule); vertical-align: top;
+}
+tr.free td, td.free { color: var(--free); }
+td.paid { color: var(--paid); }
+tbody tr:hover td, table tr:hover td { background: rgba(26, 44, 51, 0.5); }
+tr.muted:hover td, tr.muted:hover th { background: none; }
+
+/* ---- Disclosure --------------------------------------------------------- */
+
+details.panel > summary, details > summary {
+  cursor: pointer; font-family: var(--display); font-size: 15px; font-weight: 600;
+  list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: "›"; display: inline-block; width: 1em;
+  color: var(--slate); transition: transform .15s ease;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+details:not(.panel) {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: var(--s5); margin-bottom: var(--s5);
+}
+details > *:not(summary) { margin-top: var(--s4); }
+
+ul, ol { margin: 0; padding-left: var(--s6); color: var(--warm); }
+li { margin-bottom: var(--s2); }
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  background: var(--well); padding: 1px var(--s2); border-radius: var(--radius);
+}
+
 /* A header cell that exists for screen readers, not for the eye. */
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-/* Header cells inherit the table's quiet weight rather than bold. */
-th { text-align: left; font-weight: 500; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, summary:focus-visible, .choice:focus-within {
+  outline: 2px solid var(--paid); outline-offset: 2px;
+}
+
+/* ---- Wider screens ------------------------------------------------------ */
+
+@media (min-width: 48rem) {
+  h1 { font-size: 28px; letter-spacing: -0.02em; }
+  .numeral { font-size: 56px; }
+  .meter .numeral { font-size: 32px; }
+  .grid2 { grid-template-columns: 1fr 1fr; }
+  main { padding: var(--s7) var(--s6) calc(var(--s7) * 2); }
+  .scroll-x { margin: 0; padding: 0; }
+}
+
+@media (min-width: 64rem) {
+  header { height: var(--header-h); flex-wrap: nowrap; padding: 0 var(--s5); }
+  .meter { position: sticky; top: var(--header-h); z-index: 20; }
+  /* Content, then the cost panel that has to stay in view while the form
+     above it changes the figure. */
+  .split { grid-template-columns: minmax(0, 1fr) 21rem; }
+  .split > .aside { position: sticky; top: calc(var(--header-h) + 3.75rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ---- Horizontal field rows ---------------------------------------------- */
+/* .panel stacks its children; a filter bar reads as one line instead. The
+   row direction is explicit: without it .panel's column direction survives,
+   which laid the whole filter bar out vertically down the right edge. */
+.row { display: flex; flex-flow: row wrap; align-items: flex-end; gap: var(--s4); }
+.row > label { flex: 1 1 11rem; min-width: 0; }
+.row > button, .row > .actions { flex: none; }
+@media (max-width: 34rem) { .row > button { flex: 1 1 100%; } }
+
+/* Fixed-size tiles that reflow to the width available, rather than eight
+   columns stretched across whatever the panel happens to be. */
+.search-grid {
+  display: grid; gap: 4px; justify-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(2.25rem, 2.75rem));
+  max-width: 34rem;
+}
+.search-grid > div { height: 22px; border-radius: 2px; }
+
+/* A costed line item: site, count, rate, subtotal. */
+.lines { width: 100%; }
+.lines td { padding: var(--s3) var(--s4) var(--s3) 0; border-top: 1px solid var(--rule); }
+.lines td:last-child { padding-right: 0; }
+
+/* Three short columns; at full width the checkbox and the weight end up at
+   opposite edges of the panel with the term adrift between them. */
+.weights { max-width: 34rem; }
+.weights td:first-child, .weights th:first-child { width: 6rem; }
+.lines td:first-child { font-weight: 600; }
+.lines td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
+
+/* A legend swatch, so the tile colours on the running screen say what they
+   mean rather than needing the tooltip. */
+.key { margin-left: var(--s4); }
+.key::before {
+  content: ""; display: inline-block; width: 8px; height: 8px;
+  margin-right: var(--s2); border: 1px solid var(--rule); background: var(--well);
+  vertical-align: baseline;
+}
+.key.paid::before { background: var(--paid); }
+.key.free::before { background: var(--free); }
+
+/* ---- Listings ----------------------------------------------------------- */
+
+/* Its own scroll box on both axes. overflow-x alone let a 989-row shortlist
+   scroll the page body, which is the defect
+   test_the_results_table_scrolls_inside_its_own_box pins: that test reads
+   these two declarations, so do not move them inline or drop either one. */
+.listings { max-height: 70vh; overflow: auto; min-width: 0; contain: paint; }
+.listings table { min-width: 60rem; }
+.listings td { font-size: 12px; line-height: 1.35; }
+/* The dot is drawn, not typed, so a wrapping source name cannot orphan it.
+   It inherits the cell's colour, which is what marks free against paid. */
+.listings td:first-child::before { content: "\25CF "; font-size: 9px; }
+.listings td:first-child { white-space: nowrap; }
+/* Matched skills is a tag cloud; without a cap it takes the row. */
+.listings td:nth-child(7) { max-width: 22rem; }
+.listings td b { font-size: 13px; font-weight: 600; color: var(--chalk); }
+/* The score is the column the eye sorts on, so it is set as a figure. */
+td.score {
+  font-family: var(--display); font-size: 20px; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--chalk); width: 3rem;
+}
+.tag {
+  display: inline-block; margin: 0 var(--s2) var(--s2) 0;
+  padding: 1px var(--s2);
+  font-size: 11px; color: var(--warm);
+  background: var(--well); border: 1px solid var(--rule); border-radius: var(--radius);
+}

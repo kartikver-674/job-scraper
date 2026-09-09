@@ -1,17 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Upload your résumé — Sweep{% endblock %}
 {% block body %}
-<h1>Point it at your résumé</h1>
-<p class="muted">Your résumé decides which jobs get searched for and how they are ranked.</p>
+<div class="stack">
+  <div class="stack-tight">
+    <span class="meta">Step 1 of 7</span>
+    <h1>Point it at your résumé</h1>
+    <p class="lede">Your résumé decides which jobs get searched for and how they are ranked.</p>
+  </div>
 
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
-<form class="panel" method="post" action="{{ url_for('resume') }}" enctype="multipart/form-data">
-  <input type="file" name="resume" accept="application/pdf">
-  <p class="muted">PDF only, up to 15 MB. A scanned image without a text layer will not work.</p>
-  <button class="primary" type="submit">Read my résumé</button>
-</form>
+  <div class="split">
+    <form class="panel" method="post" action="{{ url_for('resume') }}" enctype="multipart/form-data">
+      <span class="label">Résumé PDF</span>
+      <input type="file" name="resume" accept="application/pdf">
+      <p class="muted">PDF only, up to 15 MB. A scanned image without a text layer will not work.</p>
+      <button class="primary" type="submit">Read my résumé</button>
+    </form>
 
-<p class="muted">Your résumé is sent to a model to derive your search terms.
-No scraping credit is spent until you approve the plan.</p>
+    <aside class="aside stack">
+      <div class="panel">
+        <span class="label">Nothing is charged yet</span>
+        <p>Your résumé is sent to a model to derive your search terms.
+          No scraping credit is spent until you approve the plan.</p>
+      </div>
+      <div class="panel">
+        <span class="label">What happens next</span>
+        <p class="muted">You check the titles and skill weights it derived, connect
+          your Apify key, and see a costed plan. The sweep starts only when you
+          confirm that plan.</p>
+      </div>
+    </aside>
+  </div>
+</div>
 {% endblock %}

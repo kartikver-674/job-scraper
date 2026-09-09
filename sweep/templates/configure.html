@@ -7,79 +7,112 @@
 {% block meter_scope %} x-data='{ est: {{ estimate|tojson }} }'{% endblock %}
 {% block meter_numeral_bind %} x-text="'$' + est.total.toFixed(2)"{% endblock %}
 {% block meter_class_bind %} :class="{ over: est.over_cap }"{% endblock %}
+{# No :style binding here: running.html's fill is found by the first :style on
+   the page, and this band renders above it in the same shell. #}
+{% block meter_facts %}<span x-text="est.total_searches + ' searches'"></span>
+  · hard cap <b x-text="'$' + est.spend_cap.toFixed(2)"></b>{% endblock %}
 {% block body %}
-  <h1>Configure the sweep</h1>
-  <p class="muted">Every change updates the cost above before anything is spent.</p>
-
-  <form class="panel" @change="fetch('{{ url_for('estimate') }}', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(Object.fromEntries(new FormData($el)))
-      }).then(r => r.json()).then(d => est = d)">
-
-    <h2>Where you can work</h2>
-    <label><input type="radio" name="scope" value="india" checked>
-      India only, onsite and hybrid</label>
-    <label><input type="radio" name="scope" value="remote">
-      Genuinely remote from anywhere</label>
-    <label><input type="radio" name="scope" value="global">
-      Global onsite — most of these need visa sponsorship</label>
-    <p class="muted">LinkedIn has no worldwide-remote search, so "genuinely
-      remote" keeps the paid LinkedIn searches on India-remote roles only —
-      a past sweep found just 27 of 480 remote-labelled rows were actually
-      reachable from here, the rest locked to other countries. Worldwide
-      remote comes from the free feeds instead, at no cost.</p>
-
-    <h2>How recent</h2>
-    <select name="max_age_days">
-      <option value="7">7 days</option>
-      <option value="14" selected>14 days</option>
-      <option value="30">30 days</option>
-    </select>
-    <p class="muted">A wider window buys more listings at the same price.</p>
-
-    <h2>Pay floor</h2>
-    <label>Minimum yearly pay, USD
-      <input type="number" name="min_comp_usd" min="0" placeholder="No floor"></label>
-    <p class="muted">Listings that don't state pay are kept either way — most
-      don't state it, and dropping them would discard the majority of a
-      sweep. The floor only removes listings that state a figure below it.</p>
-
-    <h2>Skip these</h2>
-    <label>Stacks or domains to down-rank, comma-separated
-      <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"></label>
-    <p class="muted">Letters, digits, spaces and . + # / - only.</p>
-
-    <h2>Depth</h2>
-    <label>Results per search
-      <input type="number" name="max_results" placeholder="15" min="1" max="200"></label>
-    <p class="muted">Raising this raises the cost of the LinkedIn and
-      Indeed searches, which bill per result, and the estimate above
-      moves with it. It does not change Naukri, which charges a
-      per-run minimum at its own fixed depth.</p>
-  </form>
-
-  <div class="panel">
-    <h2>What this will cost</h2>
-    <table>
-      <template x-for="line in est.lines" :key="line.site">
-        <tr :class="line.free && 'free'">
-          <td x-text="line.site"></td>
-          <td x-text="line.searches + ' searches'"></td>
-          <td :class="!line.free && 'paid'"
-              x-text="'$' + line.rate.toFixed(3) + ' each at ' + line.results + ' results'"></td>
-          <td :class="!line.free && 'paid'" x-text="'$' + line.subtotal.toFixed(2)"></td>
-        </tr>
-      </template>
-    </table>
-    <p class="muted">Each rate is scaled from the depth it was measured at to
-      the depth you choose, because a pay-per-event actor bills per result.
-      Naukri is the exception — its charge is a per-run minimum at a fixed
-      depth of its own, so this control does not move it.</p>
-    <p class="numeral" x-text="'$' + est.total.toFixed(2)"></p>
-    <p class="over" x-show="est.over_cap"
-       x-text="'That is $' + est.shortfall.toFixed(2) + ' more than your key has.'"></p>
-    <p class="muted">Nothing is committed or billed until you confirm.</p>
+<div class="stack">
+  <div class="stack-tight">
+    <span class="meta">Step 4 of 7</span>
+    <h1>Configure the sweep</h1>
+    <p class="lede">Every change updates the cost above before anything is spent.</p>
   </div>
 
-  <a class="primary" href="{{ url_for('confirm') }}">Review spend plan</a>
+  <div class="split">
+    <form class="stack" @change="fetch('{{ url_for('estimate') }}', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(Object.fromEntries(new FormData($el)))
+        }).then(r => r.json()).then(d => est = d)">
+
+      <div class="panel">
+        <h2>Where you can work</h2>
+        <div class="stack-tight">
+          <label class="choice"><input type="radio" name="scope" value="india" checked>
+            <span><b>India only, onsite and hybrid</b></span></label>
+          <label class="choice"><input type="radio" name="scope" value="remote">
+            <span><b>Genuinely remote from anywhere</b></span></label>
+          <label class="choice"><input type="radio" name="scope" value="global">
+            <span><b>Global onsite</b>
+              <span class="why">Most of these need visa sponsorship.</span></span></label>
+        </div>
+        <p class="muted">LinkedIn has no worldwide-remote search, so "genuinely
+          remote" keeps the paid LinkedIn searches on India-remote roles only —
+          a past sweep found just 27 of 480 remote-labelled rows were actually
+          reachable from here, the rest locked to other countries. Worldwide
+          remote comes from the free feeds instead, at no cost.</p>
+      </div>
+
+      <div class="panel">
+        <div class="grid2">
+          <label><span class="label">How recent</span>
+            <select name="max_age_days">
+              <option value="7">7 days</option>
+              <option value="14" selected>14 days</option>
+              <option value="30">30 days</option>
+            </select>
+          </label>
+          <label><span class="label">Results per search</span>
+            <input type="number" name="max_results" placeholder="15" min="1" max="200">
+          </label>
+        </div>
+        <p class="muted">A wider window buys more listings at the same price.</p>
+        <p class="muted">Raising the depth raises the cost of the LinkedIn and
+          Indeed searches, which bill per result, and the estimate above
+          moves with it. It does not change Naukri, which charges a
+          per-run minimum at its own fixed depth.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Pay floor</h2>
+        <label><span class="label">Minimum yearly pay, USD</span>
+          <input type="number" name="min_comp_usd" min="0" placeholder="No floor"></label>
+        <p class="muted">Listings that don't state pay are kept either way — most
+          don't state it, and dropping them would discard the majority of a
+          sweep. The floor only removes listings that state a figure below it.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Skip these</h2>
+        <label><span class="label">Stacks or domains to down-rank, comma-separated</span>
+          <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"></label>
+        <p class="muted">Letters, digits, spaces and . + # / - only.</p>
+      </div>
+    </form>
+
+    <aside class="aside">
+      <div class="panel">
+        <h2>What this will cost</h2>
+        <table class="lines">
+          <template x-for="line in est.lines" :key="line.site">
+            <tr :class="line.free && 'free'">
+              <td>
+                <b x-text="line.site"></b><br>
+                {# The count and rate stay unaccented so each row carries one
+                   amber figure — the subtotal — rather than three. #}
+                <span class="meta" x-text="line.searches + ' searches · $'
+                        + line.rate.toFixed(3) + ' each at ' + line.results + ' results'"></span>
+              </td>
+              <td :class="!line.free && 'paid'" x-text="'$' + line.subtotal.toFixed(2)"></td>
+            </tr>
+          </template>
+        </table>
+
+        <div class="headline-figure">
+          <span class="label">Run cost estimate</span>
+          <p class="numeral" x-text="'$' + est.total.toFixed(2)"></p>
+          <p class="over" x-show="est.over_cap"
+             x-text="'That is $' + est.shortfall.toFixed(2) + ' more than your key has.'"></p>
+        </div>
+
+        <p class="muted">Each rate is scaled from the depth it was measured at to
+          the depth you choose, because a pay-per-event actor bills per result.
+          Naukri is the exception — its charge is a per-run minimum at a fixed
+          depth of its own, so this control does not move it.</p>
+        <p class="muted">Nothing is committed or billed until you confirm.</p>
+        <a class="primary" href="{{ url_for('confirm') }}">Review spend plan</a>
+      </div>
+    </aside>
+  </div>
+</div>
 {% endblock %}
