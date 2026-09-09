@@ -33,7 +33,7 @@ import scraper  # noqa: E402
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    _valid_profile_name, bucket_rows, fill_pct, worst_filter)
+    _valid_profile_name, bucket_rows, fill_pct, paid_sites, worst_filter)
 
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
          ("configure", "Configure"), ("confirm", "Confirm"),
@@ -565,8 +565,19 @@ def create_app(state=None, extract=None, resume_dir=None,
         if no_key_yet():
             return redirect(url_for("key"))
         estimate = costed(app.state["profile"])
+        chosen = app.state.get("sites_enabled") or {}
         return render_template("configure.html", **shell(
-            "configure", spend=estimate["total"], estimate=estimate))
+            "configure", spend=estimate["total"], estimate=estimate,
+            # Default True, not False: an unset profile inherits config.py's
+            # SITES, where all three are on. Rendering them unchecked would
+            # show a state the profile does not have, and the first change to
+            # any other field would then post that lie back and switch them
+            # all off.
+            sites=[{"name": site, "on": chosen.get(site, True),
+                    # A site bills per run when config.py pins its depth —
+                    # the reason the depth control cannot move naukri.
+                    "per_run": bool(config.SITES[site].get("results_per_run"))}
+                   for site in paid_sites()]))
 
     @app.post("/estimate")
     def estimate():
@@ -984,4 +995,8 @@ def _prefs(state):
         "max_results": state.get("max_results"),
         "linkedin_locations": state.get("linkedin_locations"),
         "linkedin_remote_only": state.get("linkedin_remote_only"),
+        # Unset means "inherit config.py's SITES", the same rule as every
+        # other optional key here — never {} , which would render an overlay
+        # switching every paid site off.
+        "sites_enabled": state.get("sites_enabled"),
     }

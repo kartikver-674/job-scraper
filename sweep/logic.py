@@ -115,6 +115,23 @@ def _parse_chips(raw, label):
     return terms
 
 
+def paid_sites():
+    """Sites the Configure screen can switch off, in run order.
+
+    Derived from the intersection of config.SITES (what the engine knows how
+    to run) and config.SITE_RATES (what costs money), rather than listed here
+    — a hardcoded list is how rescore_from_apify.py came to miss a key, and a
+    name in one table but not the other would KeyError in make_profile
+    instead of being quietly skipped.
+
+    Free feeds are deliberately absent: switching one off saves nothing, and
+    the panel says so rather than offering a control that cannot move the
+    figure above it.
+    """
+    import config
+    return [s for s in config.SITES if s in config.SITE_RATES]
+
+
 def _configure_overrides(form):
     """Validate the posted Configure-screen form and map it onto the state
     keys _prefs() understands. Returns {} for a form with no recognised
@@ -159,6 +176,16 @@ def _configure_overrides(form):
 
     if form.get("skip_terms"):
         out["skip_terms"] = _parse_chips(form["skip_terms"], "Skip-terms")
+
+    # One name per site, never a checkbox GROUP sharing a name: /estimate
+    # posts Object.fromEntries(new FormData(form)), which keeps only the LAST
+    # value of a repeated key — three boxes named "site" would arrive as one
+    # and silently switch the other two off. The hidden marker separates "the
+    # panel was on screen and the user unchecked everything" from "this form
+    # doesn't carry sources at all", which an absent checkbox cannot do.
+    if form.get("sites_present"):
+        out["sites_enabled"] = {site: bool(form.get(f"site_{site}"))
+                                for site in paid_sites()}
 
     return out
 

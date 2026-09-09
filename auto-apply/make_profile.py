@@ -211,6 +211,27 @@ def _fmt(value, indent=8):
     return f"{open_}\n{body}{' ' * (indent - 4)}{close}" if value else f"{open_}{close}"
 
 
+def _fmt_sites(overlay):
+    """Render a SITES overlay as profile source.
+
+    Each site's WHOLE dict is written out, because config._overlay merges one
+    level deep only (SITES.update(override)) — so a partial entry like
+    {"enabled": False} replaces the real one and takes "actor" and naukri's
+    "results_per_run" with it. Harmless while the site is off, a broken or
+    silently re-priced run the moment someone flips it back on by hand.
+    """
+    out = "SITES = {\n"
+    for site in sorted(overlay):
+        out += f'    "{site}": {{\n'
+        for key in sorted(overlay[site]):
+            value = overlay[site][key]
+            rendered = (_fmt(value, indent=12) if isinstance(value, list)
+                        else repr(value))
+            out += f'        "{key}": {rendered},\n'
+        out += "    },\n"
+    return out + "}\n\n"
+
+
 def render(name, data, prefs):
     """Render profiles/<name>.py source from the model's JSON and the preferences.
 
@@ -231,7 +252,7 @@ def render(name, data, prefs):
         "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
                     "backend_terms", "fullstack_title_terms", "fullstack_bonus",
                     "hard_drop_terms"],
-        "SITES": ["linkedin"],
+        "SITES": ["linkedin", "indeed", "naukri"],
     }
     config = validate_keys(sections)
 
@@ -265,7 +286,7 @@ def render(name, data, prefs):
     # location here is checked against that VERIFIED table — never passed
     # through on trust, and never trusted just because it came from this
     # app's own code instead of a form.
-    extra_sites = ""
+    overlay = {}
     if prefs.get("linkedin_locations") is not None:
         locations = list(prefs["linkedin_locations"])
         # A bare "Remote" isn't itself a LINKEDIN_GEO_IDS entry — it is a
@@ -295,17 +316,16 @@ def render(name, data, prefs):
                     f"(see scraper._build_linkedin_url).")
         linkedin_site["locations"] = locations
         linkedin_site["remote_only"] = bool(prefs.get("linkedin_remote_only"))
-        extra_sites = (
-            f'SITES = {{\n'
-            f'    "linkedin": {{\n'
-            f'        "enabled": {linkedin_site["enabled"]!r},\n'
-            f'        "actor": {linkedin_site["actor"]!r},\n'
-            f'        "locations": {_fmt(linkedin_site["locations"], indent=12)},\n'
-            f'        "remote_only": {linkedin_site["remote_only"]!r},\n'
-            f'        "remote_geo": {linkedin_site.get("remote_geo")!r},\n'
-            f'    }},\n'
-            f'}}\n\n'
-        )
+        overlay["linkedin"] = linkedin_site
+
+    # Per-site on/off from Configure's Sources panel. Applied after the
+    # LinkedIn block so switching LinkedIn off still keeps the locations it
+    # would search if switched back on, rather than the two settings
+    # clobbering each other depending on which ran last.
+    for site, on in (prefs.get("sites_enabled") or {}).items():
+        overlay.setdefault(site, dict(config.SITES[site]))["enabled"] = bool(on)
+
+    extra_sites = _fmt_sites(overlay) if overlay else ""
 
     spend_note = (
         f'Spending stops at ${float(prefs["max_spend_usd"]):.2f}: '

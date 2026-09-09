@@ -959,6 +959,78 @@ class TestConfigureScreen(unittest.TestCase):
         app.write_profile = lambda n, s: None
         return app
 
+    def _writing_app(self):
+        """Configure app that keeps the profile source it writes, since that
+        source is what the engine actually reads."""
+        app = app_module.create_app(
+            # derived included on purpose: /estimate renders the profile from
+            # it, and the base fixture leaves it out, so every POST there
+            # returned a 400 before reaching state.
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        app.written = []
+        app.write_profile = lambda n, src: app.written.append((n, src))
+        return app
+
+    def test_a_source_can_be_switched_off_and_leaves_the_written_profile(self):
+        # The screen offered no way to drop a paid site, so the only lever on
+        # an over-budget plan was depth — and naukri, the priciest line, does
+        # not move with depth at all.
+        app = self._writing_app()
+        app.test_client().post("/estimate", json={
+            "sites_present": "1", "site_linkedin": "on", "site_indeed": "on"})
+        self.assertEqual(app.state["sites_enabled"],
+                         {"linkedin": True, "indeed": True, "naukri": False})
+        _, source = app.written[-1]
+        self.assertRegex(source, r'"naukri":\s*\{[^}]*"enabled":\s*False')
+        self.assertRegex(source, r'"linkedin":\s*\{[^}]*"enabled":\s*True')
+
+    def test_a_switched_off_source_keeps_the_fields_needed_to_switch_it_back(self):
+        # config._overlay merges one level deep, so SITES["naukri"] is
+        # REPLACED wholesale. Writing {"enabled": False} alone would drop
+        # naukri's actor and its results_per_run: switch it back on by hand
+        # later and the run either breaks or is silently re-priced at a
+        # different depth than the rate was measured at.
+        app = self._writing_app()
+        app.test_client().post("/estimate", json={
+            "sites_present": "1", "site_linkedin": "on"})
+        _, source = app.written[-1]
+        self.assertIn("muhammetakkurtt/naukri-job-scraper", source)
+        self.assertIn('"results_per_run"', source)
+
+    def test_every_source_gets_its_own_input_name(self):
+        # NOT one repeated name: /estimate posts
+        # Object.fromEntries(new FormData(form)), which keeps only the last
+        # value for a repeated key — a group named "site" would arrive as a
+        # single site and switch the other two off on the first click
+        # anywhere on the screen.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        for site in ("linkedin", "indeed", "naukri"):
+            self.assertIn(f'name="site_{site}"', body)
+        self.assertNotIn('name="site"', body)
+        # The marker that separates "all unchecked" from "form has no sources".
+        self.assertIn('name="sites_present"', body)
+
+    def test_sources_render_checked_when_the_profile_has_no_opinion(self):
+        # An unset profile inherits config.py's SITES, where all three are on.
+        # Rendering them unchecked would show a state the profile does not
+        # have — and the next change to any other field would post that back.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        for site in app_module.paid_sites():
+            self.assertRegex(body, rf'name="site_{site}"\s+checked')
+
+    def test_dropping_every_paid_source_is_a_zero_plan_not_an_error(self):
+        # A free-feeds-only sweep is a legitimate choice and costs nothing.
+        # It must not 400, and must not fabricate a cost.
+        app = self._writing_app()
+        r = app.test_client().post("/estimate", json={"sites_present": "1"})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        self.assertEqual(app.state["sites_enabled"],
+                         {"linkedin": False, "indeed": False, "naukri": False})
+
     def test_configure_renders_the_measured_rates(self):
         body = self._app().test_client().get("/configure").get_data(as_text=True)
         self.assertIn("0.045", body)

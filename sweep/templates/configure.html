@@ -25,6 +25,31 @@
           body: JSON.stringify(Object.fromEntries(new FormData($el)))
         }).then(r => r.json()).then(d => est = d)">
 
+      {# First, not last as in the v3 mock: this is the largest cost lever on
+         the screen and the one control a user reaches for when the estimate
+         is too high. #}
+      <div class="panel">
+        <h2>Sources</h2>
+        <p class="muted">Switch one off and it leaves the plan and the cost
+          above. Free feeds always run and cost nothing, so they have no
+          switch here.</p>
+        <input type="hidden" name="sites_present" value="1">
+        <div class="stack-tight">
+          {% for site in sites %}
+            <label class="choice">
+              <input type="checkbox" name="site_{{ site.name }}"
+                     {{ 'checked' if site.on }}>
+              <span><b>{{ site.name }}</b>
+                <span class="why">
+                  {%- if site.per_run %}Charged per run at its own fixed depth,
+                    so the depth control does not move it.
+                  {%- else %}Charged per result, so the depth control moves it.
+                  {%- endif %}</span></span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
       <div class="panel">
         <h2>Where you can work</h2>
         <div class="stack-tight">
