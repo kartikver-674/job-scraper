@@ -389,20 +389,31 @@ tr.muted:hover td, tr.muted:hover th { background: none; }
 
 /* ---- Disclosure --------------------------------------------------------- */
 
-details.panel > summary, details > summary {
-  cursor: pointer; font-family: var(--display); font-size: 15px; font-weight: 600;
-  list-style: none;
+/* A summary is a panel head that happens to be clickable, so it is laid out
+   like one: marker, heading, and whatever belongs on the right. */
+details > summary {
+  cursor: pointer; list-style: none;
+  display: flex; align-items: baseline; gap: var(--s3);
 }
+details > summary > h2 { margin-right: auto; }
+/* Without a heading inside it, the summary text is the heading. */
+details > summary { font-family: var(--display); font-size: 15px; font-weight: 600; }
+details > summary > h2, details > summary > .meta { font-weight: inherit; }
+details > summary > .meta { font-family: var(--text); font-weight: 500; }
 summary::-webkit-details-marker { display: none; }
+/* A drawn triangle, not a rotated "›". The glyph's own box is taller than
+   its ink and sits off-centre in it, so rotating it left a mark floating
+   above the text that read as a stray tick rather than a control. This box
+   is exactly 8x8, so it turns around its own middle. */
 summary::before {
-  content: "›"; display: inline-block; width: 1em;
-  color: var(--slate); transition: transform .15s ease;
+  content: ""; flex: none; align-self: baseline; margin-bottom: 3px;
+  width: 0; height: 0; border: 4px solid transparent;
+  border-left-color: var(--slate); border-right-width: 0;
+  transform-origin: 2px 50%;
+  transition: transform .15s ease;
 }
 details[open] > summary::before { transform: rotate(90deg); }
-details:not(.panel) {
-  background: var(--surface); border: 1px solid var(--rule);
-  border-radius: var(--radius); padding: var(--s5); margin-bottom: var(--s5);
-}
+details > summary:hover::before { border-left-color: var(--chalk); }
 details > *:not(summary) { margin-top: var(--s4); }
 
 ul, ol { margin: 0; padding-left: var(--s6); color: var(--warm); }
@@ -454,8 +465,8 @@ select:focus-visible, summary:focus-visible,
    which laid the whole filter bar out vertically down the right edge. */
 .row { display: flex; flex-flow: row wrap; align-items: flex-end; gap: var(--s4); }
 .row > label { flex: 1 1 11rem; min-width: 0; }
-.row > button, .row > .actions { flex: none; }
-@media (max-width: 34rem) { .row > button { flex: 1 1 100%; } }
+.row > label:only-child { flex: 0 1 12rem; }
+.row > .actions { flex: none; }
 
 /* Fixed-size tiles that reflow to the width available, rather than eight
    columns stretched across whatever the panel happens to be. */

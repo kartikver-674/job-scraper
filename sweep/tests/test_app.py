@@ -1551,6 +1551,30 @@ class TestFreeOnlyPath(unittest.TestCase):
         self.assertNotIn("No key yet", body)
         self.assertNotIn("Key connected", body)
 
+    # ---- re-ranking ------------------------------------------------------
+    def test_a_free_sweep_is_not_offered_a_re_rank(self):
+        # Re-ranking re-reads what an Apify ACTOR returned. A free sweep runs
+        # no actors, so there is nothing to re-read.
+        body = self.free(self._app()).test_client().get(
+            "/results").get_data(as_text=True)
+        self.assertIn("Re-ranking needs a paid sweep", body)
+        self.assertNotIn('action="/rescore', body)
+        # And the lede must not promise it either.
+        self.assertNotIn("Filtering and re-ranking these is free", body)
+
+    def test_a_posted_re_rank_is_refused_on_a_free_sweep(self):
+        # Hiding the form is not a guard. rescore_from_apify.py writes
+        # jobs_combined.csv, which read_rows PREFERS — so a re-rank that
+        # found another profile's paid runs on a shared key would replace
+        # this shortlist with them.
+        started = []
+        app = self.free(self._app(
+            start_rescore=lambda profile, hours: started.append(profile)))
+        r = app.test_client().post("/rescore", data={"hours": "6"})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(started, [])
+        self.assertIn("nothing to re-read", r.get_data(as_text=True))
+
     # ---- changing your mind ---------------------------------------------
     def test_connecting_a_key_afterwards_leaves_the_free_path(self):
         app = self.free(self._app(check_token=lambda t: (8.41, None)))
@@ -3596,6 +3620,101 @@ class TestResultsScreen(unittest.TestCase):
         body = app.test_client().get("/results").get_data(as_text=True)
         self.assertNotIn("javascript:alert(1)", body)
         self.assertIn("No link", body)
+
+
+class TestFilterAndDisclosureUi(unittest.TestCase):
+    """Two shapes the results screen gets wrong easily: where a form's action
+    sits relative to its fields, and what a collapsed section looks like next
+    to the panels it sits between."""
+
+    def _body(self, state=None):
+        app = app_module.create_app(
+            state=state if state is not None else {"profile": "kanav"},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=lambda profile: list(ROWS),
+            read_done=lambda profile, day: [], read_spend=lambda: 4.12,
+            output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app.test_client().get("/results").get_data(as_text=True)
+
+    def css(self):
+        return (pathlib.Path(app_module.__file__).parent
+                / "static" / "sweep.css").read_text()
+
+    def _row_children(self, body):
+        """Tag names inside every <div class="row">, in order."""
+        from html.parser import HTMLParser
+
+        class Scan(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.depth = None
+                self.rows = []
+
+            def handle_starttag(self, tag, attrs):
+                d = dict(attrs)
+                if tag == "div" and (d.get("class") or "") == "row":
+                    self.depth = 0
+                    self.rows.append([])
+                elif self.depth is not None:
+                    if tag == "div":
+                        self.depth += 1
+                    self.rows[-1].append(tag)
+
+            def handle_endtag(self, tag):
+                if tag == "div" and self.depth is not None:
+                    if self.depth == 0:
+                        self.depth = None
+                    else:
+                        self.depth -= 1
+
+        scan = Scan()
+        scan.feed(body)
+        return scan.rows
+
+    def test_the_action_is_not_inside_the_field_row(self):
+        # It used to be the row's last item, where button.secondary's own
+        # align-self: flex-start beat the row's align-items: flex-end — so it
+        # rendered level with the LABELS and read as a control sitting above
+        # the inputs rather than after them.
+        rows = self._row_children(self._body())
+        self.assertTrue(rows, "no field row rendered")
+        for children in rows:
+            self.assertNotIn("button", children)
+        self.assertNotIn(".row > button", self.css())
+
+    def test_a_lone_field_does_not_stretch_to_the_panel(self):
+        # The re-rank row holds one number input, which grew to the full
+        # width of the panel to hold the digit 6.
+        self.assertIn(".row > label:only-child", self.css())
+
+    def test_a_collapsed_section_is_headed_like_the_panels_around_it(self):
+        # It was a 15px sentence with the count folded into an em-dash string,
+        # sitting between panels with an h2 and a right-aligned count.
+        body = self._body()
+        summaries = re.findall(r"<summary>(.*?)</summary>", body, re.S)
+        self.assertTrue(summaries)
+        for inner in summaries:
+            self.assertIn("<h2>", inner)
+        # And the disclosure box is the same box as its neighbours.
+        self.assertNotIn("<details>", body)
+
+    def test_the_marker_is_drawn_not_a_rotated_glyph(self):
+        # A rotated "›" turns around the middle of a box taller than its ink,
+        # which left a mark floating above the text that read as a stray tick.
+        css = self.css()
+        self.assertNotIn('content: "›"', css)
+        self.assertRegex(css, r"summary::before \{[^}]*border-left-color")
+
+    def test_a_disclosure_keeps_its_content_spaced(self):
+        # Chrome wraps a details' content in ::details-content, so the
+        # children are not flex items of the details and .panel's own gap
+        # never reaches them. Narrowing this rule to details:not(.panel) —
+        # which is every details in the app — butted the paragraphs together.
+        self.assertRegex(self.css(),
+                         r"details > \*:not\(summary\) \{[^}]*margin-top")
 
 
 class TestReadRowsDefault(unittest.TestCase):

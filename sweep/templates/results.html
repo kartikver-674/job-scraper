@@ -50,7 +50,11 @@
 <div class="stack">
   <div class="stack-tight">
     <h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
-    <p class="lede">Filtering and re-ranking these is free and costs no extra credit.</p>
+    {# Re-ranking is not offered on the free path, so the lede must not
+       promise it there. #}
+    <p class="lede">
+      {%- if free_only %}This sweep cost nothing, and filtering these costs nothing either.
+      {%- else %}Filtering and re-ranking these is free and costs no extra credit.{% endif %}</p>
   </div>
 
   {% if all_total and not merged %}
@@ -67,37 +71,62 @@
       ranking — the shortlist below is still the old one.</p>
   {% endif %}
 
-  <form class="panel row" method="get">
-    <label><span class="label">Minimum score</span>
-      <input type="number" name="min" value="{{ min_score }}"></label>
-    <label><span class="label">Source</span>
-      <select name="source">
-        <option value="">All sources</option>
-        {% for s in sources %}
-          <option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label><span class="label">Title or company</span>
-      <input type="text" name="q" value="{{ q }}"></label>
+  <form class="panel" method="get">
+    <div class="row">
+      <label><span class="label">Minimum score</span>
+        <input type="number" name="min" value="{{ min_score }}"></label>
+      <label><span class="label">Source</span>
+        <select name="source">
+          <option value="">All sources</option>
+          {% for s in sources %}
+            <option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label><span class="label">Title or company</span>
+        <input type="text" name="q" value="{{ q }}"></label>
+    </div>
     <button class="secondary" type="submit">Apply filter</button>
   </form>
 
-  <details class="panel">
-    <summary>Re-rank against your current weights</summary>
-    <p class="muted">Re-ranks every search run on any Apify key in your .env,
-      for the sites you have configured, within the window you choose below —
-      not only this sweep's runs, so on a key you share it can pull in another
-      profile's searches. Reading data you already paid for is free. The
-      shortlist is rewritten in place, not added to.</p>
-    <form class="row" method="post" x-data="{ sent: false }" @submit="sent = true"
-          action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
-      <label><span class="label">Hours to look back</span>
-        <input type="number" name="hours" value="6" min="1" max="168"></label>
-      <button class="secondary" type="submit" :disabled="sent">Re-rank</button>
-      <span class="meta sending" x-show="sent" x-cloak>Starting the re-rank…</span>
-    </form>
-  </details>
+  {% if free_only %}
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Re-ranking needs a paid sweep</h2>
+      </div>
+      <p class="muted">Re-ranking re-reads the job data an Apify actor already
+        returned and scores it again with your current weights — which costs
+        nothing, but there is nothing to re-read here: this sweep ran the free
+        sources, and those are not Apify runs. Running it anyway would pull in
+        whatever paid searches are on your keys, from any profile, and write
+        them over this shortlist.</p>
+    </div>
+  {% else %}
+    <details class="panel">
+      <summary>
+        <h2>Re-rank against your current weights</h2>
+      </summary>
+      <p class="muted">Re-reads the job data your Apify runs already returned
+        and scores it again with your current weights. Reading data you have
+        already paid for costs nothing — no actor runs, no new charges.</p>
+      <p class="muted">It covers every search run on any Apify key in your
+        .env, for the sites you have configured, within the window below — not
+        only this sweep's runs, so on a key you share it can pull in another
+        profile's searches. The shortlist is rewritten in place, not added
+        to.</p>
+      <form method="post" x-data="{ sent: false }" @submit="sent = true"
+            action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
+        <div class="row">
+          <label><span class="label">Hours to look back</span>
+            <input type="number" name="hours" value="6" min="1" max="168"></label>
+        </div>
+        <div class="actions">
+          <button class="secondary" type="submit" :disabled="sent">Re-rank</button>
+          <span class="meta sending" x-show="sent" x-cloak>Starting the re-rank…</span>
+        </div>
+      </form>
+    </details>
+  {% endif %}
 
   {% if total == 0 %}
     <div class="panel">
@@ -125,9 +154,15 @@
   {% for key, heading, note in sections %}
     {% if buckets[key] %}
       {% if key == 'abroad' %}
-        <details>
-          <summary>{{ heading }} — {{ buckets[key]|length }}
-            listing{{ "" if buckets[key]|length == 1 else "s" }}</summary>
+        {# Collapsed by default: these need a visa, so they are the least
+           actionable rows on the screen. Otherwise identical to the panels
+           above it. #}
+        <details class="panel">
+          <summary>
+            <h2>{{ heading }}</h2>
+            <span class="meta">{{ buckets[key]|length }}
+              listing{{ "" if buckets[key]|length == 1 else "s" }}</span>
+          </summary>
           <p class="muted">{{ note }}</p>
           {{ listings_table(buckets[key]) }}
         </details>

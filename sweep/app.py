@@ -1329,6 +1329,20 @@ def create_app(state=None, extract=None, resume_dir=None,
     def rescore():
         if not app.state.get("profile"):
             return redirect(url_for("upload"))
+        if free_only():
+            # A free sweep produces no Apify runs, so there is nothing to
+            # re-read. Worse than useless: rescore_from_apify.py writes
+            # jobs_combined.csv, which read_rows PREFERS, so a re-rank that
+            # happened to find another profile's paid runs on a shared key
+            # would replace THIS shortlist with them. The screen does not
+            # offer it here; a posted form still has to be refused.
+            #
+            # A status, not a failure — so it goes through `notice`, not the
+            # red reserved for over-cap.
+            return _results_page(
+                notice="Re-ranking re-reads what an Apify actor already "
+                       "returned, and this sweep ran the free sources. There "
+                       "is nothing to re-read, so nothing was changed."), 409
         try:
             # Label matches the field's own visible text, so the error names
             # the control the user is looking at.
