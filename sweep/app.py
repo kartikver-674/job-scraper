@@ -942,12 +942,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         chosen = app.state.get("sites_enabled") or {}
         return render_template("configure.html", **shell(
             "configure", spend=estimate["total"], estimate=estimate,
-            # Default True, not False: an unset profile inherits config.py's
-            # SITES, where all three are on. Rendering them unchecked would
-            # show a state the profile does not have, and the first change to
-            # any other field would then post that lie back and switch them
-            # all off.
-            sites=[{"name": site, "on": chosen.get(site, True),
+            # Unset means "inherit config.py's SITES", so the box has to show
+            # what config actually says — read live, never hardcoded.
+            # Rendering a state the profile does not have is how the first
+            # change to any other field posts that lie back as an instruction.
+            sites=[{"name": site,
+                    "on": chosen.get(site, config.SITES[site].get("enabled", True)),
                     # A site bills per run when config.py pins its depth —
                     # the reason the depth control cannot move naukri.
                     "per_run": bool(config.SITES[site].get("results_per_run"))}

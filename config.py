@@ -90,7 +90,13 @@ SITES = {
     # FEW broad regions ("Delhi / NCR" = id 9508 covers Delhi+Gurgaon+Noida in one
     # run). So naukri does few large runs; control keyword count with --limit.
     # Runs LAST — it's the priciest, so a cap sacrifices only its remaining combos.
-    "naukri":   {"enabled": True,  "actor": "muhammetakkurtt/naukri-job-scraper",
+    # OFF by default. Measured across every run in output/ (9,932 rows,
+    # 2026-09-09): naukri has produced ZERO rows and appears in no .done_combos
+    # — it has never actually been run, because at a $0.50 per-run MINIMUM it is
+    # the most expensive source in the table and its inventory is largely what
+    # LinkedIn already returns for the same searches. Turn it on per profile if
+    # you want India-specific boards LinkedIn misses.
+    "naukri":   {"enabled": False, "actor": "muhammetakkurtt/naukri-job-scraper",
                  "results_per_run": 50,
                  "locations": ["Delhi / NCR", "Remote"]},
 }
@@ -299,18 +305,29 @@ ENTERPRISE = {
 # are the only free source that reports PAY — the ATS boards never do.
 FEEDS = {
     "remoteok": {"enabled": True},
+    # Measured the best free source in the project (output/, 2026-09-09): 58% of
+    # its distinct postings scored >= 40, against LinkedIn's 27% and
+    # greenhouse's 11%. It was fetched four categories deep; these are the rest
+    # of the ones a software search should see. One request each, no cost.
     "wwr": {"enabled": True, "categories": [
         "remote-programming-jobs",
         "remote-front-end-programming-jobs",
         "remote-back-end-programming-jobs",
         "remote-full-stack-programming-jobs",
+        "remote-devops-sysadmin-jobs",
+        "remote-design-jobs",
+        "remote-product-jobs",
+        "remote-jobs",                     # the catch-all board
     ]},
     "remotive": {"enabled": True},
     "jobicy": {"enabled": True, "count": 50},
-    # No category filter exists on this API, so it pages blind through ~96k
-    # mostly non-engineering jobs at 20 a time. Worth it for the exact UTC
-    # offsets it reports, but raise `pages` only if you want the requests.
-    "himalayas": {"enabled": True, "pages": 10},
+    # `queries` uses himalayas.app/jobs/api/search (q=, 20 per page, no auth),
+    # which did not exist when this was written — the old comment said no filter
+    # was available and the adapter paged blind through ~96k mostly
+    # non-engineering jobs, 200 at a time, for the 76 distinct postings it ever
+    # contributed. make_profile writes the résumé's own role keywords here.
+    # Empty `queries` keeps the old blind paging, so nothing breaks without one.
+    "himalayas": {"enabled": True, "pages": 10, "queries": []},
 }
 
 # Keep a free-source job only if its location mentions one of these.
@@ -332,11 +349,47 @@ HOME_LOCATION_HINTS = [
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
 # we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
 # role (case-insensitive substring). Scoring then ranks within these.
+# THE most consequential list in this file for free sources: every ATS board and
+# feed returns its whole catalogue, and scraper.is_dev_title() drops anything
+# whose title matches none of these BEFORE it is ever scored. A term missing
+# here is inventory nobody ever sees.
+#
+# This is the generic software floor. It used to be 21 entries built around one
+# React/Node résumé, which is why the five hand-tuned profiles all replace it —
+# and why a Salesforce or Java résumé, whose generated profile does NOT replace
+# it, lost most of every free board before scoring. make_profile now writes a
+# résumé-specific list UNIONED with this one, so a profile can widen the net but
+# never narrow it below this.
 ATS_TITLE_HINTS = [
-    "developer", "full stack", "fullstack", "full-stack", "frontend", "front end",
-    "front-end", "backend", "back end", "back-end", "software engineer",
-    "software development", "sde", "react", "node", "javascript", "typescript",
-    "web developer", "mern", "mobile developer", "application developer",
+    # Core software engineering. "engineer" alone is deliberately absent —
+    # it matches sales engineer, process engineer, mechanical engineer.
+    "software engineer", "software development", "software dev", "developer",
+    "development engineer", "sde", "programmer", "engineering manager",
+    "member of technical staff", "tech lead", "technical lead", "staff engineer",
+    "principal engineer", "software architect", "solutions architect",
+    # Stack positions
+    "full stack", "fullstack", "full-stack", "frontend", "front end", "front-end",
+    "backend", "back end", "back-end", "web developer", "mern", "mean stack",
+    # Named stacks, so a title that only says the technology still lands
+    "react", "node", "javascript", "typescript", "python", "java ", "golang",
+    ".net", "php", "ruby", "rails", "django", "spring boot", "c#",
+    # Mobile
+    "mobile developer", "mobile engineer", "android", "ios ", "ios engineer",
+    "ios developer", "flutter", "react native",
+    # Application / API / integration
+    "application developer", "api developer", "api engineer",
+    "integration engineer", "systems engineer",
+    # AI / ML — a large and growing share of what these boards post
+    "ml engineer", "ai engineer", "machine learning engineer", "applied ai",
+    "genai", "gen ai", "generative ai", "llm engineer",
+    # Platform / infrastructure / reliability
+    "platform engineer", "infrastructure engineer", "devops", "site reliability",
+    "sre ", "cloud engineer", "build engineer", "release engineer",
+    "automation engineer", "developer productivity", "developer experience",
+    # Quality
+    "qa engineer", "test engineer", "sdet", "quality engineer",
+    # Security
+    "security engineer", "application security",
 ]
 
 # Titles to reject even when they DO match a hint above. Checked first, so it

@@ -70,6 +70,20 @@ SYSTEM_INSTRUCTION = (
     "(Italian)' and 'Japanese Business Analyst'. Same rule for the two halves: "
     "keep generic category words out of them, or any adjacent-industry job "
     "satisfies a half for free.\n\n"
+    "RULE 3 — title_hints is the gate on every FREE source. Company boards and "
+    "job feeds return their whole catalogue and scraper.is_dev_title() drops "
+    "any posting whose title contains none of these, before it is scored, so a "
+    "missing fragment is inventory nobody ever sees. Emit lowercase fragments "
+    "as they appear INSIDE real job titles for this person's field, matched as "
+    "substrings: 'salesforce', 'crm consultant', 'apex' for a Salesforce "
+    "consultant; 'data engineer', 'analytics engineer' for a data engineer. "
+    "Include the seniority-free stem ('developer', not 'senior developer'), "
+    "every stack they could be hired for, and the adjacent titles their "
+    "experience genuinely qualifies them for. Twenty to forty entries. They are "
+    "added to a generic software list, so this can only widen the search — "
+    "err towards including a title. title_exclude wins over both and is for "
+    "DIFFERENT CAREERS that borrow the same words ('data engineer' for a web "
+    "developer), never for seniority.\n\n"
     "The two halves (domain_half_a / domain_half_b) encode a 'job mentions "
     "both sides of my field' bonus — frontend+backend for a web developer. If "
     "the candidate's field has no such natural split, return both halves empty "
@@ -103,6 +117,10 @@ RESPONSE_SCHEMA = {
         "domain_half_a": {"type": "array", "items": {"type": "string"}},
         "domain_half_b": {"type": "array", "items": {"type": "string"}},
         "domain_title_terms": {"type": "array", "items": {"type": "string"}},
+        # The free-source title gate (config.ATS_TITLE_HINTS). Substring
+        # fragments, lowercase — see RULE 3.
+        "title_hints": {"type": "array", "items": {"type": "string"}},
+        "title_exclude": {"type": "array", "items": {"type": "string"}},
         "domain_bonus": {"type": "integer"},
         "notes": {"type": "string"},
     },
@@ -110,7 +128,7 @@ RESPONSE_SCHEMA = {
         "candidate_name",
         "field_summary", "years_experience", "role_keywords", "skill_weights",
         "penalty_terms", "domain_half_a", "domain_half_b", "domain_title_terms",
-        "domain_bonus", "notes",
+        "title_hints", "title_exclude", "domain_bonus", "notes",
     ],
 }
 
@@ -160,7 +178,10 @@ def build_prompt(resume_text, prefs):
         "Produce the scraper configuration. role_keywords are the job titles "
         "this person should actually be searched for. Include the avoid-list in "
         "penalty_terms alongside any technology obviously off-domain for their "
-        "field. candidate_name is the person's own name exactly as the résumé "
+        "field. title_hints are lowercase fragments that appear INSIDE job "
+        "titles in their field, matched as substrings — they are the gate on "
+        "every free company board, so a missing one is inventory nobody sees. "
+        "candidate_name is the person's own name exactly as the résumé "
         "writes it, or an empty string if it does not state one — never a "
         "guess from an email address or a file name."
     )
@@ -273,6 +294,48 @@ def _fmt_sites(overlay):
     return out + "}\n\n"
 
 
+def _title_gate(data, config):
+    """(hints, excludes) for the free-source title gate.
+
+    UNIONED with config.ATS_TITLE_HINTS, never replacing it: the gate decides
+    what a company board is even scored on, and a thin or eccentric model
+    answer must not be able to make a profile see LESS than the generic
+    software floor. Measured on five live greenhouse boards (2,567 open jobs,
+    2026-09-09), the floor alone admits 33% of them; the old 21-entry floor
+    admitted 16%.
+
+    Excludes are NOT unioned with anything — they delete, so only what the
+    model asked for is honoured.
+    """
+    hints = {str(t).strip().lower() for t in data.get("title_hints") or []}
+    hints |= set(config.ATS_TITLE_HINTS)
+    excludes = {str(t).strip().lower() for t in data.get("title_exclude") or []}
+    # A term on both lists would delete itself: exclude wins in is_dev_title.
+    return sorted(h for h in hints if h and h not in excludes), sorted(excludes)
+
+
+def _fmt_feeds(queries):
+    """A FEEDS overlay carrying this résumé's himalayas search terms.
+
+    The WHOLE himalayas entry is written for the reason _fmt_sites spells out:
+    config._overlay merges one level deep (FEEDS.update(override)), so a
+    partial {"himalayas": {"queries": [...]}} replaces the real entry and takes
+    "enabled" and "pages" with it — leaving the feed silently off.
+
+    Only this one feed is written. The others are absent from the overlay, so
+    dict.update leaves config.py's own entries in place.
+    """
+    if not queries:
+        return ""
+    return ("FEEDS = {\n"
+            '    "himalayas": {\n'
+            '        "enabled": True,\n'
+            '        "pages": 10,\n'
+            f'        "queries": {_fmt(queries, indent=12)},\n'
+            "    },\n"
+            "}\n\n")
+
+
 def render(name, data, prefs):
     """Render profiles/<name>.py source from the model's JSON and the preferences.
 
@@ -367,6 +430,10 @@ def render(name, data, prefs):
         overlay.setdefault(site, dict(config.SITES[site]))["enabled"] = bool(on)
 
     extra_sites = _fmt_sites(overlay) if overlay else ""
+    hints, excludes = _title_gate(data, config)
+    # The résumé's own role keywords are what himalayas is searched for; its
+    # search endpoint takes one free-text query per request.
+    extra_feeds = _fmt_feeds([k for k in data["role_keywords"] if str(k).strip()])
 
     spend_note = (
         f'Spending stops at ${float(prefs["max_spend_usd"]):.2f}: '
@@ -377,17 +444,17 @@ def render(name, data, prefs):
     )
 
     sites_note = (
-        "This file sets no SITES, so it inherits config.py's — LinkedIn + "
-        "Indeed + Naukri all enabled. Run --dry-run first and read the run "
-        "count; Naukri alone is ~$0.50/run minimum. To narrow it, copy the "
-        "SITES block from profiles/kartik_reachable.py. LinkedIn searches the "
-        "geoIds in SITES, NOT the locations above, so city-level LinkedIn "
-        "needs that block too."
+        "This file sets no SITES, so it inherits config.py's — LinkedIn and "
+        "Indeed on, Naukri off (it has never returned a row and costs ~$0.50 "
+        "per run minimum). Run --dry-run first and read the run count. To "
+        "narrow it, copy the SITES block from profiles/kartik_reachable.py. "
+        "LinkedIn searches the geoIds in SITES, NOT the locations above, so "
+        "city-level LinkedIn needs that block too."
         if not extra_sites else
         "This file DOES set SITES (below) — Configure chose it. LinkedIn "
         "searches only the geoIds listed there, not SEARCH.locations above; "
-        "Indeed and Naukri still follow config.py's defaults unless narrowed "
-        "too. Naukri alone is ~$0.50/run minimum — run --dry-run first."
+        "any site absent from that block follows config.py's default. Run "
+        "--dry-run first and read the cost."
     )
 
     # The model reliably copies the excluded seniority words into penalty_terms
@@ -420,7 +487,7 @@ Re-scoring is free — after editing weights run `python rescore_from_apify.py`
 rather than paying to scrape again.
 """
 
-{extra_sites}SEARCH = {{
+{extra_sites}{extra_feeds}SEARCH = {{
     "role_keywords": {_fmt(data["role_keywords"])},
     "experience_years": {years},
     "locations": {_fmt(prefs["locations"])},
@@ -451,6 +518,16 @@ SCORING = {{
     # "senior" routinely means 3-4 years, so it down-ranks instead of dropping.
     "hard_drop_terms": {_fmt(prefs["exclude_levels"])},
 }}
+
+# The gate on every FREE source: a company board or feed returns its whole
+# catalogue and scraper.is_dev_title() drops any title matching none of these
+# BEFORE scoring, so a fragment missing here is inventory nobody sees. This is
+# the résumé's own vocabulary UNIONED with config.py's generic software floor,
+# so it can only ever widen the search.
+ATS_TITLE_HINTS = {_fmt(hints, indent=4)}
+
+# Checked first, so it wins: different CAREERS that borrow the same words.
+ATS_TITLE_EXCLUDE = {_fmt(excludes, indent=4)}
 '''
 
 

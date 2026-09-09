@@ -205,6 +205,27 @@ class TestEngineFlagAndPathHygiene(unittest.TestCase):
         self.assertEqual(len(sys.path), before)
 
 
+class TestPaidSourceDefaults(unittest.TestCase):
+    """Which paid sources a profile inherits when it says nothing. This is the
+    only place the decision is recorded as a test rather than a comment."""
+
+    def test_naukri_is_off_until_someone_asks_for_it(self):
+        # Measured across every run in output/ (9,932 rows, 2026-09-09): naukri
+        # produced zero rows and appears in no .done_combos — it has never run,
+        # because it is a $0.50-per-run MINIMUM and its inventory is largely
+        # what LinkedIn already returns. Flipping this back on costs real money
+        # on the next unconfigured sweep, so it is pinned.
+        import config as live
+        self.assertFalse(live.SITES["naukri"]["enabled"])
+
+    def test_the_cheap_paid_sources_stay_on(self):
+        # The other half of the same decision: turning naukri off must not
+        # quietly become "no paid sources at all".
+        import config as live
+        self.assertTrue(live.SITES["linkedin"]["enabled"])
+        self.assertTrue(live.SITES["indeed"]["enabled"])
+
+
 class TestRunningMeterBindings(unittest.TestCase):
     """The header meter's bindings reference names that must exist in the
     Alpine scope. A missing one is a ReferenceError at runtime, which no
@@ -1457,9 +1478,12 @@ class TestFreeOnlyPath(unittest.TestCase):
         # path would be quoted the paid plan it just declined.
         app = self.free(self._app())
         source = app.written["kanav"]
-        self.assertEqual(source.count('"enabled": False'),
+        # Scoped to the SITES block: the profile also carries a FEEDS overlay
+        # whose himalayas entry is legitimately enabled.
+        sites = source.split("SITES = {", 1)[1].split("\n}\n", 1)[0]
+        self.assertEqual(sites.count('"enabled": False'),
                          len(app_module.paid_sites()))
-        self.assertNotIn('"enabled": True', source)
+        self.assertNotIn('"enabled": True', sites)
 
     def test_the_free_answer_needs_a_profile_to_apply_to(self):
         for state in ({}, {"resume_text": "x"}, {"profile": "kanav"}):
@@ -1955,13 +1979,25 @@ class TestConfigureScreen(unittest.TestCase):
         # The marker that separates "all unchecked" from "form has no sources".
         self.assertIn('name="sites_present"', body)
 
-    def test_sources_render_checked_when_the_profile_has_no_opinion(self):
-        # An unset profile inherits config.py's SITES, where all three are on.
-        # Rendering them unchecked would show a state the profile does not
-        # have — and the next change to any other field would post that back.
+    def test_sources_render_the_state_config_actually_has(self):
+        # An unset profile inherits config.py's SITES, so the box has to show
+        # what config says — in BOTH directions. Rendering a state the profile
+        # does not have is how the next change to any other field posts that
+        # lie back; with naukri defaulted off, a hardcoded "checked" would be
+        # an instruction to spend $0.50 a run.
+        import config as live
         body = self._app().test_client().get("/configure").get_data(as_text=True)
+        checked = 0
         for site in app_module.paid_sites():
-            self.assertRegex(body, rf'name="site_{site}"\s+checked')
+            on = live.SITES[site].get("enabled", True)
+            checked += on
+            if on:
+                self.assertRegex(body, rf'name="site_{site}"\s+checked')
+            else:
+                self.assertRegex(body, rf'name="site_{site}"\s*>')
+        # And the test itself must not silently become vacuous.
+        self.assertTrue(0 < checked < len(app_module.paid_sites())
+                        or checked == len(app_module.paid_sites()))
 
     def test_dropping_every_paid_source_is_a_zero_plan_not_an_error(self):
         # A free-feeds-only sweep is a legitimate choice and costs nothing.

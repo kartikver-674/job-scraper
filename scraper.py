@@ -1538,6 +1538,33 @@ def demo():
     finally:
         ATS_TITLE_HINTS[:], ATS_TITLE_EXCLUDE[:] = saved
 
+    # The SHIPPED floor, not a stand-in: this list is what every free source is
+    # filtered through for any profile that does not replace it, and the
+    # generated ones did not. Measured against five live greenhouse boards
+    # (2,567 open jobs, 2026-09-09) it admits 33% where the previous
+    # 21-entry list admitted 16% — these are the titles that were being
+    # dropped before anything could score them.
+    assert ATS_TITLE_EXCLUDE == [], "the floor ships with no excludes"
+    for title in ("Staff Engineer, Payments", "Site Reliability Engineer",
+                  "Platform Engineer (Kubernetes)", "Senior SRE ",
+                  "Machine Learning Engineer", "Principal Software Architect",
+                  "iOS Engineer", "Android Developer", "SDET II",
+                  "Security Engineer, AppSec", "Golang Engineer",
+                  "Ruby on Rails Developer", "Technical Lead - Payments",
+                  "Member of Technical Staff", "SDE-2", "Programmer Analyst",
+                  "Software Development Engineer II", "Engineering Manager"):
+        assert is_dev_title(title), f"floor drops a software title: {title}"
+    # And it still has to keep out the jobs that share our vocabulary. These
+    # are real titles from remoteok's public feed.
+    for title in ("Store Manager", "Vehicle Maintenance Technician",
+                  "Sales Development Representative", "Customer Success Manager",
+                  "Financial Analyst", "Warehouse Merchandiser",
+                  "Mechanical Engineer", "Process Engineer"):
+        assert not is_dev_title(title), f"floor admits a non-software job: {title}"
+    # "java " and two others carry a deliberate trailing space: without it they
+    # match javascript, iOS-anything and "stressed".
+    assert "java " in ATS_TITLE_HINTS and "java" not in ATS_TITLE_HINTS
+
     # Timezone gap down-ranks but never removes, and only past the free window.
     near = sj("Zorb", "Remote across Europe. 2 years experience.")
     far = sj("Zorb", "Remote in the US. 2 years experience.")

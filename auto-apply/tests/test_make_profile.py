@@ -50,6 +50,12 @@ PAYLOAD = {
     "domain_half_a": ["sales cloud"],
     "domain_half_b": ["apex"],
     "domain_title_terms": ["Salesforce Business Analyst"],
+    # The free-source title gate. This résumé is the reason it exists: every
+    # company board and feed is filtered through config.ATS_TITLE_HINTS, which
+    # is a generic SOFTWARE list, so a Salesforce consultant's generated
+    # profile saw almost nothing free until the model started supplying these.
+    "title_hints": ["Salesforce", "CRM Consultant", "apex"],
+    "title_exclude": ["Data Engineer"],
     "domain_bonus": 5,
     "notes": "Platform terms dominate; craft vocabulary demoted.",
 }
@@ -214,6 +220,111 @@ class TestCandidateNameIsAsked(unittest.TestCase):
         # And told what NOT to do: a name guessed from an email address or a
         # file name becomes a filename in profiles/.
         self.assertIn("never a guess", prompt)
+
+
+class TestTitleGate(unittest.TestCase):
+    """ATS_TITLE_HINTS decides what a free source is even scored on: every
+    board returns its whole catalogue and scraper.is_dev_title() drops the rest
+    BEFORE scoring. Five hand-written profiles set it; the generator never did,
+    so every generated profile filtered its free sources through a list built
+    for one React/Node résumé."""
+
+    def test_the_resumes_own_titles_reach_the_profile(self):
+        ns = rendered_namespace()
+        for term in ("salesforce", "crm consultant", "apex"):
+            self.assertIn(term, ns["ATS_TITLE_HINTS"])
+
+    def test_the_generic_floor_is_never_lost(self):
+        # Unioned, not replaced: a thin or eccentric model answer must not be
+        # able to make a profile see LESS than the generic software list.
+        ns = rendered_namespace()
+        floor = set(make_profile._load_config().ATS_TITLE_HINTS)
+        self.assertTrue(floor <= set(ns["ATS_TITLE_HINTS"]),
+                        f"lost: {sorted(floor - set(ns['ATS_TITLE_HINTS']))}")
+
+    def test_the_floor_is_copied_verbatim(self):
+        # "java ", "ios " and "sre " carry a deliberate trailing space, which
+        # is what stops them matching javascript, iOS-anything and "stressed".
+        # Normalising the floor the way the model's terms are normalised
+        # silently widened all three.
+        ns = rendered_namespace()
+        self.assertIn("java ", ns["ATS_TITLE_HINTS"])
+        self.assertNotIn("java", ns["ATS_TITLE_HINTS"])
+
+    def test_the_models_terms_are_normalised(self):
+        ns = rendered_namespace(payload=dict(
+            PAYLOAD, title_hints=["  Salesforce ", "APEX", "apex"]))
+        hints = ns["ATS_TITLE_HINTS"]
+        self.assertIn("salesforce", hints)
+        self.assertEqual(hints.count("apex"), 1)
+        self.assertNotIn("APEX", hints)
+
+    def test_an_exclude_wins_over_a_hint(self):
+        # is_dev_title checks excludes first, so a term on both lists would
+        # delete itself — it must not be rendered as a hint at all.
+        ns = rendered_namespace(payload=dict(
+            PAYLOAD, title_hints=["salesforce", "data engineer"],
+            title_exclude=["data engineer"]))
+        self.assertNotIn("data engineer", ns["ATS_TITLE_HINTS"])
+        self.assertIn("data engineer", ns["ATS_TITLE_EXCLUDE"])
+
+    def test_a_payload_without_the_fields_still_renders(self):
+        # Derivations cached before the schema grew these keys are still on
+        # disk and still get re-rendered on every Configure change.
+        bare = {k: v for k, v in PAYLOAD.items()
+                if k not in ("title_hints", "title_exclude")}
+        ns = rendered_namespace(payload=bare)
+        self.assertEqual(ns["ATS_TITLE_EXCLUDE"], [])
+        self.assertTrue(set(make_profile._load_config().ATS_TITLE_HINTS)
+                        <= set(ns["ATS_TITLE_HINTS"]))
+
+    def test_the_schema_requires_them_and_the_prompt_explains_them(self):
+        for field in ("title_hints", "title_exclude"):
+            self.assertIn(field, make_profile.RESPONSE_SCHEMA["properties"])
+            self.assertIn(field, make_profile.RESPONSE_SCHEMA["required"])
+        prompt = make_profile.build_prompt("a résumé", {
+            "locations": ["Remote"], "avoid": [], "exclude_levels": []})
+        self.assertIn("title_hints", prompt)
+        # The failure mode has to be stated too, or the model emits
+        # search-engine phrases instead of title fragments. It is spelled out
+        # in the system instruction, which travels separately from the prompt
+        # — both are asserted, because either one going missing is silent.
+        self.assertIn("substrings", prompt)
+        self.assertIn("RULE 3", make_profile.SYSTEM_INSTRUCTION)
+        self.assertIn("is_dev_title", make_profile.SYSTEM_INSTRUCTION)
+
+
+class TestHimalayasQueries(unittest.TestCase):
+    """The feed's search endpoint takes one free-text query per request, and
+    the résumé's role keywords are what to search for. Before this the adapter
+    paged blind through ~96k mostly non-engineering jobs."""
+
+    def test_the_role_keywords_become_the_search(self):
+        ns = rendered_namespace()
+        self.assertEqual(ns["FEEDS"]["himalayas"]["queries"],
+                         PAYLOAD["role_keywords"])
+
+    def test_the_whole_feed_entry_is_written(self):
+        # config._overlay merges one level deep (FEEDS.update(override)), so a
+        # partial {"himalayas": {"queries": [...]}} REPLACES the real entry and
+        # takes "enabled" with it — turning the feed off while appearing to
+        # configure it. Same trap _fmt_sites documents for SITES.
+        ns = rendered_namespace()
+        entry = ns["FEEDS"]["himalayas"]
+        self.assertTrue(entry["enabled"])
+        self.assertIn("pages", entry)
+
+    def test_the_other_feeds_are_left_to_config(self):
+        # dict.update merges per key, so an overlay naming only himalayas
+        # leaves remoteok/wwr/remotive/jobicy exactly as config.py has them.
+        ns = rendered_namespace()
+        self.assertEqual(set(ns["FEEDS"]), {"himalayas"})
+
+    def test_no_keywords_means_no_overlay_at_all(self):
+        # Rather than an overlay with an empty query list, which would look
+        # deliberate and still page blind.
+        ns = rendered_namespace(payload=dict(PAYLOAD, role_keywords=[]))
+        self.assertNotIn("FEEDS", ns)
 
 
 class TestValidateKeys(unittest.TestCase):

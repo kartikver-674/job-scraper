@@ -9,6 +9,7 @@ These are the highest value-per-line sources in the whole project: one request
 returns a whole board of international remote roles.
 """
 from email.utils import parsedate_to_datetime
+from urllib.parse import quote
 
 from ._http import dig, flat, get_json, get_xml, strip_html
 from .ats import BLANK, _date
@@ -131,22 +132,48 @@ def jobicy(cfg, keep_title, keep_location):
                                   it.get("salaryMax"), it.get("salaryPeriod")))
 
 
+def _himalayas_urls(cfg):
+    """Search URLs when the profile named its roles, browse pages otherwise.
+
+    Split out so the choice can be asserted offline (python -m sources): it is
+    a branch between two access patterns with very different yields, and it is
+    driven by config, so getting it wrong is silent.
+    """
+    queries = [str(q).strip() for q in (cfg.get("queries") or []) if str(q).strip()]
+    if queries:
+        return [f"https://himalayas.app/jobs/api/search?limit=20&q={quote(q)}"
+                for q in queries[:cfg.get("max_queries", 8)]]
+    return [f"https://himalayas.app/jobs/api?limit=20&offset={page * 20}"
+            for page in range(cfg.get("pages", 10))]
+
+
 def himalayas(cfg, keep_title, keep_location):
-    """himalayas.app — the richest metadata of any free feed, behind the worst
-    access pattern.
+    """himalayas.app — the richest metadata of any free feed.
 
     It reports timezoneRestrictions as actual UTC offsets, which is better
     timezone data than anything else here produces, plus structured pay and
-    location restrictions. But the API takes no category or search filter (all
-    three documented-looking params are silently ignored) and pages 20 at a time
-    through ~96k mostly non-engineering jobs, so yield per request is low and we
-    page a bounded number of times rather than chase it.
+    location restrictions.
+
+    Two access patterns, and `queries` picks between them:
+
+      SEARCH (/jobs/api/search?q=) is used when the profile supplies role
+      keywords. It did not exist when this adapter was written — the old
+      comment here recorded that no filter was available — so the feed paged
+      blind through ~96k mostly non-engineering jobs at 20 a time, and 200 rows
+      per run yielded the 76 distinct postings it ever contributed across every
+      sweep in output/.
+
+      BROWSE (/jobs/api?offset=) is the fallback for a profile with no
+      keywords, so nothing breaks without them.
+
+    The two endpoints return the SAME job shape, so one field map serves both.
+    Queries are capped because this API rate-limits (429) and the cap keeps a
+    keyword-rich profile from making more requests than the blind paging did.
     """
     rows = []
-    for page in range(cfg.get("pages", 10)):
+    for url in _himalayas_urls(cfg):
         rows += _json_rows(
-            "himalayas",
-            f"https://himalayas.app/jobs/api?limit=20&offset={page * 20}", "jobs",
+            "himalayas", url, "jobs",
             {"Title": "title", "Company": "companyName", "Posted Date": "pubDate",
              "Job URL": "applicationLink", "Description": "description",
              "Experience": "employmentType"},
