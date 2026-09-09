@@ -597,6 +597,37 @@ td.score {
 }
 @keyframes pulse { 50% { opacity: .25; } }
 
+/* ---- Arrivals ----------------------------------------------------------- */
+
+/* Newest on top, dimming down the list, so the eye lands on what just came
+   in. The entrance sits on the inner element and the dulling on the row, so
+   the two opacities compose instead of overwriting each other — and the
+   dulling is a transition, so a row fades back as it is pushed down rather
+   than stepping. */
+.feed { list-style: none; margin: 0; padding: 0; }
+.feed li {
+  display: flex; align-items: baseline; gap: var(--s4);
+  padding: var(--s3) 0; border-top: 1px solid var(--rule);
+  transition: opacity .5s ease;
+}
+.feed li:first-child { border-top: 0; padding-top: 0; }
+.feed li > span:first-child { flex: 1 1 auto; min-width: 0; }
+.feed li:nth-child(2) { opacity: .88; }
+.feed li:nth-child(3) { opacity: .78; }
+.feed li:nth-child(4) { opacity: .68; }
+.feed li:nth-child(5) { opacity: .59; }
+.feed li:nth-child(6) { opacity: .5; }
+.feed li:nth-child(7) { opacity: .42; }
+.feed li:nth-child(8) { opacity: .35; }
+.feed li > * { animation: arrive .5s ease both; }
+@keyframes arrive { from { opacity: 0; transform: translateY(-8px); } }
+.feed b { display: block; color: var(--chalk); }
+.feed .meta { display: block; margin-top: var(--s1); }
+.feed-score {
+  flex: none; font-family: var(--display); font-size: 15px; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--warm);
+}
+
 /* ---- The mark ----------------------------------------------------------- */
 
 .mark { display: block; flex: none; }

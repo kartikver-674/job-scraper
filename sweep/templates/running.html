@@ -10,10 +10,14 @@
    numeral and bar follow the SSE stream instead of sitting at their first
    value for the whole ~40-minute sweep. Same p.spend the body reads. #}
 {# Single-quoted for the reason in configure.html: |tojson leaves " raw. #}
-{% block meter_scope %} x-data='{ p: {{ progress|tojson }}, cap: {{ cap_usd|tojson }} }'
+{% block meter_scope %} x-data='{ p: {{ progress|tojson }}, cap: {{ cap_usd|tojson }}, drift: 0,
+       hms(s) { var m = Math.floor(s / 60); return (m ? m + "m " : "") + (s % 60) + "s" },
+       ago(s) { return s > 59 ? Math.floor(s / 60) + "m ago"
+                              : (s > 4 ? s + "s ago" : "just now") } }'
      x-init="const es = new EventSource('{{ url_for('events') }}');
-             es.onmessage = e => { p = JSON.parse(e.data);
-                                   if (p.finished || p.interrupted) es.close(); }"{% endblock %}
+             es.onmessage = e => { p = JSON.parse(e.data); drift = 0;
+                                   if (p.finished || p.interrupted) es.close(); };
+             setInterval(() => { if (!p.finished &amp;&amp; !p.interrupted) drift++ }, 1000)"{% endblock %}
 {# cap is carried in the single-quoted x-data above, never interpolated into
    these double-quoted attributes: {{ cap|tojson }} inside one of them is the
    same defect R65 fixed, and a non-numeric cap would break it silently. #}
@@ -24,7 +28,9 @@
    one on the page, and no :style may appear above the fill's. #}
 {% block meter_facts %}{% if free_only %}<b>Free sources only</b>{% else %}<b
   x-text="p.done + ' of ' + p.planned + ' searches'"></b>
-  · ${{ '%.2f'|format(plan.total) }} planned{% endif %}{% endblock %}
+  · ${{ '%.2f'|format(plan.total) }} planned{% endif %}<span
+  x-show="p.elapsed !== null" x-cloak> · running
+  <span x-text="hms(p.elapsed + drift)"></span></span>{% endblock %}
 {% block body %}
 <div class="stack">
 
@@ -54,6 +60,8 @@
   {% if free_only %}
     <div class="working-bar" x-show="!p.finished"><span></span></div>
   {% else %}
+  <div class="split">
+   <div class="stack">
   <div class="tiles">
     <div class="tile">
       <span class="label">Searches finished</span>
@@ -117,6 +125,50 @@
     {% if plan.free_sources %}
       <p class="muted">{{ plan.free_sources }} free sources also run, at no cost.</p>
     {% endif %}
+  </div>
+   </div>
+
+   {# The reason this panel exists: a paid sweep takes about 40 minutes, and
+      between searches nothing else on the screen moves. Listings are real
+      output arriving, so they are the honest thing to show — the engine
+      checkpoints its file after every search, and this is the difference
+      between two readings of it. #}
+   <aside class="aside">
+     <div class="panel">
+       <div class="panel-head">
+         <h2>Listings arriving</h2>
+         <span class="meta"><b x-text="p.found"></b> found</span>
+       </div>
+       <ul class="feed">
+         {# Keyed on the engine's own row identity, so Alpine MOVES a row it
+            has already rendered instead of rebuilding it: the dulling is a
+            transition on that element, and a rebuilt one would re-run the
+            entrance animation on every tick. #}
+         <template x-for="job in p.latest" :key="job.key">
+           <li>
+             <span>
+               <b x-text="job.title"></b>
+               <span class="meta" x-text="job.company
+                       + (job.site ? ' · ' + job.site : '')"></span>
+             </span>
+             <span class="feed-score" x-text="job.score"></span>
+           </li>
+         </template>
+       </ul>
+       {# Server-correct and live, the same pattern the cost panel uses. #}
+       <p class="empty" x-show="!p.latest.length"
+          {% if progress.latest %}style="display:none"{% endif %}>
+         <b>Nothing yet</b>
+         The first search has to finish before anything lands here. That
+         usually takes a minute or two.</p>
+       {# The counterpart to the animation: a sweep that has genuinely
+          stalled must SAY so, or a moving list is just a nicer way to look
+          busy while nothing happens. #}
+       <p class="meta" x-show="p.since !== null" x-cloak>Last listing
+         <span x-text="ago(p.since)"></span>. They arrive in batches, as each
+         search finishes.</p>
+     </div>
+   </aside>
   </div>
   {% endif %}
 

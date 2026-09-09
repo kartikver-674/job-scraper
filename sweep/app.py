@@ -50,6 +50,11 @@ STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Free or paid"),
 # be ~1200 live requests for a figure that moves slowly.
 SPEND_POLL_SECONDS = 15
 
+# How many arriving listings the running screen keeps on screen. A sample,
+# not a ledger: the results screen is where every row is, and this figure is
+# also the size of the payload every SSE tick has to carry.
+FEED_LEN = 8
+
 # The cap POST /run stamps into the profile is the ESTIMATE times this, not
 # the estimate itself. SITE_RATES are measured averages, so a real sweep lands
 # near the estimate but not on it — and /confirm says so in as many words. A
@@ -151,8 +156,9 @@ def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
                check_token=None, env_path=None, fetch_plan=None,
                start_sweep=None, read_spend=None, output_dir=None,
-               read_done=None, now=None, read_rows=None,
-               start_rescore=None, hour_now=None, profile_exists=None):
+               read_done=None, now=None, read_rows=None, read_live=None,
+               start_rescore=None, hour_now=None, profile_exists=None,
+               wall_now=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -282,6 +288,40 @@ def create_app(state=None, extract=None, resume_dir=None,
             out_dir = os.path.join(output_dir, profile)
             return runs_mod.done_keys(runs_mod.done_path_for(out_dir), day)
 
+    # Wall clock, injected like the rest. `now` is monotonic and says nothing
+    # about the time of day, but this one is compared against FILE mtimes and
+    # is shown to the user as an elapsed time, so it has to be the real clock.
+    wall_now = wall_now if wall_now is not None else _time_mod.time
+
+    if read_live is None:
+        def read_live(profile, since):
+            """Rows from the file THIS sweep is writing, or [].
+
+            The newest jobs_<stamp>.csv, and deliberately NOT
+            jobs_combined.csv: that file is merge_jobs.py's output and spans
+            every earlier sweep, so a live feed built on it would open by
+            presenting last month's listings as things that just arrived.
+
+            `since` is the same guard one step further: at the moment a sweep
+            launches, the newest stamped file is still the PREVIOUS sweep's,
+            so a file untouched since before this run started is not this
+            run's and is ignored entirely.
+
+            Read through the injected output_dir, same as read_done and
+            _write_run_json, so a test can never reach a real profile's real
+            (paid, unrecoverable) output directory.
+            """
+            import csv
+            import glob
+            files = [f for f in glob.glob(
+                        os.path.join(output_dir, profile, "jobs_2*.csv"))
+                     if since is None or os.path.getmtime(f) >= since]
+            if not files:
+                return []
+            with open(max(files, key=os.path.getmtime),
+                      newline="", encoding="utf-8") as fh:
+                return list(csv.DictReader(fh))
+
     if read_rows is None:
         def read_rows(profile):
             """This profile's shortlist, newest first, or [] if none yet.
@@ -325,6 +365,62 @@ def create_app(state=None, extract=None, resume_dir=None,
         from sweep import runs as runs_mod
         start_rescore = runs_mod.start_rescore
 
+    def live_feed(p):
+        """Listings this sweep has produced: how many, and a sample of the
+        ones that appeared since the last reading.
+
+        scraper.py rewrites its output file WHOLE after every search
+        (finalize() re-ranks every row), so what is new cannot be found by
+        tailing the file — it is the difference between two readings, which
+        is why the keys already reported are kept on state.
+
+        Free-only sweeps get nothing here, and deliberately: fetch_free()
+        returns everything in one pass at the end, so a feed would sit empty
+        for the whole run and then flash the lot. That path shows the
+        indeterminate bar instead, which is the honest signal for work with
+        no reportable progress.
+        """
+        p["found"] = app.state.get("live_found", 0)
+        p["latest"] = app.state.get("live_items", [])
+        p["since"] = None
+        if free_only():
+            return
+        rows = read_live(app.state["profile"], app.state.get("run_started_at"))
+        if len(rows) < p["found"]:
+            # A reading can land mid-write and come back short. During a
+            # sweep this file only ever grows, so a shorter one is a torn
+            # read rather than news, and reporting it would walk the count
+            # backwards on a screen someone is watching for reassurance.
+            return
+        seen = app.state.setdefault("live_seen", set())
+        fresh = []
+        for row in rows:
+            # The engine's own identity rule, not a second one that could
+            # disagree with it. A row it cannot key on is counted but never
+            # shown: without an identity, every re-read would report it as
+            # having just arrived, over and over.
+            key = scraper._seen_key(row)
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            fresh.append({"key": key,
+                          "title": (row.get("title") or "").strip(),
+                          "company": (row.get("company") or "").strip(),
+                          "site": (row.get("source_site") or "").strip(),
+                          "score": _as_int(row.get("score"))})
+        app.state["live_found"] = p["found"] = len(rows)
+        if fresh:
+            # Newest batch on top. Within a batch the engine's own order is
+            # kept, which is by score — so what shows is the best of what
+            # just arrived, not an arbitrary slice of it.
+            app.state["live_items"] = (
+                fresh + app.state.get("live_items", []))[:FEED_LEN]
+            app.state["live_at"] = wall_now()
+        p["latest"] = app.state.get("live_items", [])
+        last_at = app.state.get("live_at")
+        if last_at is not None:
+            p["since"] = int(max(0, wall_now() - last_at))
+
     def snapshot():
         """One progress reading. Spend is a delta from the recorded baseline,
         because account_usage_usd is month-to-date, not per-run."""
@@ -343,6 +439,13 @@ def create_app(state=None, extract=None, resume_dir=None,
         # No account to poll on the free path, and nothing that reading it
         # could report: skipped rather than called every 15s for a figure
         # that is zero by construction.
+        live_feed(p)
+        started = app.state.get("run_started_at")
+        # None until POST /run records it, and after a server restart. Shown
+        # as nothing rather than as zero: a clock reading 0s beside a sweep
+        # that is minutes old is worse than no clock.
+        p["elapsed"] = None if started is None else int(wall_now() - started)
+
         if free_only():
             p["spend"] = 0.0
             p["spend_known"] = p["baseline_known"] = True
@@ -979,6 +1082,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             # month-to-date total from a token this sweep never uses — is a
             # figure nothing here may attribute to it.
             app.state["baseline_usd"] = None if free_only() else read_spend()
+            # Both the elapsed clock and the live feed hang off this: the
+            # feed ignores any output file untouched since before it, which
+            # is what stops the previous sweep's rows opening the feed.
+            app.state["run_started_at"] = wall_now()
             app.state["proc"] = start_sweep(app.state["profile"])
             _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))

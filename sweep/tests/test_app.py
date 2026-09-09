@@ -927,7 +927,9 @@ class TestEmptyAndPendingStates(unittest.TestCase):
         app = app_module.create_app(
             state=base, extract=lambda p: "x", derive=lambda t, p: DERIVED,
             check_token=lambda t: (8.41, None),
-            fetch_plan=fetch or (lambda profile: plan or RAW_PLAN))
+            fetch_plan=fetch or (lambda profile: plan or RAW_PLAN),
+            # One of these reaches /running, whose feed reads the filesystem.
+            output_dir=tempfile.mkdtemp())
         app.config.update(TESTING=True)
         app.write_profile = lambda n, src: None
         return app
@@ -2770,6 +2772,7 @@ class TestRunningScreen(unittest.TestCase):
             start_sweep=lambda profile: proc,
             read_spend=read_spend or (lambda: 2.42),
             read_done=lambda profile, day: set(done),
+            output_dir=tempfile.mkdtemp(),
             **kwargs)
         app.config.update(TESTING=True)
         return app, state, proc
@@ -2925,7 +2928,8 @@ class TestRunningScreen(unittest.TestCase):
             fetch_plan=lambda profile: plan,
             start_sweep=lambda profile: state["proc"],
             read_spend=lambda: 2.42,
-            read_done=lambda profile, day: set())
+            read_done=lambda profile, day: set(),
+            output_dir=tempfile.mkdtemp())
         app.config.update(TESTING=True)
         payload = app.test_client().get("/progress").get_json()
         tiles_by_site = {t["site"]: t for t in payload["tiles"]}
@@ -3046,6 +3050,245 @@ ROWS = [
         'verified_live': ''
     },
 ]
+
+
+class TestArrivalsFeed(unittest.TestCase):
+    """A paid sweep takes about 40 minutes and, between searches, nothing on
+    the running screen moves — which reads as broken. The feed shows the
+    listings the engine has actually checkpointed.
+
+    These exercise the REAL reader, not a stub: the globbing, the mtime floor
+    and the diff between two readings are where the defects live.
+    """
+
+    COLUMNS = "score,title,company,source_site,req_number,apply_url"
+
+    def setUp(self):
+        self.out = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.out)
+        self.dir = os.path.join(self.out, "kanav")
+        os.makedirs(self.dir)
+        self.clock = [1_000_000.0]
+
+    def write(self, name, rows, mtime=None):
+        """One of the engine's output files. It rewrites this whole file after
+        every search, which is why the feed diffs readings instead of tailing.
+        """
+        path = os.path.join(self.dir, name)
+        lines = [self.COLUMNS]
+        for row in rows:
+            lines.append(",".join(str(c) for c in row))
+        pathlib.Path(path).write_text("\n".join(lines) + "\n")
+        if mtime is not None:
+            os.utime(path, (mtime, mtime))
+        return path
+
+    def job(self, n, score=70, site="linkedin"):
+        return (score, f"Engineer {n}", f"Company {n}", site, "", "")
+
+    def _app(self, state=None, **kw):
+        state = state if state is not None else {
+            "profile": "kanav", "cap_usd": 8.41, "proc": FakeProc(),
+            "baseline_usd": 1.0, "raw_plan": RUNNING_PLAN,
+            "plan": {"total": 2.70, "total_searches": 46, "over_cap": False,
+                     "lines": []},
+            "run_started_at": self.clock[0]}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RUNNING_PLAN,
+            read_spend=lambda: 2.42, read_done=lambda profile, day: set(),
+            output_dir=self.out, wall_now=lambda: self.clock[0], **kw)
+        app.config.update(TESTING=True)
+        return app
+
+    def tick(self, seconds=1.0):
+        self.clock[0] += seconds
+
+    def feed(self, app):
+        body = app.test_client().get("/running").get_data(as_text=True)
+        return json.loads(alpine_scope(body)[0]
+                          .split("p: ", 1)[1].rsplit(", cap:", 1)[0])
+
+    # ---- what counts as this sweep's output -----------------------------
+    def test_the_previous_sweeps_file_does_not_open_the_feed(self):
+        # At the moment a sweep launches, the newest stamped file is still the
+        # LAST sweep's. Without the mtime floor the feed opens by presenting
+        # last month's listings as things that just arrived.
+        self.write("jobs_2026-08-01_1200.csv", [self.job(i) for i in range(5)],
+                   mtime=self.clock[0] - 3600)
+        p = self.feed(self._app())
+        self.assertEqual(p["found"], 0)
+        self.assertEqual(p["latest"], [])
+        self.assertIsNone(p["since"])
+
+    def test_the_merged_file_is_never_the_live_one(self):
+        # jobs_combined.csv is merge_jobs.py's output and spans every earlier
+        # sweep. read_rows PREFERS it, which is right for /results and wrong
+        # here.
+        self.write("jobs_combined.csv", [self.job(i) for i in range(9)])
+        p = self.feed(self._app())
+        self.assertEqual(p["found"], 0)
+
+    def test_rows_from_this_sweep_arrive(self):
+        self.write("jobs_2026-09-09_1800.csv", [self.job(1), self.job(2)])
+        p = self.feed(self._app())
+        self.assertEqual(p["found"], 2)
+        self.assertEqual([j["title"] for j in p["latest"]],
+                         ["Engineer 1", "Engineer 2"])
+        self.assertEqual(p["latest"][0]["company"], "Company 1")
+        self.assertEqual(p["latest"][0]["site"], "linkedin")
+        self.assertEqual(p["latest"][0]["score"], 70)
+
+    # ---- the diff between two readings ----------------------------------
+    def test_the_same_file_read_twice_reports_nothing_new(self):
+        app = self._app()
+        self.write("jobs_2026-09-09_1800.csv", [self.job(1)])
+        self.assertEqual(len(self.feed(app)["latest"]), 1)
+        self.tick(30)
+        again = self.feed(app)
+        # Still on screen — it is a feed, not a queue — but not re-reported,
+        # so "last one 30s ago" stays true.
+        self.assertEqual(len(again["latest"]), 1)
+        self.assertEqual(again["since"], 30)
+
+    def test_a_new_batch_goes_on_top(self):
+        app = self._app()
+        self.write("jobs_2026-09-09_1800.csv", [self.job(1)])
+        self.feed(app)
+        self.tick(60)
+        # The engine rewrites the file whole and re-ranks it, so the new row
+        # can land anywhere in it — here, first.
+        self.write("jobs_2026-09-09_1800.csv", [self.job(2), self.job(1)])
+        p = self.feed(app)
+        self.assertEqual([j["title"] for j in p["latest"]],
+                         ["Engineer 2", "Engineer 1"])
+        self.assertEqual(p["found"], 2)
+        self.assertEqual(p["since"], 0)
+
+    def test_the_feed_is_capped(self):
+        app = self._app()
+        self.write("jobs_2026-09-09_1800.csv",
+                   [self.job(i) for i in range(40)])
+        p = self.feed(app)
+        # Every row counted, a sample shown: this payload ships on every SSE
+        # tick for forty minutes.
+        self.assertEqual(p["found"], 40)
+        self.assertEqual(len(p["latest"]), app_module.FEED_LEN)
+
+    def test_a_torn_read_does_not_walk_the_count_backwards(self):
+        # A reading can land while the engine is rewriting the file. During a
+        # sweep it only ever grows, so a shorter one is a torn read — and a
+        # count that drops is exactly the "is this broken?" signal this whole
+        # panel exists to remove.
+        app = self._app()
+        self.write("jobs_2026-09-09_1800.csv",
+                   [self.job(i) for i in range(10)])
+        self.assertEqual(self.feed(app)["found"], 10)
+        self.write("jobs_2026-09-09_1800.csv", [self.job(0), self.job(1)])
+        self.assertEqual(self.feed(app)["found"], 10)
+
+    def test_a_row_with_no_identity_is_counted_but_not_shown(self):
+        # job_key() returns None for a row with no req number, no
+        # company+title and no URL. Shown, it would arrive again on every
+        # single tick, because nothing can tell it from itself.
+        app = self._app()
+        self.write("jobs_2026-09-09_1800.csv",
+                   [self.job(1), (50, "", "", "indeed", "", "")])
+        p = self.feed(app)
+        self.assertEqual(p["found"], 2)
+        self.assertEqual([j["title"] for j in p["latest"]], ["Engineer 1"])
+
+    # ---- the honest counterpart -----------------------------------------
+    def test_a_stall_is_stated_not_hidden(self):
+        # A moving list is otherwise just a nicer way to look busy while
+        # nothing is happening.
+        app = self._app()
+        self.write("jobs_2026-09-09_1800.csv", [self.job(1)])
+        self.feed(app)
+        self.tick(420)
+        self.assertEqual(self.feed(app)["since"], 420)
+
+    def test_the_clock_runs_from_the_launch(self):
+        app = self._app()
+        self.tick(95)
+        self.assertEqual(self.feed(app)["elapsed"], 95)
+
+    def test_no_clock_rather_than_a_wrong_one(self):
+        # run_started_at is absent after a server restart. A clock reading 0s
+        # beside a sweep that is minutes old is worse than no clock.
+        state = {"profile": "kanav", "cap_usd": 8.41, "proc": FakeProc(),
+                 "baseline_usd": 1.0, "raw_plan": RUNNING_PLAN,
+                 "plan": {"total": 2.70, "total_searches": 46,
+                          "over_cap": False, "lines": []}}
+        p = self.feed(self._app(state=state))
+        self.assertIsNone(p["elapsed"])
+
+    def test_the_screen_says_nothing_has_landed_yet(self):
+        body = self._app().test_client().get("/running").get_data(as_text=True)
+        self.assertIn("Nothing yet", body)
+        # Server-correct as well as live: with no rows the empty state must
+        # not be the thing that is hidden.
+        self.assertNotIn('<p class="empty" x-show="!p.latest.length"\n'
+                         '          style="display:none"', body)
+
+    def test_the_launch_records_when_it_started(self):
+        # Both the clock and the feed's mtime floor hang off this one value:
+        # without it the previous sweep's output file opens the feed.
+        state = {"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED,
+                 "raw_plan": RUNNING_PLAN,
+                 "plan": {"total": 2.70, "total_searches": 46,
+                          "over_cap": False, "lines": [], "spend_cap": 3.38}}
+        app = self._app(state=state,
+                        start_sweep=lambda profile: FakeProc(),
+                        hour_now=lambda: 9)
+        app.write_profile = lambda n, src: None
+        r = app.test_client().post("/run")
+        self.assertEqual(r.status_code, 302, r.get_data(as_text=True)[:300])
+        self.assertEqual(state["run_started_at"], self.clock[0])
+
+    def test_the_screen_carries_a_clock_that_ticks_between_frames(self):
+        # The SSE stream lands every two seconds and, between searches,
+        # nothing in it changes for up to a minute. A seconds counter is the
+        # one thing on screen that always moves — which is the difference
+        # between "working" and "broken" to someone watching it.
+        body = self._app().test_client().get("/running").get_data(as_text=True)
+        self.assertIn("hms(p.elapsed + drift)", body)
+        self.assertIn("setInterval", body)
+        # Anchored to the server on every frame, so it cannot drift away
+        # from the figure the sweep actually reports.
+        self.assertIn("drift = 0", body)
+
+    # ---- the free path ---------------------------------------------------
+    def test_a_free_sweep_gets_no_feed_and_never_reads_the_file(self):
+        # fetch_free() returns everything in one pass at the end, so a feed
+        # would sit empty for the whole run and then flash the lot. The
+        # indeterminate bar is the honest signal there.
+        def no_read(profile, since):
+            raise AssertionError("the free path has nothing to feed from")
+        app = self._app(state={
+            "profile": "kanav", "free_only": True, "proc": FakeProc(),
+            "raw_plan": {"profile": "kanav", "sites": {}, "max_results": {},
+                          "free_sources": 39},
+            "plan": {"total": 0.0, "total_searches": 0, "over_cap": False,
+                     "lines": [], "free_sources": 39},
+            "run_started_at": self.clock[0]}, read_live=no_read)
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertNotIn("Listings arriving", body)
+        self.assertIn("working-bar", body)
+
+    def test_the_clock_is_shown_on_the_free_path_too(self):
+        app = self._app(state={
+            "profile": "kanav", "free_only": True, "proc": FakeProc(),
+            "raw_plan": {"profile": "kanav", "sites": {}, "max_results": {},
+                          "free_sources": 39},
+            "plan": {"total": 0.0, "total_searches": 0, "over_cap": False,
+                     "lines": [], "free_sources": 39},
+            "run_started_at": self.clock[0]})
+        self.tick(140)
+        p = self.feed(app)
+        self.assertEqual(p["elapsed"], 140)
+        self.assertEqual(p["latest"], [])
 
 
 class TestResultsScreen(unittest.TestCase):
