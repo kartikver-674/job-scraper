@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Sweep running — Sweep{% endblock %}
+{# Label follows the figure: with no baseline to subtract, p.spend is the
+   account's month-to-date total, which is NOT this sweep's spend. The body
+   copy already says so; the header used to claim "Spent so far" over it. #}
+{% block meter_label %}{% if free_only %}Spent so far{% else %}<span x-text="p.baseline_known ? 'Spent so far'
+    : 'Account spend this month'">{% if spend_is_this_sweep %}Spent so far{%
+    else %}Account spend this month{% endif %}</span>{% endif %}{% endblock %}
+{# The Alpine scope wraps the header meter as well as the body, so the header
+   numeral and bar follow the SSE stream instead of sitting at their first
+   value for the whole ~40-minute sweep. Same p.spend the body reads. #}
+{# Single-quoted for the reason in configure.html: |tojson leaves " raw. #}
+{% block meter_scope %} x-data='{ p: {{ progress|tojson }}, cap: {{ cap_usd|tojson }}, drift: 0,
+       hms(s) { var m = Math.floor(s / 60); return (m ? m + "m " : "") + (s % 60) + "s" },
+       ago(s) { return s > 59 ? Math.floor(s / 60) + "m ago"
+                              : (s > 4 ? s + "s ago" : "just now") } }'
+     x-init="const es = new EventSource('{{ url_for('events') }}');
+             es.onmessage = e => { p = JSON.parse(e.data); drift = 0;
+                                   if (p.finished || p.interrupted) es.close(); };
+             setInterval(() => { if (!p.finished &amp;&amp; !p.interrupted) drift++ }, 1000)"{% endblock %}
+{# cap is carried in the single-quoted x-data above, never interpolated into
+   these double-quoted attributes: {{ cap|tojson }} inside one of them is the
+   same defect R65 fixed, and a non-numeric cap would break it silently. #}
+{% block meter_numeral_bind %} x-text="p.spend === null ? 'not known' : '$' + p.spend.toFixed(2)"{% endblock %}
+{% block meter_class_bind %} :class="{ over: p.baseline_known && p.spend !== null && cap !== null && p.spend > cap }"{% endblock %}
+{% block meter_fill_bind %} :style="'width: ' + (!p.baseline_known || p.spend === null || !cap ? 0 : Math.min(100, Math.round(p.spend / cap * 100))) + '%'"{% endblock %}
+{# <b>, not <span>: the meter label's own <span x-text> has to stay the first
+   one on the page, and no :style may appear above the fill's. #}
+{% block meter_facts %}{% if free_only %}<b>Free sources only</b>{% else %}<b
+  x-text="p.done + ' of ' + p.planned + ' searches'"></b>
+  · ${{ '%.2f'|format(plan.total) }} planned{% endif %}<span
+  x-show="p.elapsed !== null" x-cloak> · running
+  <span x-text="hms(p.elapsed + drift)"></span></span>{% endblock %}
+{% block body %}
+<div class="stack">
+
+  <div class="stack-tight">
+    <h1>Running the sweep</h1>
+    {% if free_only %}
+      {# No per-search progress exists for these: the engine fetches the free
+         boards and feeds in one pass, so the honest report is that it is
+         working, not a fraction invented to look like one. #}
+      <p class="lede" x-text="p.finished
+                ? 'Finished. Nothing was charged.'
+                : (p.interrupted
+                     ? 'Stopped early. Everything already fetched is saved.'
+                     : 'Fetching the free boards and feeds. Nothing is being charged.')"></p>
+    {% else %}
+      <p class="lede" x-show="p.spend === null">Spend is unavailable right now — the sweep is
+        still running and everything already fetched is saved.</p>
+      <p class="lede" x-show="p.spend !== null"
+         x-text="(p.baseline_known
+                    ? 'Spent so far $' + p.spend.toFixed(2)
+                    : 'Account spend this month $' + p.spend.toFixed(2)
+                      + ' — this sweep\'s own share is unknown')
+                 + ' of ${{ '%.2f'|format(plan.total) }} planned, ' + p.remaining_text"></p>
+    {% endif %}
+  </div>
+
+  {% if free_only %}
+    <div class="working-bar" x-show="!p.finished"><span></span></div>
+  {% else %}
+  <div class="split">
+   <div class="stack">
+  <div class="tiles">
+    <div class="tile">
+      <span class="label">Searches finished</span>
+      <span class="figure" x-text="p.done"></span>
+      <span class="meta" x-text="'of ' + p.planned + ' planned'"></span>
+    </div>
+    <div class="tile">
+      <span class="label">Still to run</span>
+      <span class="figure" x-text="p.outstanding"></span>
+      <span class="meta" x-text="p.remaining_text"></span>
+    </div>
+    {# The label is bound for the same reason the header's is: with no
+       baseline to subtract this figure is the account's month-to-date total,
+       and "Spent so far" over it is a false claim about this sweep. #}
+    <div class="tile">
+      <span class="label" x-text="p.baseline_known ? 'Spent so far'
+              : 'Account spend this month'">{% if spend_is_this_sweep %}Spent so
+        far{% else %}Account spend this month{% endif %}</span>
+      <span class="figure paid"
+            x-text="p.spend === null ? 'not known' : '$' + p.spend.toFixed(2)"></span>
+      <span class="meta">of ${{ '%.2f'|format(plan.total) }} planned</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if free_only %}
+    <div class="panel">
+      <h2>Free sources</h2>
+      <p class="muted">{% if plan.free_sources %}{{ plan.free_sources }} boards
+        and feeds are{% else %}The free boards and feeds are{% endif %} fetched
+        in one pass, so there is no per-search progress to show. The listings
+        land on the results screen when the pass finishes.</p>
+    </div>
+  {% else %}
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Searches</h2>
+      <span class="meta"><span class="key paid">paid</span>
+        <span class="key free">free</span>
+        <span class="key">not run yet</span></span>
+    </div>
+    {# Server-correct and live, the same pattern the cost sidebar uses: a
+       free-feeds-only sweep has no paid searches to tile, and an empty grid
+       reads as "nothing is happening" rather than "nothing is billed". #}
+    <p class="empty" x-show="!p.tiles.length"
+       {% if progress.tiles %}style="display:none"{% endif %}>
+      <b>No paid searches in this sweep</b>
+      Only the free feeds are running, so there is nothing metered to track
+      here. The listings still land on the results screen.</p>
+    <div class="search-grid" x-show="p.tiles.length"
+         {% if not progress.tiles %}style="display:none"{% endif %}>
+      <template x-for="(t, i) in p.tiles" :key="i">
+        <div :title="t.label"
+             :style="'border:1px solid var(--rule);background:' +
+                     (t.state === 'done'
+                        ? (t.free ? 'var(--free)' : 'var(--paid)')
+                        : 'var(--well)')"></div>
+      </template>
+    </div>
+    <p class="muted" x-text="p.done + ' of ' + p.planned + ' finished'"></p>
+    {% if plan.free_sources %}
+      <p class="muted">{{ plan.free_sources }} free sources also run, at no cost.</p>
+    {% endif %}
+  </div>
+   </div>
+
+   {# The reason this panel exists: a paid sweep takes about 40 minutes, and
+      between searches nothing else on the screen moves. Listings are real
+      output arriving, so they are the honest thing to show — the engine
+      checkpoints its file after every search, and this is the difference
+      between two readings of it. #}
+   <aside class="aside">
+     <div class="panel">
+       <div class="panel-head">
+         <h2>Listings arriving</h2>
+         <span class="meta"><b x-text="p.found"></b> found</span>
+       </div>
+       <ul class="feed">
+         {# Keyed on the engine's own row identity, so Alpine MOVES a row it
+            has already rendered instead of rebuilding it: the dulling is a
+            transition on that element, and a rebuilt one would re-run the
+            entrance animation on every tick. #}
+         <template x-for="job in p.latest" :key="job.key">
+           <li>
+             <span>
+               <b x-text="job.title"></b>
+               <span class="meta" x-text="job.company
+                       + (job.site ? ' · ' + job.site : '')"></span>
+             </span>
+             <span class="feed-score" x-text="job.score"></span>
+           </li>
+         </template>
+       </ul>
+       {# Server-correct and live, the same pattern the cost panel uses. #}
+       <p class="empty" x-show="!p.latest.length"
+          {% if progress.latest %}style="display:none"{% endif %}>
+         <b>Nothing yet</b>
+         The first search has to finish before anything lands here. That
+         usually takes a minute or two.</p>
+       {# The counterpart to the animation: a sweep that has genuinely
+          stalled must SAY so, or a moving list is just a nicer way to look
+          busy while nothing happens. #}
+       <p class="meta" x-show="p.since !== null" x-cloak>Last listing
+         <span x-text="ago(p.since)"></span>. They arrive in batches, as each
+         search finishes.</p>
+     </div>
+   </aside>
+  </div>
+  {% endif %}
+
+  {# Not merely hidden: a free sweep has no credit to run out of, and a
+     token field left in the DOM behind display:none is still a form the page
+     can submit. #}
+  {% if not free_only %}
+  <div class="panel" x-show="p.interrupted">
+    <h2>The sweep stopped early</h2>
+    <p x-text="p.outstanding + ' searches did not run.'"></p>
+    <p class="muted">This usually means the key ran out of credit. Everything
+      already fetched is saved, and finished searches will not be re-run or
+      re-billed.</p>
+    <form method="post" action="{{ url_for('second_key') }}">
+      <label><span class="label">Another Apify token</span>
+        <input type="password" name="token" autocomplete="off" required></label>
+      <button class="primary" type="submit">Resume with this key</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <form class="actions" method="post" action="{{ url_for('stop') }}"
+        x-show="!p.finished && !p.interrupted">
+    <button class="secondary" type="submit">Stop the sweep</button>
+    <span class="muted">Everything already fetched is kept.</span>
+  </form>
+
+  <a class="primary" x-show="p.finished" href="{{ url_for('results') }}">See the results</a>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Free or paid — Sweep{% endblock %}
+{% block body %}
+<div class="stack">
+  <div class="stack-tight">
+    <h1>How far should this sweep go?</h1>
+    <p class="lede">Sweep searches company boards and public job feeds for
+      nothing. The paid boards — {{ paid|join(', ') }} — bill per search
+      against your own Apify credit.</p>
+  </div>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  {# The free answer comes first, and takes one click: this screen used to
+     demand a token before it would let anyone reach Configure, so a person
+     with no Apify account had no way past step 3 at all. #}
+  <div class="grid2 choices">
+    <form class="panel" method="post" action="{{ url_for('key_free') }}">
+      <div class="panel-head">
+        <h2>Free sources only</h2>
+        <span class="chip free">$0.00</span>
+      </div>
+      <p>Company ATS boards and public remote feeds, ranked against your
+        résumé the same way. No key, no credit, nothing to approve.</p>
+      <p class="meta">The paid boards stay switched off. You can come back to
+        this step and connect a key later — nothing you have done so far is
+        lost.</p>
+      <button class="primary" type="submit">Search the free sources</button>
+    </form>
+
+    <form class="panel" method="post" action="{{ url_for('key') }}">
+      <div class="panel-head">
+        <h2>Free sources and the paid boards</h2>
+        <span class="chip">needs a key</span>
+      </div>
+      <p>Everything above, plus {{ paid|join(', ') }}. Sweep prices the
+        search before it runs and spends nothing until you approve the plan.</p>
+      <label><span class="label">Apify API token</span>
+        <input type="password" name="token" autocomplete="off" required>
+      </label>
+      <p class="meta">Written to the .env file in this folder, on your own
+        machine. Sweep runs locally and has no server to send it to. Find it at
+        console.apify.com under Settings, then Integrations.</p>
+      <p class="meta">Verifying reads your credit balance, which is free.</p>
+      <button class="primary" type="submit">Verify key</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

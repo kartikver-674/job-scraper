@@ -1,15 +1,23 @@
 """
 Build a shareable job shortlist for a person, in one step.
 
-Full per-person flow (the scoring retune needs Claude's judgment, so it isn't
-scripted — the rest is):
+Full per-person flow:
 
   1. Drop their résumé at  auto-apply/resume/resume.pdf
-  2. Retune config.py to that résumé: paste auto-apply/RESUME_AUTOCONFIG_PROMPT.md
-     into a fresh Claude Code window at the repo root (Claude reads the PDF and
-     edits config.py — which skills to rank, what titles to search, etc.).
+  2. Derive a profile from it:
+     python auto-apply/make_profile.py --name <name> \
+         --locations "Bengaluru,Remote" --exclude-levels "intern,fresher"
   3. python auto-apply/make_shortlist.py --scrape "Their Name"
-  4. Ask Claude to publish auto-apply/shortlist.html for a shareable link.
+  4. Publish auto-apply/shortlist.html for a shareable link.
+
+Or drive the whole thing in a browser with `python -m sweep`.
+
+Step 2 used to say the retune "needs Claude's judgment, so it isn't scripted"
+and told you to paste RESUME_AUTOCONFIG_PROMPT.md into a Claude window.
+make_profile.py replaced that, and it also validates every key it emits
+against the live config — which is how two keys that prompt had invented
+(SCORING.drop_terms, SETTINGS.min_ctc_lpa) were found to have never done
+anything.
 
 Without --scrape it just rebuilds the HTML from the latest existing CSV — free,
 no Apify credits. Use --scrape only after step 2, to fetch jobs for THIS résumé.

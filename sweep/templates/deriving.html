@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_mark.html" import mark %}
+{% block title %}Reading your résumé — Sweep{% endblock %}
+{% block body %}
+<div class="working">
+  {{ mark(56) }}
+  <h1>Reading your résumé</h1>
+  <p class="lede">A model is working out which job titles to search for and how
+    to weight your skills. It takes a few seconds and spends no scraping
+    credit.</p>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  <form id="derive-now" method="post" action="{{ url_for('derive_post') }}">
+    {% if error %}
+      <div class="actions">
+        <button class="primary" type="submit">Try a different résumé</button>
+        <a class="secondary" href="{{ url_for('upload') }}">Upload another PDF</a>
+      </div>
+    {% else %}
+      {# The bar is not gated on anything. It used to appear only once Alpine
+         had fired the submit, so the first moment of this screen was a
+         "Continue" button with no sign that anything was happening — which
+         is what it looked like whenever Alpine was slow to boot. #}
+      <div class="working-bar"><span></span></div>
+      {# No button here on purpose: this screen is already working, and a
+         control that does nothing is worse than no control. <noscript> keeps
+         one because without a script nothing else moves. #}
+      <noscript>
+        <div class="actions">
+          <button class="primary" type="submit">Read my résumé</button>
+          <span class="meta">JavaScript is off, so this step needs the button.</span>
+        </div>
+      </noscript>
+    {% endif %}
+  </form>
+</div>
+
+{% if not error %}
+  {# A plain script rather than Alpine's x-init. Alpine is deferred, and a
+     deferred script's execution also waits on the render-blocking font
+     stylesheet — so on a slow network this screen sat with only its fallback
+     button showing and no bar, which is exactly what a user reported seeing.
+     The one screen with no other way forward must not wait for a library.
+
+     Omitted entirely when there is an error: a résumé the model keeps
+     refusing would otherwise retry forever, paying for a call each lap. #}
+  <script>
+    (function () {
+      var form = document.getElementById('derive-now'), sent = false;
+      function go() {
+        if (sent) return;
+        sent = true;
+        if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+      }
+      /* Two frames, so the browser paints this screen before the POST starts
+         — submitting during the load can cancel it, leaving the PREVIOUS page
+         on display for the whole model call, which is the problem this screen
+         exists to solve. The timer is the backstop for a hidden tab, where
+         frames do not fire at all. */
+      requestAnimationFrame(function () { requestAnimationFrame(go); });
+      setTimeout(go, 400);
+    })();
+  </script>
+{% endif %}
+{% endblock %}

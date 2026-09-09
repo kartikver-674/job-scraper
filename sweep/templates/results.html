@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Results — Sweep{% endblock %}
+{% block meter_label %}Spent{% endblock %}
+{% block meter_facts %}{{ total }} of {{ all_total }} listings shown{% endblock %}
+
+{# One table, used by every section. The sponsorship section wraps it in a
+   <details> and the others don't, which is the only difference between them —
+   not a reason to carry two copies of the row markup. #}
+{% macro listings_table(rows) %}
+  <div class="listings">
+    <table>
+      <tr class="muted">
+        <th scope="col">Source</th><th scope="col">Score</th>
+        <th scope="col">Role</th><th scope="col">Location</th>
+        <th scope="col">Pay</th><th scope="col">Experience</th>
+        <th scope="col">Matched skills</th><th scope="col"><span class="visually-hidden">Apply</span></th>
+      </tr>
+      {% for row in rows %}
+        {# The apply link decides whether the whole row is clickable, so it is
+           resolved before the row opens. Same allowlist as the anchor below
+           and deliberately the SAME expression: autoescape stops attribute
+           breakout but not javascript:, and a second copy of that rule is how
+           one of the two paths ends up without it. A row with no safe link
+           carries no data-href and is not clickable. #}
+        {%- set href = (row['apply_url'] or '')|trim %}
+        {%- set linkable = (href|lower).startswith(('http://', 'https://')) %}
+        <tr{% if linkable %} class="rowlink" data-href="{{ href }}"{% endif %}>
+          {# Same rule plan.cost() and the running screen's tiles use: a site
+             listed at a $0.00 rate is free either way. #}
+          <td class="{{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">{{ row['source_site'] }}</td>
+          <td class="score">{{ row['score'] }}</td>
+          <td><b>{{ row['title'] }}</b><br><span class="muted">{{ row['company'] }}</span></td>
+          <td>{{ row['location'] }}</td>
+          <td>{{ row['salary'] or 'Not stated' }}</td>
+          <td>{{ row['experience_required'] or 'Not stated' }}</td>
+          {# Split into tags: the column is a comma-joined string, and at four
+             or five terms it reads as one run-on cell otherwise. #}
+          {%- set skills = (row['matched_skills'] or '')|trim %}
+          <td>{% for s in skills.split(',') if s|trim %}<span class="tag">{{ s|trim }}</span>{% endfor %}</td>
+          <td>
+            {%- if linkable %}
+              <a href="{{ href }}" target="_blank" rel="noopener">Apply</a>
+            {%- else %}
+              <span class="muted">No link</span>
+            {%- endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endmacro %}
+
+{% from "_weights.html" import weight_editor %}
+{% block body %}
+<div class="stack">
+  <div class="stack-tight">
+    <h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
+    {# Re-ranking is not offered on the free path, so the lede must not
+       promise it there. #}
+    <p class="lede">
+      {%- if free_only %}This sweep cost nothing, and filtering these costs nothing either.
+      {%- else %}Filtering and re-ranking these is free and costs no extra credit.{% endif %}</p>
+  </div>
+
+  {# The old copy told the user to go and run merge_jobs.py, and told them
+     so whenever this screen was showing an unmerged file — including when
+     there was only one sweep on disk and nothing to fold in. #}
+  {% if merging %}
+    <p class="panel muted">Merging now. Reload in a moment — the shortlist
+      below is still the most recent sweep on its own.</p>
+  {% elif not merged and not earlier %}
+    {# Which file this is, said even when every row is filtered out — that is
+       exactly when a user needs to know what was read. #}
+    <p class="muted">Showing your most recent sweep only. It is the only one on
+      disk for this profile.</p>
+  {% elif not merged %}
+    <div class="panel">
+      <div class="panel-head">
+        <h2>{{ earlier }} earlier sweep{{ '' if earlier == 1 else 's' }} on disk</h2>
+        {% if earlier_dates %}
+          <span class="meta">{{ earlier_dates|join(', ') }}</span>
+        {% endif %}
+      </div>
+      <p class="muted">Showing your most recent sweep only. Merging folds them
+        all into one shortlist and drops the duplicates, keeping the
+        highest-scoring copy of each posting. It reads files you already have —
+        nothing is scraped and nothing is charged.</p>
+      {# Both true and load-bearing: this is why a merged list can be SMALLER
+         than the sum of its parts, and it is the one thing a user would
+         otherwise discover as missing rows. #}
+      <p class="muted">The merge re-applies your current filters — age,
+        reachability, excluded titles — to the older rows, so anything those
+        rules now reject drops out. It also replaces the file a re-rank
+        writes, so run it before re-ranking rather than after.</p>
+      <form method="post" action="{{ url_for('merge') }}"
+            x-data="{ sent: false }" @submit="sent = true">
+        <div class="actions">
+          <button class="secondary" type="submit" :disabled="sent">Merge them
+            in</button>
+          <span class="meta sending" x-show="sent" x-cloak>Starting the
+            merge…</span>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="muted">{{ notice }}</p>{% endif %}
+
+  {% if rescoring and not notice %}
+    <p class="panel muted">Re-ranking now. Reload in a moment to see the new
+      ranking — the shortlist below is still the old one.</p>
+  {% endif %}
+
+  <form class="panel" method="get">
+    <div class="row">
+      <label><span class="label">Minimum score</span>
+        <input type="number" name="min" value="{{ min_score }}"></label>
+      <label><span class="label">Source</span>
+        <select name="source">
+          <option value="">All sources</option>
+          {% for s in sources %}
+            <option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label><span class="label">Title or company</span>
+        <input type="text" name="q" value="{{ q }}"></label>
+    </div>
+    <button class="secondary" type="submit">Apply filter</button>
+  </form>
+
+  {% if free_only %}
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Re-ranking needs a paid sweep</h2>
+      </div>
+      <p class="muted">Re-ranking re-reads the job data an Apify actor already
+        returned and scores it again with your current weights — which costs
+        nothing, but there is nothing to re-read here: this sweep ran the free
+        sources, and those are not Apify runs. Running it anyway would pull in
+        whatever paid searches are on your keys, from any profile, and write
+        them over this shortlist.</p>
+    </div>
+  {% else %}
+    <details class="panel">
+      <summary>
+        <h2>Change the weights and re-rank</h2>
+        {% if derived and derived.skill_weights %}
+          <span class="meta">{{ derived.skill_weights|length }} skills</span>
+        {% endif %}
+      </summary>
+      <p class="muted">Re-reads the job data your Apify runs already returned
+        and scores it again — with whatever these weights say when you press
+        the button. Reading data you have already paid for costs nothing: no
+        actor runs, no new charges.</p>
+      {# The editor and the control that applies it, side by side where there
+         is room: .weights is capped at 34rem on purpose (the two controls
+         drift to opposite edges of a wide table), which left the other half
+         of this full-width panel empty. #}
+      <form class="rerank" method="post" x-data="{ sent: false }" @submit="sent = true"
+            action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
+        <div>
+          {# The same editor as the review screen, from the same macro. The
+             panel used to say "against your current weights" while offering
+             no way to see or change them — the weights were two screens back
+             and unreachable from here. #}
+          {% if derived and derived.skill_weights %}
+            {{ weight_editor(derived.skill_weights) }}
+            <p class="muted">A higher weight means a listing naming that skill
+              scores higher. Remove a term to take it out of the scoring
+              entirely.</p>
+          {% else %}
+            {# state["derived"] is gone after a restart, and the weights are
+               only recoverable from the profile file — which this cannot edit
+               without re-deriving. Say so rather than render an editor that
+               would post nothing. #}
+            <p class="muted">The weights for this session are not in memory
+              any more, so this will re-rank against whatever
+              <code>profiles/{{ profile }}.py</code> already holds. Re-read a
+              résumé to edit them.</p>
+          {% endif %}
+        </div>
+        <div class="inset stack-tight">
+          <label><span class="label">Hours to look back</span>
+            <input type="number" name="hours" value="6" min="1" max="168"></label>
+          <p class="meta">How far back through your Apify runs to read.</p>
+          <div class="actions">
+            <button class="secondary" type="submit" :disabled="sent">Re-rank</button>
+            <span class="meta sending" x-show="sent" x-cloak>Starting the re-rank…</span>
+          </div>
+          {% if derived and derived.skill_weights %}
+            <p class="meta">Re-ranking writes these weights to
+              <code>profiles/{{ profile }}.py</code>, so the next sweep uses
+              them too.</p>
+          {% endif %}
+        </div>
+      </form>
+      <p class="muted">It covers every search run on any Apify key in your
+        .env, for the sites you have configured, within the window above — not
+        only this sweep's runs, so on a key you share it can pull in another
+        profile's searches. The shortlist is rewritten in place, not added
+        to.</p>
+    </details>
+  {% endif %}
+
+  {% if total == 0 %}
+    <div class="panel">
+      <h2>0 listings match</h2>
+      {% if worst %}
+        <p>The {{ worst[0] }} filter removed the most —
+          {{ worst[1] }} of {{ all_total }}. Loosen it to see more.</p>
+        <div class="actions">
+        {% if worst[0] == 'minimum score' %}
+          <a class="secondary" href="{{ url_for('results', source=source or none, q=q or none) }}">Clear the minimum score</a>
+        {% elif worst[0] == 'source' %}
+          <a class="secondary" href="{{ url_for('results', min=min_score or none, q=q or none) }}">Clear the source filter</a>
+        {% else %}
+          <a class="secondary" href="{{ url_for('results', min=min_score or none, source=source or none) }}">Clear the search text</a>
+        {% endif %}
+          <a class="secondary" href="{{ url_for('results') }}">Clear every filter</a>
+        </div>
+      {% else %}
+        <p>Nothing was found for this profile yet.</p>
+        <a class="secondary" href="{{ url_for('results') }}">Clear every filter</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% for key, heading, note in sections %}
+    {% if buckets[key] %}
+      {% if key == 'abroad' %}
+        {# Collapsed by default: these need a visa, so they are the least
+           actionable rows on the screen. Otherwise identical to the panels
+           above it. #}
+        <details class="panel">
+          <summary>
+            <h2>{{ heading }}</h2>
+            <span class="meta">{{ buckets[key]|length }}
+              listing{{ "" if buckets[key]|length == 1 else "s" }}</span>
+          </summary>
+          <p class="muted">{{ note }}</p>
+          {{ listings_table(buckets[key]) }}
+        </details>
+      {% else %}
+        <div class="panel">
+          <div class="panel-head">
+            <h2>{{ heading }}</h2>
+            <span class="meta">{{ buckets[key]|length }}
+              listing{{ "" if buckets[key]|length == 1 else "s" }}</span>
+          </div>
+          <p class="muted">{{ note }}</p>
+          {{ listings_table(buckets[key]) }}
+        </div>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+</div>
+
+{# Opening a listing is the whole point of this screen, and the target was a
+   single word at the far right of a very wide row. The Apply link stays: it
+   is the keyboard and screen-reader path, and the row is a mouse convenience
+   on top of it — which is why the row gets no tabindex or role, rather than
+   adding a duplicate tab stop to every row on the page. #}
+<script>
+  document.addEventListener("click", function (e) {
+    var row = e.target.closest && e.target.closest("tr[data-href]");
+    if (!row) return;
+    /* The anchor handles itself — without this the row opens a second tab. */
+    if (e.target.closest("a, button, input, label, summary")) return;
+    /* Selecting a company name to copy it must not navigate. */
+    if (String(window.getSelection() || "")) return;
+    window.open(row.dataset.href, "_blank", "noopener");
+  });
+</script>
+{% endblock %}

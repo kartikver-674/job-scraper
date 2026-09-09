@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "_weights.html" import weight_editor %}
+{% block title %}Review what it read — Sweep{% endblock %}
+{% block body %}
+<div class="stack">
+  <div class="stack-tight">
+    <h1>Review what it read</h1>
+    <p class="lede">{{ derived.field_summary }}</p>
+    <p class="muted">Correct bad guesses before spending anything.</p>
+  </div>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  <form method="post" action="{{ url_for('review') }}" class="stack"
+        x-data="{ sent: false }" @submit="sent = true">
+    <div class="split">
+      <div class="stack">
+        <div class="panel">
+          <h2>Skill weights, 1 to 5</h2>
+          <p class="muted">Weighted by how well a term picks out jobs you want. A word
+            that also appears in jobs you don't want scores low, however central it is
+            to your work.</p>
+
+          {% if commodity %}
+            <p><strong>Worth removing.</strong>
+              {{ commodity|join(' and ') }} appear in most job descriptions, so they
+              add no signal and every posting scores a little higher for free.</p>
+          {% endif %}
+
+          {% if not derived.skill_weights %}
+            <p class="empty"><b>No skills came back</b>
+              The model read the résumé but derived no skill weights, so
+              nothing would be scored. That usually means the PDF's text layer
+              is thin — try a text-based export and upload it again.</p>
+          {% else %}
+          {{ weight_editor(derived.skill_weights, commodity) }}
+          <p class="muted">A higher weight means a listing naming that skill
+            scores higher. Remove a term to take it out of the scoring
+            entirely.</p>
+          {% endif %}
+        </div>
+
+        <div class="actions">
+          <button class="primary" type="submit" :disabled="sent">Looks right</button>
+          <span class="meta sending" x-show="sent" x-cloak>Saving the profile…</span>
+          <a class="muted" href="{{ url_for('upload') }}">Start over with a different résumé</a>
+        </div>
+      </div>
+
+      <aside class="aside stack">
+        <div class="panel">
+          <label><span class="label">Name this profile</span>
+            <input name="name" value="{{ suggested_name }}" required>
+          </label>
+          <p class="muted">Saved as profiles/&lt;name&gt;.py, so you can re-run it later.
+            An existing profile of the same name is never replaced without asking.</p>
+          {% if clash %}
+            {# With no error beside it this is a heads-up on arrival, not a
+               rejection: say so plainly rather than leaving a bare checkbox
+               to be interpreted. #}
+            {% if not error %}
+              <p class="muted">This is the name from your résumé, and a profile
+                already uses it. Change it below to keep both, or tick this to
+                replace the old one.</p>
+            {% endif %}
+            <label class="choice"><input type="checkbox" name="overwrite" value="yes">
+              <span>Replace the existing {{ clash }} profile</span></label>
+          {% endif %}
+        </div>
+
+        <div class="panel">
+          <span class="label">Titles it will search for</span>
+          {% if derived.role_keywords %}
+            <ul>{% for title in derived.role_keywords %}<li>{{ title }}</li>{% endfor %}</ul>
+          {% else %}
+            <p class="empty"><b>No titles derived</b>
+              Every paid search is one title in one location, so a sweep with
+              no titles would search nothing. Upload a clearer résumé.</p>
+          {% endif %}
+        </div>
+      </aside>
+    </div>
+  </form>
+</div>
+{% endblock %}

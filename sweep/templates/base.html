@@ -1,0 +1,109 @@
+<!doctype html>
+{% from "_mark.html" import mark %}
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Sweep{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sweep.css') }}">
+{# Fonts come from Google; the typography is part of the design the spec
+   asked for, and a stylesheet cannot execute code. It does mean each page
+   view sends a request to Google, which the README says plainly rather than
+   claiming more privacy than this delivers. Removing the link costs only the
+   display face — every stack in sweep.css has a system fallback. #}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+{# Alpine is vendored, not loaded from a CDN. This page is also /key, where
+   the user pastes the one credential this tool exists to protect, and a
+   third-party script that can read the DOM does not belong there. A CDN that
+   cannot be reached also takes the live cost meter down silently, which
+   reads as "the estimate stopped moving" — on the money screen. #}
+<script defer src="{{ url_for('static', filename='alpine-3.14.1.min.js') }}"></script>
+
+<header>
+  <div class="brand">
+    <a class="lockup" href="{{ url_for('upload') }}">{{ mark(22) }}<strong>Sweep</strong></a>
+    {# The credit figure appears once, on the right. Repeating it here as a
+       "cap" chip the way the v3 mock does would name one number twice: this
+       app has no separate hard cap to show until the confirm screen. #}
+    {# Three states, not two: "no key yet" and "no key wanted" are different
+       facts about the same absent token, and only one of them is something
+       still to do. #}
+    <span class="chip {% if free_only %}free{% elif cap_usd is not none %}on{% else %}quiet{% endif %}">
+      {%- if free_only %}Free sources only
+      {%- elif cap_usd is not none %}Key connected
+      {%- else %}No key yet{% endif -%}
+    </span>
+  </div>
+  {# A tracker, not tabs. These seven are a sequence, and four of them
+     redirect away until their precondition is met — tabs implied you could
+     pick any of them. Reachability comes from step_states(), which reads the
+     same facts the route guards do, so this can never offer a step that
+     bounces you elsewhere.
+
+     One markup for both widths: below 64rem the CSS shows only where you are
+     and what is next, and reveals the count instead. #}
+  <nav class="tracker" aria-label="Progress through the sweep">
+    {# Position only. The current step's own chip is still on screen at every
+       width and already carries the label — naming it here too printed
+       "4 of 7 · Configure  ④ Configure". #}
+    <span class="tracker-at">
+      {%- for s in steps if s.current %}{{ s.n }} of {{ steps|length }}{% endfor -%}
+    </span>
+    <ol>
+      {% for s in steps %}
+        <li class="step{{ ' current' if s.current }}{{ ' done' if s.done }}{{ ' next' if s.next }}{{ ' locked' if not s.open }}">
+          {# href omitted rather than disabled: an anchor with no href is not
+             focusable or clickable, which is what a step you cannot open
+             should be. #}
+          {# Both attributes come from template text, never from {{ }}: an
+             attribute emitted as a VALUE has its quotes autoescaped, so
+             {{ 'aria-current="step"' if ... }} reaches the page as
+             aria-current=&#34;step&#34; and is not the attribute at all. The
+             tab nav this replaces carried exactly that, so aria-current had
+             never actually worked on any screen. #}
+          <a {% if s.open and not s.current %}href="{{ url_for(s.slug) }}"{% endif %}
+             {% if s.current %}aria-current="step"{% endif %}>
+            <span class="marker" aria-hidden="true">
+              {%- if s.done %}&check;{% else %}{{ s.n }}{% endif -%}
+            </span>
+            <span class="step-label">{{ s.label }}</span>
+            {%- if s.done %}<span class="visually-hidden">, done</span>
+            {%- elif not s.open %}<span class="visually-hidden">, not available yet</span>
+            {%- endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ol>
+  </nav>
+  {% if cap_usd is not none %}
+    {# One text node on purpose: "Credit left $0.00" is asserted contiguously,
+       and a real zero must read as a figure rather than go missing. #}
+    <span class="credit">Credit left ${{ '%.2f'|format(cap_usd) }}</span>
+  {% endif %}
+</header>
+
+<div{% block meter_scope %}{% endblock %}>
+  {# over-cap red is for a sweep that outran its credit, so it is gated on
+     the figure actually BEING this sweep's spend — not on a month-to-date
+     total that merely happens to exceed the cap. #}
+  <div class="meter {{ 'over' if spend and spend_is_this_sweep and cap_usd is not none and spend > cap_usd }}"{% block meter_class_bind %}{% endblock %}>
+    <div class="meter-head">
+      <span class="label">{% block meter_label %}Current spend{% endblock %}</span>
+      {# None means the figure genuinely is not known (no baseline to subtract,
+         or the account-usage call failed). It renders as that, never as
+         $0.00 — a fabricated zero on a money display is its own defect. #}
+      <span class="numeral{{ ' unknown' if spend is none }}"{% block meter_numeral_bind %}{% endblock %}>
+        {%- if spend is none %}not known{% else %}${{ '%.2f'|format(spend) }}{% endif -%}
+      </span>
+      <span class="meter-facts">{% block meter_facts %}{% endblock %}</span>
+    </div>
+    <div class="meter-track">
+      <div class="meter-fill" style="width: {{ fill_pct }}%"{% block meter_fill_bind %}{% endblock %}></div>
+      {% if cap_usd is not none %}<div class="meter-cap" style="left: 100%"></div>{% endif %}
+    </div>
+  </div>
+
+  <main>{% block body %}{% endblock %}</main>
+</div>

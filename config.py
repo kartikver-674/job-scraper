@@ -90,7 +90,13 @@ SITES = {
     # FEW broad regions ("Delhi / NCR" = id 9508 covers Delhi+Gurgaon+Noida in one
     # run). So naukri does few large runs; control keyword count with --limit.
     # Runs LAST — it's the priciest, so a cap sacrifices only its remaining combos.
-    "naukri":   {"enabled": True,  "actor": "muhammetakkurtt/naukri-job-scraper",
+    # OFF by default. Measured across every run in output/ (9,932 rows,
+    # 2026-09-09): naukri has produced ZERO rows and appears in no .done_combos
+    # — it has never actually been run, because at a $0.50 per-run MINIMUM it is
+    # the most expensive source in the table and its inventory is largely what
+    # LinkedIn already returns for the same searches. Turn it on per profile if
+    # you want India-specific boards LinkedIn misses.
+    "naukri":   {"enabled": False, "actor": "muhammetakkurtt/naukri-job-scraper",
                  "results_per_run": 50,
                  "locations": ["Delhi / NCR", "Remote"]},
 }
@@ -299,18 +305,29 @@ ENTERPRISE = {
 # are the only free source that reports PAY — the ATS boards never do.
 FEEDS = {
     "remoteok": {"enabled": True},
+    # Measured the best free source in the project (output/, 2026-09-09): 58% of
+    # its distinct postings scored >= 40, against LinkedIn's 27% and
+    # greenhouse's 11%. It was fetched four categories deep; these are the rest
+    # of the ones a software search should see. One request each, no cost.
     "wwr": {"enabled": True, "categories": [
         "remote-programming-jobs",
         "remote-front-end-programming-jobs",
         "remote-back-end-programming-jobs",
         "remote-full-stack-programming-jobs",
+        "remote-devops-sysadmin-jobs",
+        "remote-design-jobs",
+        "remote-product-jobs",
+        "remote-jobs",                     # the catch-all board
     ]},
     "remotive": {"enabled": True},
     "jobicy": {"enabled": True, "count": 50},
-    # No category filter exists on this API, so it pages blind through ~96k
-    # mostly non-engineering jobs at 20 a time. Worth it for the exact UTC
-    # offsets it reports, but raise `pages` only if you want the requests.
-    "himalayas": {"enabled": True, "pages": 10},
+    # `queries` uses himalayas.app/jobs/api/search (q=, 20 per page, no auth),
+    # which did not exist when this was written — the old comment said no filter
+    # was available and the adapter paged blind through ~96k mostly
+    # non-engineering jobs, 200 at a time, for the 76 distinct postings it ever
+    # contributed. make_profile writes the résumé's own role keywords here.
+    # Empty `queries` keeps the old blind paging, so nothing breaks without one.
+    "himalayas": {"enabled": True, "pages": 10, "queries": []},
 }
 
 # Keep a free-source job only if its location mentions one of these.
@@ -332,11 +349,47 @@ HOME_LOCATION_HINTS = [
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
 # we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
 # role (case-insensitive substring). Scoring then ranks within these.
+# THE most consequential list in this file for free sources: every ATS board and
+# feed returns its whole catalogue, and scraper.is_dev_title() drops anything
+# whose title matches none of these BEFORE it is ever scored. A term missing
+# here is inventory nobody ever sees.
+#
+# This is the generic software floor. It used to be 21 entries built around one
+# React/Node résumé, which is why the five hand-tuned profiles all replace it —
+# and why a Salesforce or Java résumé, whose generated profile does NOT replace
+# it, lost most of every free board before scoring. make_profile now writes a
+# résumé-specific list UNIONED with this one, so a profile can widen the net but
+# never narrow it below this.
 ATS_TITLE_HINTS = [
-    "developer", "full stack", "fullstack", "full-stack", "frontend", "front end",
-    "front-end", "backend", "back end", "back-end", "software engineer",
-    "software development", "sde", "react", "node", "javascript", "typescript",
-    "web developer", "mern", "mobile developer", "application developer",
+    # Core software engineering. "engineer" alone is deliberately absent —
+    # it matches sales engineer, process engineer, mechanical engineer.
+    "software engineer", "software development", "software dev", "developer",
+    "development engineer", "sde", "programmer", "engineering manager",
+    "member of technical staff", "tech lead", "technical lead", "staff engineer",
+    "principal engineer", "software architect", "solutions architect",
+    # Stack positions
+    "full stack", "fullstack", "full-stack", "frontend", "front end", "front-end",
+    "backend", "back end", "back-end", "web developer", "mern", "mean stack",
+    # Named stacks, so a title that only says the technology still lands
+    "react", "node", "javascript", "typescript", "python", "java ", "golang",
+    ".net", "php", "ruby", "rails", "django", "spring boot", "c#",
+    # Mobile
+    "mobile developer", "mobile engineer", "android", "ios ", "ios engineer",
+    "ios developer", "flutter", "react native",
+    # Application / API / integration
+    "application developer", "api developer", "api engineer",
+    "integration engineer", "systems engineer",
+    # AI / ML — a large and growing share of what these boards post
+    "ml engineer", "ai engineer", "machine learning engineer", "applied ai",
+    "genai", "gen ai", "generative ai", "llm engineer",
+    # Platform / infrastructure / reliability
+    "platform engineer", "infrastructure engineer", "devops", "site reliability",
+    "sre ", "cloud engineer", "build engineer", "release engineer",
+    "automation engineer", "developer productivity", "developer experience",
+    # Quality
+    "qa engineer", "test engineer", "sdet", "quality engineer",
+    # Security
+    "security engineer", "application security",
 ]
 
 # Titles to reject even when they DO match a hint above. Checked first, so it
@@ -361,6 +414,37 @@ NAUKRI_CITY_IDS = {
     "Hyderabad": "17",
     "Pune": "139",
     "Mumbai": "134",
+}
+
+# Measured cost per paid search, in USD. Every figure here came from a real
+# sweep's billing, not from an actor's self-report — those undercount roughly 3x
+# (see scraper.account_usage_usd). A site absent from this table is free.
+#
+# These are ESTIMATES for planning only. The real guard is
+# SETTINGS["max_spend_usd"], which reads the account mid-sweep and refuses to
+# launch another search once crossed.
+SITE_RATES = {
+    "linkedin": 0.045,   # measured at max_results=25
+    "indeed": 0.09,      # ~$0.09 per run
+    "naukri": 0.50,      # $0.50 per run MINIMUM — bad value at small budgets
+}
+
+# The result count each rate above was measured at. A pay-per-event actor bills
+# per result, so a rate means nothing without the depth it was measured at, and
+# these three were measured at three different depths:
+#   linkedin — the comment above says max_results=25.
+#   indeed   — $0.09/run at the ~$0.03-per-5-results rate noted in SETTINGS
+#              below is 15 results, which is also SEARCH["max_results"].
+#   naukri   — its own results_per_run is 50 and the $0.50 is a per-run
+#              MINIMUM, not a per-result price. Its basis therefore equals the
+#              depth it always runs at, which makes it unscalable on purpose:
+#              the depth control cannot move it, and a floor does not halve.
+# Scaling every rate from one basis over-charges naukri 2x unconditionally and
+# under-states indeed by 40% at the default depth.
+SITE_RATE_BASIS = {
+    "linkedin": 25,
+    "indeed": 15,
+    "naukri": 50,
 }
 
 
@@ -509,12 +593,20 @@ SETTINGS = {
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
     "max_experience_years": 3,   # roles whose text demands MORE than this (e.g. "5+ years") are dropped/penalized
-    # How to combine several "N years" figures in one posting: "min" reads the
-    # smallest as the real ask (right for short JDs, where anything larger is a
-    # nice-to-have), "max" the largest (right for the long structured kind that
-    # state a total AND a per-skill figure). See
-    # scraper._required_experience_floor.
-    "experience_aggregate": "min",
+    # How to combine several "N years" figures in one posting. "max" reads the
+    # largest as the real ask; "min" the smallest.
+    #
+    # Defaulted to "max" on the evidence, 2026-09-09: all five hand-tuned
+    # profiles in this repo already set it, scraper's own docstring records 63
+    # requisitions where the two disagreed 21 times and max was right every
+    # time, and a user reported the symptom "min" produces — the results
+    # column reading 2+ or 3+ on postings whose JD asks for 5+ or 8+, because
+    # a structured JD states a per-skill figure next to its total.
+    #
+    # Under-reading is the dangerous direction: it puts a senior role at the
+    # top of a junior candidate's shortlist, while over-reading only drops a
+    # reachable one. See scraper._required_experience_floor.
+    "experience_aggregate": "max",
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
     "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)

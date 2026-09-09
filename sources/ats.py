@@ -41,6 +41,22 @@ ATS = {
                 "Job URL": "jobUrl", "Posted Date": "publishedAt",
                 "Description": "descriptionPlain"},
     },
+    "breezy": {
+        # Verified live 2026-09-09. Like smartrecruiters the LIST carries no
+        # description, so a posting is scored on its title alone — and unlike
+        # the others the URL is already absolute in the payload.
+        # ponytail: title-only text for this platform too; both would improve
+        # together when lazy JD enrichment lands.
+        #
+        # Added mostly for harvest_ats.py, which iterates this table: every
+        # platform here is one more public API it probes for each company a
+        # sweep surfaced, and the 40+ Indian employers recorded as "no public
+        # ATS" in config.py were only ever probed against four of them.
+        "url": "https://{token}.breezy.hr/json",
+        "list": None,                      # the response IS the list
+        "map": {"Title": "name", "Location": "location.country.name",
+                "Job URL": "url", "Posted Date": "published_date"},
+    },
     "smartrecruiters": {
         # The postings LIST carries neither a description nor a job URL, so the
         # URL is built from the token + id and the job is scored on its title

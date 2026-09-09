@@ -317,6 +317,20 @@ YEARS_PATTERN = re.compile(
 # length.
 _EXP_CUE_RE = re.compile(r"experience|hands[- ]on")
 _EXP_OF_RE = re.compile(r"\s*(?:of|in)\s+[a-z]")   # "8+ years of|in <something>"
+# A figure that is counting something else entirely, disqualified by the word
+# IMMEDIATELY after it rather than by anything in the 60-character window —
+# "founded 5 years ago, we now have 3+ years of experience shipping ML" put
+# "experience" inside that window, so the company's age was read as the
+# requirement. The docstring below claimed this case was handled; it was not,
+# and min() hid it by preferring the smaller number.
+_NOT_EXP_RE = re.compile(r"\s*(?:ago|old\b|of age|in business)")
+# The same disqualifier on the other side, for the phrasings that put the
+# company's age BEFORE the figure: "In business 12 years. Seeking 3 years of
+# experience." The phrase has to run right up to the number, so a JD that
+# merely mentions a founding date elsewhere is unaffected.
+_COMPANY_AGE_RE = re.compile(
+    r"(?:in business|been (?:around|operating|serving)|founded|established|"
+    r"celebrating|for over)\s*(?:for\s*)?(?:over\s*)?$")
 _EDU_RE = re.compile(r"education|schooling|degree program")
 
 
@@ -347,17 +361,25 @@ def _required_experience_floor(text):
     SETTINGS["experience_aggregate"] picks how several figures combine, because
     the right answer depends on how the employer writes:
 
-      "min" (default)  Short JDs, where the smallest number is usually the real
-          ask and anything larger is a nice-to-have.
-      "max"  Long structured JDs that state a total AND a per-skill figure.
-          "8+ years of total software engineering experience ... 2+ years
-          hands-on in AI/ML" is an 8-year job, and min() ranked it first out of
-          63 as if it wanted 2. Across those 63: 21 read differently, all 21 in
-          favour of max.
+      "max" (default)  A JD that states a total AND a per-skill figure. "8+
+          years of total software engineering experience ... 2+ years hands-on
+          in AI/ML" is an 8-year job, and min() ranked it first out of 63 as if
+          it wanted 2. Across those 63: 21 read differently, all 21 in favour
+          of max. Every hand-tuned profile in this repo had already set this,
+          and a user reported the symptom the default caused: the results
+          column reading 2+ or 3+ on postings whose JD asks for 5+ or 8+.
+      "min"  Short JDs where the smallest number is the real ask and anything
+          larger is a nice-to-have. Under-reads a structured JD, and
+          under-reading is the dangerous direction — it ranks a senior role at
+          the top of a junior candidate's shortlist, where over-reading only
+          drops a reachable one.
     """
     vals = []
     for m in YEARS_PATTERN.finditer(text):
         after = text[m.end():m.end() + 60]
+        before = text[max(0, m.start() - 30):m.start()]
+        if _NOT_EXP_RE.match(after) or _COMPANY_AGE_RE.search(before):
+            continue
         edu, exp = _EDU_RE.search(after), _EXP_CUE_RE.search(after)
         # Whichever word comes FIRST decides what the figure is counting. Both
         # can appear inside the same 60 characters: Accenture writes "minimum 3
@@ -375,7 +397,7 @@ def _required_experience_floor(text):
             vals.append(int(m.group(2)))
     if not vals:
         return None
-    return max(vals) if SETTINGS.get("experience_aggregate") == "max" else min(vals)
+    return min(vals) if SETTINGS.get("experience_aggregate") == "min" else max(vals)
 
 
 def is_remote(row):
@@ -802,7 +824,10 @@ def build_input(site_key, s):
     if site_key == "linkedin":
         return {
             "urls": [_build_linkedin_url(s)],
-            "count": max(10, s["max_results"]),  # actor requires count >= 10
+            # Floored in effective_search, which owns billable depth; this
+            # is belt-and-braces because the actor rejects a lower count,
+            # and it reads the same constant rather than a second literal.
+            "count": max(ACTOR_MIN_RESULTS["linkedin"], s["max_results"]),
             "scrapeCompany": False,
         }
     if site_key == "naukri":
@@ -902,11 +927,29 @@ def plan_for_site(site_key, args):
 # ===========================================================================
 # Running
 # ===========================================================================
+# Actor-side minimums on the per-search result count. Applied in
+# effective_search below — the ONE place a search's billable depth is decided
+# — rather than inside build_input, so `--dry-run --json` (and therefore
+# Sweep's cost estimate) reports the depth that will actually be BILLED, not
+# the smaller one that was asked for.
+ACTOR_MIN_RESULTS = {"linkedin": 10}   # apimaestro/linkedin actor requires count >= 10
+
+
 def effective_search(site_key, search):
     """Apply a site's results_per_run override (some actors, e.g. naukri, have a
-    per-run minimum charge so it's wasteful to pull only a few results)."""
+    per-run minimum charge so it's wasteful to pull only a few results), then
+    any actor-side minimum on the result count.
+
+    Every build_input() call goes through here (scraper.py:951, 1650, 1667), so
+    this is the authoritative billable depth for a search.
+    """
     per_run = SITES[site_key].get("results_per_run")
-    return {**search, "max_results": per_run} if per_run is not None else search
+    if per_run is not None:
+        search = {**search, "max_results": per_run}
+    floor = ACTOR_MIN_RESULTS.get(site_key)
+    if floor is not None and search["max_results"] < floor:
+        search = {**search, "max_results": floor}
+    return search
 
 
 def account_usage_usd(client):
@@ -997,6 +1040,9 @@ def print_plan(plans):
     print(f"Actor runs: {total_runs} total\n")
     for site_key, plan in plans.items():
         per_run = SITES[site_key].get("results_per_run", SEARCH["max_results"])
+        floor = ACTOR_MIN_RESULTS.get(site_key)
+        if floor is not None:
+            per_run = max(floor, per_run)   # match what the actor is sent
         print(f"  {site_key}: {len(plan)} searches (max {per_run} results each)")
         for s in plan:
             # The company matters more than the keyword when a plan is
@@ -1202,6 +1248,8 @@ def parse_args():
     p = argparse.ArgumentParser(description="Full-stack job scraper (Apify -> ranked CSV/JSON)")
     p.add_argument("--dry-run", action="store_true",
                    help="Print the plan + per-site inputs; run no actors (zero cost).")
+    p.add_argument("--json", action="store_true",
+                   help="With --dry-run, print the plan as JSON instead of prose.")
     p.add_argument("--test", action="store_true",
                    help="Tiny real run: first keyword x first location, indeed only.")
     p.add_argument("--site", help="Restrict to one site: indeed/naukri/linkedin, "
@@ -1223,7 +1271,14 @@ def parse_args():
     p.add_argument("--only-new", action="store_true",
                    help="Report only postings no earlier run reported "
                         "(uses output/[profile/]seen.tsv).")
-    return p.parse_args()
+    args = p.parse_args()
+    # --json only ever changes --dry-run's output. On its own it was accepted
+    # and silently did nothing, so a caller expecting machine-readable output
+    # got prose and no indication why.
+    if args.json and not args.dry_run:
+        p.error("--json only applies with --dry-run. "
+                "Use: --dry-run --json to print the plan as JSON.")
+    return args
 
 
 def _token_headroom(token):
@@ -1239,6 +1294,45 @@ def _token_headroom(token):
                 d["limits"]["maxMonthlyUsageUsd"])
     except Exception:
         return None
+
+
+def _token_slot(name):
+    """Sort key putting APIFY_TOKEN first, then APIFY_TOKEN_2, _3, ... in
+    NUMERIC order. A plain string sort plausibly puts _10 before _9, which
+    would silently reorder which account a run reports first."""
+    if name == "APIFY_TOKEN":
+        return (0, 0, "")
+    suffix = name[len("APIFY_TOKEN_"):]
+    return (1, int(suffix), "") if suffix.isdigit() else (2, 0, suffix)
+
+
+def apify_tokens(env=None):
+    """Every distinct Apify token configured, as (name, token) pairs in slot
+    order.
+
+    APIFY_TOKEN, APIFY_TOKEN_2, ... are separate free accounts with their own
+    $5 caps, and an Apify dataset belongs to the account that ran it. So every
+    caller that walks accounts has to agree on this list or it silently reads
+    a subset: rescore_from_apify.py hardcoded three names, which meant a
+    fourth key's paid results went missing from every re-rank with no error —
+    the exact failure that file's own comment warns about.
+
+    Pure in the environment handed to it; load_dotenv() is the caller's job.
+    That matters because this is imported by the sweep web UI and by tests
+    that patch os.environ — reading .env in here would pull real tokens into
+    a patched environment.
+    """
+    env = os.environ if env is None else env
+    names = [n for n in env
+             if n == "APIFY_TOKEN" or n.startswith("APIFY_TOKEN_")]
+    seen, out = set(), []
+    for name in sorted(names, key=_token_slot):
+        value = (env.get(name) or "").strip()
+        # dedupe: the same key pasted into two slots is one wallet, not two
+        if value and value not in seen:
+            seen.add(value)
+            out.append((name, value))
+    return out
 
 
 def _require_token():
@@ -1262,12 +1356,7 @@ def _require_token():
     """
     from dotenv import load_dotenv
     load_dotenv()
-    named = [(k, v) for k, v in os.environ.items()
-             if k == "APIFY_TOKEN" or k.startswith("APIFY_TOKEN_")]
-    tokens = {}
-    for name, value in named:
-        if value and value not in tokens:
-            tokens[value] = name          # dedupe: the same key pasted twice is one wallet
+    tokens = {token: name for name, token in apify_tokens()}
     if not tokens:
         sys.exit("APIFY_TOKEN not found. Add it to a .env file in this folder.")
     if len(tokens) == 1:
@@ -1414,11 +1503,25 @@ def demo():
     # decides which of several wins. All three cases are verbatim from live JDs.
     floor = _required_experience_floor
     assert floor("we were founded 5 years ago and love react") is None
+    # A company's own age, next to a real requirement. The cue window looks 60
+    # characters PAST the figure, so the "experience" in the second sentence
+    # made the first number a requirement — 5 years read as the ask. min() hid
+    # this by preferring the smaller number; the max default exposed it.
+    assert floor("founded 5 years ago, we now have 3+ years of experience "
+                 "shipping ml") == 3
+    assert floor("in business 12 years. seeking 3 years of experience.") == 3
+    assert floor("established for over 20 years. requires 5+ years of "
+                 "experience.") == 5
+    assert floor("our ceo is 40 years old. we want 4+ years of experience.") == 4
     assert floor("b.tech (minimum 16 years of formal education) "
                  "4+ years in a software engineer role") == 4      # degree != career
     both = ("8+ years of total software engineering experience, "
             "including 2+ years hands-on in ai/ml")
-    assert floor(both) == 2                                        # default: min
+    # THE case the default decides. A structured JD states a total and a
+    # per-skill figure; the total is the job. Reading the smaller one put a
+    # senior role at the top of a junior candidate's shortlist, which is what
+    # the results column showing 2+ on an 8+ posting was.
+    assert floor(both) == 8                                        # default: max
     # A labelled field whose whole value is a years figure counts, even when no
     # experience word is anywhere near it — and a labelled DURATION does not.
     # Verbatim from the Netradyne template that put a 10-year role at the top of a
@@ -1433,6 +1536,23 @@ def demo():
     assert floor("with growth exceeding 4x year over year") is None
 
     agg = SETTINGS.get("experience_aggregate")
+    SETTINGS["experience_aggregate"] = "min"
+    try:
+        # The other aggregate still works, for the short-JD profiles that pick
+        # it deliberately.
+        assert floor(both) == 2
+    finally:
+        SETTINGS["experience_aggregate"] = agg
+
+    # An unrecognised value falls back to MAX, not min: a typo in a profile
+    # ("maximum", "average") must not silently switch the reading to the
+    # direction that under-reports a senior job as a junior one.
+    SETTINGS["experience_aggregate"] = "maximum"
+    try:
+        assert floor(both) == 8
+    finally:
+        SETTINGS["experience_aggregate"] = agg
+
     SETTINGS["experience_aggregate"] = "max"
     try:
         assert floor(both) == 8
@@ -1470,6 +1590,33 @@ def demo():
         assert is_dev_title("Senior Software Engineer I (Data Engineer - Spark)")
     finally:
         ATS_TITLE_HINTS[:], ATS_TITLE_EXCLUDE[:] = saved
+
+    # The SHIPPED floor, not a stand-in: this list is what every free source is
+    # filtered through for any profile that does not replace it, and the
+    # generated ones did not. Measured against five live greenhouse boards
+    # (2,567 open jobs, 2026-09-09) it admits 33% where the previous
+    # 21-entry list admitted 16% — these are the titles that were being
+    # dropped before anything could score them.
+    assert ATS_TITLE_EXCLUDE == [], "the floor ships with no excludes"
+    for title in ("Staff Engineer, Payments", "Site Reliability Engineer",
+                  "Platform Engineer (Kubernetes)", "Senior SRE ",
+                  "Machine Learning Engineer", "Principal Software Architect",
+                  "iOS Engineer", "Android Developer", "SDET II",
+                  "Security Engineer, AppSec", "Golang Engineer",
+                  "Ruby on Rails Developer", "Technical Lead - Payments",
+                  "Member of Technical Staff", "SDE-2", "Programmer Analyst",
+                  "Software Development Engineer II", "Engineering Manager"):
+        assert is_dev_title(title), f"floor drops a software title: {title}"
+    # And it still has to keep out the jobs that share our vocabulary. These
+    # are real titles from remoteok's public feed.
+    for title in ("Store Manager", "Vehicle Maintenance Technician",
+                  "Sales Development Representative", "Customer Success Manager",
+                  "Financial Analyst", "Warehouse Merchandiser",
+                  "Mechanical Engineer", "Process Engineer"):
+        assert not is_dev_title(title), f"floor admits a non-software job: {title}"
+    # "java " and two others carry a deliberate trailing space: without it they
+    # match javascript, iOS-anything and "stressed".
+    assert "java " in ATS_TITLE_HINTS and "java" not in ATS_TITLE_HINTS
 
     # Timezone gap down-ranks but never removes, and only past the free window.
     near = sj("Zorb", "Remote across Europe. 2 years experience.")
@@ -1580,6 +1727,30 @@ def demo():
         assert location_allowed("Indiana, Pennsylvania") is False
     finally:
         LOCATION_HINTS = original
+
+    # Token discovery. Belongs in the silent-failure self-check because that
+    # is how it broke: rescore_from_apify.py scanned a hardcoded three names,
+    # so a fourth key's datasets were skipped with no error and its paid rows
+    # simply never appeared in a re-rank.
+    assert apify_tokens({}) == []
+    assert apify_tokens({"NOT_A_TOKEN": "x"}) == []
+    assert apify_tokens({"APIFY_TOKEN": "a"}) == [("APIFY_TOKEN", "a")]
+    # A blank slot is not a key, and neither is a whitespace-only one.
+    assert apify_tokens({"APIFY_TOKEN": "a", "APIFY_TOKEN_2": "  "}) == [
+        ("APIFY_TOKEN", "a")]
+    # The same key in two slots is one wallet: counting it twice is what
+    # inflated the sweep budget.
+    assert apify_tokens({"APIFY_TOKEN": "a", "APIFY_TOKEN_2": "a"}) == [
+        ("APIFY_TOKEN", "a")]
+    # Numeric slot order, so _10 lands after _9 rather than after _1.
+    assert [n for n, _ in apify_tokens(
+        {"APIFY_TOKEN_10": "j", "APIFY_TOKEN_9": "i", "APIFY_TOKEN": "a"})] == [
+        "APIFY_TOKEN", "APIFY_TOKEN_9", "APIFY_TOKEN_10"]
+    # Every key is found, however many: the cap that broke this was three.
+    assert len(apify_tokens({"APIFY_TOKEN": "a", "APIFY_TOKEN_2": "b",
+                             "APIFY_TOKEN_3": "c", "APIFY_TOKEN_4": "d",
+                             "APIFY_TOKEN_5": "e"})) == 5
+
     print("demo ok")
 
 
@@ -1588,7 +1759,7 @@ def main():
     if args.demo:
         demo()
         return
-    if config.PROFILE:
+    if config.PROFILE and not (args.dry_run and args.json):
         print(f"Profile:   {config.PROFILE} "
               f"(overrides {', '.join(config.PROFILE_CHANGED) or 'nothing'}) "
               f"-> {SETTINGS['output_dir']}/\n")
@@ -1610,9 +1781,9 @@ def main():
     if not plans and not run_free:
         sys.exit("Nothing to run — no sites enabled and no free sources configured.")
 
-    if plans:
+    if plans and not (args.dry_run and args.json):
         print_plan(plans)
-    if run_free:
+    if run_free and not (args.dry_run and args.json):
         print(f"Free sources: {n_boards} ATS boards "
               f"({', '.join(k for k, v in ATS_BOARDS.items() if v)}) "
               f"+ {n_feeds} feeds ({', '.join(k for k, v in FEEDS.items() if v.get('enabled'))})"
@@ -1620,6 +1791,26 @@ def main():
                  f"live-verified)" if n_optum else "")
               + (f" + {n_ent} enterprise careers sites "
                  f"({', '.join(ENTERPRISE['employers'])})" if n_ent else "") + "\n")
+
+    if args.dry_run and args.json:
+        print(json.dumps({
+            "profile": config.PROFILE,
+            "sites": {site_key: [{"keywords": s["keywords"],
+                                  "location": s["location"],
+                                  "company": s.get("company") or ""}
+                                 for s in plan]
+                      for site_key, plan in plans.items()},
+            # Results per search, which is what a pay-per-event actor bills
+            # on (build_input maps it to maxItemsPerSearch / count / maxJobs).
+            # Read through effective_search, the SAME call the actor input
+            # goes through, so the figure a cost estimate is built from and
+            # the figure the actor is handed cannot drift apart.
+            "max_results": {
+                site_key: effective_search(site_key, plan[0])["max_results"]
+                for site_key, plan in plans.items()},
+            "free_sources": n_boards + n_feeds + n_optum + n_ent,
+        }))
+        return
 
     if args.dry_run:
         print("Sample actor inputs (first combo per site):")

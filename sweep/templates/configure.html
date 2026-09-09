@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Configure the sweep — Sweep{% endblock %}
+{% block meter_label %}Estimated cost{% endblock %}
+{# SINGLE-quoted: |tojson escapes ' < & but not ", so inside a
+   double-quoted attribute the value ends at the JSON's first " and Alpine
+   silently never initialises — on the screen whose whole job is a live cost. #}
+{% block meter_scope %} x-data='{ est: {{ estimate|tojson }}, busy: false, err: null }'{% endblock %}
+{% block meter_numeral_bind %} x-text="'$' + est.total.toFixed(2)"{% endblock %}
+{% block meter_class_bind %} :class="{ over: est.over_cap }"{% endblock %}
+{# No :style binding here: running.html's fill is found by the first :style on
+   the page, and this band renders above it in the same shell. #}
+{% block meter_facts %}{% if free_only %}Free sources only{% else %}<span
+  x-text="est.total_searches + ' searches'"></span>
+  · hard cap <b x-text="'$' + est.spend_cap.toFixed(2)"></b>{% endif %}{% endblock %}
+{% block body %}
+<div class="stack">
+  <div class="stack-tight">
+    <h1>Configure the sweep</h1>
+    <p class="lede">{% if free_only %}Nothing on this screen costs anything —
+      this sweep is set to the free sources. Narrow it to change what lands on
+      the results screen.{% else %}Every change updates the cost above before
+      anything is spent.{% endif %}</p>
+  </div>
+
+  <div class="split">
+    {# est is only ever assigned a real estimate. It used to take whatever
+       came back, so a 400 (an invalid skip-term, an unplannable profile) set
+       est to {error: ...} and est.total.toFixed threw — the live cost layer
+       died silently on bad input. A failure now leaves the last good figures
+       in place and says they may be stale, which is the one thing a money
+       display must not do quietly. #}
+    <form class="stack" @change="busy = true; err = null;
+          fetch('{{ url_for('estimate') }}', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(Object.fromEntries(new FormData($el)))
+          }).then(r => r.json().then(d => ({ok: r.ok, d: d})))
+            .then(res => { if (res.ok) { est = res.d; }
+                           else { err = res.d.error || 'That could not be priced.'; } })
+            .catch(() => { err = 'Could not reach the estimator — the figures below may be out of date.'; })
+            .finally(() => { busy = false; })">
+
+      {# First, not last as in the v3 mock: this is the largest cost lever on
+         the screen and the one control a user reaches for when the estimate
+         is too high. #}
+      <div class="panel">
+        <h2>Sources</h2>
+        {# In free mode the toggles are not rendered at all, rather than
+           rendered disabled: the sites_present marker below is what makes a
+           posted form authoritative about every site, and a disabled
+           checkbox posts nothing — so a form carrying the marker without the
+           boxes would read as "switch them all off" and, on the paid path,
+           as a control the user never touched. POST /estimate drops
+           sites_enabled in free mode for the same reason, and /run refuses a
+           priced plan whatever the form said. #}
+        {% if free_only %}
+          <p class="empty"><b>Free sources only</b>
+            {{ paid|join(', ') }} are switched off for this sweep, so there is
+            nothing metered to narrow here. The free boards and feeds always
+            run, and cost nothing.</p>
+          <a class="secondary" href="{{ url_for('key') }}">Connect a key to add
+            the paid boards</a>
+        {% else %}
+          <p class="muted">Switch one off and it leaves the plan and the cost
+            above. Free feeds always run and cost nothing, so they have no
+            switch here.</p>
+          <input type="hidden" name="sites_present" value="1">
+          <div class="stack-tight">
+            {% for site in sites %}
+              <label class="choice">
+                <input type="checkbox" name="site_{{ site.name }}"
+                       {{ 'checked' if site.on }}>
+                <span><b>{{ site.name }}</b>
+                  <span class="why">
+                    {%- if site.per_run %}Charged per run at its own fixed depth,
+                      so the depth control does not move it.
+                    {%- else %}Charged per result, so the depth control moves it.
+                    {%- endif %}</span></span>
+              </label>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="panel">
+        <h2>Where you can work</h2>
+        <div class="stack-tight">
+          <label class="choice"><input type="radio" name="scope" value="india" checked>
+            <span><b>India only, onsite and hybrid</b></span></label>
+          <label class="choice"><input type="radio" name="scope" value="remote">
+            <span><b>Genuinely remote from anywhere</b></span></label>
+          <label class="choice"><input type="radio" name="scope" value="global">
+            <span><b>Global onsite</b>
+              <span class="why">Most of these need visa sponsorship.</span></span></label>
+        </div>
+        {% if free_only %}
+          {# The same fact, minus the half of it about a board that is not
+             running: worldwide remote was always the free feeds' contribution,
+             and on this path they are all there is. #}
+          <p class="muted">Worldwide remote comes from the free feeds, which is
+            what this sweep is made of. A past sweep found just 27 of 480
+            remote-labelled rows on the paid boards were actually reachable
+            from India — the rest were locked to other countries.</p>
+        {% else %}
+          <p class="muted">LinkedIn has no worldwide-remote search, so "genuinely
+            remote" keeps the paid LinkedIn searches on India-remote roles only —
+            a past sweep found just 27 of 480 remote-labelled rows were actually
+            reachable from here, the rest locked to other countries. Worldwide
+            remote comes from the free feeds instead, at no cost.</p>
+        {% endif %}
+      </div>
+
+      <div class="panel">
+        <div class="grid2">
+          <label><span class="label">How recent</span>
+            <select name="max_age_days">
+              <option value="7">7 days</option>
+              <option value="14" selected>14 days</option>
+              <option value="30">30 days</option>
+            </select>
+          </label>
+          <label><span class="label">Results per search</span>
+            <input type="number" name="max_results" placeholder="15" min="1" max="200">
+          </label>
+        </div>
+        <p class="muted">A wider window buys more listings at the same price.</p>
+        {% if free_only %}
+          <p class="muted">Depth is a paid-board setting: it is how many results
+            each metered search pulls. With none of them on, it changes nothing
+            in this sweep and costs nothing either way.</p>
+        {% else %}
+          <p class="muted">Raising the depth raises the cost of the LinkedIn and
+            Indeed searches, which bill per result, and the estimate above
+            moves with it. It does not change Naukri, which charges a
+            per-run minimum at its own fixed depth.</p>
+        {% endif %}
+      </div>
+
+      <div class="panel">
+        <h2>Pay floor</h2>
+        <label><span class="label">Minimum yearly pay, USD</span>
+          <input type="number" name="min_comp_usd" min="0" placeholder="No floor"></label>
+        <p class="muted">Listings that don't state pay are kept either way — most
+          don't state it, and dropping them would discard the majority of a
+          sweep. The floor only removes listings that state a figure below it.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Skip these</h2>
+        <label><span class="label">Stacks or domains to down-rank, comma-separated</span>
+          <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"></label>
+        <p class="muted">Letters, digits, spaces and . + # / - only.</p>
+      </div>
+    </form>
+
+    <aside class="aside">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>What this will cost</h2>
+          <span class="meta sending" x-show="busy" x-cloak>re-pricing</span>
+        </div>
+        <p class="error" x-show="err" x-cloak x-text="err"></p>
+        {# Correct with no JavaScript (the server already knows whether there
+           are lines) and live with it, so unchecking the last paid source
+           swaps this in without a reload. #}
+        <p class="empty" x-show="!est.lines.length"
+           {% if estimate.lines %}style="display:none"{% endif %}>
+          <b>No paid sources selected</b>
+          This sweep runs the free feeds only, so it costs nothing.
+          {% if free_only %}Connect a key on the
+            <a href="{{ url_for('key') }}">free or paid</a> step to price the
+            paid boards here.
+          {% else %}Switch a source back on to see its price here.{% endif %}</p>
+        <table class="lines" :class="busy && 'updating'"
+               x-show="est.lines.length"
+               {% if not estimate.lines %}style="display:none"{% endif %}>
+          <template x-for="line in est.lines" :key="line.site">
+            <tr :class="line.free && 'free'">
+              <td>
+                <b x-text="line.site"></b><br>
+                {# The count and rate stay unaccented so each row carries one
+                   amber figure — the subtotal — rather than three. #}
+                <span class="meta" x-text="line.searches + ' searches · $'
+                        + line.rate.toFixed(3) + ' each at ' + line.results + ' results'"></span>
+              </td>
+              <td :class="!line.free && 'paid'" x-text="'$' + line.subtotal.toFixed(2)"></td>
+            </tr>
+          </template>
+        </table>
+
+        <div class="headline-figure" :class="busy && 'updating'">
+          <span class="label">Run cost estimate</span>
+          <p class="numeral" x-text="'$' + est.total.toFixed(2)"></p>
+          <p class="over" x-show="est.over_cap"
+             x-text="'That is $' + est.shortfall.toFixed(2) + ' more than your key has.'"></p>
+        </div>
+
+        {% if not free_only %}
+          <p class="muted">Each rate is scaled from the depth it was measured at to
+            the depth you choose, because a pay-per-event actor bills per result.
+            Naukri is the exception — its charge is a per-run minimum at a fixed
+            depth of its own, so this control does not move it.</p>
+          <p class="muted">Nothing is committed or billed until you confirm.</p>
+        {% endif %}
+        <a class="primary" href="{{ url_for('confirm') }}">
+          {%- if free_only %}Review the sweep{% else %}Review spend plan{% endif %}</a>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

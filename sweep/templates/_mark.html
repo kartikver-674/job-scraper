@@ -1,0 +1,19 @@
+{# The Sweep mark: a stroke that gathers weight left to right and is stopped
+   dead by a rule. The sweep, and the hard spend cap that ends it — the two
+   things this tool is.
+
+   Inline SVG, not an image file, for the same reason Alpine is vendored: no
+   network dependency, and it inherits the palette so the mark cannot drift
+   from the theme it sits in. aria-hidden throughout because the word "Sweep"
+   is always beside it; announcing both would read the name twice. #}
+{% macro mark(size=24) -%}
+<svg class="mark" width="{{ size }}" height="{{ size }}" viewBox="0 0 32 32"
+     aria-hidden="true" focusable="false">
+  {# One slanted stroke, not a taper: a tapering wedge beside a bar renders
+     as the media "skip to end" glyph (>|), which is a meaning already taken.
+     The slant carries the motion instead, and the rule overshoots the stroke
+     top and bottom so it reads as a limit rather than an end-cap. #}
+  <path d="M8.4 8.6 L22.6 8.6 L22.6 23.4 L2 23.4 Z" fill="var(--paid)"/>
+  <rect x="25.4" y="3.2" width="3.2" height="25.6" rx="1.4" fill="var(--chalk)"/>
+</svg>
+{%- endmacro %}

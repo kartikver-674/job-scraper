@@ -521,8 +521,9 @@ class TestUploadScreen(unittest.TestCase):
         self.assertIn("Point it at your", body)
 
     def test_meter_shows_no_cap_before_a_key_is_connected(self):
+        # base.html renders the credit block only when cap_usd is set.
         body = self.client.get("/").get_data(as_text=True)
-        self.assertNotIn("Cap $", body)
+        self.assertNotIn("Credit left", body)
 
     def test_posting_no_file_is_rejected_not_guessed(self):
         r = self.client.post("/resume", data={})
@@ -871,7 +872,8 @@ class TestReviewScreen(unittest.TestCase):
         app, _ = self._app(state={})
         r = app.test_client().get("/review")
         self.assertEqual(r.status_code, 302)
-        self.assertIn("/", r.headers["Location"])
+        self.assertTrue(r.headers["Location"].endswith("/"),
+                        f"should redirect to upload, got {r.headers['Location']}")
 
     def test_approving_writes_the_profile_and_moves_to_the_key_screen(self):
         app, state = self._app()
@@ -1415,6 +1417,8 @@ Add `fetch_plan=None` to `create_app`, then:
     @app.post("/estimate")
     def estimate():
         from flask import jsonify
+        if not app.state.get("profile"):
+            return jsonify({"error": "No profile yet — approve the review first."}), 409
         return jsonify(costed(app.state["profile"]))
 ```
 
@@ -1873,7 +1877,10 @@ Add `read_done=None` to `create_app`, then:
             tile["free"] = tile["site"] not in config.SITE_RATES
 
         now = read_spend()
-        p["spend"] = round(max(0.0, (now or 0.0) - app.state["baseline_usd"]), 4)
+        # .get, not [] — /running is reachable without going through /run
+        # (a reload, a bookmark), and a KeyError here would 500 the page.
+        baseline = app.state.get("baseline_usd", 0.0)
+        p["spend"] = round(max(0.0, (now or 0.0) - baseline), 4)
 
         proc = app.state.get("proc")
         running_now = proc is not None and proc.poll() is None
@@ -1963,19 +1970,22 @@ errors, the script prints a normal summary and exits 0."
 Append to `sweep/tests/test_app.py`:
 
 ```python
+# Column names are the REAL ones from output/<profile>/jobs_*.csv, verified
+# against output/global_all/jobs_combined.csv. Lowercase snake_case, and the
+# remote flag is literally "remote?" including the question mark.
 ROWS = [
-    {"Score": "96", "Title": "Senior React Native Engineer", "Company": "Razorpay",
-     "Location": "Bengaluru, KA", "Salary": "₹45L - 60L", "Remote?": "False",
-     "Visa": "", "Source": "linkedin", "Apply URL": "https://x/1",
-     "Matched Skills": "react native, typescript"},
-    {"Score": "95", "Title": "Lead React Native", "Company": "Supabase",
-     "Location": "Anywhere Worldwide", "Salary": "$150,000", "Remote?": "True",
-     "Visa": "", "Source": "remoteok", "Apply URL": "https://x/2",
-     "Matched Skills": "react native"},
-    {"Score": "80", "Title": "Mobile Engineer", "Company": "Zalando",
-     "Location": "Berlin, Germany", "Salary": "", "Remote?": "False",
-     "Visa": "needs sponsorship", "Source": "linkedin", "Apply URL": "https://x/3",
-     "Matched Skills": "react native"},
+    {"score": "96", "title": "Senior React Native Engineer", "company": "Razorpay",
+     "location": "Bengaluru, KA", "salary": "₹45L - 60L", "remote?": "False",
+     "visa": "", "source_site": "linkedin", "apply_url": "https://x/1",
+     "matched_skills": "react native, typescript"},
+    {"score": "95", "title": "Lead React Native", "company": "Supabase",
+     "location": "Anywhere Worldwide", "salary": "$150,000", "remote?": "True",
+     "visa": "", "source_site": "remoteok", "apply_url": "https://x/2",
+     "matched_skills": "react native"},
+    {"score": "80", "title": "Mobile Engineer", "company": "Zalando",
+     "location": "Berlin, Germany", "salary": "", "remote?": "False",
+     "visa": "needs sponsorship", "source_site": "linkedin", "apply_url": "https://x/3",
+     "matched_skills": "react native"},
 ]
 
 
@@ -2062,14 +2072,14 @@ Expected: FAIL — `module 'sweep.app' has no attribute 'bucket_rows'`
       </tr>
       {% for row in buckets[key] %}
         <tr>
-          <td class="{{ 'free' if row['Source'] not in paid_sites }}">•
-            {{ row['Source'] }}</td>
-          <td>{{ row['Score'] }}</td>
-          <td>{{ row['Title'] }}<br><span class="muted">{{ row['Company'] }}</span></td>
-          <td>{{ row['Location'] }}</td>
-          <td>{{ row['Salary'] or 'Not stated' }}</td>
-          <td class="muted">{{ row['Matched Skills'] }}</td>
-          <td><a href="{{ row['Apply URL'] }}" target="_blank" rel="noopener">Apply</a></td>
+          <td class="{{ 'free' if row['source_site'] not in paid_sites }}">•
+            {{ row['source_site'] }}</td>
+          <td>{{ row['score'] }}</td>
+          <td>{{ row['title'] }}<br><span class="muted">{{ row['company'] }}</span></td>
+          <td>{{ row['location'] }}</td>
+          <td>{{ row['salary'] or 'Not stated' }}</td>
+          <td class="muted">{{ row['matched_skills'] }}</td>
+          <td><a href="{{ row['apply_url'] }}" target="_blank" rel="noopener">Apply</a></td>
         </tr>
       {% endfor %}
     </table>
@@ -2102,9 +2112,9 @@ def bucket_rows(rows):
     """
     buckets = {"local": [], "remote": [], "visa": []}
     for row in rows:
-        if (row.get("Visa") or "").strip():
+        if (row.get("visa") or "").strip():
             buckets["visa"].append(row)
-        elif str(row.get("Remote?", "")).lower() == "true":
+        elif str(row.get("remote?", "")).lower() == "true":
             buckets["remote"].append(row)
         else:
             buckets["local"].append(row)
@@ -2138,7 +2148,7 @@ Add `read_rows=None` to `create_app`, then:
 
         min_score = request.args.get("min", type=int) or 0
         rows = [r for r in read_rows(app.state["profile"])
-                if _as_int(r.get("Score")) >= min_score]
+                if _as_int(r.get("score")) >= min_score]
         return render_template("results.html", **shell(
             "results", buckets=bucket_rows(rows), sections=SECTIONS,
             total=len(rows), min_score=min_score,

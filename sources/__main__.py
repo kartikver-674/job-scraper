@@ -80,6 +80,15 @@ FIXTURES = {
               {"Title": "Senior / Staff Fullstack Engineer", "Location": "Europe, Remote",
                "Posted Date": "2021-04-27", "Job URL": "https://jobs.ashbyhq.com/linear/d3b",
                "Description": "TypeScript"}),
+    "breezy": ([{"name": "Senior Backend Engineer", "id": "98323abf2296",
+                 "url": "https://acme.breezy.hr/p/98323abf2296-senior-backend",
+                 "published_date": "2026-09-01T10:31:00Z",
+                 "location": {"country": {"name": "India", "id": "IN"},
+                              "city": "Bengaluru"},
+                 "type": {"id": "full-time", "name": "Full-Time"}}],
+                {"Title": "Senior Backend Engineer", "Location": "India",
+                 "Posted Date": "2026-09-01",
+                 "Job URL": "https://acme.breezy.hr/p/98323abf2296-senior-backend"}),
     "smartrecruiters": ({"content": [{"id": "744000139823759", "name": "SAP Specialist",
                                       "releasedDate": "2026-07-25T12:42:34.909Z",
                                       "location": {"fullLocation": "bangalore, , India",
@@ -103,6 +112,20 @@ def offline():
     # Every table entry must be exercised above, or an unverified one slips in.
     assert set(FIXTURES) == set(ats.ATS), (
         f"untested ATS entries: {set(ats.ATS) - set(FIXTURES)}")
+    # himalayas: which endpoint a config chooses. The search API did not exist
+    # when that adapter was written; a profile with role keywords must use it,
+    # and one without must still fall back to paging rather than fetch nothing.
+    from .feeds import _himalayas_urls
+    searched = _himalayas_urls({"queries": ["react native", "node.js"], "pages": 10})
+    assert len(searched) == 2, searched
+    assert all("/jobs/api/search?" in u for u in searched), searched
+    assert "q=react%20native" in searched[0], searched[0]
+    browsed = _himalayas_urls({"pages": 3})
+    assert len(browsed) == 3 and all("offset=" in u for u in browsed), browsed
+    assert _himalayas_urls({"queries": ["  ", ""], "pages": 3}) == browsed, \
+        "blank queries must fall back to paging, not fetch nothing"
+    capped = _himalayas_urls({"queries": [f"q{i}" for i in range(30)]})
+    assert len(capped) == 8, f"uncapped queries would rate-limit: {len(capped)}"
     optum_offline()
     # Same contract for the enterprise adapters: their date shapes and the
     # SuccessFactors row regex fail silently (blank dates, blank titles), so
@@ -116,7 +139,10 @@ def offline():
 def live():
     """One real request per ATS platform and per feed."""
     probe = {"greenhouse": {"postman": "Postman"}, "lever": {"cred": "CRED"},
-             "ashby": {"linear": "Linear"}, "smartrecruiters": {"BoschGroup": "Bosch"}}
+             "ashby": {"linear": "Linear"}, "smartrecruiters": {"BoschGroup": "Bosch"},
+             # Breezy's own board — a public one that is always up, since this
+             # asserts every platform in the table answers.
+             "breezy": {"breezy": "Breezy"}}
     feed_cfg = {"remoteok": {"enabled": True},
                 "wwr": {"enabled": True, "categories": ["remote-programming-jobs"]},
                 "remotive": {"enabled": True},
