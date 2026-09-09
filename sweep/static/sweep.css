@@ -89,10 +89,6 @@ header {
   background: var(--well);
   border-bottom: 1px solid var(--rule);
 }
-.brand > strong {
-  font-family: var(--display); font-size: 22px; font-weight: 700;
-  letter-spacing: -0.02em;
-}
 .brand { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
 
 .chip {
@@ -293,6 +289,16 @@ button.secondary, a.secondary {
 }
 button.secondary:hover, a.secondary:hover { background: var(--surface-high); }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s5); }
+
+/* Submitted buttons are disabled by Alpine across the app; without this they
+   still read as clickable, which invites the second click the disable exists
+   to prevent. */
+button[disabled], button[disabled]:hover {
+  opacity: .5; cursor: default; background: var(--chalk);
+}
+button.secondary[disabled], button.secondary[disabled]:hover {
+  background: transparent;
+}
 
 .error {
   border-left: 2px solid var(--over); padding: var(--s3) 0 var(--s3) var(--s4);
@@ -540,3 +546,66 @@ td.score {
   animation: pulse 1s ease-in-out infinite;
 }
 @keyframes pulse { 50% { opacity: .25; } }
+
+/* ---- The mark ----------------------------------------------------------- */
+
+.mark { display: block; flex: none; }
+.lockup {
+  display: inline-flex; align-items: center; gap: var(--s3);
+  color: inherit; text-decoration: none;
+}
+.lockup strong {
+  font-family: var(--display); font-size: 22px; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--chalk);
+}
+
+/* The front door. The header carries the mark on every screen; here it is
+   the first thing on the page, because this is the only screen a first-time
+   visitor lands on cold and it is the one that has to say what this is. */
+.hero {
+  display: flex; align-items: center; gap: var(--s5);
+  padding-bottom: var(--s5); border-bottom: 1px solid var(--rule);
+}
+.hero .mark { width: 44px; height: 44px; }
+.hero h1 { font-size: 26px; }
+.hero p { color: var(--warm); margin-top: var(--s1); }
+@media (min-width: 48rem) {
+  .hero .mark { width: 56px; height: 56px; }
+  .hero h1 { font-size: 34px; }
+}
+
+/* ---- The working screen ------------------------------------------------- */
+
+.working {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: var(--s5); max-width: 44rem;
+}
+.working h1 { margin: 0; }
+.working .lede { margin: 0; }
+/* The form is a flex child of .working, so its own children need the gap
+   spelled out — without it the progress bar sat flush against the button. */
+.working form {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: var(--s5);
+}
+
+/* Indeterminate on purpose. There is no progress to report — one model call
+   either returns or it doesn't — and a bar that crept to 90%% and waited
+   would be inventing a figure, which is the same lie the meter refuses to
+   tell about money. */
+.working-bar {
+  width: 100%; max-width: 22rem; height: 4px;
+  background: var(--well); border-radius: 2px; overflow: hidden;
+}
+.working-bar span {
+  display: block; width: 40%; height: 100%;
+  background: var(--paid); border-radius: 2px;
+  animation: slide 1.15s ease-in-out infinite;
+}
+@keyframes slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .working-bar span { animation: none; width: 100%; opacity: .5; }
+}

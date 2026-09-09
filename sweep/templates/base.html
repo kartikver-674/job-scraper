@@ -1,8 +1,10 @@
 <!doctype html>
+{% from "_mark.html" import mark %}
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Sweep{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='sweep.css') }}">
 {# Fonts come from Google; the typography is part of the design the spec
    asked for, and a stylesheet cannot execute code. It does mean each page
@@ -21,7 +23,7 @@
 
 <header>
   <div class="brand">
-    <strong>Sweep</strong>
+    <a class="lockup" href="{{ url_for('upload') }}">{{ mark(22) }}<strong>Sweep</strong></a>
     {# The credit figure appears once, on the right. Repeating it here as a
        "cap" chip the way the v3 mock does would name one number twice: this
        app has no separate hard cap to show until the confirm screen. #}

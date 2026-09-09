@@ -1,10 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Upload your résumé — Sweep{% endblock %}
+{% from "_mark.html" import mark %}
+{% block title %}Sweep — metered job search{% endblock %}
 {% block body %}
 <div class="stack">
+  {# The front door. Every other screen has the header lockup and a step
+     number and that is enough, but this is the one screen someone lands on
+     cold — and nothing on it said what Sweep is, only what to do next. No
+     timed splash: this runs on your own machine and is ready immediately, so
+     a delay would be friction on every single run. #}
+  <div class="hero">
+    {{ mark() }}
+    <div>
+      <h1>Sweep</h1>
+      <p>Job search you can meter. It prices every search before it runs, and
+        spends nothing until you approve the plan.</p>
+    </div>
+  </div>
+
   <div class="stack-tight">
     <span class="meta">Step 1 of 7</span>
-    <h1>Point it at your résumé</h1>
+    <h2>Point it at your résumé</h2>
     <p class="lede">Your résumé decides which jobs get searched for and how they are ranked.</p>
   </div>
 

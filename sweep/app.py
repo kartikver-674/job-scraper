@@ -504,12 +504,55 @@ def create_app(state=None, extract=None, resume_dir=None,
     def review():
         if not app.state.get("resume_text"):
             return redirect(url_for("upload"))
+        # The model call takes seconds, so it deliberately does NOT happen in
+        # this render. It used to, which meant the browser sat on the PREVIOUS
+        # page for the whole wait with nothing the server could show — there
+        # was no response to put a loading state in. Hand back the working
+        # screen instead and let POST /derive make the call: a form POST keeps
+        # that screen on display until the redirect lands.
+        if app.state.get("derived") is None:
+            return render_template("deriving.html", **shell("review"))
         derived = derived_for_state()
         commodity = [w["term"] for w in derived["skill_weights"]
                      if w["weight"] <= COMMODITY_WEIGHT]
         return render_template("review.html", **shell(
             "review", derived=derived, commodity=commodity,
             suggested_name=app.state.get("profile", "")))
+
+    @app.post("/derive")
+    def derive_post():
+        """Make the one model call, then send the user to the real screen.
+
+        A POST, not a GET, because it is not idempotent — it spends a model
+        call. derived_for_state() caches on state, so a reload after this
+        lands on the review screen rather than paying twice.
+        """
+        if not app.state.get("resume_text"):
+            return redirect(url_for("upload"))
+        try:
+            derived = derived_for_state()
+        except Exception as exc:
+            # The message is fixed, not str(exc): a client library's error can
+            # carry the request URL, and this app's whole job is to be careful
+            # with the credentials in .env.
+            app.logger.warning("derive failed: %s", exc)
+            return render_template("deriving.html", **shell(
+                "review",
+                error="The model could not read that résumé. The reason is in "
+                      "the terminal running Sweep — a scanned PDF with no "
+                      "text layer is the usual cause.")), 502
+        # A falsy derivation is indistinguishable from "not derived yet" on
+        # state, so GET /review would hand back the working screen — which
+        # submits ITSELF, calling the model again, once per lap, forever.
+        # Reported rather than redirected: the error screen carries no
+        # auto-submit, which is what breaks the loop.
+        if not derived:
+            app.logger.warning("derive returned %r for the résumé", derived)
+            return render_template("deriving.html", **shell(
+                "review",
+                error="The model returned nothing for that résumé. Try a "
+                      "text-based PDF export.")), 502
+        return redirect(url_for("review"))
 
     @app.post("/review")
     def review_post():

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_mark.html" import mark %}
+{% block title %}Reading your résumé — Sweep{% endblock %}
+{% block body %}
+<div class="working">
+  {{ mark(56) }}
+  <h1>Reading your résumé</h1>
+  <p class="lede">A model is working out which job titles to search for and how
+    to weight your skills. It takes a few seconds and spends no scraping
+    credit.</p>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  {# The form submits itself, so this screen is what you look at for the whole
+     model call. NOT auto-submitted when there is an error, or a failing
+     résumé would retry forever and pay for a model call each time.
+
+     The button is always rendered rather than hidden behind <noscript>: if
+     Alpine is missing, x-init never fires, and a page whose only way forward
+     was that script would be a dead end. #}
+  <form method="post" action="{{ url_for('derive_post') }}"
+        x-data="{ sent: false }" @submit="sent = true"
+        {% if not error %}x-init="$el.requestSubmit()"{% endif %}>
+    {% if not error %}
+      <div class="working-bar" x-show="sent" x-cloak><span></span></div>
+    {% endif %}
+    <div class="actions">
+      <button class="primary" type="submit" :disabled="sent">
+        {%- if error %}Try a different résumé{% else %}Continue{% endif %}</button>
+      {% if error %}
+        <a class="secondary" href="{{ url_for('upload') }}">Upload another PDF</a>
+      {% else %}
+        <span class="meta sending" x-show="sent" x-cloak>Working…</span>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}

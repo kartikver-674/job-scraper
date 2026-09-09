@@ -569,7 +569,11 @@ DERIVED = {
 
 class TestReviewScreen(unittest.TestCase):
     def _app(self, state=None):
-        state = state if state is not None else {"resume_text": "a résumé"}
+        # derived pre-seeded: GET /review no longer makes the model call, it
+        # hands back the working screen when there is nothing derived yet.
+        # This is the state POST /derive leaves behind.
+        state = (state if state is not None
+                 else {"resume_text": "a résumé", "derived": DERIVED})
         app = app_module.create_app(
             state=state, extract=lambda p: "x",
             derive=lambda resume_text, prefs: DERIVED)
@@ -660,7 +664,8 @@ class TestReviewScreen(unittest.TestCase):
 class TestSkillWeightEditing(unittest.TestCase):
     def _app(self):
         app = app_module.create_app(
-            state={"resume_text": "a résumé", "cap_usd": 8.41},
+            state={"resume_text": "a résumé", "cap_usd": 8.41,
+                   "derived": DERIVED},
             extract=lambda p: "x", derive=lambda t, p: DERIVED,
             check_token=lambda t: (8.41, None),
             fetch_plan=lambda profile: RAW_PLAN,
@@ -801,8 +806,8 @@ class TestEmptyAndPendingStates(unittest.TestCase):
     def test_review_says_when_no_skills_came_back(self):
         bare = dict(DERIVED, skill_weights=[])
         app = app_module.create_app(
-            state={"resume_text": "a résumé"}, extract=lambda p: "x",
-            derive=lambda t, p: bare)
+            state={"resume_text": "a résumé", "derived": bare},
+            extract=lambda p: "x", derive=lambda t, p: bare)
         app.config.update(TESTING=True)
         body = app.test_client().get("/review").get_data(as_text=True)
         self.assertIn("No skills came back", body)
@@ -815,8 +820,8 @@ class TestEmptyAndPendingStates(unittest.TestCase):
         # a sweep that searches nothing at all.
         bare = dict(DERIVED, role_keywords=[])
         app = app_module.create_app(
-            state={"resume_text": "a résumé"}, extract=lambda p: "x",
-            derive=lambda t, p: bare)
+            state={"resume_text": "a résumé", "derived": bare},
+            extract=lambda p: "x", derive=lambda t, p: bare)
         app.config.update(TESTING=True)
         body = app.test_client().get("/review").get_data(as_text=True)
         self.assertIn("No titles derived", body)
@@ -890,6 +895,133 @@ class TestEmptyAndPendingStates(unittest.TestCase):
         self.assertRegex(css, r"\[x-cloak\]\s*\{[^}]*display:\s*none")
         body = self._app().test_client().get("/configure").get_data(as_text=True)
         self.assertIn("x-cloak", body)
+
+
+class TestResumeParsingScreen(unittest.TestCase):
+    """The model call is the longest wait in the app. It used to happen inside
+    GET /review's render, so the browser sat on the PREVIOUS page for the
+    whole thing and there was no response the server could put a loading
+    state into."""
+
+    def _app(self, derive=None):
+        calls = []
+
+        def default(resume_text, prefs):
+            calls.append(resume_text)
+            return DERIVED
+
+        app = app_module.create_app(
+            state={"resume_text": "a résumé"}, extract=lambda p: "x",
+            derive=derive or default)
+        app.config.update(TESTING=True)
+        app.calls = calls
+        return app
+
+    def test_review_hands_back_a_working_screen_without_calling_the_model(self):
+        app = self._app()
+        body = app.test_client().get("/review").get_data(as_text=True)
+        self.assertIn("Reading your résumé", body)
+        # The whole point: the render must not block on the model, or there is
+        # no page to show while it runs.
+        self.assertEqual(app.calls, [])
+
+    def test_the_working_screen_submits_itself_so_it_stays_on_screen(self):
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        self.assertIn('action="/derive"', body)
+        self.assertIn("$el.requestSubmit()", body)
+        # And a button exists regardless, so a missing Alpine is not a dead
+        # end on the one screen with no other way forward.
+        self.assertIn('type="submit"', body)
+
+    def test_derive_makes_the_call_then_lands_on_the_real_screen(self):
+        app = self._app()
+        client = app.test_client()
+        r = client.post("/derive")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/review", r.headers["Location"])
+        self.assertEqual(app.calls, ["a résumé"])
+        body = client.get("/review").get_data(as_text=True)
+        self.assertIn("react native", body)
+        self.assertNotIn("Reading your résumé", body)
+
+    def test_the_model_is_not_paid_for_twice(self):
+        app = self._app()
+        client = app.test_client()
+        client.post("/derive")
+        client.post("/derive")
+        client.get("/review")
+        self.assertEqual(len(app.calls), 1)
+
+    def test_a_failed_derivation_is_a_message_not_a_500(self):
+        def boom(resume_text, prefs):
+            raise RuntimeError("upstream said no")
+        app = self._app(derive=boom)
+        r = app.test_client().post("/derive")
+        self.assertEqual(r.status_code, 502)
+        body = r.get_data(as_text=True)
+        self.assertIn("could not read that résumé", body)
+
+    def test_a_failed_derivation_does_not_retry_itself_forever(self):
+        # The error screen must NOT carry the auto-submit: a résumé the model
+        # keeps refusing would loop, paying for a call every time round.
+        def boom(resume_text, prefs):
+            raise RuntimeError("upstream said no")
+        body = self._app(derive=boom).test_client().post(
+            "/derive").get_data(as_text=True)
+        self.assertNotIn("$el.requestSubmit()", body)
+
+    def test_a_failed_derivation_never_echoes_the_upstream_error(self):
+        # A client library's exception can carry the request URL, and the keys
+        # live in .env.
+        def boom(resume_text, prefs):
+            raise RuntimeError("key=SECRET123 rejected")
+        body = self._app(derive=boom).test_client().post(
+            "/derive").get_data(as_text=True)
+        self.assertNotIn("SECRET123", body)
+
+    def test_a_derivation_that_returns_nothing_cannot_loop(self):
+        # derived_for_state() caches whatever comes back, and its "have I
+        # derived yet" check is `is None` — so a falsy result left state
+        # looking un-derived. GET /review then serves the working screen,
+        # which submits itself, which calls the model again: a runaway that
+        # pays for a call every lap. Introduced by the auto-submit, so it is
+        # guarded at the same time.
+        for empty in (None, {}):
+            app = self._app(derive=lambda t, p: empty)
+            r = app.test_client().post("/derive")
+            self.assertEqual(r.status_code, 502, repr(empty))
+            body = r.get_data(as_text=True)
+            self.assertIn("returned nothing", body)
+            # The thing that actually stops the loop.
+            self.assertNotIn("$el.requestSubmit()", body)
+
+    def test_derive_without_a_resume_goes_back_to_upload(self):
+        app = app_module.create_app(state={}, extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED)
+        app.config.update(TESTING=True)
+        r = app.test_client().post("/derive")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.headers["Location"], "/")
+
+
+class TestBrandMark(unittest.TestCase):
+    def test_every_screen_carries_the_mark_and_a_favicon(self):
+        app = app_module.create_app(state={}, extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED)
+        app.config.update(TESTING=True)
+        body = app.test_client().get("/").get_data(as_text=True)
+        self.assertIn('rel="icon"', body)
+        self.assertIn("favicon.svg", body)
+        self.assertIn('class="mark"', body)
+
+    def test_the_favicon_carries_its_own_ground(self):
+        # A transparent mark disappears against a light tab bar, which is
+        # where a favicon most often sits.
+        svg = (pathlib.Path(app_module.__file__).parent
+               / "static" / "favicon.svg").read_text()
+        self.assertIn("#03161c", svg)
+        # And it cannot use CSS variables — nothing resolves them there.
+        self.assertNotIn("var(--", svg)
 
 
 class TestKeyScreen(unittest.TestCase):
