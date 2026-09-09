@@ -581,22 +581,23 @@ def create_app(state=None, extract=None, resume_dir=None,
         # README's "a wrong estimate cannot cause an overspend" true.
         # Written through render(), never an f-string: it is also what
         # validates every key against the live config.
-        app.state["max_spend_usd"] = plan_now["spend_cap"]
-        app.write_profile(app.state["profile"], make_profile.render(
-            app.state["profile"], app.state["derived"], _prefs(app.state)))
-
         # Checked and set under one lock, the same shape /rescore uses. The
         # dev server is threaded, this route makes a live Apify call before it
         # redirects, and /second-key sends the user back to /confirm with a
         # live Run button while the first sweep is still going — so a second
         # launch is a double-click or a documented gesture away, and it spends
-        # real money.
+        # real money. The profile rewrite is inside too: a request refused
+        # with 409 should leave no trace, and it must still land before the
+        # child starts.
         with _run_lock:
             if _sweep_in_flight():
                 return _confirm_page(
                     error="A sweep is already running. Watch it on the "
                           "running screen, or stop it before starting "
                           "another.", status=409)
+            app.state["max_spend_usd"] = plan_now["spend_cap"]
+            app.write_profile(app.state["profile"], make_profile.render(
+                app.state["profile"], app.state["derived"], _prefs(app.state)))
             # baseline_usd may be None (see read_spend's docstring) —
             # recorded as-is, never coerced to 0.0, so the meter can tell
             # "unknown" from "no spend yet".
@@ -784,6 +785,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         proc = app.state.get("proc")
         return proc is not None and proc.poll() is None
+
+    # ponytail: in-memory and single-process, like the re-score flag. run.json
+    # carries no pid, so restarting the server mid-sweep reports idle and the
+    # next POST /run launches a second paid child over a live one — the
+    # original defect, through a narrower door. Persist the pid alongside
+    # run.json if the server is ever restarted mid-sweep in practice.
 
     def _results_url():
         """/results carrying whatever filters the request arrived with, so a

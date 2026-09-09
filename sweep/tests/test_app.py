@@ -1,11 +1,18 @@
 import io
+import itertools
 import os
+import re
 import shutil
+import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
 from sweep import app as app_module
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def alpine_scope(body):
@@ -30,6 +37,123 @@ def alpine_scope(body):
 
     Scan().feed(body)
     return found
+
+
+class TestEngineFlagAndPathHygiene(unittest.TestCase):
+    """Two fixes the last round claimed were pinned and were not — nothing in
+    the repo referenced either."""
+
+    def test_json_without_dry_run_is_refused(self):
+        # It used to be accepted and silently do nothing, so a caller
+        # expecting machine-readable output got prose and no reason why.
+        #
+        # Deliberately NOT a subprocess. `scraper.py --json` is only harmless
+        # BECAUSE this guard exists — without it the process falls through to
+        # the real run path, so a test that spawned it would start a paid
+        # sweep at the exact moment the guard regressed. Found the hard way:
+        # mutating the guard to check this test hung the suite on a live
+        # engine. Parsing argv in-process cannot reach a network call.
+        sys.path.insert(0, REPO_ROOT)
+        import scraper
+        with mock.patch.object(sys, "argv", ["scraper.py", "--json"]):
+            with self.assertRaises(SystemExit) as caught:
+                with mock.patch("sys.stderr", io.StringIO()) as err:
+                    scraper.parse_args()
+        self.assertNotEqual(caught.exception.code, 0)
+        self.assertIn("--json only applies with --dry-run", err.getvalue())
+
+    def test_json_with_dry_run_is_accepted(self):
+        sys.path.insert(0, REPO_ROOT)
+        import scraper
+        with mock.patch.object(sys, "argv",
+                                ["scraper.py", "--dry-run", "--json"]):
+            args = scraper.parse_args()
+        self.assertTrue(args.json and args.dry_run)
+
+    def test_repeated_progress_reads_do_not_grow_sys_path(self):
+        # read_spend ran sys.path.insert on every call — about 160 times a
+        # sweep — which is the defect R42 fixed in one function and left in
+        # two others.
+        plan = {"profile": "p", "sites": {"linkedin": [
+            {"keywords": "k", "location": "India", "company": ""}]},
+            "max_results": {"linkedin": 25}, "free_sources": 0}
+        # read_spend is deliberately NOT injected: the default closure is
+        # the thing that grew sys.path, and injecting a fake would leave it
+        # unexecuted — the same injection blindness that hid a dead Alpine
+        # layer. With APIFY_TOKEN absent it returns before any network call,
+        # and the insert sat ahead of that check.
+        env = {k: v for k, v in os.environ.items() if k != "APIFY_TOKEN"}
+        ticks = itertools.count(0, app_module.SPEND_POLL_SECONDS + 1)
+        app = app_module.create_app(
+            state={"profile": "p", "cap_usd": 8.41, "raw_plan": plan,
+                   "plan": {"total": 0.045, "total_searches": 1,
+                            "over_cap": False, "lines": []},
+                   "baseline_usd": 1.0, "proc": FakeProc()},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            fetch_plan=lambda p: plan, read_done=lambda p, d: set(),
+            # The spend throttle reads at most once per SPEND_POLL_SECONDS,
+            # so a rapid loop would call the closure ONCE and the test could
+            # not see it grow. Advance the injected clock past the window on
+            # every tick so each request really re-reads.
+            now=lambda: next(ticks),
+            output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        client = app.test_client()
+        with mock.patch.dict(os.environ, env, clear=True):
+            client.get("/progress")
+            before = len(sys.path)
+            for _ in range(50):
+                client.get("/progress")
+        self.assertEqual(len(sys.path), before)
+
+
+class TestRunningMeterBindings(unittest.TestCase):
+    """The header meter's bindings reference names that must exist in the
+    Alpine scope. A missing one is a ReferenceError at runtime, which no
+    server-side assertion can see — the blind spot that hid a dead Alpine
+    layer for ten tasks."""
+
+    def _body(self, baseline=1.0, spend=2.5):
+        plan = {"profile": "p", "sites": {"linkedin": [
+            {"keywords": f"k{i}", "location": "India", "company": ""}
+            for i in range(4)]}, "max_results": {"linkedin": 25},
+            "free_sources": 2}
+        app = app_module.create_app(
+            state={"profile": "p", "cap_usd": 8.41, "raw_plan": plan,
+                   "plan": {"total": 0.18, "total_searches": 4,
+                            "over_cap": False, "lines": [], "spend_cap": 0.5},
+                   "baseline_usd": baseline,
+                   "proc": FakeProc()},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            fetch_plan=lambda p: plan, read_done=lambda p, d: set(),
+            read_spend=lambda: spend, output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app.test_client().get("/running").get_data(as_text=True)
+
+    def test_every_name_the_header_bindings_use_is_in_the_scope(self):
+        body = self._body()
+        scope = re.search(r"x-data='([^']*)'", body).group(1)
+        for name in ("cap", "spend", "baseline_known"):
+            self.assertIn(name, scope,
+                          f"{name} is referenced by a header binding but is "
+                          f"not in the Alpine scope, so it throws at runtime")
+
+    def test_the_header_label_follows_whether_the_baseline_is_known(self):
+        # With no baseline, p.spend is the account's month-to-date total,
+        # which is NOT this sweep's spend — so the header must not call it
+        # "Spent so far", and must not paint it the over-cap red.
+        body = self._body(baseline=None, spend=40.0)
+        self.assertIn("Account spend this month", body)
+        # The LABEL's own expression has to branch on it. Asserting that both
+        # strings merely appear in the page cannot fail: a mutation to
+        # `true ? 'Spent so far' : 'Account spend this month'` leaves both
+        # literals sitting there, and "p.baseline_known" survives elsewhere
+        # in the :class binding.
+        label = re.search(r"<span x-text=\"([^\"]*)\">Spent so far</span>",
+                           body).group(1)
+        self.assertIn("p.baseline_known", label)
+        over = re.search(r':class="\{ over: ([^}]*)\}"', body).group(1)
+        self.assertIn("baseline_known", over)
 
 
 class TestPageShell(unittest.TestCase):
@@ -104,7 +228,29 @@ class TestFixesThatHadNoTest(unittest.TestCase):
 
     def test_the_results_table_has_real_header_cells(self):
         body = self._results_app().test_client().get("/results").get_data(as_text=True)
-        self.assertIn('<th scope="col">Score</th>', body)
+        # All eight, not just one: pinning a single cell let the other seven
+        # revert to <td> silently.
+        for col in ("Source", "Score", "Role", "Location", "Pay",
+                     "Experience", "Matched skills"):
+            self.assertIn(f'<th scope="col">{col}</th>', body)
+        # One header row per non-empty bucket, so a whole multiple of eight —
+        # and never a plain <td> standing in for a header cell.
+        count = body.count('<th scope="col">')
+        self.assertGreaterEqual(count, 8)
+        self.assertEqual(count % 8, 0)
+
+    def test_the_depth_control_says_which_sites_it_moves(self):
+        # "Raising this raises the cost" is false for naukri, the priciest
+        # line — its charge is a per-run minimum at a depth this control
+        # cannot change. The assertion used to land on the other paragraph.
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("It does not change Naukri", body)
 
     def test_the_single_sweep_note_shows_even_with_everything_filtered_out(self):
         # It used to hide on `total`, i.e. exactly when the user most needs to
@@ -633,6 +779,25 @@ RAW_PLAN = {
     "free_sources": 6,
 }
 
+# RAW_PLAN carries no depths and no naukri, so pricing every rate from one
+# basis and pricing each from its own both come to $2.70 — it cannot tell the
+# two apart, which is how the app's own cost(..., SITE_RATE_BASIS) argument
+# came to be unpinned. This plan can:
+#   per-site basis: linkedin 32 x $0.045 @25 + indeed 14 x $0.09 @15
+#                   + naukri 2 x $0.50 @50 = $1.44 + $1.26 + $1.00 = $3.70
+#   one basis of 25: indeed drops to $0.054 and naukri doubles to $1.00 each
+#                   = $1.44 + $0.756 + $2.00 = $4.196
+PRICED_PLAN = {
+    "profile": "kanav",
+    "sites": {
+        "linkedin": [{"keywords": "A", "location": "India", "company": ""}] * 32,
+        "indeed": [{"keywords": "A", "location": "Pune", "company": ""}] * 14,
+        "naukri": [{"keywords": "A", "location": "Delhi / NCR", "company": ""}] * 2,
+    },
+    "max_results": {"linkedin": 25, "indeed": 15, "naukri": 50},
+    "free_sources": 6,
+}
+
 
 class TestConfigureScreen(unittest.TestCase):
     def _app(self):
@@ -806,6 +971,25 @@ class TestConfigureScreen(unittest.TestCase):
             "/estimate", json={"skip_terms": "docker; rm -rf /"})
         self.assertEqual(r.status_code, 400)
         self.assertEqual(writes, [])
+
+    def test_the_app_prices_each_site_at_its_own_measured_depth(self):
+        # Guards the argument, not the arithmetic: plan.cost's own tests can
+        # pass while the app forgets to hand it config.SITE_RATE_BASIS, which
+        # would put a $22.37 figure on a $15.97 plan.
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": dict(DERIVED)},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: PRICED_PLAN)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, s: None
+        out = app.test_client().post("/estimate", json={}).get_json()
+        self.assertAlmostEqual(out["total"], 3.70, places=2)
+        by_site = {l["site"]: l for l in out["lines"]}
+        # indeed at its own basis of 15, not understated from 25.
+        self.assertAlmostEqual(by_site["indeed"]["rate"], 0.09, places=4)
+        # naukri's per-run minimum, not doubled by a foreign basis.
+        self.assertAlmostEqual(by_site["naukri"]["rate"], 0.50, places=4)
 
     def test_estimate_maps_scope_and_the_pay_floor(self):
         app, writes = self._app_with_spy()
@@ -1105,6 +1289,49 @@ class TestConfirmScreen(unittest.TestCase):
         self.assertIn("already running", second.get_data(as_text=True))
         self.assertEqual(launches, ["kanav"])       # one child, not two
 
+    def test_two_simultaneous_run_posts_launch_one_sweep(self):
+        # The GUARD is pinned by the test above, but the LOCK is not: with
+        # _run_lock removed, two sequential posts still behave correctly while
+        # two concurrent ones launch two paid children on one profile. The
+        # route makes a live Apify call before it redirects and the dev server
+        # is threaded, so this is a double-click away.
+        import threading
+
+        launches = []
+        # Synchronise BEFORE the request, not inside read_spend: with the lock
+        # working only one thread ever reaches read_spend, so a barrier in
+        # there would deadlock on the correct behaviour.
+        at_the_door = threading.Barrier(2)
+
+        def slow_read_spend():
+            time.sleep(0.1)            # widen the check-to-set window
+            return 1.00
+
+        app = self._app(read_spend=slow_read_spend,
+                        start_sweep=lambda profile: (
+                            launches.append(profile) or FakeProc()))
+        app.test_client().get("/confirm")
+
+        codes = []
+        errors = []
+
+        def post():
+            try:
+                at_the_door.wait(timeout=5)
+                codes.append(app.test_client().post("/run").status_code)
+            except Exception as exc:       # a swallowed thread error would
+                errors.append(repr(exc))   # otherwise read as an empty list
+
+        threads = [threading.Thread(target=post) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(sorted(codes), [302, 409])
+        self.assertEqual(launches, ["kanav"])      # one paid child, not two
+
     def test_a_finished_sweep_does_not_block_the_next_one(self):
         class Finished:
             def poll(self):
@@ -1118,6 +1345,20 @@ class TestConfirmScreen(unittest.TestCase):
         client.post("/run")
         self.assertEqual(client.post("/run").status_code, 302)
         self.assertEqual(launches, ["kanav", "kanav"])
+
+    def test_a_refused_run_does_not_rewrite_the_profile(self):
+        # The profile rewrite used to sit outside the lock and before the
+        # in-flight check, so a request answered with 409 had already
+        # rewritten profiles/<name>.py.
+        writes = []
+        app = self._app(start_sweep=lambda profile: FakeProc())
+        app.write_profile = lambda n, s: writes.append(n)
+        client = app.test_client()
+        client.get("/confirm")
+        client.post("/run")
+        self.assertEqual(writes, ["kanav"])
+        self.assertEqual(client.post("/run").status_code, 409)
+        self.assertEqual(writes, ["kanav"])        # unchanged by the refusal
 
     def test_run_stamps_a_real_spend_cap_into_the_profile_before_launching(self):
         # The one guard that actually stops an overspend is

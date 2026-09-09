@@ -59,8 +59,9 @@ Four things worth knowing:
   high still finishes. The confirm screen shows that hard stop next to the
   estimate. So a wrong estimate normally costs you up to that figure and no
   more — with one caveat worth knowing: the cap is measured against your
-  account's month-to-date spend, and if Apify will not report that figure
-  mid-sweep, `scraper.py` falls back to the actors' own cost reports, which
+  account's month-to-date spend, and if Apify will not report that figure at
+  the start of or during the sweep, `scraper.py` falls back to the actors' own
+  cost reports, which
   on a measured 84-run sweep undercounted the real bill roughly threefold.
   The cap still stops the sweep; it can stop it later than the number says.
 - The resume ledger (`output/<profile>/.done_combos`) is scoped to a single

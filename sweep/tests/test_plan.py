@@ -155,8 +155,6 @@ class TestDryRunJsonCarriesDepth(unittest.TestCase):
             self.assertGreater(depth, 0, site)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class TestPerSiteRateBasis(unittest.TestCase):
@@ -219,3 +217,6 @@ class TestPerSiteRateBasis(unittest.TestCase):
         self.assertEqual(line["results"], 50)          # naukri's own, not 25
         self.assertAlmostEqual(line["rate"], 0.50, places=6)
         self.assertFalse(line["free"])                 # never repriced to free
+
+if __name__ == "__main__":
+    unittest.main()

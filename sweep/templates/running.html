@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Sweep running — Sweep{% endblock %}
-{% block meter_label %}Spent so far{% endblock %}
+{# Label follows the figure: with no baseline to subtract, p.spend is the
+   account's month-to-date total, which is NOT this sweep's spend. The body
+   copy already says so; the header used to claim "Spent so far" over it. #}
+{% block meter_label %}<span x-text="p.baseline_known ? 'Spent so far'
+    : 'Account spend this month'">Spent so far</span>{% endblock %}
 {# The Alpine scope wraps the header meter as well as the body, so the header
    numeral and bar follow the SSE stream instead of sitting at their first
    value for the whole ~40-minute sweep. Same p.spend the body reads. #}
@@ -13,8 +17,8 @@
    these double-quoted attributes: {{ cap|tojson }} inside one of them is the
    same defect R65 fixed, and a non-numeric cap would break it silently. #}
 {% block meter_numeral_bind %} x-text="p.spend === null ? 'not known' : '$' + p.spend.toFixed(2)"{% endblock %}
-{% block meter_class_bind %} :class="{ over: p.spend !== null && cap !== null && p.spend > cap }"{% endblock %}
-{% block meter_fill_bind %} :style="'width: ' + (p.spend === null || !cap ? 0 : Math.min(100, Math.round(p.spend / cap * 100))) + '%'"{% endblock %}
+{% block meter_class_bind %} :class="{ over: p.baseline_known && p.spend !== null && cap !== null && p.spend > cap }"{% endblock %}
+{% block meter_fill_bind %} :style="'width: ' + (!p.baseline_known || p.spend === null || !cap ? 0 : Math.min(100, Math.round(p.spend / cap * 100))) + '%'"{% endblock %}
 {% block body %}
 <div>
 
