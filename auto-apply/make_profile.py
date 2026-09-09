@@ -187,6 +187,46 @@ def build_prompt(resume_text, prefs):
     )
 
 
+class ModelAnswerError(RuntimeError):
+    """The call succeeded and the answer was unusable.
+
+    Carries a SHORT reason composed here, from the response's own finish_reason
+    enum — never str(exc) from the client library, which can carry the request
+    URL. That rule is why the UI could only ever say "the reason is in the
+    terminal"; this is what lets it say which failure it was instead.
+    """
+
+
+# gemini-3.6-flash reasons before it answers, and thinking tokens are charged
+# against the SAME budget as the answer. With no ceiling set, the default
+# applies — and a response that spends it thinking finishes with MAX_TOKENS and
+# no text part at all, which reaches json.loads as None. Set explicitly and
+# generously: this is a ceiling, not a reservation, so a larger one costs
+# nothing on a response that does not need it. The JSON this schema asks for
+# runs ~1.5k tokens.
+MAX_OUTPUT_TOKENS = 16384
+
+
+def _unusable(response):
+    """Why an answer could not be read, or None if it can be.
+
+    The vocabulary is the library's FinishReason enum, so nothing the model or
+    a server wrote is echoed.
+    """
+    text = response.text
+    if text:
+        return None
+    candidates = response.candidates or []
+    reason = getattr(candidates[0], "finish_reason", None) if candidates else None
+    name = getattr(reason, "name", None) or str(reason or "no reason given")
+    if name == "MAX_TOKENS":
+        return ("the model ran out of output budget before it answered — "
+                f"raise MAX_OUTPUT_TOKENS (currently {MAX_OUTPUT_TOKENS})")
+    if name in ("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "RECITATION"):
+        return f"the model refused to answer ({name.lower()})"
+    return f"the model returned no answer ({name})"
+
+
 def generate(client, model, resume_text, prefs, attempts=5, sleep=time.sleep):
     """One structured Gemini call, retried on the transient 503s this API throws."""
     prompt = build_prompt(resume_text, prefs)
@@ -194,13 +234,27 @@ def generate(client, model, resume_text, prefs, attempts=5, sleep=time.sleep):
         system_instruction=SYSTEM_INSTRUCTION,
         response_mime_type="application/json",
         response_schema=RESPONSE_SCHEMA,
+        max_output_tokens=MAX_OUTPUT_TOKENS,
         temperature=0.2,
     )
     for attempt in range(attempts):
         try:
             response = client.models.generate_content(
                 model=model, contents=prompt, config=config)
-            return json.loads(response.text)
+            # response.text is None when the response carries no text part —
+            # a refusal, or a budget spent on thinking. json.loads(None) then
+            # raises a TypeError that reads as "the résumé is unreadable".
+            unusable = _unusable(response)
+            if unusable:
+                raise ModelAnswerError(unusable)
+            try:
+                return json.loads(response.text)
+            except json.JSONDecodeError:
+                # Truncation lands here instead: a partial answer is still text.
+                raise ModelAnswerError(
+                    "the model's answer was cut off before it was valid JSON — "
+                    f"raise MAX_OUTPUT_TOKENS (currently {MAX_OUTPUT_TOKENS})"
+                ) from None
         except Exception as exc:
             # 503 UNAVAILABLE ("high demand") is common on this endpoint — it
             # hit 2 of 6 calls while this was written, then exhausted a 3-try

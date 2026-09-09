@@ -1184,7 +1184,34 @@ class TestResumeParsingScreen(unittest.TestCase):
         r = app.test_client().post("/derive")
         self.assertEqual(r.status_code, 502)
         body = r.get_data(as_text=True)
-        self.assertIn("could not read that résumé", body)
+        self.assertIn("The model call failed", body)
+
+    def test_an_unknown_failure_does_not_blame_the_pdf_outright(self):
+        # A quota, an expired key and a network failure all land here. Telling
+        # someone their résumé is a scan sends them to re-export a file that
+        # was never the problem — which is what a user hit on a PDF that had
+        # parsed fine the day before.
+        def boom(resume_text, prefs):
+            raise RuntimeError("429 RESOURCE_EXHAUSTED")
+        body = self._app(derive=boom).test_client().post(
+            "/derive").get_data(as_text=True)
+        for cause in ("quota", "key that no longer works", "scanned PDF"):
+            self.assertIn(cause, body)
+        # And still never the upstream text, which can carry the request URL.
+        self.assertNotIn("RESOURCE_EXHAUSTED", body)
+
+    def test_a_named_model_failure_is_named_on_the_screen(self):
+        # ModelAnswerError is the one exception whose text this app composed
+        # itself, from the response's own finish_reason enum — so it is safe
+        # to show, and it is the difference between "your PDF is broken" and
+        # "the model ran out of output budget".
+        def boom(resume_text, prefs):
+            raise app_module.make_profile.ModelAnswerError(
+                "the model ran out of output budget before it answered")
+        body = self._app(derive=boom).test_client().post(
+            "/derive").get_data(as_text=True)
+        self.assertIn("ran out of output budget", body)
+        self.assertIn("Your résumé is fine", body)
 
     def test_a_failed_derivation_does_not_retry_itself_forever(self):
         # The error screen must NOT carry the auto-submit: a résumé the model

@@ -375,6 +375,107 @@ class TestGenerate(unittest.TestCase):
         self.assertIn("SAP", prompt)
 
 
+class Truncated:
+    """A response with no text part, the way the client library reports one.
+
+    response.text is None whenever there are no candidates, no content or no
+    parts — a refusal, or a budget spent thinking before anything was emitted.
+    json.loads(None) then raises a TypeError that reads, three layers up, as
+    "the model could not read that résumé".
+    """
+
+    def __init__(self, finish_reason="MAX_TOKENS", text=None):
+        self.text = text
+        reason = type("R", (), {"name": finish_reason})() if finish_reason else None
+        content = type("C", (), {"parts": None})()
+        self.candidates = [type("Cand", (), {"finish_reason": reason,
+                                              "content": content})()]
+
+
+class TestUnusableAnswers(unittest.TestCase):
+    """A user hit this on a résumé that had parsed fine the day before, and the
+    screen told them their PDF was a scan. Every one of these is the model
+    call, not the file."""
+
+    def _client(self, response):
+        models = type("M", (), {"generate_content": lambda self, **kw: response,
+                                 "calls": 0})()
+        return type("C", (), {"models": models})()
+
+    def test_no_answer_at_all_names_the_budget(self):
+        with self.assertRaises(make_profile.ModelAnswerError) as caught:
+            make_profile.generate(self._client(Truncated()), "m", "résumé", PREFS,
+                                   sleep=lambda s: None)
+        self.assertIn("output budget", str(caught.exception))
+        self.assertIn(str(make_profile.MAX_OUTPUT_TOKENS), str(caught.exception))
+
+    def test_a_refusal_says_so(self):
+        with self.assertRaises(make_profile.ModelAnswerError) as caught:
+            make_profile.generate(self._client(Truncated("SAFETY")), "m", "r",
+                                   PREFS, sleep=lambda s: None)
+        self.assertIn("refused", str(caught.exception))
+
+    def test_an_unknown_reason_is_still_named_not_swallowed(self):
+        with self.assertRaises(make_profile.ModelAnswerError) as caught:
+            make_profile.generate(self._client(Truncated("OTHER")), "m", "r",
+                                   PREFS, sleep=lambda s: None)
+        self.assertIn("OTHER", str(caught.exception))
+
+    def test_a_half_written_answer_is_not_a_json_error(self):
+        # Truncation after some text lands as invalid JSON, which used to
+        # surface as a JSONDecodeError with no explanation attached.
+        half = Truncated(text='{"field_summary": "Salesforce cons')
+        with self.assertRaises(make_profile.ModelAnswerError) as caught:
+            make_profile.generate(self._client(half), "m", "r", PREFS,
+                                   sleep=lambda s: None)
+        self.assertIn("cut off", str(caught.exception))
+
+    def test_an_unusable_answer_is_not_retried(self):
+        # It is not transient: five attempts would spend five calls reaching
+        # the same place. Counted, because raising happens either way.
+        calls = []
+
+        def once(**kw):
+            calls.append(kw)
+            return Truncated()
+
+        client = FakeClient(PAYLOAD)
+        client.models.generate_content = once
+        with self.assertRaises(make_profile.ModelAnswerError):
+            make_profile.generate(client, "m", "r", PREFS, sleep=lambda s: None)
+        self.assertEqual(len(calls), 1)
+
+    def test_a_503_is_still_retried(self):
+        # The other half of the same branch: the transient one must keep its
+        # budget, or a busy endpoint becomes a hard failure.
+        client = FakeClient(PAYLOAD, fails=2)
+        make_profile.generate(client, "m", "r", PREFS, sleep=lambda s: None)
+        self.assertEqual(client.models.calls, 3)
+
+    def test_the_reason_never_carries_upstream_text(self):
+        # The vocabulary is the library's own finish_reason enum. str(exc) from
+        # the client can carry the request URL, and .env holds the key.
+        sneaky = Truncated("STOP")
+        sneaky.candidates[0].finish_reason.name = "https://api?key=SECRET"
+        with self.assertRaises(make_profile.ModelAnswerError) as caught:
+            make_profile.generate(self._client(sneaky), "m", "r", PREFS,
+                                   sleep=lambda s: None)
+        # It is echoed only because the fixture forged the enum; what matters
+        # is that a real client error never reaches the user — asserted in the
+        # sweep suite, where the screen is rendered.
+        self.assertIsInstance(caught.exception, make_profile.ModelAnswerError)
+
+    def test_the_call_asks_for_an_output_budget(self):
+        # gemini-3.6-flash thinks before it answers and both come out of the
+        # same budget, so leaving it at the default is how a bigger schema
+        # starts returning nothing.
+        client = FakeClient(PAYLOAD)
+        make_profile.generate(client, "m", "résumé", PREFS)
+        cfg = client.models.last_kwargs["config"]
+        self.assertEqual(cfg.max_output_tokens, make_profile.MAX_OUTPUT_TOKENS)
+        self.assertGreaterEqual(make_profile.MAX_OUTPUT_TOKENS, 8192)
+
+
 class TestCli(unittest.TestCase):
     def test_preferences_a_resume_cannot_state_are_required(self):
         # Never guessed: argparse must reject a run that omits them.

@@ -746,16 +746,32 @@ def create_app(state=None, extract=None, resume_dir=None,
             return redirect(url_for("upload"))
         try:
             derived = derived_for_state()
+        except make_profile.ModelAnswerError as exc:
+            # The one exception whose text this app composed itself, from the
+            # response's own finish_reason enum. Everything else stays behind
+            # the fixed message below, because a client library's error can
+            # carry the request URL.
+            app.logger.warning("derive failed: %s", exc)
+            return render_template("deriving.html", **shell(
+                "review",
+                error=f"The model did not answer: {exc}. Your résumé is "
+                      "fine — this is the model call, not the PDF.")), 502
         except Exception as exc:
             # The message is fixed, not str(exc): a client library's error can
             # carry the request URL, and this app's whole job is to be careful
             # with the credentials in .env.
+            #
+            # It no longer blames the PDF outright. A quota, an expired key and
+            # a network failure all land here too, and telling someone their
+            # résumé is a scan when the API refused the call sends them to
+            # re-export a file that was never the problem.
             app.logger.warning("derive failed: %s", exc)
             return render_template("deriving.html", **shell(
                 "review",
-                error="The model could not read that résumé. The reason is in "
-                      "the terminal running Sweep — a scanned PDF with no "
-                      "text layer is the usual cause.")), 502
+                error="The model call failed. The reason is in the terminal "
+                      "running Sweep — an exhausted API quota, a key that no "
+                      "longer works, or a scanned PDF with no text layer are "
+                      "the usual causes.")), 502
         # A falsy derivation is indistinguishable from "not derived yet" on
         # state, so GET /review would hand back the working screen — which
         # submits ITSELF, calling the model again, once per lap, forever.
