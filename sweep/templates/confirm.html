@@ -33,18 +33,32 @@
 
       {% if plan.over_cap %}
         <div class="panel">
-          <h2>This sweep costs more than your key has</h2>
-          <p>It needs ${{ '%.2f'|format(plan.total) }} and your key has
-            ${{ '%.2f'|format(cap_usd) }}, so you are
+          <h2>This sweep costs more than one account can fund</h2>
+          <p>It needs ${{ '%.2f'|format(plan.total) }} and no single key has more
+            than ${{ '%.2f'|format(cap_usd) }}, so you are
             ${{ '%.2f'|format(plan.shortfall) }} short. Left as it is, the sweep
             would stop partway through.</p>
+          {% if keys_attached > 1 %}
+            <p class="muted">{{ keys_attached }} keys attached{% if credit_total_usd %},
+              ${{ '%.2f'|format(credit_total_usd) }} between them — but a sweep
+              can only spend from one of them at a time{% endif %}.</p>
+          {% endif %}
 
-          <h3>Add a second key</h3>
-          <p class="muted">The sweep runs on your first key until its credit is gone,
-            then continues on the second. Nothing is billed twice, because finished
-            searches are recorded as they complete.</p>
+          <h3>Add another key</h3>
+          {# Accurate about what the engine does: scraper._require_token()
+             builds one ApifyClient for the whole run from the account with
+             the most headroom, and the credit-exhausted branch prints "rerun
+             with" rather than switching keys itself. The old copy promised
+             the sweep would "continue on the second", which is how a user
+             attaches a key and lets an unaffordable sweep start. #}
+          <p class="muted">A sweep spends from one account: the engine picks
+            whichever key has the most credit and uses that one for the whole
+            run. So another key lifts this sweep only if that key alone covers
+            the plan. Otherwise the sweep runs until that account is spent,
+            stops, and you resume it on the next key — finished searches are
+            recorded as they complete, so nothing is billed twice.</p>
           <form method="post" action="{{ url_for('second_key') }}">
-            <label><span class="label">Second Apify token</span>
+            <label><span class="label">Another Apify token</span>
               <input type="password" name="token" autocomplete="off" required>
             </label>
             <button class="primary" type="submit">Verify and attach</button>

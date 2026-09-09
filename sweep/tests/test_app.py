@@ -341,6 +341,22 @@ class TestFixesThatHadNoTest(unittest.TestCase):
         for fragment in ("min=40", "source=linkedin", "q=react"):
             self.assertIn(fragment, r.headers["Location"])
 
+    def test_every_account_scanner_shares_one_token_list(self):
+        # rescore_from_apify.py enumerated ("APIFY_TOKEN", "_2", "_3") while
+        # scraper._require_token() discovered any APIFY_TOKEN_*. An Apify
+        # dataset belongs to the account that ran it, so with a fourth key
+        # attached the re-rank read a subset of the paid rows and reported
+        # success — no error, just missing money's worth of results. Both
+        # callers now go through scraper.apify_tokens(); this fails if either
+        # grows its own list again.
+        import scraper
+        rescore = (pathlib.Path(scraper.__file__).parent
+                   / "rescore_from_apify.py").read_text()
+        self.assertIn("apify_tokens()", rescore)
+        # The specific shape of the bug: a literal tuple/list of slot names.
+        self.assertNotRegex(
+            rescore, r'"APIFY_TOKEN"\s*,\s*"APIFY_TOKEN_2"')
+
     def test_the_results_table_scrolls_inside_its_own_box(self):
         # overflow-x alone let a 989-row shortlist scroll the page body.
         body = self._results_app().test_client().get("/results").get_data(as_text=True)
@@ -1365,9 +1381,10 @@ class TestConfirmScreen(unittest.TestCase):
         self.assertIn("$3.38", body)
         self.assertIn("even if searches are left", body)
 
-    def test_over_cap_offers_a_second_key_instead_of_the_run_button(self):
+    def test_over_cap_offers_another_key_instead_of_the_run_button(self):
+        # Was "second key" — the remedy is no longer limited to a second one.
         body = self._app(cap=1.00).test_client().get("/confirm").get_data(as_text=True)
-        self.assertIn("second key", body.lower())
+        self.assertIn("another key", body.lower())
         self.assertNotIn("Run the sweep", body)
 
     def test_over_cap_says_how_much_to_cut(self):
@@ -1611,7 +1628,16 @@ class TestConfirmScreen(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertAlmostEqual(app.state["cap_usd"], 8.41, places=2)
 
-    def test_second_key_with_a_different_token_raises_the_cap(self):
+    def test_another_key_raises_the_cap_to_the_best_account_not_the_sum(self):
+        # This asserted cap == 3.00, i.e. 1.00 + 2.00. Summing is wrong:
+        # scraper._require_token() builds ONE ApifyClient for the whole run
+        # from the single account with the most headroom, and the
+        # credit-exhausted branch tells the user to RERUN with another token.
+        # So no sweep spends across two accounts, and the summed cap told the
+        # meter a $2.50 plan was affordable on a $1 and a $2 account that
+        # could not fund it between them — with over_cap False, so /run let
+        # it start. The total is still reported, separately, because
+        # .done_combos does let a stopped sweep resume on the next key.
         app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
         with mock.patch.dict(os.environ, {"APIFY_TOKEN": "primary-tok"}):
             app.test_client().get("/confirm")
@@ -1619,7 +1645,58 @@ class TestConfirmScreen(unittest.TestCase):
                 "/second-key", data={"token": "different-tok"})
         self.assertEqual(r.status_code, 302)
         self.assertIn("/confirm", r.headers["Location"])
-        self.assertAlmostEqual(app.state["cap_usd"], 3.00, places=2)
+        self.assertAlmostEqual(app.state["cap_usd"], 2.00, places=2)
+        self.assertAlmostEqual(app.state["credit_total_usd"], 3.00, places=2)
+
+    def test_a_weaker_extra_key_does_not_raise_what_one_sweep_can_spend(self):
+        # The direction that matters for fail-closed: attaching a $0.50 key
+        # beside a $4.00 one must not move the cap at all, because the sweep
+        # still runs on the $4.00 account. Under the old sum it read $4.50.
+        app = self._app(cap=4.00, check_token=lambda t: (0.50, None))
+        with mock.patch.dict(os.environ, {"APIFY_TOKEN": "primary-tok"}):
+            app.test_client().get("/confirm")
+            app.test_client().post("/second-key", data={"token": "small-tok"})
+        self.assertAlmostEqual(app.state["cap_usd"], 4.00, places=2)
+        self.assertAlmostEqual(app.state["credit_total_usd"], 4.50, places=2)
+
+    def test_a_third_and_fourth_key_get_their_own_slots(self):
+        # /second-key wrote APIFY_TOKEN_2 unconditionally, so a third key
+        # overwrote the second: its credit was counted while its token was
+        # gone from .env, and the engine never saw it.
+        app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
+        written = {}
+        app.write_env = lambda name, value: written.__setitem__(name, value)
+        env = {"APIFY_TOKEN": "tok-1", "APIFY_TOKEN_2": "tok-2"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            app.test_client().get("/confirm")
+            app.test_client().post("/second-key", data={"token": "tok-3"})
+            app.test_client().post("/second-key", data={"token": "tok-4"})
+        self.assertEqual(written, {"APIFY_TOKEN_3": "tok-3",
+                                    "APIFY_TOKEN_4": "tok-4"})
+
+    def test_a_key_already_in_a_later_slot_is_still_rejected(self):
+        # The duplicate check looked at APIFY_TOKEN and APIFY_TOKEN_2 only, so
+        # re-pasting the key sitting in APIFY_TOKEN_3 counted its credit a
+        # second time — the inflated-cap outcome the check exists to stop.
+        app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
+        env = {"APIFY_TOKEN": "tok-1", "APIFY_TOKEN_3": "tok-3"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            app.test_client().get("/confirm")
+            r = app.test_client().post("/second-key", data={"token": "tok-3"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("same key", r.get_data(as_text=True).lower())
+        self.assertAlmostEqual(app.state["cap_usd"], 1.00, places=2)
+
+    def test_the_over_cap_panel_does_not_promise_a_mid_sweep_key_switch(self):
+        # The copy said the sweep "runs on your first key until its credit is
+        # gone, then continues on the second". It cannot: the client is built
+        # once per run. Promising it is how a user attaches a key and lets an
+        # unaffordable sweep start.
+        app = self._app(cap=0.10, check_token=lambda t: (2.00, None))
+        body = app.test_client().get("/confirm").get_data(as_text=True)
+        flat = " ".join(body.split())
+        self.assertNotIn("then continues on the second", flat)
+        self.assertIn("one account", flat)
 
     def test_second_key_rejects_the_token_already_on_file(self):
         app = self._app(cap=1.00, check_token=lambda t: (2.00, None))

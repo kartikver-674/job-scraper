@@ -29,7 +29,8 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 
 from config import SITES, SETTINGS
-from scraper import normalize, finalize, write_outputs, print_summary
+from scraper import (apify_tokens, normalize, finalize, write_outputs,
+                     print_summary)
 
 load_dotenv()
 
@@ -52,12 +53,10 @@ def main():
     # across two accounts. Scan every token we have, or half the paid rows go
     # missing with no error. Extra/duplicate tokens are harmless — dedupe runs at
     # the end anyway.
-    tokens, seen_tokens = [], set()
-    for name in ("APIFY_TOKEN", "APIFY_TOKEN_2", "APIFY_TOKEN_3"):
-        tok = os.getenv(name)
-        if tok and tok not in seen_tokens:
-            seen_tokens.add(tok)
-            tokens.append((name, tok))
+    # Discovered, not enumerated: this used to list three names, so a fourth
+    # key's datasets were skipped silently — which is precisely the loss the
+    # paragraph above warns about.
+    tokens = apify_tokens()
     if not tokens:
         sys.exit("No APIFY_TOKEN* found in the environment or .env.")
 

@@ -1274,6 +1274,45 @@ def _token_headroom(token):
         return None
 
 
+def _token_slot(name):
+    """Sort key putting APIFY_TOKEN first, then APIFY_TOKEN_2, _3, ... in
+    NUMERIC order. A plain string sort plausibly puts _10 before _9, which
+    would silently reorder which account a run reports first."""
+    if name == "APIFY_TOKEN":
+        return (0, 0, "")
+    suffix = name[len("APIFY_TOKEN_"):]
+    return (1, int(suffix), "") if suffix.isdigit() else (2, 0, suffix)
+
+
+def apify_tokens(env=None):
+    """Every distinct Apify token configured, as (name, token) pairs in slot
+    order.
+
+    APIFY_TOKEN, APIFY_TOKEN_2, ... are separate free accounts with their own
+    $5 caps, and an Apify dataset belongs to the account that ran it. So every
+    caller that walks accounts has to agree on this list or it silently reads
+    a subset: rescore_from_apify.py hardcoded three names, which meant a
+    fourth key's paid results went missing from every re-rank with no error —
+    the exact failure that file's own comment warns about.
+
+    Pure in the environment handed to it; load_dotenv() is the caller's job.
+    That matters because this is imported by the sweep web UI and by tests
+    that patch os.environ — reading .env in here would pull real tokens into
+    a patched environment.
+    """
+    env = os.environ if env is None else env
+    names = [n for n in env
+             if n == "APIFY_TOKEN" or n.startswith("APIFY_TOKEN_")]
+    seen, out = set(), []
+    for name in sorted(names, key=_token_slot):
+        value = (env.get(name) or "").strip()
+        # dedupe: the same key pasted into two slots is one wallet, not two
+        if value and value not in seen:
+            seen.add(value)
+            out.append((name, value))
+    return out
+
+
 def _require_token():
     """The configured token with the most credit left.
 
@@ -1295,12 +1334,7 @@ def _require_token():
     """
     from dotenv import load_dotenv
     load_dotenv()
-    named = [(k, v) for k, v in os.environ.items()
-             if k == "APIFY_TOKEN" or k.startswith("APIFY_TOKEN_")]
-    tokens = {}
-    for name, value in named:
-        if value and value not in tokens:
-            tokens[value] = name          # dedupe: the same key pasted twice is one wallet
+    tokens = {token: name for name, token in apify_tokens()}
     if not tokens:
         sys.exit("APIFY_TOKEN not found. Add it to a .env file in this folder.")
     if len(tokens) == 1:
@@ -1613,6 +1647,30 @@ def demo():
         assert location_allowed("Indiana, Pennsylvania") is False
     finally:
         LOCATION_HINTS = original
+
+    # Token discovery. Belongs in the silent-failure self-check because that
+    # is how it broke: rescore_from_apify.py scanned a hardcoded three names,
+    # so a fourth key's datasets were skipped with no error and its paid rows
+    # simply never appeared in a re-rank.
+    assert apify_tokens({}) == []
+    assert apify_tokens({"NOT_A_TOKEN": "x"}) == []
+    assert apify_tokens({"APIFY_TOKEN": "a"}) == [("APIFY_TOKEN", "a")]
+    # A blank slot is not a key, and neither is a whitespace-only one.
+    assert apify_tokens({"APIFY_TOKEN": "a", "APIFY_TOKEN_2": "  "}) == [
+        ("APIFY_TOKEN", "a")]
+    # The same key in two slots is one wallet: counting it twice is what
+    # inflated the sweep budget.
+    assert apify_tokens({"APIFY_TOKEN": "a", "APIFY_TOKEN_2": "a"}) == [
+        ("APIFY_TOKEN", "a")]
+    # Numeric slot order, so _10 lands after _9 rather than after _1.
+    assert [n for n, _ in apify_tokens(
+        {"APIFY_TOKEN_10": "j", "APIFY_TOKEN_9": "i", "APIFY_TOKEN": "a"})] == [
+        "APIFY_TOKEN", "APIFY_TOKEN_9", "APIFY_TOKEN_10"]
+    # Every key is found, however many: the cap that broke this was three.
+    assert len(apify_tokens({"APIFY_TOKEN": "a", "APIFY_TOKEN_2": "b",
+                             "APIFY_TOKEN_3": "c", "APIFY_TOKEN_4": "d",
+                             "APIFY_TOKEN_5": "e"})) == 5
+
     print("demo ok")
 
 

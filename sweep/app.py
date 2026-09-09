@@ -25,6 +25,7 @@ import make_profile  # noqa: E402
 # itself, which would grow sys.path without bound over a 40-minute sweep.
 sys.path.insert(0, REPO_ROOT)
 import config  # noqa: E402
+import scraper  # noqa: E402
 
 # Flask-free logic lives in sweep.logic — form validation, the reachability
 # split, the empty-result diagnosis. Re-exported here because these are part
@@ -59,6 +60,46 @@ SPEND_CAP_FLOOR_USD = 0.50
 def spend_cap_for(estimate_usd):
     """The hard stop to write into the profile for a plan estimated at this."""
     return round(max(SPEND_CAP_FLOOR_USD, estimate_usd * SPEND_CAP_HEADROOM), 2)
+
+
+def next_token_name(env=None):
+    """The first unused APIFY_TOKEN_* slot.
+
+    Chosen by NAME, not by counting keys: a slot emptied by hand in .env must
+    be filled rather than skipped, and two keys must never land on one name.
+    Deliberately reads the raw names instead of scraper.apify_tokens(), whose
+    dedupe hides a slot that holds a redundant copy of another key — writing
+    over that name would be a silent overwrite.
+    """
+    env = os.environ if env is None else env
+    taken = {n for n in env if n.startswith("APIFY_TOKEN_")}
+    slot = 2
+    while f"APIFY_TOKEN_{slot}" in taken:
+        slot += 1
+    return f"APIFY_TOKEN_{slot}"
+
+
+def sweep_budget(credits):
+    """(what one sweep can spend, total across every key) for verified
+    per-key credit figures.
+
+    These are two different numbers and conflating them was a money bug.
+    scraper._require_token() builds ONE ApifyClient for the whole run from the
+    single account with the most headroom, and the credit-exhausted branch
+    tells the user to RERUN with another token — so no sweep spends across two
+    accounts. Summing the keys therefore told the meter a $6 plan was
+    affordable on two $3 accounts that could not fund it between them, and
+    every extra key multiplied the error.
+
+    The total is still worth showing: .done_combos means a stopped sweep
+    resumes on the next key without re-billing finished searches, so several
+    keys really do finish a sweep one account could not — just across runs,
+    not within one.
+    """
+    figures = [max(0.0, c) for c in credits if c is not None]
+    if not figures:
+        return None, 0.0
+    return max(figures), round(sum(figures), 4)
 
 
 def planned_keys(state):
@@ -359,6 +400,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         return dict(steps=STEPS, step=step, spend=spend, cap_usd=cap,
                     spend_is_this_sweep=spend_is_this_sweep,
                     fill_pct=fill_pct(spend, cap) if spend_is_this_sweep else 0,
+                    # Counted from the environment, not from state: that is
+                    # what the engine will actually discover, so a key left in
+                    # .env by an earlier session is included rather than the
+                    # screen claiming fewer keys than the sweep will see.
+                    keys_attached=len(scraper.apify_tokens()),
+                    credit_total_usd=app.state.get("credit_total_usd"),
                     **kw)
 
     def spend_delta():
@@ -501,9 +548,14 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         app.write_env("APIFY_TOKEN", token)
         os.environ["APIFY_TOKEN"] = token
+        # This screen sets the PRIMARY key, so it replaces the per-key ledger
+        # rather than adding to it: re-pasting a first key must not leave the
+        # credit of a key no longer on file still counted in the budget.
         # A cap can never go negative — the account may already be over its
         # own monthly limit, but a negative number makes the meter meaningless.
-        app.state["cap_usd"] = max(0.0, available)
+        app.state["key_credit"] = {"APIFY_TOKEN": available}
+        app.state["cap_usd"], app.state["credit_total_usd"] = sweep_budget(
+            app.state["key_credit"].values())
         return redirect(url_for("configure"))
 
     @app.get("/configure")
@@ -648,8 +700,10 @@ def create_app(state=None, extract=None, resume_dir=None,
         # returns roughly the same available balance, cap_usd is inflated a
         # second time, and the UI believes an unaffordable sweep is fine —
         # exactly the wasted-spend outcome this screen exists to prevent.
-        if token and token in (os.environ.get("APIFY_TOKEN"),
-                                os.environ.get("APIFY_TOKEN_2")):
+        # Every key on file, not the first two: with a third or fourth
+        # attached, re-pasting one of those passed this check and its credit
+        # was counted twice.
+        if token and token in {tok for _, tok in scraper.apify_tokens()}:
             return _confirm_page(error="That's the same key already on file — it adds no "
                       "new credit.", status=400)
 
@@ -666,9 +720,22 @@ def create_app(state=None, extract=None, resume_dir=None,
             return _confirm_page(error="That key verified, but it has no credit "
                       "available.", status=400)
 
-        app.write_env("APIFY_TOKEN_2", token)
-        os.environ["APIFY_TOKEN_2"] = token
-        app.state["cap_usd"] = (app.state.get("cap_usd") or 0) + available
+        slot = next_token_name()
+        app.write_env(slot, token)
+        os.environ[slot] = token
+        credits = dict(app.state.get("key_credit") or {})
+        if not credits and app.state.get("cap_usd") is not None:
+            # A cap with no per-key ledger behind it (a session resumed after
+            # a restart): that cap is one account's credit, so carry it as one
+            # entry rather than dropping it on the floor here.
+            credits["APIFY_TOKEN"] = app.state["cap_usd"]
+        credits[slot] = available
+        app.state["key_credit"] = credits
+        # max, not sum — see sweep_budget. Adding a key raises what one sweep
+        # can spend only if that key alone is bigger than the best already on
+        # file; it always raises the total you can finish the sweep across.
+        app.state["cap_usd"], app.state["credit_total_usd"] = sweep_budget(
+            credits.values())
         # over_cap is not patched here — GET /confirm re-costs the whole
         # plan via costed() on the redirect below, so any value written
         # here would be discarded before ever being read.
