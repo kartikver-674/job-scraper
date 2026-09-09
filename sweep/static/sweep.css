@@ -231,7 +231,8 @@ main {
   margin: 0 0 var(--s5);
 }
 .panel:last-child { margin-bottom: 0; }
-.stack > .panel, .split > * > .panel { margin-bottom: 0; }
+.stack > .panel, .split > .panel, .split > * > .panel,
+.grid2 > .panel { margin-bottom: 0; }
 .panel > p { color: var(--warm); }
 .panel > p.muted { color: var(--slate); }
 .panel-head {
@@ -430,7 +431,7 @@ select:focus-visible, summary:focus-visible,
   .numeral { font-size: 56px; }
   .meter .numeral { font-size: 32px; }
   .grid2 { grid-template-columns: 1fr 1fr; }
-  main { padding: var(--s7) var(--s6) calc(var(--s7) * 2); }
+  main { padding: var(--s7) var(--s6); }
   .scroll-x { margin: 0; padding: 0; }
 }
 
@@ -617,7 +618,7 @@ td.score {
 }
 .hero .mark { width: 44px; height: 44px; }
 .hero h1 { font-size: 26px; }
-.hero p { color: var(--warm); margin-top: var(--s1); }
+.hero p { color: var(--warm); margin-top: var(--s1); max-width: 62ch; }
 @media (min-width: 48rem) {
   .hero .mark { width: 56px; height: 56px; }
   .hero h1 { font-size: 34px; }
@@ -664,7 +665,23 @@ td.score {
 /* Narrower than the 88rem the data screens use. This page is one form and
    three notes; at full width the form panel stretched to 60rem around a file
    input and the screen read as mostly nothing. */
-.front { max-width: 74rem; }
+/* Three bands, three spacings. .stack's uniform 24px put the same gap under
+   the brand block, under the heading and above the footer strip, so the
+   heading read as an orphan between two sections instead of belonging to the
+   panels it introduces. Measured: every boundary on this page was 24px. */
+.front { max-width: 74rem; gap: var(--s5); }
+.front > .hero { margin-bottom: var(--s3); }
+.front > .strip {
+  margin-top: var(--s6); padding-top: var(--s6);
+  border-top: 1px solid var(--rule);
+}
+
+/* Equal columns. The form panel came out 245px against the rail's 327, and
+   the 82px hole under the shorter one was the worst spacing on the screen.
+   The dropzone takes the slack, which makes the drop target bigger rather
+   than padding a box out. */
+.front .split { align-items: stretch; }
+.front .drop { flex: 1 1 auto; justify-content: center; }
 /* The brand block is the biggest type on this screen, so without this the
    task heading under it — the actual reason the page exists — read as
    subordinate to a word already printed in the header. */
@@ -693,7 +710,7 @@ td.score {
   color: var(--chalk);
 }
 .drop .meta { max-width: 34ch; }
-.drop .glyph { color: var(--slate); }
+.drop .glyph { width: 38px; height: 38px; color: var(--slate); }
 .drop:hover .glyph, .drop.over .glyph { color: var(--paid); }
 
 /* The file that will actually be sent, named. */
@@ -732,9 +749,17 @@ td.score {
    says — so the emphasis carries the meaning rather than decorating it. */
 .free-note b { color: var(--free); }
 
+/* Two answers to one question. Equal-height cards put the shorter one's
+   slack under its button; this puts it above, so both buttons sit on the
+   same line and read as a comparison. */
+.choices > .panel > button { margin-top: auto; }
+
 /* Three facts about the metering, on the one screen with room for them. */
 .strip {
   display: grid; gap: var(--s4);
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
-.strip .tile { gap: var(--s3); }
+/* Matching the panels above them: 12px padding and 11px type made the strip
+   read as a denser, lesser kind of thing than the cards it sits under. */
+.strip .tile { gap: var(--s3); padding: var(--s5); }
+.strip .tile p { margin: 0; color: var(--warm); }
