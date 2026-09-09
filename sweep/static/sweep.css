@@ -418,7 +418,11 @@ select:focus-visible, summary:focus-visible, .choice:focus-within {
 /* Three short columns; at full width the checkbox and the weight end up at
    opposite edges of the panel with the term adrift between them. */
 .weights { max-width: 34rem; }
-.weights td:first-child, .weights th:first-child { width: 6rem; }
+/* The skill name takes the slack; the two controls stay the size they are,
+   so the remove button sits beside the stepper instead of drifting to the
+   far edge of the panel. */
+.weights td:nth-child(2), .weights th:nth-child(2) { width: 8rem; }
+.weights td:last-child, .weights th:last-child { width: 3rem; }
 .lines td:first-child { font-weight: 600; }
 .lines td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
 
@@ -460,3 +464,46 @@ td.score {
   font-size: 11px; color: var(--warm);
   background: var(--well); border: 1px solid var(--rule); border-radius: var(--radius);
 }
+
+/* ---- Weight stepper ----------------------------------------------------- */
+
+.stepper { display: inline-flex; align-items: stretch; }
+.stepper input[type="number"] {
+  width: 3.25rem; margin: 0; text-align: center;
+  border-radius: 0; border-left: 0; border-right: 0;
+  padding: var(--s3) 0;
+  /* The native spinners duplicate the buttons either side of them. */
+  appearance: textfield; -moz-appearance: textfield;
+}
+.stepper input[type="number"]::-webkit-inner-spin-button,
+.stepper input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.stepper button {
+  width: 2rem; flex: none;
+  font: 600 15px/1 var(--text); color: var(--chalk);
+  background: var(--surface-high); border: 1px solid var(--rule);
+  border-radius: var(--radius) 0 0 var(--radius); cursor: pointer;
+}
+.stepper button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.stepper button:hover { background: var(--surface-edge); color: var(--paid); }
+
+/* Remove: a checkbox, so a term can be un-removed before submitting and the
+   screen still works with no JavaScript — but drawn as the destructive
+   control it is, and it marks the row rather than hiding it. */
+.remove { display: inline-flex; cursor: pointer; }
+.remove input { position: absolute; opacity: 0; width: 0; height: 0; }
+.remove > span[aria-hidden] {
+  display: grid; place-items: center; width: 1.75rem; height: 1.75rem;
+  font-size: 16px; line-height: 1; color: var(--slate);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.remove:hover > span[aria-hidden] { color: var(--over); border-color: var(--over); }
+.remove input:focus-visible + span[aria-hidden] {
+  outline: 2px solid var(--paid); outline-offset: 2px;
+}
+.remove input:checked + span[aria-hidden] {
+  color: var(--ground); background: var(--over); border-color: var(--over);
+}
+.weights tr:has(.remove input:checked) td:first-child {
+  text-decoration: line-through; color: var(--slate);
+}
+.weights tr:has(.remove input:checked) .stepper { opacity: .4; }

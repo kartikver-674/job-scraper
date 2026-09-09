@@ -29,22 +29,51 @@
           <div class="scroll-x">
             <table class="weights">
               <tr class="muted">
-                <th scope="col">Drop</th>
-                <th scope="col">Term</th>
+                <th scope="col">Skill</th>
                 <th scope="col">Weight</th>
+                <th scope="col"><span class="visually-hidden">Remove</span></th>
               </tr>
               {% for w in derived.skill_weights|sort(attribute='weight', reverse=true) %}
                 <tr>
-                  <td><label>
-                    <input type="checkbox" name="drop" value="{{ w.term }}"
-                           {{ 'checked' if w.term in commodity }}> remove
-                  </label></td>
-                  <td>{{ w.term }}</td>
-                  <td class="paid">{{ w.weight }} / 5</td>
+                  {# The term travels with its weight so the POST is
+                     self-describing, rather than the server having to
+                     reproduce this sort order to know which weight is
+                     whose. #}
+                  <td>{{ w.term }}
+                    <input type="hidden" name="term" value="{{ w.term }}"></td>
+                  <td>
+                    {# Single-quoted for the |tojson rule in configure.html:
+                       a weight that ever arrived as a string would render
+                       with double quotes and silently kill this scope. #}
+                    <div class="stepper" x-data='{ n: {{ w.weight|tojson }} }'>
+                      <button type="button" @click="n = Math.max(1, n - 1)"
+                              aria-label="Lower the weight for {{ w.term }}">&minus;</button>
+                      {# A real number input, not a readonly display: without
+                         Alpine the buttons do nothing but the weight can
+                         still be typed, so the screen never becomes
+                         read-only. #}
+                      <input type="number" name="weight" min="1" max="5"
+                             value="{{ w.weight }}" x-model.number="n"
+                             aria-label="Weight for {{ w.term }}">
+                      <button type="button" @click="n = Math.min(5, n + 1)"
+                              aria-label="Raise the weight for {{ w.term }}">+</button>
+                    </div>
+                  </td>
+                  <td>
+                    <label class="remove">
+                      <input type="checkbox" name="drop" value="{{ w.term }}"
+                             {{ 'checked' if w.term in commodity }}>
+                      <span aria-hidden="true">&times;</span>
+                      <span class="visually-hidden">Remove {{ w.term }}</span>
+                    </label>
+                  </td>
                 </tr>
               {% endfor %}
             </table>
           </div>
+          <p class="muted">A higher weight means a listing naming that skill
+            scores higher. Remove a term to take it out of the scoring
+            entirely.</p>
         </div>
 
         <div class="actions">

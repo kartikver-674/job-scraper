@@ -657,6 +657,91 @@ class TestReviewScreen(unittest.TestCase):
             app.write_profile("../evil", "source")
 
 
+class TestSkillWeightEditing(unittest.TestCase):
+    def _app(self):
+        app = app_module.create_app(
+            state={"resume_text": "a résumé", "cap_usd": 8.41},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            profile_exists=lambda n: False)
+        app.config.update(TESTING=True)
+        app.written = []
+        app.write_profile = lambda n, src: app.written.append(src)
+        return app
+
+    def _weights(self, source):
+        """skill_weights as {term: weight}, read out of rendered profile."""
+        block = source[source.index("skill_weights"):]
+        block = block[:block.index("}")]
+        return {t: int(w) for t, w in re.findall(r"'([^']*)':\s*(\d+)", block)}
+
+    def test_an_edited_weight_reaches_the_profile(self):
+        # The screen showed the model's weight as static text, so a wrong one
+        # could only be removed, never corrected — and the model gets these
+        # wrong in a repeatable way (it scored `git` at 1 and `render` at 3 on
+        # a real résumé).
+        app = self._app()
+        r = app.test_client().post("/review", data={
+            "name": "tmp_weights",
+            "term": ["react native", "node.js", "javascript", "git"],
+            "weight": ["5", "3", "2", "1"]})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self._weights(app.written[-1])["node.js"], 3)
+
+    def test_an_edited_weight_survives_the_next_configure_change(self):
+        # /estimate re-renders the same profile from state["derived"], so a
+        # weight edited here was silently reverted by the first click on the
+        # Configure screen.
+        app = self._app()
+        client = app.test_client()
+        client.post("/review", data={
+            "name": "tmp_weights", "term": ["node.js"], "weight": ["3"]})
+        client.post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(self._weights(app.written[-1])["node.js"], 3)
+
+    def test_a_removed_skill_survives_the_next_configure_change(self):
+        # Same defect, and it was already live before weights were editable:
+        # prune a term on Review, touch anything on Configure, and the term
+        # was back in the profile that scores the listings.
+        app = self._app()
+        client = app.test_client()
+        client.post("/review", data={"name": "tmp_weights",
+                                     "drop": ["javascript", "git"]})
+        self.assertNotIn("javascript", self._weights(app.written[-1]))
+        client.post("/estimate", json={"max_age_days": "7"})
+        self.assertNotIn("javascript", self._weights(app.written[-1]))
+
+    def test_a_weight_outside_one_to_five_is_refused(self):
+        app = self._app()
+        r = app.test_client().post("/review", data={
+            "name": "tmp_weights", "term": ["node.js"], "weight": ["9"]})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Weight for node.js", r.get_data(as_text=True))
+        self.assertEqual(app.written, [])
+
+    def test_mismatched_term_and_weight_lists_fail_closed(self):
+        # These are parallel lists: a desync would reassign weights to the
+        # wrong terms, silently, on the numbers that decide the ranking.
+        app = self._app()
+        r = app.test_client().post("/review", data={
+            "name": "tmp_weights", "term": ["node.js", "git"],
+            "weight": ["3"]})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(app.written, [])
+
+    def test_the_weight_column_is_an_editable_control_not_static_text(self):
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        # A real number input, so the weight is still typable with no JS.
+        self.assertRegex(body, r'name="weight"[^>]*min="1"[^>]*max="5"')
+        # And explicit minus/plus, which is what a stepper is.
+        self.assertIn('@click="n = Math.max(1, n - 1)"', body)
+        self.assertIn('@click="n = Math.min(5, n + 1)"', body)
+        # The term rides along so the POST does not depend on the server
+        # reproducing this sort order.
+        self.assertIn('name="term"', body)
+
+
 class TestKeyScreen(unittest.TestCase):
     def _app(self, credit=(8.41, None), state=None):
         state = state if state is not None else {"profile": "kanav"}

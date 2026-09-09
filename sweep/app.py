@@ -505,9 +505,30 @@ def create_app(state=None, extract=None, resume_dir=None,
                       "— this becomes a filename.")), 400
 
         dropped = set(request.form.getlist("drop"))
+        # Two parallel lists, so a desync would reassign weights to the wrong
+        # terms — silently, and on the numbers that decide the ranking.
+        # Browsers submit in document order, but fail closed rather than
+        # trust that.
+        terms = request.form.getlist("term")
+        weights = request.form.getlist("weight")
+        if len(terms) != len(weights):
+            return render_template("review.html", **shell(
+                "review", derived=derived, commodity=commodity,
+                suggested_name=name,
+                error="The weights didn't come through — reload the page "
+                      "and try again.")), 400
+        try:
+            edited = {term: _parse_int(raw, 1, 5, f"Weight for {term}")
+                      for term, raw in zip(terms, weights)}
+        except _FormError as exc:
+            return render_template("review.html", **shell(
+                "review", derived=derived, commodity=commodity,
+                suggested_name=name, error=str(exc))), 400
+
         kept = dict(derived)
-        kept["skill_weights"] = [w for w in derived["skill_weights"]
-                                 if w["term"] not in dropped]
+        kept["skill_weights"] = [
+            dict(w, weight=edited.get(w["term"], w["weight"]))
+            for w in derived["skill_weights"] if w["term"] not in dropped]
         # Refuse to overwrite an existing profile unless the user says so.
         # This screen writes profiles/<name>.py, /estimate rewrites the same
         # file on every configure change, and a profile can carry weeks of
@@ -522,6 +543,13 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         source = make_profile.render(name, kept, _prefs(app.state))
         app.write_profile(name, source)
+        # The reviewed list becomes the state, not just the file. /estimate
+        # re-renders this same profile from state["derived"] on every
+        # Configure change, so leaving the model's original here put every
+        # dropped term and every un-edited weight straight back — a skill
+        # pruned on this screen was silently restored by the first click on
+        # the next one, with the profile then scoring against it.
+        app.state["derived"] = kept
         app.state["profile"] = name
         return redirect(url_for("key"))
 
