@@ -317,6 +317,20 @@ YEARS_PATTERN = re.compile(
 # length.
 _EXP_CUE_RE = re.compile(r"experience|hands[- ]on")
 _EXP_OF_RE = re.compile(r"\s*(?:of|in)\s+[a-z]")   # "8+ years of|in <something>"
+# A figure that is counting something else entirely, disqualified by the word
+# IMMEDIATELY after it rather than by anything in the 60-character window —
+# "founded 5 years ago, we now have 3+ years of experience shipping ML" put
+# "experience" inside that window, so the company's age was read as the
+# requirement. The docstring below claimed this case was handled; it was not,
+# and min() hid it by preferring the smaller number.
+_NOT_EXP_RE = re.compile(r"\s*(?:ago|old\b|of age|in business)")
+# The same disqualifier on the other side, for the phrasings that put the
+# company's age BEFORE the figure: "In business 12 years. Seeking 3 years of
+# experience." The phrase has to run right up to the number, so a JD that
+# merely mentions a founding date elsewhere is unaffected.
+_COMPANY_AGE_RE = re.compile(
+    r"(?:in business|been (?:around|operating|serving)|founded|established|"
+    r"celebrating|for over)\s*(?:for\s*)?(?:over\s*)?$")
 _EDU_RE = re.compile(r"education|schooling|degree program")
 
 
@@ -347,17 +361,25 @@ def _required_experience_floor(text):
     SETTINGS["experience_aggregate"] picks how several figures combine, because
     the right answer depends on how the employer writes:
 
-      "min" (default)  Short JDs, where the smallest number is usually the real
-          ask and anything larger is a nice-to-have.
-      "max"  Long structured JDs that state a total AND a per-skill figure.
-          "8+ years of total software engineering experience ... 2+ years
-          hands-on in AI/ML" is an 8-year job, and min() ranked it first out of
-          63 as if it wanted 2. Across those 63: 21 read differently, all 21 in
-          favour of max.
+      "max" (default)  A JD that states a total AND a per-skill figure. "8+
+          years of total software engineering experience ... 2+ years hands-on
+          in AI/ML" is an 8-year job, and min() ranked it first out of 63 as if
+          it wanted 2. Across those 63: 21 read differently, all 21 in favour
+          of max. Every hand-tuned profile in this repo had already set this,
+          and a user reported the symptom the default caused: the results
+          column reading 2+ or 3+ on postings whose JD asks for 5+ or 8+.
+      "min"  Short JDs where the smallest number is the real ask and anything
+          larger is a nice-to-have. Under-reads a structured JD, and
+          under-reading is the dangerous direction — it ranks a senior role at
+          the top of a junior candidate's shortlist, where over-reading only
+          drops a reachable one.
     """
     vals = []
     for m in YEARS_PATTERN.finditer(text):
         after = text[m.end():m.end() + 60]
+        before = text[max(0, m.start() - 30):m.start()]
+        if _NOT_EXP_RE.match(after) or _COMPANY_AGE_RE.search(before):
+            continue
         edu, exp = _EDU_RE.search(after), _EXP_CUE_RE.search(after)
         # Whichever word comes FIRST decides what the figure is counting. Both
         # can appear inside the same 60 characters: Accenture writes "minimum 3
@@ -375,7 +397,7 @@ def _required_experience_floor(text):
             vals.append(int(m.group(2)))
     if not vals:
         return None
-    return max(vals) if SETTINGS.get("experience_aggregate") == "max" else min(vals)
+    return min(vals) if SETTINGS.get("experience_aggregate") == "min" else max(vals)
 
 
 def is_remote(row):
@@ -1481,11 +1503,25 @@ def demo():
     # decides which of several wins. All three cases are verbatim from live JDs.
     floor = _required_experience_floor
     assert floor("we were founded 5 years ago and love react") is None
+    # A company's own age, next to a real requirement. The cue window looks 60
+    # characters PAST the figure, so the "experience" in the second sentence
+    # made the first number a requirement — 5 years read as the ask. min() hid
+    # this by preferring the smaller number; the max default exposed it.
+    assert floor("founded 5 years ago, we now have 3+ years of experience "
+                 "shipping ml") == 3
+    assert floor("in business 12 years. seeking 3 years of experience.") == 3
+    assert floor("established for over 20 years. requires 5+ years of "
+                 "experience.") == 5
+    assert floor("our ceo is 40 years old. we want 4+ years of experience.") == 4
     assert floor("b.tech (minimum 16 years of formal education) "
                  "4+ years in a software engineer role") == 4      # degree != career
     both = ("8+ years of total software engineering experience, "
             "including 2+ years hands-on in ai/ml")
-    assert floor(both) == 2                                        # default: min
+    # THE case the default decides. A structured JD states a total and a
+    # per-skill figure; the total is the job. Reading the smaller one put a
+    # senior role at the top of a junior candidate's shortlist, which is what
+    # the results column showing 2+ on an 8+ posting was.
+    assert floor(both) == 8                                        # default: max
     # A labelled field whose whole value is a years figure counts, even when no
     # experience word is anywhere near it — and a labelled DURATION does not.
     # Verbatim from the Netradyne template that put a 10-year role at the top of a
@@ -1500,6 +1536,23 @@ def demo():
     assert floor("with growth exceeding 4x year over year") is None
 
     agg = SETTINGS.get("experience_aggregate")
+    SETTINGS["experience_aggregate"] = "min"
+    try:
+        # The other aggregate still works, for the short-JD profiles that pick
+        # it deliberately.
+        assert floor(both) == 2
+    finally:
+        SETTINGS["experience_aggregate"] = agg
+
+    # An unrecognised value falls back to MAX, not min: a typo in a profile
+    # ("maximum", "average") must not silently switch the reading to the
+    # direction that under-reports a senior job as a junior one.
+    SETTINGS["experience_aggregate"] = "maximum"
+    try:
+        assert floor(both) == 8
+    finally:
+        SETTINGS["experience_aggregate"] = agg
+
     SETTINGS["experience_aggregate"] = "max"
     try:
         assert floor(both) == 8

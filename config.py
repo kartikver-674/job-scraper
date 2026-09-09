@@ -593,12 +593,20 @@ SETTINGS = {
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
     "max_experience_years": 3,   # roles whose text demands MORE than this (e.g. "5+ years") are dropped/penalized
-    # How to combine several "N years" figures in one posting: "min" reads the
-    # smallest as the real ask (right for short JDs, where anything larger is a
-    # nice-to-have), "max" the largest (right for the long structured kind that
-    # state a total AND a per-skill figure). See
-    # scraper._required_experience_floor.
-    "experience_aggregate": "min",
+    # How to combine several "N years" figures in one posting. "max" reads the
+    # largest as the real ask; "min" the smallest.
+    #
+    # Defaulted to "max" on the evidence, 2026-09-09: all five hand-tuned
+    # profiles in this repo already set it, scraper's own docstring records 63
+    # requisitions where the two disagreed 21 times and max was right every
+    # time, and a user reported the symptom "min" produces — the results
+    # column reading 2+ or 3+ on postings whose JD asks for 5+ or 8+, because
+    # a structured JD states a per-skill figure next to its total.
+    #
+    # Under-reading is the dangerous direction: it puts a senior role at the
+    # top of a junior candidate's shortlist, while over-reading only drops a
+    # reachable one. See scraper._required_experience_floor.
+    "experience_aggregate": "max",
     "min_score": None,           # drop jobs scoring below this after ranking (None = keep all, just sorted)
     "max_age_days": 14,          # drop jobs posted longer ago than this (older ones are likely closed). None to disable.
     "drop_undated": False,       # if True, also drop jobs whose posted date can't be parsed (default: keep them)
