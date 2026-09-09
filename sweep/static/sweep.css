@@ -608,6 +608,13 @@ td.score {
 }
 @keyframes pulse { 50% { opacity: .25; } }
 
+/* The weight editor beside the control that applies it. One column until
+   there is room for the 34rem table and a panel next to it. */
+.rerank { display: grid; gap: var(--s5); align-items: start; }
+@media (min-width: 64rem) {
+  .rerank { grid-template-columns: minmax(0, 36rem) 20rem; }
+}
+
 /* ---- Arrivals ----------------------------------------------------------- */
 
 /* Newest on top, dimming down the list, so the eye lands on what just came

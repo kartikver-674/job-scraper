@@ -3717,6 +3717,153 @@ class TestFilterAndDisclosureUi(unittest.TestCase):
                          r"details > \*:not\(summary\) \{[^}]*margin-top")
 
 
+class TestReRankWeights(unittest.TestCase):
+    """The panel said "re-rank against your current weights" and offered no
+    way to see or change them — they were two screens back and unreachable
+    from here. Editing them is the point of the panel.
+
+    rescore_from_apify.py scores against profiles/<name>.py, so the edit has
+    to reach that FILE before the child reads it.
+    """
+
+    def _app(self, state=None, **kw):
+        self.written = {}
+        self.started = []
+        state = state if state is not None else {
+            "profile": "kanav", "cap_usd": 8.41, "derived": DERIVED}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=lambda profile: list(ROWS),
+            read_done=lambda profile, day: [], read_spend=lambda: 4.12,
+            start_rescore=kw.pop(
+                "start_rescore",
+                lambda profile, hours: self.started.append((profile, hours))
+                                       or FakeProc()),
+            output_dir=tempfile.mkdtemp(), **kw)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: self.written.update({n: src})
+        self.state = state
+        return app
+
+    def post(self, app, **fields):
+        weights = fields.pop("weights", {})
+        data = {"hours": fields.pop("hours", "6"),
+                "term": list(weights), "weight": [str(w) for w in weights.values()],
+                "drop": list(fields.pop("drop", ()))}
+        data.update(fields)
+        return app.test_client().post("/rescore", data=data)
+
+    def weights_of(self, source):
+        """The weights as the rendered profile states them."""
+        block = source.split('"skill_weights": {', 1)[1].split("}", 1)[0]
+        return {m.group(1): int(m.group(2))
+                for m in re.finditer(r"'([^']+)':\s*(\d+)", block)}
+
+    # ---- the editor is there --------------------------------------------
+    def test_the_panel_carries_the_weight_editor(self):
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        # Same macro the review screen uses, so the two cannot drift.
+        self.assertIn('class="weights"', body)
+        self.assertIn('name="weight"', body)
+        self.assertIn('name="drop"', body)
+        self.assertIn("react native", body)
+        # And a stepper per skill, not a bare number box.
+        self.assertEqual(body.count('class="stepper"'),
+                         len(DERIVED["skill_weights"]))
+
+    def test_the_editor_and_the_review_screen_render_the_same_table(self):
+        app = self._app(state={"profile": "kanav", "cap_usd": 8.41,
+                                "derived": DERIVED, "resume_text": "x"})
+        client = app.test_client()
+        results = client.get("/results").get_data(as_text=True)
+        review = client.get("/review").get_data(as_text=True)
+        for markup in ('<input type="hidden" name="term"',
+                       'name="weight" min="1" max="5"',
+                       'aria-label="Raise the weight for react native"'):
+            self.assertIn(markup, results, markup)
+            self.assertIn(markup, review, markup)
+
+    # ---- and it reaches the file the re-score reads ----------------------
+    def test_a_changed_weight_is_written_before_the_child_starts(self):
+        app = self._app()
+        r = self.post(app, weights={"react native": 2, "node.js": 5})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.weights_of(self.written["kanav"])["react native"], 2)
+        self.assertEqual(self.started, [("kanav", 6)])
+        # And state carries the edit, so the panel shows what it will use
+        # next time rather than snapping back to the old number.
+        self.assertEqual(
+            {w["term"]: w["weight"] for w in self.state["derived"]["skill_weights"]}
+            ["react native"], 2)
+
+    def test_a_removed_term_leaves_the_scoring(self):
+        app = self._app()
+        self.post(app, weights={"react native": 5}, drop=["javascript", "git"])
+        written = self.weights_of(self.written["kanav"])
+        self.assertNotIn("javascript", written)
+        self.assertNotIn("git", written)
+        self.assertIn("react native", written)
+        self.assertEqual(len(self.state["derived"]["skill_weights"]), 2)
+
+    def test_re_ranking_without_changing_anything_writes_no_profile(self):
+        # A profile can carry weeks of hand-tuning; a re-rank that only wants
+        # newer data has no business rewriting it.
+        app = self._app()
+        current = {w["term"]: w["weight"] for w in DERIVED["skill_weights"]}
+        r = self.post(app, weights=current)
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.written, {})
+        self.assertEqual(self.started, [("kanav", 6)])
+
+    def test_a_session_with_no_weights_still_re_ranks(self):
+        # No derivation after a restart: the panel renders no editor, so the
+        # POST carries no term fields. That is a plain re-rank against the
+        # profile as it stands — not an instruction to drop every skill.
+        app = self._app(state={"profile": "kanav", "cap_usd": 8.41})
+        body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertNotIn('name="weight"', body)
+        self.assertIn("not in memory", body)
+        r = self.post(app)
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.written, {})
+        self.assertEqual(self.started, [("kanav", 6)])
+
+    # ---- refusals leave no trace ----------------------------------------
+    def test_a_weight_out_of_range_changes_nothing(self):
+        app = self._app()
+        r = self.post(app, weights={"react native": 9})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Weight for react native", r.get_data(as_text=True))
+        self.assertEqual(self.written, {})
+        self.assertEqual(self.started, [])
+        self.assertEqual(self.state["derived"], DERIVED)
+
+    def test_a_desynced_form_changes_nothing(self):
+        # Two parallel lists: a desync would reassign weights to the wrong
+        # terms, silently, on the numbers that decide the ranking.
+        app = self._app()
+        r = app.test_client().post("/rescore", data={
+            "hours": "6", "term": ["react native", "node.js"],
+            "weight": ["3"]})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.written, {})
+        self.assertEqual(self.started, [])
+
+    def test_a_refused_second_re_rank_does_not_rewrite_the_profile(self):
+        # The 409 path: a request refused because one is already running must
+        # leave no trace, which is why the write is inside the lock.
+        app = self._app(state={"profile": "kanav", "cap_usd": 8.41,
+                                "derived": DERIVED,
+                                "rescore_proc": FakeProc()})
+        r = self.post(app, weights={"react native": 1})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(self.written, {})
+        self.assertEqual(self.started, [])
+        self.assertEqual(self.state["derived"], DERIVED)
+
+
 class TestReadRowsDefault(unittest.TestCase):
     """The default read_rows closure. Every route test injects read_rows, so
     without this the jobs_combined-not-jobs_* rule A2 exists to enforce runs

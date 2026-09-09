@@ -191,6 +191,34 @@ def site_label(name):
     return SITE_LABELS.get(name, name)
 
 
+def reweighted(derived, terms, weights, dropped):
+    """`derived` with the posted weight edits applied. Raises _FormError.
+
+    Shared by the review screen and the results screen's re-rank panel, so
+    the two cannot disagree about what a posted weight means.
+
+    The term travels with its weight in the form, so this never has to
+    reproduce a sort order to know which weight is whose — but the two lists
+    must still be the same length. A desync would reassign weights to the
+    wrong terms, silently, on the numbers that decide the ranking; browsers
+    submit in document order, and this fails closed rather than trust that.
+
+    A term with no posted weight keeps the one it has: a form that renders
+    only some of the weights must not zero the rest.
+    """
+    if len(terms) != len(weights):
+        raise _FormError("The weights didn't come through — reload the page "
+                         "and try again.")
+    edited = {term: _parse_int(raw, 1, 5, f"Weight for {term}")
+              for term, raw in zip(terms, weights)}
+    dropped = set(dropped)
+    kept = dict(derived)
+    kept["skill_weights"] = [
+        dict(w, weight=edited.get(w["term"], w["weight"]))
+        for w in derived["skill_weights"] if w["term"] not in dropped]
+    return kept
+
+
 def paid_sites():
     """Sites the Configure screen can switch off, in run order.
 

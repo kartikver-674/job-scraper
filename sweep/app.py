@@ -33,8 +33,8 @@ import scraper  # noqa: E402
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    _valid_profile_name, bucket_rows, fill_pct, paid_sites, site_label,
-    step_states, worst_filter)
+    _valid_profile_name, bucket_rows, fill_pct, paid_sites, reweighted,
+    site_label, step_states, worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -758,31 +758,14 @@ def create_app(state=None, extract=None, resume_dir=None,
                 error="Use letters, numbers, dashes and underscores only "
                       "— this becomes a filename.")), 400
 
-        dropped = set(request.form.getlist("drop"))
-        # Two parallel lists, so a desync would reassign weights to the wrong
-        # terms — silently, and on the numbers that decide the ranking.
-        # Browsers submit in document order, but fail closed rather than
-        # trust that.
-        terms = request.form.getlist("term")
-        weights = request.form.getlist("weight")
-        if len(terms) != len(weights):
-            return render_template("review.html", **shell(
-                "review", derived=derived, commodity=commodity,
-                suggested_name=name,
-                error="The weights didn't come through — reload the page "
-                      "and try again.")), 400
         try:
-            edited = {term: _parse_int(raw, 1, 5, f"Weight for {term}")
-                      for term, raw in zip(terms, weights)}
+            kept = reweighted(derived, request.form.getlist("term"),
+                              request.form.getlist("weight"),
+                              request.form.getlist("drop"))
         except _FormError as exc:
             return render_template("review.html", **shell(
                 "review", derived=derived, commodity=commodity,
                 suggested_name=name, error=str(exc))), 400
-
-        kept = dict(derived)
-        kept["skill_weights"] = [
-            dict(w, weight=edited.get(w["term"], w["weight"]))
-            for w in derived["skill_weights"] if w["term"] not in dropped]
         # Refuse to overwrite an existing profile unless the user says so.
         # This screen writes profiles/<name>.py, /estimate rewrites the same
         # file on every configure change, and a profile can carry weeks of
@@ -1247,6 +1230,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             worst=(worst_filter(all_rows, min_score, source, q)
                    if not rows else None),
             rescoring=_rescore_in_flight(),
+            # The re-rank panel edits these in place, so it needs the same
+            # list the review screen wrote — not the profile file, which it
+            # cannot read back into weights.
+            derived=app.state.get("derived"), profile=profile,
             notice=notice, error=error))
 
     # Wall-clock hour, injectable so the midnight re-bill warning is
@@ -1350,9 +1337,38 @@ def create_app(state=None, extract=None, resume_dir=None,
                                 "Hours to look back")
         except _FormError as exc:
             return _results_page(error=str(exc)), 400
+
+        # The weights the panel posted, validated before anything is written
+        # or launched. rescore_from_apify.py scores against
+        # profiles/<name>.py, so an edit left only on state would re-rank
+        # against the OLD numbers and read as an edit that did nothing.
+        #
+        derived = app.state.get("derived")
+        source, kept = None, None
+        if derived:
+            try:
+                kept = reweighted(derived, request.form.getlist("term"),
+                                  request.form.getlist("weight"),
+                                  request.form.getlist("drop"))
+            except _FormError as exc:
+                return _results_page(error=str(exc)), 400
+            if kept == derived:
+                kept = None          # nothing to write
+            else:
+                try:
+                    source = make_profile.render(
+                        app.state["profile"], kept, _prefs(app.state))
+                except KeyError as exc:
+                    # Same rule as /estimate: render() is the validator, and
+                    # a failure must leave nothing applied.
+                    return _results_page(error=str(exc)), 400
+
         # Checked and set under one lock. The dev server runs threaded, so
         # without it two clicks a few milliseconds apart both read "nothing
-        # running" and both spawn a child truncating the same file.
+        # running" and both spawn a child truncating the same file. The
+        # profile rewrite is inside too, for the reason POST /run's is: a
+        # request refused with 409 must leave no trace, and the write still
+        # has to land before the child reads the file.
         with _rescore_lock:
             if _rescore_in_flight():
                 # A status, not a failure — so it must not go through `error`,
@@ -1360,6 +1376,9 @@ def create_app(state=None, extract=None, resume_dir=None,
                 return _results_page(
                     notice="A re-score is already running. Reload in a moment "
                            "to see the new ranking."), 409
+            if source is not None:
+                app.write_profile(app.state["profile"], source)
+                app.state["derived"] = kept
             app.state["rescore_proc"] = start_rescore(
                 app.state["profile"], hours)
         return redirect(_results_url())

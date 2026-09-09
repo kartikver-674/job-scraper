@@ -46,6 +46,7 @@
   </div>
 {% endmacro %}
 
+{% from "_weights.html" import weight_editor %}
 {% block body %}
 <div class="stack">
   <div class="stack-tight">
@@ -104,27 +105,62 @@
   {% else %}
     <details class="panel">
       <summary>
-        <h2>Re-rank against your current weights</h2>
+        <h2>Change the weights and re-rank</h2>
+        {% if derived and derived.skill_weights %}
+          <span class="meta">{{ derived.skill_weights|length }} skills</span>
+        {% endif %}
       </summary>
       <p class="muted">Re-reads the job data your Apify runs already returned
-        and scores it again with your current weights. Reading data you have
-        already paid for costs nothing — no actor runs, no new charges.</p>
+        and scores it again — with whatever these weights say when you press
+        the button. Reading data you have already paid for costs nothing: no
+        actor runs, no new charges.</p>
+      {# The editor and the control that applies it, side by side where there
+         is room: .weights is capped at 34rem on purpose (the two controls
+         drift to opposite edges of a wide table), which left the other half
+         of this full-width panel empty. #}
+      <form class="rerank" method="post" x-data="{ sent: false }" @submit="sent = true"
+            action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
+        <div>
+          {# The same editor as the review screen, from the same macro. The
+             panel used to say "against your current weights" while offering
+             no way to see or change them — the weights were two screens back
+             and unreachable from here. #}
+          {% if derived and derived.skill_weights %}
+            {{ weight_editor(derived.skill_weights) }}
+            <p class="muted">A higher weight means a listing naming that skill
+              scores higher. Remove a term to take it out of the scoring
+              entirely.</p>
+          {% else %}
+            {# state["derived"] is gone after a restart, and the weights are
+               only recoverable from the profile file — which this cannot edit
+               without re-deriving. Say so rather than render an editor that
+               would post nothing. #}
+            <p class="muted">The weights for this session are not in memory
+              any more, so this will re-rank against whatever
+              <code>profiles/{{ profile }}.py</code> already holds. Re-read a
+              résumé to edit them.</p>
+          {% endif %}
+        </div>
+        <div class="inset stack-tight">
+          <label><span class="label">Hours to look back</span>
+            <input type="number" name="hours" value="6" min="1" max="168"></label>
+          <p class="meta">How far back through your Apify runs to read.</p>
+          <div class="actions">
+            <button class="secondary" type="submit" :disabled="sent">Re-rank</button>
+            <span class="meta sending" x-show="sent" x-cloak>Starting the re-rank…</span>
+          </div>
+          {% if derived and derived.skill_weights %}
+            <p class="meta">Re-ranking writes these weights to
+              <code>profiles/{{ profile }}.py</code>, so the next sweep uses
+              them too.</p>
+          {% endif %}
+        </div>
+      </form>
       <p class="muted">It covers every search run on any Apify key in your
-        .env, for the sites you have configured, within the window below — not
+        .env, for the sites you have configured, within the window above — not
         only this sweep's runs, so on a key you share it can pull in another
         profile's searches. The shortlist is rewritten in place, not added
         to.</p>
-      <form method="post" x-data="{ sent: false }" @submit="sent = true"
-            action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
-        <div class="row">
-          <label><span class="label">Hours to look back</span>
-            <input type="number" name="hours" value="6" min="1" max="168"></label>
-        </div>
-        <div class="actions">
-          <button class="secondary" type="submit" :disabled="sent">Re-rank</button>
-          <span class="meta sending" x-show="sent" x-cloak>Starting the re-rank…</span>
-        </div>
-      </form>
     </details>
   {% endif %}
 
