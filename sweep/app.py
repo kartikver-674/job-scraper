@@ -62,6 +62,25 @@ def spend_cap_for(estimate_usd):
     return round(max(SPEND_CAP_FLOOR_USD, estimate_usd * SPEND_CAP_HEADROOM), 2)
 
 
+class PlanUnavailable(Exception):
+    """The engine could not produce a plan for this profile.
+
+    Raised at the subprocess boundary only. plan.fetch() shells out to
+    `scraper.py --dry-run --json` and raises CalledProcessError for a profile
+    that will not import — which reached Flask uncaught, so /configure and
+    /confirm answered a broken profile with a bare 500 and /estimate with an
+    HTML error page the fetch could not parse.
+
+    Deliberately NOT wrapped around plan.cost(): a KeyError in the costing
+    itself is a bug in this code and should surface as one, not be reported
+    to the user as a bad profile.
+    """
+
+    def __init__(self, profile):
+        super().__init__(f"could not plan profile {profile!r}")
+        self.profile = profile
+
+
 def next_token_name(env=None):
     """The first unused APIFY_TOKEN_* slot.
 
@@ -349,7 +368,15 @@ def create_app(state=None, extract=None, resume_dir=None,
         over-cap flag is advisory: SETTINGS["max_spend_usd"] is the real guard."""
         from sweep import plan as plan_mod
 
-        raw = fetch_plan(profile)
+        try:
+            raw = fetch_plan(profile)
+        except Exception as exc:
+            # Logged, not rendered: the detail is useful in the terminal the
+            # user is already running this from, and engine stderr is
+            # unbounded output that has no business being echoed into a page
+            # on the same screen where a key gets pasted.
+            app.logger.warning("plan failed for %r: %s", profile, exc)
+            raise PlanUnavailable(profile) from exc
         out = plan_mod.cost(raw, config.SITE_RATES, config.SITE_RATE_BASIS)
         cap = app.state.get("cap_usd")
         out["over_cap"] = bool(cap is not None and out["total"] > cap)
@@ -586,6 +613,17 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state["key_credit"].values())
         return redirect(url_for("configure"))
 
+    @app.errorhandler(PlanUnavailable)
+    def plan_unavailable(exc):
+        """One handler for every screen that prices a plan.
+
+        Registered rather than caught per route so a route added later gets
+        this instead of a bare 500 — /configure and /confirm both reached
+        Flask uncaught before, and /run reads the plan they store.
+        """
+        return render_template("plan_error.html", **shell(
+            None, profile=exc.profile)), 500
+
     @app.get("/configure")
     def configure():
         if not app.state.get("profile"):
@@ -661,7 +699,15 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state.clear()
             app.state.update(new_state)
 
-        return jsonify(costed(app.state["profile"]))
+        # The caller is a fetch() doing r.json(), so this cannot fall through
+        # to the HTML handler below: an error page would fail to parse and
+        # read as "the network is down" on the screen whose whole job is a
+        # live cost.
+        try:
+            return jsonify(costed(app.state["profile"]))
+        except PlanUnavailable:
+            return jsonify({"error": "The engine could not price that "
+                                     "combination. Nothing was charged."}), 400
 
     @app.get("/confirm")
     def confirm():

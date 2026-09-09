@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Can't price this profile — Sweep{% endblock %}
+{% block body %}
+<div class="stack">
+  <div class="stack-tight">
+    <h1>This profile can't be priced</h1>
+    <p class="lede">The engine couldn't read
+      <code>profiles/{{ profile }}.py</code>, so there is no plan to cost —
+      and nothing has been spent.</p>
+  </div>
+
+  <div class="panel">
+    <span class="label">What to do</span>
+    <ul>
+      <li>Go back to Review and save the profile again under a new name.</li>
+      <li>Or check the file directly:
+        <code>python scraper.py --profile {{ profile }} --dry-run</code>
+        prints the reason and costs nothing.</li>
+    </ul>
+    <p class="muted">The detail is in the terminal running Sweep. It isn't
+      shown here because engine output is unbounded and this shell is also
+      the screen where your key gets pasted.</p>
+    <div class="actions">
+      <a class="primary" href="{{ url_for('review') }}">Back to Review</a>
+      <a class="secondary" href="{{ url_for('upload') }}">Start over</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

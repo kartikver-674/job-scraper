@@ -507,3 +507,36 @@ td.score {
   text-decoration: line-through; color: var(--slate);
 }
 .weights tr:has(.remove input:checked) .stepper { opacity: .4; }
+
+/* ---- Empty, in-flight and submitting states ----------------------------- */
+
+/* Alpine sets display on init; without this, anything gated only by x-show
+   flashes visible on every page load before it boots. */
+[x-cloak] { display: none !important; }
+
+/* An empty state is an instruction, not an apology: dashed to read as a slot
+   with nothing in it yet, rather than a panel that failed. */
+.empty {
+  padding: var(--s5); text-align: left;
+  color: var(--slate); border: 1px dashed var(--dim);
+  border-radius: var(--radius);
+}
+.empty b { display: block; color: var(--chalk); margin-bottom: var(--s2); }
+
+/* Figures being re-priced. Dimmed rather than replaced by placeholders: the
+   previous number is still the best information available for the ~100ms the
+   estimate is in flight, and blanking it would flicker the money on every
+   keystroke. The label beside it says it is not final. */
+.updating { opacity: .5; transition: opacity .12s ease; }
+@media (prefers-reduced-motion: reduce) { .updating { transition: none; } }
+
+/* A submitted form. The button is disabled by Alpine; this is the note that
+   says why nothing is happening yet. */
+.sending { color: var(--free); }
+.sending::before {
+  content: ""; display: inline-block;
+  width: 7px; height: 7px; margin-right: var(--s2);
+  border-radius: 50%; background: var(--free);
+  animation: pulse 1s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: .25; } }

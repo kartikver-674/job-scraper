@@ -71,7 +71,16 @@
         <span class="key free">free</span>
         <span class="key">not run yet</span></span>
     </div>
-    <div class="search-grid">
+    {# Server-correct and live, the same pattern the cost sidebar uses: a
+       free-feeds-only sweep has no paid searches to tile, and an empty grid
+       reads as "nothing is happening" rather than "nothing is billed". #}
+    <p class="empty" x-show="!p.tiles.length"
+       {% if progress.tiles %}style="display:none"{% endif %}>
+      <b>No paid searches in this sweep</b>
+      Only the free feeds are running, so there is nothing metered to track
+      here. The listings still land on the results screen.</p>
+    <div class="search-grid" x-show="p.tiles.length"
+         {% if not progress.tiles %}style="display:none"{% endif %}>
       <template x-for="(t, i) in p.tiles" :key="i">
         <div :title="t.label"
              :style="'border:1px solid var(--rule);background:' +

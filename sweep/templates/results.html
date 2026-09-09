@@ -91,11 +91,12 @@
       not only this sweep's runs, so on a key you share it can pull in another
       profile's searches. Reading data you already paid for is free. The
       shortlist is rewritten in place, not added to.</p>
-    <form class="row" method="post"
+    <form class="row" method="post" x-data="{ sent: false }" @submit="sent = true"
           action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
       <label><span class="label">Hours to look back</span>
         <input type="number" name="hours" value="6" min="1" max="168"></label>
-      <button class="secondary" type="submit">Re-rank</button>
+      <button class="secondary" type="submit" :disabled="sent">Re-rank</button>
+      <span class="meta sending" x-show="sent" x-cloak>Starting the re-rank…</span>
     </form>
   </details>
 

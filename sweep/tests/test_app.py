@@ -742,6 +742,156 @@ class TestSkillWeightEditing(unittest.TestCase):
         self.assertIn('name="term"', body)
 
 
+EMPTY_PLAN = {"profile": "kanav", "sites": {}, "max_results": {},
+              "free_sources": 39}
+
+
+class TestEmptyAndPendingStates(unittest.TestCase):
+    """States the screens can actually reach: no paid sources (newly
+    reachable once Configure could switch them off), nothing derived, and a
+    profile the engine can no longer plan."""
+
+    def _app(self, plan=None, state=None, fetch=None):
+        base = {"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED}
+        base.update(state or {})
+        app = app_module.create_app(
+            state=base, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=fetch or (lambda profile: plan or RAW_PLAN))
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: None
+        return app
+
+    # ---- no paid sources ------------------------------------------------
+    def test_configure_says_what_a_zero_source_sweep_does(self):
+        body = self._app(EMPTY_PLAN).test_client().get(
+            "/configure").get_data(as_text=True)
+        self.assertIn("No paid sources selected", body)
+        # Correct without JavaScript: the message shows and the table hides,
+        # decided server-side rather than waiting on Alpine.
+        self.assertRegex(body, r'class="empty"[^>]*x-show="!est\.lines\.length"')
+        self.assertRegex(body, r'class="lines"[^>]*style="display:none"')
+
+    def test_configure_hides_the_empty_state_when_there_are_lines(self):
+        # The other half of the same gate. Pinning only the empty case let
+        # both render at once, or neither.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertRegex(
+            body, r'class="empty" x-show="!est\.lines\.length"\s*style="display:none"')
+
+    def test_confirm_says_what_a_zero_source_sweep_does(self):
+        body = self._app(EMPTY_PLAN).test_client().get(
+            "/confirm").get_data(as_text=True)
+        self.assertIn("No paid sources in this sweep", body)
+        # And it must still be runnable: a free sweep is a real choice.
+        self.assertIn("Run the sweep", body)
+
+    def test_running_says_there_is_nothing_metered_to_track(self):
+        # An empty tile grid reads as "nothing is happening" rather than
+        # "nothing is billed".
+        app = self._app(EMPTY_PLAN, state={
+            "raw_plan": EMPTY_PLAN, "baseline_usd": 1.0,
+            "plan": {"total": 0.0, "total_searches": 0, "over_cap": False,
+                     "lines": [], "spend_cap": 0.5, "free_sources": 39}})
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn("No paid searches in this sweep", body)
+        self.assertRegex(body, r'class="search-grid"[^>]*style="display:none"')
+
+    # ---- nothing derived ------------------------------------------------
+    def test_review_says_when_no_skills_came_back(self):
+        bare = dict(DERIVED, skill_weights=[])
+        app = app_module.create_app(
+            state={"resume_text": "a résumé"}, extract=lambda p: "x",
+            derive=lambda t, p: bare)
+        app.config.update(TESTING=True)
+        body = app.test_client().get("/review").get_data(as_text=True)
+        self.assertIn("No skills came back", body)
+        # And the table goes with them: the empty state first rendered ABOVE a
+        # bare "SKILL / WEIGHT" header row with no body under it.
+        self.assertNotIn('<th scope="col">Weight</th>', body)
+
+    def test_review_says_when_no_titles_were_derived(self):
+        # Every paid search is one title in one location, so no titles means
+        # a sweep that searches nothing at all.
+        bare = dict(DERIVED, role_keywords=[])
+        app = app_module.create_app(
+            state={"resume_text": "a résumé"}, extract=lambda p: "x",
+            derive=lambda t, p: bare)
+        app.config.update(TESTING=True)
+        body = app.test_client().get("/review").get_data(as_text=True)
+        self.assertIn("No titles derived", body)
+
+    # ---- the plan cannot be computed ------------------------------------
+    def _broken(self):
+        def boom(profile):
+            raise subprocess.CalledProcessError(1, ["scraper.py"], stderr="nope")
+        return self._app(fetch=boom)
+
+    def test_an_unplannable_profile_is_a_page_not_a_500_traceback(self):
+        # plan.fetch raises CalledProcessError for a profile that will not
+        # import, and it reached Flask uncaught — a bare 500 on both screens.
+        for route in ("/configure", "/confirm"):
+            r = self._broken().test_client().get(route)
+            self.assertEqual(r.status_code, 500, route)
+            body = r.get_data(as_text=True)
+            self.assertIn("can't be priced", body)
+            self.assertIn("nothing has been spent", body)
+
+    def test_the_plan_failure_page_never_echoes_engine_output(self):
+        # Engine stderr is unbounded output, and this shell is also the screen
+        # where the key is pasted. The detail goes to the log instead.
+        body = self._broken().test_client().get("/configure").get_data(as_text=True)
+        self.assertNotIn("nope", body)
+
+    def test_estimate_answers_a_plan_failure_in_json_not_html(self):
+        # Its caller does r.json(); an HTML error page would fail to parse and
+        # read as "the network is down" on the live-cost screen.
+        r = self._broken().test_client().post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("could not price", r.get_json()["error"].lower())
+
+    # ---- in-flight and failure on the live cost -------------------------
+    def test_a_failed_estimate_never_becomes_the_estimate(self):
+        # `.then(d => est = d)` assigned WHATEVER came back, so a 400 set est
+        # to {error: ...} and est.total.toFixed threw — the live cost layer
+        # died silently on an invalid skip-term.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("if (res.ok) { est = res.d; }", body)
+        self.assertNotIn("then(d => est = d)", body)
+        # A failure has to be visible, not just survivable.
+        self.assertIn('x-show="err"', body)
+
+    def test_the_figures_are_marked_stale_while_being_re_priced(self):
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("busy = true", body)
+        self.assertIn(":class=\"busy && 'updating'\"", body)
+        self.assertIn("busy = false", body)
+
+    # ---- submitting -----------------------------------------------------
+    def test_the_run_button_cannot_be_clicked_twice(self):
+        body = self._app().test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn(':disabled="sent"', body)
+        self.assertIn("Starting the sweep", " ".join(body.split()))
+
+    def test_the_resume_upload_says_the_model_call_is_running(self):
+        app = app_module.create_app(state={}, extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED)
+        app.config.update(TESTING=True)
+        body = app.test_client().get("/").get_data(as_text=True)
+        self.assertIn(':disabled="sent"', body)
+        self.assertIn("Reading your résumé", body)
+
+    def test_cloak_is_styled_or_every_pending_note_flashes_on_load(self):
+        # x-show sets display on init, so without this rule each of these
+        # notes is briefly visible on every page load — "Reading your
+        # résumé…" on a page nobody has submitted yet.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertRegex(css, r"\[x-cloak\]\s*\{[^}]*display:\s*none")
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("x-cloak", body)
+
+
 class TestKeyScreen(unittest.TestCase):
     def _app(self, credit=(8.41, None), state=None):
         state = state if state is not None else {"profile": "kanav"}

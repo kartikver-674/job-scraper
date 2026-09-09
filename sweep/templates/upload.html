@@ -11,11 +11,22 @@
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
   <div class="split">
-    <form class="panel" method="post" action="{{ url_for('resume') }}" enctype="multipart/form-data">
+    {# The wait after this click is the longest in the app and none of it is
+       visible: POST /resume redirects to /review, and /review's render is
+       what calls the model. The old page stays on screen throughout, so this
+       note covers the whole gap — and the disabled button stops a second
+       submit paying for a second model call. #}
+    <form class="panel" method="post" action="{{ url_for('resume') }}"
+          enctype="multipart/form-data" x-data="{ sent: false }"
+          @submit="sent = true">
       <span class="label">Résumé PDF</span>
       <input type="file" name="resume" accept="application/pdf">
       <p class="muted">PDF only, up to 15 MB. A scanned image without a text layer will not work.</p>
-      <button class="primary" type="submit">Read my résumé</button>
+      <div class="actions">
+        <button class="primary" type="submit" :disabled="sent">Read my résumé</button>
+        <span class="meta sending" x-show="sent" x-cloak>Reading your résumé —
+          this takes a few seconds.</span>
+      </div>
     </form>
 
     <aside class="aside stack">

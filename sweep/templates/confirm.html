@@ -15,6 +15,12 @@
     <div class="stack">
       <div class="panel">
         <h2>What this will cost</h2>
+        {% if not plan.lines %}
+          <p class="empty"><b>No paid sources in this sweep</b>
+            Every metered source is switched off, so this runs the free feeds
+            only and costs nothing. Turn one back on in Configure to search
+            LinkedIn, Indeed or Naukri.</p>
+        {% endif %}
         <table class="lines">
           {% for line in plan.lines %}
             <tr class="{{ 'free' if line.free }}">
@@ -96,9 +102,15 @@
         <p class="muted">Hard stop at ${{ '%.2f'|format(plan.spend_cap) }}. The sweep
           is told to stop spending there and will, even if searches are left.</p>
         {% if not plan.over_cap %}
-          <form method="post" action="{{ url_for('run') }}">
-            <button class="primary" type="submit">
+          {# _run_lock already refuses a second concurrent sweep server-side;
+             this stops the click that would race it, on the button that
+             starts spending. #}
+          <form method="post" action="{{ url_for('run') }}"
+                x-data="{ sent: false }" @submit="sent = true">
+            <button class="primary" type="submit" :disabled="sent">
               Run the sweep — ${{ '%.2f'|format(plan.total) }}</button>
+            <span class="meta sending" x-show="sent" x-cloak>Starting the
+              sweep…</span>
           </form>
         {% endif %}
       </div>

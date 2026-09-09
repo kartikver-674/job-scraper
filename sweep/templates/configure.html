@@ -4,7 +4,7 @@
 {# SINGLE-quoted: |tojson escapes ' < & but not ", so inside a
    double-quoted attribute the value ends at the JSON's first " and Alpine
    silently never initialises — on the screen whose whole job is a live cost. #}
-{% block meter_scope %} x-data='{ est: {{ estimate|tojson }} }'{% endblock %}
+{% block meter_scope %} x-data='{ est: {{ estimate|tojson }}, busy: false, err: null }'{% endblock %}
 {% block meter_numeral_bind %} x-text="'$' + est.total.toFixed(2)"{% endblock %}
 {% block meter_class_bind %} :class="{ over: est.over_cap }"{% endblock %}
 {# No :style binding here: running.html's fill is found by the first :style on
@@ -20,10 +20,21 @@
   </div>
 
   <div class="split">
-    <form class="stack" @change="fetch('{{ url_for('estimate') }}', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(Object.fromEntries(new FormData($el)))
-        }).then(r => r.json()).then(d => est = d)">
+    {# est is only ever assigned a real estimate. It used to take whatever
+       came back, so a 400 (an invalid skip-term, an unplannable profile) set
+       est to {error: ...} and est.total.toFixed threw — the live cost layer
+       died silently on bad input. A failure now leaves the last good figures
+       in place and says they may be stale, which is the one thing a money
+       display must not do quietly. #}
+    <form class="stack" @change="busy = true; err = null;
+          fetch('{{ url_for('estimate') }}', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(Object.fromEntries(new FormData($el)))
+          }).then(r => r.json().then(d => ({ok: r.ok, d: d})))
+            .then(res => { if (res.ok) { est = res.d; }
+                           else { err = res.d.error || 'That could not be priced.'; } })
+            .catch(() => { err = 'Could not reach the estimator — the figures below may be out of date.'; })
+            .finally(() => { busy = false; })">
 
       {# First, not last as in the v3 mock: this is the largest cost lever on
          the screen and the one control a user reaches for when the estimate
@@ -107,8 +118,22 @@
 
     <aside class="aside">
       <div class="panel">
-        <h2>What this will cost</h2>
-        <table class="lines">
+        <div class="panel-head">
+          <h2>What this will cost</h2>
+          <span class="meta sending" x-show="busy" x-cloak>re-pricing</span>
+        </div>
+        <p class="error" x-show="err" x-cloak x-text="err"></p>
+        {# Correct with no JavaScript (the server already knows whether there
+           are lines) and live with it, so unchecking the last paid source
+           swaps this in without a reload. #}
+        <p class="empty" x-show="!est.lines.length"
+           {% if estimate.lines %}style="display:none"{% endif %}>
+          <b>No paid sources selected</b>
+          This sweep runs the free feeds only, so it costs nothing. Switch a
+          source back on to see its price here.</p>
+        <table class="lines" :class="busy && 'updating'"
+               x-show="est.lines.length"
+               {% if not estimate.lines %}style="display:none"{% endif %}>
           <template x-for="line in est.lines" :key="line.site">
             <tr :class="line.free && 'free'">
               <td>
@@ -123,7 +148,7 @@
           </template>
         </table>
 
-        <div class="headline-figure">
+        <div class="headline-figure" :class="busy && 'updating'">
           <span class="label">Run cost estimate</span>
           <p class="numeral" x-text="'$' + est.total.toFixed(2)"></p>
           <p class="over" x-show="est.over_cap"
