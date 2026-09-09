@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import re
 import unittest
 
 import make_profile
@@ -143,6 +144,76 @@ class TestRender(unittest.TestCase):
         ns = rendered_namespace(payload)
         self.assertEqual(ns["SCORING"]["frontend_terms"], [])
         self.assertEqual(ns["SCORING"]["fullstack_bonus"], 0)
+
+
+class TestProfileNameFor(unittest.TestCase):
+    """The résumé already names the person, so Sweep's review screen prefills
+    the profile name from it. Whatever comes out has to satisfy the regex that
+    same form validates against — [A-Za-z_][A-Za-z0-9_-]* — or it would
+    prefill a value its own screen rejects."""
+
+    NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
+
+    def name(self, raw):
+        return make_profile.profile_name_for({"candidate_name": raw})
+
+    def test_a_plain_name_becomes_a_slug(self):
+        self.assertEqual(self.name("Kartik Verma"), "kartik_verma")
+
+    def test_case_and_padding_do_not_survive(self):
+        self.assertEqual(self.name("  KARTIK   VERMA  "), "kartik_verma")
+
+    def test_accents_fold_to_their_base_letter(self):
+        # Stripping them instead gave mar_a_pe_a for a real person's name.
+        self.assertEqual(self.name("Ana-María Peña"), "ana-maria_pena")
+        self.assertEqual(self.name("José Müller"), "jose_muller")
+
+    def test_punctuation_collapses_rather_than_repeating(self):
+        self.assertEqual(self.name("J. Doe-Smith"), "j_doe-smith")
+        self.assertEqual(self.name("O'Brien"), "o_brien")
+
+    def test_nothing_usable_yields_an_empty_name_not_a_bad_one(self):
+        # The caller falls back to an empty field for the user to fill, which
+        # is what the screen did for every résumé before this.
+        for raw in ("", None, "李明", "3M Corp", "   ", "---"):
+            self.assertEqual(self.name(raw), "", repr(raw))
+        self.assertEqual(make_profile.profile_name_for({}), "")
+
+    def test_the_result_never_ends_on_a_separator(self):
+        self.assertEqual(self.name("Kartik_"), "kartik")
+        # The truncation itself has to be cleaned up, not just the input:
+        # this one puts the 40-character cut exactly on the separator.
+        self.assertEqual(self.name("a" * 39 + " bcd"), "a" * 39)
+        self.assertEqual(self.name("a" * 45 + " b"), "a" * 40)
+
+    def test_every_produced_name_passes_the_forms_own_validator(self):
+        for raw in ("Kartik Verma", "Ana-María Peña", "J. Doe-Smith",
+                     "O'Brien", "José Müller", "a" * 60, "x  y  z"):
+            out = self.name(raw)
+            self.assertTrue(out, repr(raw))
+            self.assertRegex(out, r"\A" + self.NAME_RE.pattern + r"\Z")
+        # Inputs that must produce NOTHING rather than something invalid. A
+        # leading digit is the case that matters: "3m_corp" is a fine-looking
+        # slug that the form would reject and no module could be named.
+        for raw in ("3M Corp", "42", "-dash", "_ _"):
+            out = self.name(raw)
+            self.assertTrue(out == "" or self.NAME_RE.fullmatch(out),
+                            f"{raw!r} -> {out!r}")
+
+
+class TestCandidateNameIsAsked(unittest.TestCase):
+    def test_the_schema_requires_the_name_and_the_prompt_defines_it(self):
+        # profile_name_for() can only work if the model is actually asked for
+        # the field. Drop it from the schema and autofill reverts to an empty
+        # box with nothing failing anywhere — so the request is pinned here.
+        self.assertIn("candidate_name", make_profile.RESPONSE_SCHEMA["properties"])
+        self.assertIn("candidate_name", make_profile.RESPONSE_SCHEMA["required"])
+        prompt = make_profile.build_prompt("a résumé", {
+            "locations": ["Remote"], "avoid": [], "exclude_levels": []})
+        self.assertIn("candidate_name", prompt)
+        # And told what NOT to do: a name guessed from an email address or a
+        # file name becomes a filename in profiles/.
+        self.assertIn("never a guess", prompt)
 
 
 class TestValidateKeys(unittest.TestCase):

@@ -517,9 +517,21 @@ def create_app(state=None, extract=None, resume_dir=None,
         derived = derived_for_state()
         commodity = [w["term"] for w in derived["skill_weights"]
                      if w["weight"] <= COMMODITY_WEIGHT]
+        # The model already read the résumé, so the person's own name is
+        # right there — typing it again was busywork. A profile chosen
+        # earlier in the session still wins: that is the name the rest of the
+        # flow is already using.
+        suggested = (app.state.get("profile")
+                     or make_profile.profile_name_for(derived))
         return render_template("review.html", **shell(
             "review", derived=derived, commodity=commodity,
-            suggested_name=app.state.get("profile", "")))
+            suggested_name=suggested,
+            # Surfaced on arrival, not after a rejected submit: a suggested
+            # name is very often one the user already has a profile for, and
+            # autofilling straight into a guaranteed 409 would just trade one
+            # piece of friction for another.
+            clash=(suggested if suggested and profile_exists(suggested)
+                   else None)))
 
     @app.post("/derive")
     def derive_post():

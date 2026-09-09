@@ -98,6 +98,14 @@
           <p class="muted">Saved as profiles/&lt;name&gt;.py, so you can re-run it later.
             An existing profile of the same name is never replaced without asking.</p>
           {% if clash %}
+            {# With no error beside it this is a heads-up on arrival, not a
+               rejection: say so plainly rather than leaving a bare checkbox
+               to be interpreted. #}
+            {% if not error %}
+              <p class="muted">This is the name from your résumé, and a profile
+                already uses it. Change it below to keep both, or tick this to
+                replace the old one.</p>
+            {% endif %}
             <label class="choice"><input type="checkbox" name="overwrite" value="yes">
               <span>Replace the existing {{ clash }} profile</span></label>
           {% endif %}

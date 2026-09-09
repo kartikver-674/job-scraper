@@ -22,8 +22,10 @@ Verify the result at zero cost before spending:
 import argparse
 import json
 import os
+import re
 import sys
 import time
+import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -88,6 +90,9 @@ _WEIGHTED_LIST = {
 RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
+        # The person's own name, used to prefill the profile name on Sweep's
+        # review screen. Empty string when the résumé does not state one.
+        "candidate_name": {"type": "string"},
         "field_summary": {"type": "string"},
         "years_experience": {"type": "integer"},
         "role_keywords": {"type": "array", "items": {"type": "string"}},
@@ -102,11 +107,45 @@ RESPONSE_SCHEMA = {
         "notes": {"type": "string"},
     },
     "required": [
+        "candidate_name",
         "field_summary", "years_experience", "role_keywords", "skill_weights",
         "penalty_terms", "domain_half_a", "domain_half_b", "domain_title_terms",
         "domain_bonus", "notes",
     ],
 }
+
+
+# A profile name is both a filename and an import path (config.py does
+# importlib.import_module(f"profiles.{PROFILE}")) and is validated by
+# sweep.logic._NAME_RE — [A-Za-z_][A-Za-z0-9_-]*. Everything below has to land
+# inside that, or this would prefill the very form that rejects it.
+_SLUG_STRIP = re.compile(r"[^a-z0-9_-]+")
+_SLUG_RUNS = re.compile(r"_{2,}")
+
+
+def profile_name_for(data):
+    """A default profile name from the résumé's own candidate_name.
+
+    Returns "" when there is nothing usable, and the caller falls back to an
+    empty field for the user to fill — which is what the review screen did
+    for every résumé before this.
+    """
+    raw = (data.get("candidate_name") or "").strip().lower()
+    # Accents fold to their base letter instead of being stripped: "María
+    # Peña" would otherwise slug to mar_a_pe_a. Scripts that do not decompose
+    # to ASCII at all (CJK, for one) still come back empty and get typed by
+    # hand, which is honest — there is no transliteration here worth trusting
+    # with someone's name.
+    raw = "".join(c for c in unicodedata.normalize("NFKD", raw)
+                  if not unicodedata.combining(c))
+    slug = _SLUG_RUNS.sub("_", _SLUG_STRIP.sub("_", raw)).strip("_-")
+    # The first character has to be a letter or underscore. A name that
+    # transliterates to digits, or to nothing at all, gets typed by hand
+    # rather than silently turned into an invalid module name.
+    if not slug or not (slug[0].isalpha() or slug[0] == "_"):
+        return ""
+    # Truncated for a sane filename, and never left ending on a separator.
+    return slug[:40].rstrip("_-")
 
 
 def build_prompt(resume_text, prefs):
@@ -121,7 +160,9 @@ def build_prompt(resume_text, prefs):
         "Produce the scraper configuration. role_keywords are the job titles "
         "this person should actually be searched for. Include the avoid-list in "
         "penalty_terms alongside any technology obviously off-domain for their "
-        "field."
+        "field. candidate_name is the person's own name exactly as the résumé "
+        "writes it, or an empty string if it does not state one — never a "
+        "guess from an email address or a file name."
     )
 
 

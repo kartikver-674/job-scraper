@@ -661,6 +661,56 @@ class TestReviewScreen(unittest.TestCase):
             app.write_profile("../evil", "source")
 
 
+class TestProfileNameAutofill(unittest.TestCase):
+    def _app(self, derived, exists=()):
+        app = app_module.create_app(
+            state={"resume_text": "a résumé", "derived": derived},
+            extract=lambda p: "x", derive=lambda t, p: derived,
+            profile_exists=lambda n: n in exists)
+        app.config.update(TESTING=True)
+        return app
+
+    def test_the_name_field_is_prefilled_from_the_resume(self):
+        named = dict(DERIVED, candidate_name="Kartik Verma")
+        body = self._app(named).test_client().get("/review").get_data(as_text=True)
+        self.assertIn('name="name" value="kartik_verma"', body)
+
+    def test_a_resume_with_no_name_leaves_the_field_empty(self):
+        body = self._app(dict(DERIVED, candidate_name="")).test_client().get(
+            "/review").get_data(as_text=True)
+        self.assertIn('name="name" value=""', body)
+
+    def test_a_derivation_without_the_field_at_all_still_renders(self):
+        # DERIVED predates candidate_name, and so does every profile derived
+        # before this change — a missing key must not 500 the screen.
+        body = self._app(DERIVED).test_client().get("/review").get_data(as_text=True)
+        self.assertIn('name="name" value=""', body)
+
+    def test_a_profile_already_chosen_this_session_wins(self):
+        # That is the name the rest of the flow is already using.
+        named = dict(DERIVED, candidate_name="Kartik Verma")
+        app = self._app(named)
+        app.state["profile"] = "kartik_reachable"
+        body = app.test_client().get("/review").get_data(as_text=True)
+        self.assertIn('name="name" value="kartik_reachable"', body)
+
+    def test_a_clash_with_the_suggested_name_is_flagged_on_arrival(self):
+        # Autofilling straight into a guaranteed 409 would trade one piece of
+        # friction for another, so the replace option is offered up front.
+        named = dict(DERIVED, candidate_name="Kartik Verma")
+        body = self._app(named, exists=("kartik_verma",)).test_client().get(
+            "/review").get_data(as_text=True)
+        self.assertIn('name="overwrite"', body)
+        self.assertIn("a profile already uses it", " ".join(body.split()))
+        # A heads-up, not a rejection: never painted the over-cap red.
+        self.assertNotIn('class="error"', body)
+
+    def test_no_clash_notice_when_the_name_is_free(self):
+        named = dict(DERIVED, candidate_name="Kartik Verma")
+        body = self._app(named).test_client().get("/review").get_data(as_text=True)
+        self.assertNotIn('name="overwrite"', body)
+
+
 class TestSkillWeightEditing(unittest.TestCase):
     def _app(self):
         app = app_module.create_app(
