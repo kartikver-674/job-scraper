@@ -319,7 +319,8 @@ class TestFixesThatHadNoTest(unittest.TestCase):
             extract=lambda p: "x", derive=lambda t, p: DERIVED,
             check_token=lambda t: (8.41, None),
             read_rows=lambda profile: ROWS if rows is None else rows,
-            start_rescore=lambda profile, hours: None)
+            start_rescore=lambda profile, hours: None,
+            output_dir=tempfile.mkdtemp())
         app.config.update(TESTING=True)
         return app
 
@@ -416,7 +417,7 @@ class TestFixesThatHadNoTest(unittest.TestCase):
             state={"profile": "kanav", "cap_usd": 8.41,
                    "baseline_usd": None, "spend_read_val": 40.0},
             extract=lambda p: "x", derive=lambda t, p: DERIVED,
-            read_rows=lambda profile: ROWS)
+            read_rows=lambda profile: ROWS, output_dir=tempfile.mkdtemp())
         app.config.update(TESTING=True)
         body = app.test_client().get("/results").get_data(as_text=True)
         self.assertIn("not known", body)
@@ -1234,7 +1235,7 @@ class TestStepTracker(unittest.TestCase):
             fetch_plan=lambda profile: RAW_PLAN,
             read_rows=lambda profile: list(ROWS),
             read_done=lambda profile, day: [],
-            read_spend=lambda: 4.12)
+            read_spend=lambda: 4.12, output_dir=tempfile.mkdtemp())
         app.config.update(TESTING=True)
         app.write_profile = lambda n, src: None
         return app
@@ -3324,7 +3325,7 @@ class TestResultsScreen(unittest.TestCase):
             check_token=lambda t: (8.41, None),
             fetch_plan=lambda profile: RAW_PLAN,
             read_rows=lambda profile: ROWS if rows is None else rows,
-            start_rescore=start_rescore)
+            start_rescore=start_rescore, output_dir=tempfile.mkdtemp())
         app.config.update(TESTING=True)
         return app
 
@@ -3421,7 +3422,7 @@ class TestResultsScreen(unittest.TestCase):
             extract=lambda p: "x", derive=lambda t, p: DERIVED,
             check_token=lambda t: (8.41, None),
             fetch_plan=lambda profile: RAW_PLAN,
-            read_rows=lambda profile: ROWS)
+            read_rows=lambda profile: ROWS, output_dir=tempfile.mkdtemp())
         app.config.update(TESTING=True)
         app.write_profile = lambda n, s: None
         client = app.test_client()
@@ -3436,7 +3437,7 @@ class TestResultsScreen(unittest.TestCase):
             state={"profile": "kanav", "cap_usd": 8.41,
                    "baseline_usd": 1.00, "spend_read_val": 2.42},
             extract=lambda p: "x", derive=lambda t, p: DERIVED,
-            read_rows=lambda profile: ROWS)
+            read_rows=lambda profile: ROWS, output_dir=tempfile.mkdtemp())
         app.config.update(TESTING=True)
         header = app.test_client().get("/results").get_data(as_text=True).split("<main>")[0]
         self.assertIn("$1.42", header)
@@ -3862,6 +3863,166 @@ class TestReRankWeights(unittest.TestCase):
         self.assertEqual(self.written, {})
         self.assertEqual(self.started, [])
         self.assertEqual(self.state["derived"], DERIVED)
+
+
+class TestMergeOffer(unittest.TestCase):
+    """The screen used to tell the user to go and run merge_jobs.py — and told
+    them so whenever it was showing an unmerged file, including when there was
+    one sweep on disk and nothing to fold in.
+
+    These exercise the REAL detector against temp files: it has to see exactly
+    what merge_jobs.py's own glob sees, or the offer claims sweeps the merge
+    will not read.
+    """
+
+    def setUp(self):
+        self.out = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.out)
+        self.dir = os.path.join(self.out, "kanav")
+        os.makedirs(self.dir)
+        self.launched = []
+
+    def sweep_file(self, name, when=None):
+        """One of the engine's per-sweep outputs. merge_jobs.py merges the
+        JSON, not the CSV."""
+        path = os.path.join(self.dir, name)
+        pathlib.Path(path).write_text("[]")
+        if when is not None:
+            os.utime(path, (when, when))
+        return path
+
+    def _app(self, **kw):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=kw.pop("read_rows", lambda profile: list(ROWS)),
+            start_merge=kw.pop(
+                "start_merge",
+                lambda profile: self.launched.append(profile) or FakeProc()),
+            output_dir=self.out, **kw)
+        app.config.update(TESTING=True)
+        return app
+
+    def body(self, **kw):
+        return self._app(**kw).test_client().get("/results").get_data(as_text=True)
+
+    # ---- when there is nothing to fold in -------------------------------
+    def test_one_sweep_is_not_offered_a_merge(self):
+        self.sweep_file("jobs_2026-09-09_1800.json")
+        body = self.body()
+        # Still says which file it read — that is exactly what a user needs
+        # when every row has been filtered out.
+        self.assertIn("Showing your most recent sweep only", body)
+        self.assertIn("only one on disk", " ".join(body.split()))
+        self.assertNotIn('action="/merge"', body)
+
+    def test_no_files_at_all_offers_nothing(self):
+        self.assertNotIn('action="/merge"', self.body())
+
+    def test_the_merged_file_is_not_counted_as_an_earlier_sweep(self):
+        # merge_jobs.py skips its own output, so the offer must too — or a
+        # merged profile is told it has one more sweep than it has.
+        self.sweep_file("jobs_2026-09-09_1800.json")
+        self.sweep_file("jobs_combined.json")
+        self.sweep_file("jobs_all.json")
+        self.assertNotIn('action="/merge"', self.body())
+
+    # ---- when there is ---------------------------------------------------
+    def test_earlier_sweeps_are_counted_and_dated(self):
+        base = 1_600_000_000
+        self.sweep_file("jobs_2026-09-09_1800.json", when=base + 300)
+        self.sweep_file("jobs_2026-08-26_1651.json", when=base + 200)
+        self.sweep_file("jobs_2026-08-26_1701.json", when=base + 100)
+        body = " ".join(self.body().split())
+        # Two earlier files, one earlier DAY: the offer is about which days
+        # are on disk, not how many files.
+        self.assertIn("2 earlier sweeps on disk", body)
+        self.assertEqual(body.count("26 Aug"), 1)
+        self.assertNotIn("9 Sep", body)
+        self.assertIn('action="/merge"', body)
+
+    def test_one_earlier_sweep_reads_as_one(self):
+        base = 1_600_000_000
+        self.sweep_file("jobs_2026-09-09_1800.json", when=base + 200)
+        self.sweep_file("jobs_2026-08-26_1651.json", when=base + 100)
+        self.assertIn("1 earlier sweep on disk", " ".join(self.body().split()))
+
+    def test_a_hand_named_file_is_still_a_sweep_the_merge_will_read(self):
+        # output directories hold these (jobs_chandigarh.json), merge_jobs.py
+        # globs jobs_*.json, and a stamp-only detector would undercount.
+        base = 1_600_000_000
+        self.sweep_file("jobs_2026-09-09_1800.json", when=base + 200)
+        self.sweep_file("jobs_chandigarh.json", when=base + 100)
+        self.assertIn("1 earlier sweep on disk", " ".join(self.body().split()))
+
+    def test_a_merged_view_is_not_offered_a_merge(self):
+        # read_rows reports _merged on rows from jobs_combined*, and there is
+        # nothing to fold in that is not already folded.
+        self.sweep_file("jobs_2026-09-09_1800.json")
+        self.sweep_file("jobs_2026-08-26_1651.json")
+        merged = [dict(r, _merged="1") for r in ROWS]
+        self.assertNotIn('action="/merge"',
+                         self.body(read_rows=lambda profile: merged))
+
+    # ---- running it ------------------------------------------------------
+    def test_the_button_launches_the_merge(self):
+        app = self._app()
+        r = app.test_client().post("/merge")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/results", r.headers["Location"])
+        self.assertEqual(self.launched, ["kanav"])
+
+    def test_a_merge_needs_a_profile(self):
+        app = app_module.create_app(state={}, extract=lambda p: "x",
+                                    derive=lambda t, p: DERIVED)
+        app.config.update(TESTING=True)
+        r = app.test_client().post("/merge")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.headers["Location"], "/")
+
+    def test_two_clicks_launch_one_child(self):
+        # merge_jobs.py truncates jobs_combined.csv and .json in place with no
+        # lock of its own, so two children interleave writes to both.
+        app = self._app()
+        client = app.test_client()
+        self.assertEqual(client.post("/merge").status_code, 302)
+        second = client.post("/merge")
+        self.assertEqual(second.status_code, 409)
+        self.assertIn("merge is already running", second.get_data(as_text=True))
+        self.assertEqual(len(self.launched), 1)
+
+    def test_a_merge_and_a_re_score_cannot_overlap(self):
+        # They write the SAME two files, so each has to refuse while the
+        # other runs — and name the one that is actually running.
+        app = self._app(start_rescore=lambda profile, hours: FakeProc())
+        client = app.test_client()
+        client.post("/merge")
+        r = client.post("/rescore", data={"hours": "6"})
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("merge is already running", r.get_data(as_text=True))
+
+        app2 = self._app(start_rescore=lambda profile, hours: FakeProc())
+        client2 = app2.test_client()
+        client2.post("/rescore", data={"hours": "6"})
+        r2 = client2.post("/merge")
+        self.assertEqual(r2.status_code, 409)
+        self.assertIn("re-score is already running", r2.get_data(as_text=True))
+        # Only the first client's merge ever started: the second app refused
+        # before launching one.
+        self.assertEqual(self.launched, ["kanav"])
+
+    def test_a_running_merge_says_so_instead_of_offering_again(self):
+        base = 1_600_000_000
+        self.sweep_file("jobs_2026-09-09_1800.json", when=base + 200)
+        self.sweep_file("jobs_2026-08-26_1651.json", when=base + 100)
+        app = self._app()
+        client = app.test_client()
+        client.post("/merge")
+        body = client.get("/results").get_data(as_text=True)
+        self.assertIn("Merging now", body)
+        self.assertNotIn('action="/merge"', body)
 
 
 class TestReadRowsDefault(unittest.TestCase):

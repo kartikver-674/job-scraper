@@ -34,7 +34,7 @@ import scraper  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
     _valid_profile_name, bucket_rows, fill_pct, paid_sites, reweighted,
-    site_label, step_states, worst_filter)
+    site_label, step_states, sweep_dates, worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -158,7 +158,7 @@ def create_app(state=None, extract=None, resume_dir=None,
                start_sweep=None, read_spend=None, output_dir=None,
                read_done=None, now=None, read_rows=None, read_live=None,
                start_rescore=None, hour_now=None, profile_exists=None,
-               wall_now=None):
+               wall_now=None, list_sweeps=None, start_merge=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -321,6 +321,37 @@ def create_app(state=None, extract=None, resume_dir=None,
             with open(max(files, key=os.path.getmtime),
                       newline="", encoding="utf-8") as fh:
                 return list(csv.DictReader(fh))
+
+    if list_sweeps is None:
+        def list_sweeps(profile):
+            """The dates of the files a merge would fold in, newest first.
+
+            EXACTLY what merge_jobs.py itself globs — jobs_*.json minus the
+            combined and jobs_all outputs — so the offer on screen cannot
+            claim more or fewer sweeps than the merge will actually read.
+
+            Ordered by mtime, matching read_rows' own "newest first", so the
+            first entry is the sweep currently on display. The date comes
+            from the filename stamp where there is one and the mtime where
+            there is not: output directories hold hand-named files too
+            (jobs_chandigarh.json), and the merge reads those as well.
+            """
+            import glob
+            from datetime import date as _date
+            out = []
+            paths = glob.glob(os.path.join(output_dir, profile, "jobs_*.json"))
+            for path in sorted(paths, key=os.path.getmtime, reverse=True):
+                base = os.path.basename(path)
+                if "combined" in base or "jobs_all" in base:
+                    continue
+                stamp = re.match(r"jobs_(\d{4}-\d{2}-\d{2})", base)
+                out.append(stamp.group(1) if stamp else
+                           _date.fromtimestamp(os.path.getmtime(path)).isoformat())
+            return out
+
+    if start_merge is None:
+        from sweep import runs as runs_mod
+        start_merge = runs_mod.start_merge
 
     if read_rows is None:
         def read_rows(profile):
@@ -1190,6 +1221,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         instead of a bare 400."""
         profile = app.state["profile"]
         all_rows = read_rows(profile)
+        sweeps = list_sweeps(profile)
         # A single sweep's file is complete for that sweep but does not span
         # earlier ones, and merge_jobs.py is what combines them.
         merged = bool(all_rows) and all_rows[0].get("_merged") == "1"
@@ -1229,7 +1261,14 @@ def create_app(state=None, extract=None, resume_dir=None,
             # passes over up to 1607 rows, thrown away, on every page load.
             worst=(worst_filter(all_rows, min_score, source, q)
                    if not rows else None),
-            rescoring=_rescore_in_flight(),
+            rescoring=_rescore_in_flight(), merging=_merge_in_flight(),
+            # The offer to merge, and the honest count behind it: [0] is the
+            # sweep on display, so anything after it is what folding in would
+            # add. The old copy told the user to run merge_jobs.py whenever
+            # this screen was showing an unmerged file — including when there
+            # was only one sweep and nothing to fold in.
+            earlier=max(0, len(sweeps) - 1),
+            earlier_dates=sweep_dates(sweeps[1:]),
             # The re-rank panel edits these in place, so it needs the same
             # list the review screen wrote — not the profile file, which it
             # cannot read back into weights.
@@ -1260,6 +1299,7 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     _run_lock = threading.Lock()
     _rescore_lock = threading.Lock()
+    _merge_lock = threading.Lock()
 
     def _sweep_in_flight():
         """Whether a sweep child is still running.
@@ -1305,6 +1345,47 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         proc = app.state.get("rescore_proc")
         return proc is not None and proc.poll() is None
+
+    def _merge_in_flight():
+        """Whether a merge child is still running.
+
+        merge_jobs.py truncates jobs_combined.csv and .json in place, the same
+        two files a re-score writes, so two children — of either kind —
+        interleave writes to them. Same ponytail caveat as
+        _rescore_in_flight(): in-memory, single-process, lost on a restart.
+        """
+        proc = app.state.get("merge_proc")
+        return proc is not None and proc.poll() is None
+
+    def _rewriter_busy():
+        """Which child is rewriting the shortlist, or None.
+
+        merge_jobs.py and rescore_from_apify.py write the same two files
+        (jobs_combined.csv/.json), so neither may start while either runs —
+        and the refusal has to name the one that is actually running rather
+        than guess.
+        """
+        if _merge_in_flight():
+            return "merge"
+        return "re-score" if _rescore_in_flight() else None
+
+    @app.post("/merge")
+    def merge():
+        """Fold this profile's earlier sweeps into one shortlist.
+
+        Free and local — no key, no account, no actor — so this is offered on
+        the free path too.
+        """
+        if not app.state.get("profile"):
+            return redirect(url_for("upload"))
+        with _merge_lock:
+            busy = _rewriter_busy()
+            if busy:
+                return _results_page(
+                    notice=f"A {busy} is already running. Reload in a moment "
+                           "to see the new shortlist."), 409
+            app.state["merge_proc"] = start_merge(app.state["profile"])
+        return redirect(_results_url())
 
     @app.get("/results")
     def results():
@@ -1370,11 +1451,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         # request refused with 409 must leave no trace, and the write still
         # has to land before the child reads the file.
         with _rescore_lock:
-            if _rescore_in_flight():
+            busy = _rewriter_busy()
+            if busy:
                 # A status, not a failure — so it must not go through `error`,
                 # which is painted the red reserved for over-cap.
                 return _results_page(
-                    notice="A re-score is already running. Reload in a moment "
+                    notice=f"A {busy} is already running. Reload in a moment "
                            "to see the new ranking."), 409
             if source is not None:
                 app.write_profile(app.state["profile"], source)

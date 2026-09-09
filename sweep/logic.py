@@ -191,6 +191,31 @@ def site_label(name):
     return SITE_LABELS.get(name, name)
 
 
+def sweep_dates(isos, limit=4):
+    """Distinct sweep dates as "26 Aug", newest first, at most `limit`.
+
+    Takes ISO strings so the caller's clock and filesystem stay out of here.
+    Two sweeps on one day are one label: the offer is about which days are on
+    disk, not how many files there are.
+    """
+    from datetime import date
+
+    seen, out = set(), []
+    for iso in isos:
+        if iso in seen:
+            continue
+        seen.add(iso)
+        try:
+            out.append(date.fromisoformat(iso).strftime("%-d %b"))
+        except ValueError:
+            # An unparseable stamp is still a file the merge will read, so it
+            # is counted by the caller — it just cannot be named here.
+            continue
+        if len(out) == limit:
+            break
+    return out
+
+
 def reweighted(derived, terms, weights, dropped):
     """`derived` with the posted weight edits applied. Raises _FormError.
 

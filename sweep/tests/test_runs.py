@@ -180,6 +180,45 @@ class TestActorDepthFloor(unittest.TestCase):
                       buf.getvalue())
 
 
+class TestStartMerge(unittest.TestCase):
+    """start_merge spawns a real process that rewrites a real profile's
+    jobs_combined.* — the same coverage start_rescore needed and for the same
+    reason: the profile hand-off is the whole safety of it.
+    """
+
+    def test_start_merge_builds_correct_argv(self):
+        proc = runs.start_merge("myprofile", popen=FakePopen)
+        self.assertEqual(proc.argv[0], sys.executable)
+        self.assertEqual(proc.argv[1], "merge_jobs.py")
+        # No --all: that spans every profile directory in output/, including
+        # other people's finished sweeps.
+        self.assertNotIn("--all", proc.argv)
+        # No --profile flag: config.py resolves it from JOB_PROFILE instead.
+        self.assertNotIn("--profile", proc.argv)
+
+    def test_start_merge_passes_the_profile_through_the_environment(self):
+        # Without it the merge writes the DEFAULT profile's output directory
+        # while you are looking at someone else's sweep.
+        proc = runs.start_merge("myprofile", env={"PATH": "/usr/bin"},
+                                 popen=FakePopen)
+        self.assertEqual(proc.env["JOB_PROFILE"], "myprofile")
+        self.assertEqual(proc.env["PATH"], "/usr/bin")
+
+    def test_start_merge_does_not_mutate_the_environment_it_was_given(self):
+        given = {"PATH": "/usr/bin"}
+        runs.start_merge("myprofile", env=given, popen=FakePopen)
+        self.assertNotIn("JOB_PROFILE", given)
+
+    def test_start_merge_sets_cwd_to_repo_root(self):
+        proc = runs.start_merge("myprofile", popen=FakePopen)
+        self.assertTrue(proc.cwd.endswith("job-scraper"))
+
+    def test_start_merge_silences_stdout_and_inherits_stderr(self):
+        proc = runs.start_merge("myprofile", popen=FakePopen)
+        self.assertEqual(proc.stdout, subprocess.DEVNULL)
+        self.assertIsNone(proc.stderr)
+
+
 class TestStartRescore(unittest.TestCase):
     """start_rescore is the only function here that spawns a real process
     against a real profile's real output directory, and it had no direct

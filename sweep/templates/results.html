@@ -58,10 +58,46 @@
       {%- else %}Filtering and re-ranking these is free and costs no extra credit.{% endif %}</p>
   </div>
 
-  {% if all_total and not merged %}
-    <p class="muted">Showing your most recent sweep only. Run
-      <code>python merge_jobs.py</code> to fold in earlier sweeps for this
-      profile.</p>
+  {# The old copy told the user to go and run merge_jobs.py, and told them
+     so whenever this screen was showing an unmerged file — including when
+     there was only one sweep on disk and nothing to fold in. #}
+  {% if merging %}
+    <p class="panel muted">Merging now. Reload in a moment — the shortlist
+      below is still the most recent sweep on its own.</p>
+  {% elif not merged and not earlier %}
+    {# Which file this is, said even when every row is filtered out — that is
+       exactly when a user needs to know what was read. #}
+    <p class="muted">Showing your most recent sweep only. It is the only one on
+      disk for this profile.</p>
+  {% elif not merged %}
+    <div class="panel">
+      <div class="panel-head">
+        <h2>{{ earlier }} earlier sweep{{ '' if earlier == 1 else 's' }} on disk</h2>
+        {% if earlier_dates %}
+          <span class="meta">{{ earlier_dates|join(', ') }}</span>
+        {% endif %}
+      </div>
+      <p class="muted">Showing your most recent sweep only. Merging folds them
+        all into one shortlist and drops the duplicates, keeping the
+        highest-scoring copy of each posting. It reads files you already have —
+        nothing is scraped and nothing is charged.</p>
+      {# Both true and load-bearing: this is why a merged list can be SMALLER
+         than the sum of its parts, and it is the one thing a user would
+         otherwise discover as missing rows. #}
+      <p class="muted">The merge re-applies your current filters — age,
+        reachability, excluded titles — to the older rows, so anything those
+        rules now reject drops out. It also replaces the file a re-rank
+        writes, so run it before re-ranking rather than after.</p>
+      <form method="post" action="{{ url_for('merge') }}"
+            x-data="{ sent: false }" @submit="sent = true">
+        <div class="actions">
+          <button class="secondary" type="submit" :disabled="sent">Merge them
+            in</button>
+          <span class="meta sending" x-show="sent" x-cloak>Starting the
+            merge…</span>
+        </div>
+      </form>
+    </div>
   {% endif %}
 
   {% if error %}<p class="error">{{ error }}</p>{% endif %}

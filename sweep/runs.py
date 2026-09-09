@@ -106,6 +106,24 @@ def start_rescore(profile, hours, env=None, popen=subprocess.Popen):
                  stdout=subprocess.DEVNULL, stderr=None, text=True)
 
 
+def start_merge(profile, env=None, popen=subprocess.Popen):
+    """Fold this profile's earlier sweeps into one deduped shortlist.
+
+    Free and entirely local: merge_jobs.py reads the jobs_*.json files already
+    on disk and writes jobs_combined.*. JOB_PROFILE is how config.py picks the
+    profile with no --profile in argv, which is also what redirects the output
+    directory — the same mechanism start_rescore uses.
+
+    stderr inherited for the reason in start(): merge_jobs.py's expected
+    failure is sys.exit("No jobs_*.json files to merge under ..."), and the UI
+    shows only liveness, so discarding it deletes the explanation for a merge
+    that appears to do nothing.
+    """
+    child = dict(env or os.environ, JOB_PROFILE=profile)
+    return popen([sys.executable, "merge_jobs.py"], cwd=REPO_ROOT, env=child,
+                 stdout=subprocess.DEVNULL, stderr=None, text=True)
+
+
 def stop(proc):
     """Ask the engine to stop. Everything already fetched is already on disk:
     scraper.py emits after every search, so SIGINT never loses rows."""
