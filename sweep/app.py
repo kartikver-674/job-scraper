@@ -33,7 +33,8 @@ import scraper  # noqa: E402
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    _valid_profile_name, bucket_rows, fill_pct, paid_sites, worst_filter)
+    _valid_profile_name, bucket_rows, fill_pct, paid_sites, step_states,
+    worst_filter)
 
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
          ("configure", "Configure"), ("confirm", "Confirm"),
@@ -424,7 +425,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         so the first paint was the dishonest state it removed.
         """
         cap = app.state.get("cap_usd")
-        return dict(steps=STEPS, step=step, spend=spend, cap_usd=cap,
+        return dict(steps=step_states(STEPS, app.state, step),
+                    step=step, spend=spend, cap_usd=cap,
                     spend_is_this_sweep=spend_is_this_sweep,
                     fill_pct=fill_pct(spend, cap) if spend_is_this_sweep else 0,
                     # Counted from the environment, not from state: that is

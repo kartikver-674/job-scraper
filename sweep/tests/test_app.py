@@ -1004,6 +1004,152 @@ class TestResumeParsingScreen(unittest.TestCase):
         self.assertEqual(r.headers["Location"], "/")
 
 
+class TestStepTracker(unittest.TestCase):
+    """The header was seven plain tabs, four of which redirect away on a
+    fresh session. The tracker has to agree with the route guards, so this
+    checks it against the actual routes rather than against a second copy of
+    the rules."""
+
+    def _app(self, state):
+        app = app_module.create_app(
+            state=dict(state), extract=lambda p: "x",
+            derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=lambda profile: list(ROWS),
+            read_done=lambda profile, day: [],
+            read_spend=lambda: 4.12)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: None
+        return app
+
+    STATES = {
+        "fresh": {},
+        "uploaded": {"resume_text": "x"},
+        "reviewed": {"resume_text": "x", "profile": "kanav",
+                      "derived": DERIVED},
+        "keyed": {"resume_text": "x", "profile": "kanav", "derived": DERIVED,
+                   "cap_usd": 8.41},
+    }
+
+    def test_no_offered_step_ever_redirects(self):
+        # The property that makes the tracker worth having: if it is a link,
+        # it goes somewhere. Verified by opening every step it offers, in
+        # four different states, against the real guards.
+        for name, state in self.STATES.items():
+            app = self._app(state)
+            steps = app_module.step_states(
+                app_module.STEPS, app.state, None)
+            offered = [s["slug"] for s in steps if s["open"]]
+            self.assertTrue(offered, name)
+            for slug in offered:
+                with app.test_client() as client:
+                    r = client.get(f"/{'' if slug == 'upload' else slug}")
+                self.assertEqual(
+                    r.status_code, 200,
+                    f"{name}: tracker offered /{slug} but it redirected")
+
+    def test_a_locked_step_is_not_a_link(self):
+        body = self._app(self.STATES["fresh"]).test_client().get(
+            "/").get_data(as_text=True)
+        # review is locked with no résumé, so it must render without an href.
+        review = re.search(
+            r'<li class="step[^"]*locked[^"]*">\s*<a\s*\n?\s*([^>]*)>\s*'
+            r'<span class="marker"[^>]*>\s*2', body)
+        self.assertIsNotNone(review, "no locked step rendered for review")
+        self.assertNotIn("href", review.group(1))
+
+    def test_the_current_step_is_marked_and_not_a_link_to_itself(self):
+        body = self._app(self.STATES["uploaded"]).test_client().get(
+            "/").get_data(as_text=True)
+        self.assertIn('class="step current"', body)
+        self.assertIn('aria-current="step"', body)
+        # Exactly one current step, whatever the state.
+        self.assertEqual(body.count('aria-current="step"'), 1)
+        # Not the escaped form: see the next test.
+        self.assertNotIn("aria-current=&#34;", body)
+
+    def test_no_template_emits_an_attribute_through_autoescape(self):
+        # {{ 'aria-current="step"' if cond }} escapes its own quotes, so the
+        # page receives aria-current=&#34;step&#34; — an attribute that never
+        # applies and that nothing visibly breaks over. The tab nav this
+        # tracker replaces shipped that for the whole branch. Bare words like
+        # {{ 'checked' if ... }} are fine; a name="value" pair is not.
+        templates = pathlib.Path(app_module.__file__).parent / "templates"
+        for f in sorted(templates.glob("*.html")):
+            # Jinja comments are stripped first: the comments in these
+            # templates quote the defects they explain, this one included, so
+            # a check that read prose as code would fire on its own docs.
+            code = re.sub(r"\{#.*?#\}", "", f.read_text(), flags=re.S)
+            self.assertNotRegex(
+                code, r"""\{\{ *['"][a-zA-Z-]+=""", f.name)
+
+    def test_finished_steps_are_marked_done_and_stay_reachable(self):
+        body = self._app(self.STATES["keyed"]).test_client().get(
+            "/configure").get_data(as_text=True)
+        # upload, review and key are all behind us here.
+        self.assertEqual(body.count('class="step done"'), 3)
+
+    def test_the_step_you_are_on_is_never_also_marked_done(self):
+        # upload is "done" once a résumé exists, but standing on it, the
+        # useful fact is that you are there.
+        steps = app_module.step_states(
+            app_module.STEPS, {"resume_text": "x"}, "upload")
+        upload = next(s for s in steps if s["slug"] == "upload")
+        self.assertTrue(upload["current"])
+        self.assertFalse(upload["done"])
+
+    def test_running_is_not_offered_before_a_sweep_starts(self):
+        # /running's own guard only wants raw_plan, which costed() writes on
+        # every /configure visit — so guard parity alone advertised a
+        # progress screen for a sweep that had not started.
+        after_configure = {"resume_text": "x", "profile": "kanav",
+                            "cap_usd": 8.41, "raw_plan": RAW_PLAN}
+        steps = app_module.step_states(
+            app_module.STEPS, after_configure, "configure")
+        running = next(s for s in steps if s["slug"] == "running")
+        self.assertFalse(running["open"])
+        launched = dict(after_configure, proc=object())
+        steps = app_module.step_states(
+            app_module.STEPS, launched, "configure")
+        running = next(s for s in steps if s["slug"] == "running")
+        self.assertTrue(running["open"])
+
+    def test_the_next_step_is_pointed_at(self):
+        steps = app_module.step_states(
+            app_module.STEPS, self.STATES["keyed"], "configure")
+        self.assertEqual([s["slug"] for s in steps if s["next"]], ["confirm"])
+
+    def test_a_zero_credit_key_still_counts_as_connected(self):
+        # no_key_yet() checks `cap_usd is not None`; bool(cap) would call an
+        # exhausted account no key and lock the rest of the flow.
+        steps = app_module.step_states(
+            app_module.STEPS,
+            {"resume_text": "x", "profile": "kanav", "cap_usd": 0.0}, None)
+        by = {s["slug"]: s for s in steps}
+        self.assertTrue(by["key"]["done"])
+        self.assertTrue(by["configure"]["open"])
+
+    def test_the_position_is_stated_once_not_hardcoded_per_screen(self):
+        # Seven templates each carried a literal "Step N of 7", which would
+        # drift the moment a step moved. The tracker owns it now.
+        app = self._app(self.STATES["keyed"])
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        self.assertNotIn("Step 4 of 7", body)
+        self.assertIn("4 of 7", body)
+        templates = (pathlib.Path(app_module.__file__).parent / "templates")
+        for f in templates.glob("*.html"):
+            self.assertNotRegex(f.read_text(), r"Step \d of 7", f.name)
+
+    def test_the_narrow_layout_shows_where_you_are_and_what_is_next(self):
+        # Seven steps cannot fit a phone, and a sideways-scrolling tracker
+        # hides the one thing it exists to show.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertIn(".step:not(.current):not(.next) { display: none; }", css)
+        self.assertRegex(css, r"\.tracker-at \{[^}]*\}")
+
+
 class TestBrandMark(unittest.TestCase):
     def test_every_screen_carries_the_mark_and_a_favicon(self):
         app = app_module.create_app(state={}, extract=lambda p: "x",

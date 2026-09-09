@@ -115,6 +115,64 @@ def _parse_chips(raw, label):
     return terms
 
 
+def step_states(steps, state, current):
+    """Each step's number, whether it can be opened, and whether it is done.
+
+    The rule is asymmetric on purpose. A step is never offered when its
+    route would redirect — that is the floor, and the reason this reads the
+    same facts the guards do rather than holding a second opinion about the
+    flow. It may be STRICTER than a guard where the screen would render with
+    nothing to say: /running only requires raw_plan, which costed() writes on
+    every /configure visit, so guard parity alone would advertise a progress
+    screen for a sweep that has not started. Being stricter cannot send
+    anyone somewhere unexpected; being laxer can.
+
+    The header used to render all seven as plain tabs, four of which redirect
+    away on a fresh session.
+
+    Flask-free and state-in/list-out so the table below can be tested against
+    the guards directly, with no test client in the way.
+    """
+    has_resume = bool(state.get("resume_text"))
+    has_profile = bool(state.get("profile"))
+    # `cap_usd is not None` is what no_key_yet() checks, and a real zero cap
+    # is a verified key — `bool(cap)` would call an exhausted account no key.
+    has_key = state.get("cap_usd") is not None
+    has_plan = bool(state.get("raw_plan"))
+    # Set by POST /run only, so it is the one cheap fact that says a sweep
+    # was launched. Nothing here may read .done_combos or the account: this
+    # runs on every page render, including the money screens.
+    launched = state.get("proc") is not None
+
+    opens = {"upload": True,
+             "review": has_resume,
+             "key": True,
+             "configure": has_profile and has_key,
+             "confirm": has_profile and has_key,
+             # launched, not has_plan: see the docstring.
+             "running": launched,
+             "results": has_profile}
+    done = {"upload": has_resume,
+            "review": has_profile,
+            "key": has_key,
+            "configure": has_plan,
+            "confirm": launched,
+            "running": launched,
+            # The last step. Nothing is downstream of it to prove it finished.
+            "results": False}
+
+    slugs = [slug for slug, _ in steps]
+    at = slugs.index(current) if current in slugs else None
+    return [{"slug": slug, "label": label, "n": i + 1,
+             "current": slug == current,
+             # Never mark the step being viewed as done, whatever state says:
+             # you are standing on it, which is the more useful fact.
+             "done": done.get(slug, False) and slug != current,
+             "open": opens.get(slug, False),
+             "next": at is not None and i == at + 1}
+            for i, (slug, label) in enumerate(steps)]
+
+
 def paid_sites():
     """Sites the Configure screen can switch off, in run order.
 

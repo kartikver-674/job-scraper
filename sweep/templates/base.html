@@ -31,11 +31,46 @@
       {%- if cap_usd is not none %}Key connected{% else %}No key yet{% endif -%}
     </span>
   </div>
-  <nav>
-    {% for slug, label in steps %}
-      <a href="{{ url_for(slug) }}" class="{{ 'on' if slug == step }}"
-         {{ 'aria-current="page"' if slug == step }}>{{ label }}</a>
-    {% endfor %}
+  {# A tracker, not tabs. These seven are a sequence, and four of them
+     redirect away until their precondition is met — tabs implied you could
+     pick any of them. Reachability comes from step_states(), which reads the
+     same facts the route guards do, so this can never offer a step that
+     bounces you elsewhere.
+
+     One markup for both widths: below 64rem the CSS shows only where you are
+     and what is next, and reveals the count instead. #}
+  <nav class="tracker" aria-label="Progress through the sweep">
+    {# Position only. The current step's own chip is still on screen at every
+       width and already carries the label — naming it here too printed
+       "4 of 7 · Configure  ④ Configure". #}
+    <span class="tracker-at">
+      {%- for s in steps if s.current %}{{ s.n }} of {{ steps|length }}{% endfor -%}
+    </span>
+    <ol>
+      {% for s in steps %}
+        <li class="step{{ ' current' if s.current }}{{ ' done' if s.done }}{{ ' next' if s.next }}{{ ' locked' if not s.open }}">
+          {# href omitted rather than disabled: an anchor with no href is not
+             focusable or clickable, which is what a step you cannot open
+             should be. #}
+          {# Both attributes come from template text, never from {{ }}: an
+             attribute emitted as a VALUE has its quotes autoescaped, so
+             {{ 'aria-current="step"' if ... }} reaches the page as
+             aria-current=&#34;step&#34; and is not the attribute at all. The
+             tab nav this replaces carried exactly that, so aria-current had
+             never actually worked on any screen. #}
+          <a {% if s.open and not s.current %}href="{{ url_for(s.slug) }}"{% endif %}
+             {% if s.current %}aria-current="step"{% endif %}>
+            <span class="marker" aria-hidden="true">
+              {%- if s.done %}&check;{% else %}{{ s.n }}{% endif -%}
+            </span>
+            <span class="step-label">{{ s.label }}</span>
+            {%- if s.done %}<span class="visually-hidden">, done</span>
+            {%- elif not s.open %}<span class="visually-hidden">, not available yet</span>
+            {%- endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ol>
   </nav>
   {% if cap_usd is not none %}
     {# One text node on purpose: "Credit left $0.00" is asserted contiguously,

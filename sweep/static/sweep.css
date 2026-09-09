@@ -104,25 +104,66 @@ header {
   background: var(--free); flex: none;
 }
 
-/* The step rail scrolls sideways on a narrow screen rather than wrapping into
-   a block that pushes the money display below the fold. */
-header nav {
-  display: flex; align-items: stretch; gap: var(--s1);
-  margin-right: auto; min-width: 0;
+/* ---- The step tracker --------------------------------------------------- */
+
+.tracker { margin-right: auto; min-width: 0; display: flex; align-items: center; }
+.tracker ol {
+  display: flex; align-items: center; gap: var(--s2);
+  margin: 0; padding: 0; list-style: none; min-width: 0;
   overflow-x: auto; scrollbar-width: none;
 }
-header nav::-webkit-scrollbar { display: none; }
-header nav a {
-  display: flex; align-items: center; white-space: nowrap;
-  padding: var(--s3) var(--s4);
-  font-size: 12px; font-weight: 500; color: var(--slate);
-  text-decoration: none; border-bottom: 2px solid transparent;
-  transition: color .15s ease;
+.tracker ol::-webkit-scrollbar { display: none; }
+
+.step { display: flex; align-items: center; flex: none; }
+/* The connector carries the sequence. On the first step there is nothing
+   behind it to connect to. */
+.step + .step::before {
+  content: ""; width: 14px; height: 1px; flex: none;
+  background: var(--rule); margin-right: var(--s2);
 }
-header nav a:hover { color: var(--chalk); }
-header nav a.on {
-  color: var(--paid); font-weight: 700;
-  background: var(--surface-high); border-bottom-color: var(--paid);
+.step > a {
+  display: flex; align-items: center; gap: var(--s2);
+  padding: var(--s2) var(--s2);
+  font-size: 12px; font-weight: 500; color: var(--slate);
+  text-decoration: none; white-space: nowrap; border-radius: var(--radius);
+}
+.step > a[href]:hover { color: var(--chalk); background: var(--surface-high); }
+
+/* The marker states. Amber is reserved for "you are here" so it keeps
+   meaning attention-now; it is NOT used for done, because in this app amber
+   already means paid and teal already means free — borrowing either for
+   progress would put two meanings on one colour on the money screens. */
+.marker {
+  display: grid; place-items: center; flex: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums;
+  border: 1px solid var(--slate); color: var(--slate);
+}
+.step.done > a { color: var(--chalk); }
+.step.done .marker {
+  background: var(--chalk); border-color: var(--chalk); color: var(--ground);
+}
+.step.current > a { color: var(--paid); font-weight: 700; }
+.step.current .marker {
+  background: var(--paid); border-color: var(--paid); color: var(--ground);
+}
+.step.locked > a { color: var(--dim); cursor: default; }
+.step.locked .marker { border-color: var(--dim); color: var(--dim); }
+
+/* Narrow: only where you are and what comes next, plus the count. Seven
+   steps cannot fit, and a sideways-scrolling tracker hides the very thing
+   it exists to show. */
+.tracker-at {
+  font-size: 11px; font-weight: 600; color: var(--paid);
+  white-space: nowrap; margin-right: var(--s3);
+}
+@media (max-width: 63.99rem) {
+  .step:not(.current):not(.next) { display: none; }
+  .step.current + .step.next::before { width: 10px; }
+  .step.next .step-label { color: var(--slate); }
+}
+@media (min-width: 64rem) {
+  .tracker-at { display: none; }
 }
 .credit {
   margin-left: auto; white-space: nowrap;
