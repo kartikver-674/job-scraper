@@ -567,6 +567,121 @@ DERIVED = {
 }
 
 
+class TestFrontDoor(unittest.TestCase):
+    """The landing screen: the résumé control, and the three facts beside it.
+
+    Everything here is one page, but two of these guard money and one guards
+    the upload itself.
+    """
+
+    def _app(self, state=None, **kw):
+        # derive raises: nothing this screen renders may call the model. It is
+        # step 1 and it costs nothing, and `read` exists precisely so a
+        # returning visitor's cached derivation can be shown WITHOUT a call.
+        def no_model(text, prefs):
+            raise AssertionError("the front door must not call the model")
+        app = app_module.create_app(
+            state={} if state is None else state,
+            extract=lambda p: "x", derive=no_model, **kw)
+        app.config.update(TESTING=True)
+        return app
+
+    def body(self, state=None, **kw):
+        return self._app(state, **kw).test_client().get("/").get_data(as_text=True)
+
+    # ---- the upload control ---------------------------------------------
+    def test_the_dropzone_is_a_label_around_the_real_file_input(self):
+        # The whole box is clickable because a <label> wraps the input — no
+        # script involved. If that nesting breaks, the panel still looks
+        # right and nothing can be uploaded by clicking it.
+        from html.parser import HTMLParser
+
+        seen = []
+
+        class Scan(HTMLParser):
+            depth = None
+
+            def handle_starttag(self, tag, attrs):
+                d = dict(attrs)
+                if tag == "label" and "drop" in (d.get("class") or ""):
+                    self.depth = 0
+                elif self.depth is not None and tag == "input":
+                    seen.append(d)
+
+            def handle_endtag(self, tag):
+                if tag == "label":
+                    self.depth = None
+
+        Scan().feed(self.body())
+        self.assertEqual(len(seen), 1, "one file input, inside the dropzone")
+        # The server contract: request.files["resume"], PDFs only.
+        self.assertEqual(seen[0].get("name"), "resume")
+        self.assertEqual(seen[0].get("type"), "file")
+
+    def test_the_dropzone_scope_parses_whole(self):
+        # The longest x-data in the app. Same failure as the cost panel's:
+        # one stray quote and the picked-file card, the client-side check and
+        # the drop handler are all silently dead.
+        scopes = alpine_scope(self.body())
+        self.assertEqual(len(scopes), 1)
+        for name in ("sent", "file", "bad", "take()", "drop(e)"):
+            self.assertIn(name, scopes[0])
+
+    def test_the_size_limit_shown_is_the_size_limit_enforced(self):
+        # Both the copy and the client-side check read the injected limit.
+        # Hardcoding 15 in the template makes the page say 15 MB while the
+        # app rejects at 1 — the user is told the wrong number by the only
+        # thing that told them anything.
+        body = self.body(max_upload_bytes=1024 * 1024)
+        self.assertIn("up to 1 MB", " ".join(body.split()))
+        self.assertNotIn("15 MB", body)
+        self.assertIn("1 * 1048576", body)
+
+    def test_a_rejected_upload_comes_back_to_the_same_screen(self):
+        # All four ways in render one template through one helper; an error
+        # path that lost `max_mb` would raise on the size copy instead.
+        r = self._app().test_client().post("/resume", data={})
+        self.assertEqual(r.status_code, 400)
+        body = r.get_data(as_text=True)
+        self.assertIn("Choose a PDF to upload.", body)
+        self.assertIn("Drop your résumé here", body)
+
+    # ---- what the next screen will get ----------------------------------
+    def test_nothing_read_yet_reads_as_absent_not_as_zero(self):
+        body = self.body()
+        self.assertEqual(body.count("not read yet"), 3)
+        self.assertNotIn(">0<", body)
+
+    def test_a_cached_derivation_is_shown_without_a_model_call(self):
+        # derive() raises in this fixture, so reaching the model at all fails
+        # the test rather than quietly costing a second call.
+        body = self.body({"resume_text": "x", "derived": DERIVED})
+        self.assertNotIn("not read yet", body)
+        facts = " ".join(body.split())
+        self.assertIn("Titles it will search for</dt> <dd>2</dd>", facts)
+        self.assertIn("Skill weights</dt> <dd>4</dd>", facts)
+        self.assertIn("Years of experience</dt> <dd>2</dd>", facts)
+
+    def test_zero_years_of_experience_is_still_a_figure(self):
+        # A graduate's résumé derives 0, which is a value, not a blank —
+        # the same defect the meter refuses on money, pointing the other way.
+        body = self.body({"resume_text": "x",
+                          "derived": dict(DERIVED, years_experience=0)})
+        self.assertIn("<dd>0</dd>", " ".join(body.split()))
+
+    # ---- the metering strip ---------------------------------------------
+    def test_the_paid_boards_are_named_the_way_the_boards_spell_them(self):
+        body = self.body()
+        self.assertIn("LinkedIn, Indeed, Naukri bill per search", " ".join(body.split()))
+        self.assertNotIn("Linkedin", body)
+
+    def test_a_paid_site_with_no_label_still_appears_in_the_sentence(self):
+        # A site added to config.SITE_RATES must not drop out of the copy
+        # just because nobody wrote its display name down.
+        self.assertEqual(app_module.site_label("linkedin"), "LinkedIn")
+        self.assertEqual(app_module.site_label("wellfound"), "wellfound")
+
+
 class TestReviewScreen(unittest.TestCase):
     def _app(self, state=None):
         # derived pre-seeded: GET /review no longer makes the model call, it

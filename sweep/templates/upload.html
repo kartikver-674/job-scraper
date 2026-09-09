@@ -2,7 +2,7 @@
 {% from "_mark.html" import mark %}
 {% block title %}Sweep — metered job search{% endblock %}
 {% block body %}
-<div class="stack">
+<div class="stack front">
   {# The front door. Every other screen has the header lockup and a step
      number and that is enough, but this is the one screen someone lands on
      cold — and nothing on it said what Sweep is, only what to do next. No
@@ -27,27 +27,111 @@
   <div class="split">
     {# The wait after this click is the longest in the app and none of it is
        visible: POST /resume redirects to /review, and /review's render is
-       what calls the model. The old page stays on screen throughout, so this
-       note covers the whole gap — and the disabled button stops a second
-       submit paying for a second model call. #}
+       what calls the model. The old page stays on screen throughout, so the
+       note in the footer covers the whole gap — and the disabled button stops
+       a second submit paying for a second model call. #}
     <form class="panel" method="post" action="{{ url_for('resume') }}"
-          enctype="multipart/form-data" x-data="{ sent: false }"
+          enctype="multipart/form-data"
+          x-data="{ sent: false, over: false, file: null, bad: '',
+                    take() {
+                      const f = this.$refs.picker.files[0];
+                      this.bad = ''; this.file = null;
+                      if (!f) return;
+                      if (!/\.pdf$/i.test(f.name)) {
+                        this.bad = f.name + ' is not a PDF. Export your résumé as a PDF and try again.';
+                      } else if (f.size > {{ '%g'|format(max_mb) }} * 1048576) {
+                        this.bad = f.name + ' is larger than {{ '%g'|format(max_mb) }} MB. Export a smaller PDF and try again.';
+                      }
+                      if (this.bad) { this.$refs.picker.value = ''; return; }
+                      this.file = { name: f.name, size: f.size < 1048576
+                        ? Math.max(1, Math.round(f.size / 1024)) + ' KB'
+                        : (f.size / 1048576).toFixed(1) + ' MB' };
+                    },
+                    drop(e) {
+                      this.over = false;
+                      this.$refs.picker.files = e.dataTransfer.files;
+                      this.take();
+                    } }"
           @submit="sent = true">
-      <span class="label">Résumé PDF</span>
-      <input type="file" name="resume" accept="application/pdf">
-      <p class="muted">PDF only, up to 15 MB. A scanned image without a text layer will not work.</p>
-      <div class="actions">
-        <button class="primary" type="submit" :disabled="sent">Read my résumé</button>
-        <span class="meta sending" x-show="sent" x-cloak>Reading your résumé —
-          this takes a few seconds.</span>
+      {# The whole box is the control: a label wrapping the input gives
+         click-to-browse with no script at all, so the only part that needs
+         Alpine is the drop. The old screen put a 6rem native "Choose File"
+         button in the middle of a panel and left the rest of it empty. #}
+      <label class="drop" :class="{ over: over }"
+             @dragover.prevent="over = true"
+             @dragleave.prevent="over = false"
+             @drop.prevent="drop($event)">
+        <input type="file" name="resume" accept="application/pdf"
+               x-ref="picker" @change="take()">
+        <svg class="glyph" width="30" height="30" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+          <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7z"/>
+          <path d="M14 3v4h4"/>
+        </svg>
+        <strong>Drop your résumé here, or click to choose a PDF</strong>
+        {# The limit is injected into the app, so it is read from there rather
+           than named in this copy — a template that says 15 MB beside a
+           1 MB app is a page telling the user the wrong thing. #}
+        <span class="meta">PDF only, up to {{ '%g'|format(max_mb) }} MB.
+          A scanned image with no text layer will not work.</span>
+      </label>
+
+      {# Rejected before the upload, not after it: the server still enforces
+         both limits, but a 15 MB round trip to be told the size is a worse
+         way to learn it. #}
+      <p class="error" x-show="bad" x-cloak x-text="bad"></p>
+
+      <div class="picked" x-show="file" x-cloak>
+        <span class="tag">PDF</span>
+        <span>
+          <b x-text="file &amp;&amp; file.name"></b>
+          <span class="meta" x-text="file &amp;&amp; file.size"></span>
+        </span>
+        <button class="secondary" type="button" @click="$refs.picker.click()">Replace file</button>
+      </div>
+
+      <div class="panel-foot">
+        <p class="free-note"><b>Nothing is charged yet.</b> Your résumé is sent to
+          a model to derive your search terms. No scraping credit is spent until
+          you approve the plan.</p>
+        <div class="actions">
+          <span class="meta sending" x-show="sent" x-cloak>Reading your résumé —
+            this takes a few seconds.</span>
+          <button class="primary" type="submit" :disabled="sent">Read my résumé</button>
+        </div>
       </div>
     </form>
 
     <aside class="aside stack">
+      {# What this screen hands the next one. `read` is the CACHED derivation
+         and never a fresh model call, so coming back to step 1 with a résumé
+         already read shows what the model found instead of claiming nothing
+         has been. #}
       <div class="panel">
-        <span class="label">Nothing is charged yet</span>
-        <p>Your résumé is sent to a model to derive your search terms.
-          No scraping credit is spent until you approve the plan.</p>
+        <span class="label">What the model reads out</span>
+        <dl class="facts">
+          <div>
+            <dt>Titles it will search for</dt>
+            {% if read and read.role_keywords %}
+              <dd>{{ read.role_keywords|length }}</dd>
+            {% else %}<dd class="pending">not read yet</dd>{% endif %}
+          </div>
+          <div>
+            <dt>Skill weights</dt>
+            {% if read and read.skill_weights %}
+              <dd>{{ read.skill_weights|length }}</dd>
+            {% else %}<dd class="pending">not read yet</dd>{% endif %}
+          </div>
+          <div>
+            <dt>Years of experience</dt>
+            {% if read and read.years_experience is not none %}
+              <dd>{{ read.years_experience }}</dd>
+            {% else %}<dd class="pending">not read yet</dd>{% endif %}
+          </div>
+        </dl>
+        <p class="meta">You correct all three on the next screen, before anything
+          is priced.</p>
       </div>
       <div class="panel">
         <span class="label">What happens next</span>
@@ -56,6 +140,31 @@
           confirm that plan.</p>
       </div>
     </aside>
+  </div>
+
+  {# What the metering actually means, on the one screen that has room for it.
+     Every claim here is a fact about the engine, not a promise: the free
+     feeds have no switch because turning one off saves nothing, and the three
+     paid boards come from SITE_RATES rather than a list typed here. #}
+  <div class="strip">
+    <div class="tile">
+      <span class="label free">Free every run</span>
+      <p class="meta">Company ATS boards and job feeds are searched on every sweep
+        and cost nothing. There is no switch for them because switching one off
+        would not save a cent.</p>
+    </div>
+    <div class="tile">
+      <span class="label paid">Priced per search</span>
+      <p class="meta">{{ paid|join(', ') }} bill per search. All of them
+        start on; switch any off on Configure and the estimate moves before you
+        approve it.</p>
+    </div>
+    <div class="tile">
+      <span class="label">Runs on this machine</span>
+      <p class="meta">Sweep serves this page from your own terminal. Your résumé
+        goes to one model to derive search terms; the plan and the results stay
+        in this folder.</p>
+    </div>
   </div>
 </div>
 {% endblock %}

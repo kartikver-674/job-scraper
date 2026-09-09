@@ -173,6 +173,18 @@ def step_states(steps, state, current):
             for i, (slug, label) in enumerate(steps)]
 
 
+# config keys are lowercase, and prose that names a job board should spell it
+# the way the board does: "Linkedin" out of Jinja's |title filter is a typo a
+# reader notices. A key with no entry falls back to itself, so a paid site
+# added to config appears in the sentence (lowercase) rather than vanishing
+# from it.
+SITE_LABELS = {"linkedin": "LinkedIn", "indeed": "Indeed", "naukri": "Naukri"}
+
+
+def site_label(name):
+    return SITE_LABELS.get(name, name)
+
+
 def paid_sites():
     """Sites the Configure screen can switch off, in run order.
 

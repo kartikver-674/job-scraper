@@ -68,6 +68,10 @@ a { color: var(--free); text-underline-offset: 2px; }
   letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--slate);
 }
+/* Same specificity as .free/.paid and later in the file, so a label that is
+   also colour-coded has to name both classes to keep its colour. */
+.label.free { color: var(--free); }
+.label.paid { color: var(--paid); }
 .meta { font-size: 11px; line-height: 14px; font-weight: 500; color: var(--slate); }
 .lede { font-size: 15px; line-height: 22px; color: var(--warm); max-width: 62ch; }
 
@@ -411,7 +415,8 @@ code {
 }
 
 a:focus-visible, button:focus-visible, input:focus-visible,
-select:focus-visible, summary:focus-visible, .choice:focus-within {
+select:focus-visible, summary:focus-visible,
+.choice:focus-within, .drop:focus-within {
   outline: 2px solid var(--paid); outline-offset: 2px;
 }
 
@@ -650,3 +655,83 @@ td.score {
 @media (prefers-reduced-motion: reduce) {
   .working-bar span { animation: none; width: 100%; opacity: .5; }
 }
+
+/* ---- The front door ----------------------------------------------------- */
+
+/* Narrower than the 88rem the data screens use. This page is one form and
+   three notes; at full width the form panel stretched to 60rem around a file
+   input and the screen read as mostly nothing. */
+.front { max-width: 74rem; }
+/* The brand block is the biggest type on this screen, so without this the
+   task heading under it — the actual reason the page exists — read as
+   subordinate to a word already printed in the header. */
+.front > .stack-tight h2 { font-size: 22px; }
+
+/* The whole box is the control. A <label> wrapping the input gives
+   click-to-browse with no script at all, so only the drop needs Alpine —
+   what this replaces was a 6rem native "Choose File" button sitting in the
+   middle of an otherwise empty panel. */
+.drop {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; gap: var(--s3); text-align: center;
+  padding: var(--s6) var(--s5); cursor: pointer;
+  background: var(--well); border: 1px dashed var(--dim);
+  border-radius: var(--radius);
+}
+.drop:hover, .drop.over { border-color: var(--paid); background: var(--surface-low); }
+/* Off-screen rather than display:none: a hidden input cannot be focused, and
+   the focus ring on this label is the whole keyboard path to the control. */
+.drop > input[type="file"] {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; border: 0; opacity: 0;
+}
+.drop strong {
+  font-family: var(--display); font-size: 15px; font-weight: 600;
+  color: var(--chalk);
+}
+.drop .meta { max-width: 34ch; }
+.drop .glyph { color: var(--slate); }
+.drop:hover .glyph, .drop.over .glyph { color: var(--paid); }
+
+/* The file that will actually be sent, named. */
+.picked { display: flex; align-items: center; gap: var(--s4); }
+.picked b { display: block; color: var(--chalk); word-break: break-all; }
+.picked > :last-child { margin-left: auto; flex: none; }
+.picked .tag { flex: none; margin: 0; }
+
+/* Label/value rows: what this screen hands the next one. */
+.facts { margin: 0; display: flex; flex-direction: column; }
+.facts > div {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--s4); padding: var(--s3) 0; border-top: 1px solid var(--rule);
+}
+.facts > div:first-child { border-top: 0; padding-top: 0; }
+.facts dt { color: var(--slate); font-size: 12px; }
+.facts dd {
+  margin: 0; text-align: right; white-space: nowrap;
+  font-family: var(--display); font-weight: 700; color: var(--chalk);
+}
+/* A value nothing has produced yet reads as absent, not as a zero. */
+.facts dd.pending {
+  font-family: var(--text); font-size: 12px; font-weight: 500; color: var(--dim);
+}
+
+/* The submit sits at the foot of the panel beside the note that qualifies
+   it, instead of tucked under the fields with the panel empty below. */
+.panel-foot {
+  display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: var(--s5);
+  padding-top: var(--s5); border-top: 1px solid var(--rule);
+}
+.panel-foot > p { flex: 1 1 22rem; margin: 0; color: var(--warm); }
+.panel-foot .actions { flex: none; }
+/* Teal is this palette's "costs nothing", which is exactly what the note
+   says — so the emphasis carries the meaning rather than decorating it. */
+.free-note b { color: var(--free); }
+
+/* Three facts about the metering, on the one screen with room for them. */
+.strip {
+  display: grid; gap: var(--s4);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.strip .tile { gap: var(--s3); }

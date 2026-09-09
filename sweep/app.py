@@ -33,7 +33,7 @@ import scraper  # noqa: E402
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    _valid_profile_name, bucket_rows, fill_pct, paid_sites, step_states,
+    _valid_profile_name, bucket_rows, fill_pct, paid_sites, site_label, step_states,
     worst_filter)
 
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
@@ -458,23 +458,38 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     limit_mb = max_upload_bytes / (1024 * 1024)
 
+    def upload_screen(**kw):
+        """The front door, from all four ways it is reached: a fresh visit,
+        the two rejected-file paths, and the 413 handler.
+
+        The size limit is injected, so the copy and the client-side check both
+        read it from here — a template that names 15 MB beside an app
+        configured for 1 MB tells the user the wrong number.
+
+        `read` is the CACHED derivation and never a fresh model call: coming
+        back to step 1 with a résumé already read should show what the model
+        found, not claim nothing has been read, and this screen must not be
+        able to spend anything.
+        """
+        return render_template("upload.html", **shell(
+            "upload", max_mb=limit_mb, read=app.state.get("derived"),
+            paid=[site_label(s) for s in paid_sites()], **kw))
+
     @app.errorhandler(413)
     def too_large(e):
-        return render_template("upload.html", **shell(
-            "upload",
+        return upload_screen(
             error=f"That file is larger than {limit_mb:g} MB. "
-                  "Export a smaller PDF and try again.")), 413
+                  "Export a smaller PDF and try again."), 413
 
     @app.get("/")
     def upload():
-        return render_template("upload.html", **shell("upload"))
+        return upload_screen()
 
     @app.post("/resume")
     def resume():
         upload_file = request.files.get("resume")
         if upload_file is None or not upload_file.filename:
-            return render_template(
-                "upload.html", **shell("upload", error="Choose a PDF to upload.")), 400
+            return upload_screen(error="Choose a PDF to upload."), 400
 
         os.makedirs(resume_dir, exist_ok=True)
         path = os.path.join(resume_dir, "resume.pdf")
@@ -482,10 +497,9 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         text = extract(path)
         if not text.strip():
-            return render_template("upload.html", **shell(
-                "upload",
+            return upload_screen(
                 error="That PDF has no text in it — it is probably a scan. "
-                      "Export a text PDF and try again.")), 400
+                      "Export a text PDF and try again."), 400
 
         app.state["resume_path"] = path
         app.state["resume_text"] = text
