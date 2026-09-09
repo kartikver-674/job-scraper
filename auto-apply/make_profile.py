@@ -227,7 +227,101 @@ def _unusable(response):
     return f"the model returned no answer ({name})"
 
 
-def generate(client, model, resume_text, prefs, attempts=5, sleep=time.sleep):
+class QuotaExhausted(ModelAnswerError):
+    """Every model on the ladder is out of daily requests."""
+
+
+# Free-tier RPD is counted per model and resets on a clock, not a rolling
+# window: "Requests per day (RPD) quotas reset at midnight Pacific time"
+# (ai.google.dev/gemini-api/docs/rate-limits, checked 2026-09-09). So the wait
+# is answerable exactly, and "try again later" is a worse answer than the time.
+_QUOTA_TZ = "America/Los_Angeles"
+
+
+def quota_reset(now=None):
+    """(when it resets in local time, how long that is) as strings."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    pacific = ZoneInfo(_QUOTA_TZ)
+    now = now or datetime.now(pacific)
+    now = now.astimezone(pacific)
+    midnight = (now + timedelta(days=1)).replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    left = midnight - now
+    hours, minutes = divmod(int(left.total_seconds()) // 60, 60)
+    # Rendered in the reader's OWN timezone: the quota is Pacific, the person
+    # waiting for it is not.
+    local = midnight.astimezone()
+    return (local.strftime("%H:%M %Z").strip(),
+            f"{hours}h {minutes:02d}m" if hours else f"{minutes}m")
+
+
+# A model is out of daily requests, or is not a model any more. Both mean "try
+# the next one" rather than "give up" — and neither is retryable on the same
+# model, unlike the 503s below.
+_SPENT = ("resource_exhausted", "429", "quota")
+_GONE = ("not_found", "404", "no longer available")
+_BUSY = ("503", "unavailable", "overloaded")
+
+
+def _is(exc, needles):
+    low = str(exc).lower()
+    return any(n in low for n in needles)
+
+
+def generate(client, models, resume_text, prefs, attempts=5, sleep=time.sleep,
+             log=print):
+    """One structured Gemini call, down a ladder of models.
+
+    `models` is a model id or a sequence of them, tried in order. A model whose
+    DAILY quota is spent (429) or that no longer exists (404) is skipped — RPD
+    is counted per model, so the next one has its own budget. The transient
+    503s are retried on the SAME model first, since they are not about which
+    model was asked.
+
+    Raises QuotaExhausted, naming when the quota comes back, only when every
+    model on the ladder is spent.
+    """
+    if isinstance(models, str):
+        models = (models,)
+    models = tuple(models)
+    spent, last = [], None
+    for index, model in enumerate(models):
+        try:
+            return _generate_one(client, model, resume_text, prefs, attempts,
+                                 sleep, log)
+        except Exception as exc:
+            last = exc
+            if _is(exc, _SPENT):
+                spent.append(model)
+                why = "daily quota spent"
+            elif _is(exc, _GONE):
+                why = "not a model any more"
+            elif _is(exc, _BUSY):
+                # Its own retries are already spent by here. The endpoint
+                # being busy is not about which model was asked, so another
+                # one is worth a try — but it is not an exhausted quota, and
+                # the error at the end must not claim it is.
+                why = "still overloaded after retrying"
+            else:
+                # An auth failure, a bad schema, an unusable answer: every
+                # model on the ladder fails it identically, so walking them
+                # spends calls to reach the same place.
+                raise
+            if index + 1 < len(models):
+                log(f"  {model}: {why} — falling back to {models[index + 1]}")
+    if not spent:
+        # Nothing was exhausted; whatever actually stopped the last model is
+        # the truth, and the CLI's own 503 branch still reads it.
+        raise last
+    at, left = quota_reset()
+    raise QuotaExhausted(
+        f"every model is out of requests for today ({', '.join(spent)}). "
+        f"The free tier resets at midnight Pacific — {at} your time, about {left} from now")
+
+
+def _generate_one(client, model, resume_text, prefs, attempts, sleep, log):
     """One structured Gemini call, retried on the transient 503s this API throws."""
     prompt = build_prompt(resume_text, prefs)
     config = types.GenerateContentConfig(
@@ -263,8 +357,8 @@ def generate(client, model, resume_text, prefs, attempts=5, sleep=time.sleep):
             # rather than burning the budget on a retired model's 404.
             if attempt == attempts - 1 or "503" not in str(exc):
                 raise
-            print(f"  503 from {model}, retrying in {5 * (attempt + 1)}s "
-                  f"({attempt + 1}/{attempts - 1})")
+            log(f"  503 from {model}, retrying in {5 * (attempt + 1)}s "
+                f"({attempt + 1}/{attempts - 1})")
             sleep(5 * (attempt + 1))
 
 
@@ -621,10 +715,14 @@ def main(argv=None):
     print(f"Résumé: {len(resume_text)} chars from {args.resume}")
 
     try:
-        data = generate(tailor.get_client(api_key), cfg.MODEL, resume_text, prefs)
+        data = generate(tailor.get_client(api_key), cfg.MODELS, resume_text, prefs)
+    except QuotaExhausted as exc:
+        # Nothing was written, and running it again today reaches the same
+        # place — so the exit says when it will not.
+        sys.exit(f"Nothing was written: {exc}.")
     except Exception as exc:
         if "503" in str(exc):
-            sys.exit(f"{cfg.MODEL} is overloaded (503) and did not recover. "
+            sys.exit(f"{cfg.MODELS[0]} is overloaded (503) and did not recover. "
                      "Nothing was written — just run this again.")
         raise
     source = render(args.name, data, prefs)

@@ -44,6 +44,22 @@ SEND_DELAY_SECONDS = 20   # delay between sends on --send
 # The 503s are handled by retry (make_profile.generate), not by model choice.
 # gemini-3.1-pro-preview is NOT usable: 429 RESOURCE_EXHAUSTED, no pro quota.
 MODEL = "gemini-3.6-flash"
+
+# The ladder make_profile.generate() walks when a model's DAILY quota is spent.
+# RPD is counted per model, so the next one down has its own budget — measured
+# on the free tier, 2026-09-09, when 3.6 sat at 19/20 requests for the day and
+# a résumé that had parsed the day before stopped parsing:
+#
+#     gemini-3.6-flash        20 RPD    the pin above; best measured answers
+#     gemini-3.8-flash        20 RPD    same family, separate budget
+#     gemini-3.1-flash-lite  500 RPD    25x the headroom, weaker answers
+#
+# Order is deliberate: quality first, and flash-lite last because it is the one
+# that will still answer at the end of a heavy day. A model that 404s (retired,
+# or an id typo) is skipped like an exhausted one rather than stopping the
+# ladder — only the first entry is one this repo has measured, so verify the
+# other two against aistudio.google.com/app/apikey before trusting their names.
+MODELS = (MODEL, "gemini-3.8-flash", "gemini-3.1-flash-lite")
 DRY_RUN_DEFAULT = True
 
 # --- Applicant contact block (used in the email signature) -----------------

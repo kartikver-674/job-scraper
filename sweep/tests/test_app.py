@@ -1200,6 +1200,29 @@ class TestResumeParsingScreen(unittest.TestCase):
         # And still never the upstream text, which can carry the request URL.
         self.assertNotIn("RESOURCE_EXHAUSTED", body)
 
+    def test_the_default_derive_walks_the_model_ladder(self):
+        # Not the single pin: free-tier RPD is counted per model, so an
+        # exhausted primary must reach the next one rather than fail an
+        # upload. Asserted on the REAL default derive, which is the only
+        # place that choice is made.
+        import apply_config as cfg
+        seen = {}
+
+        def fake_generate(client, models, resume_text, prefs):
+            seen["models"] = models
+            return DERIVED
+
+        app = app_module.create_app(state={"resume_text": "x"},
+                                    extract=lambda p: "x")
+        app.config.update(TESTING=True)
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "k"}), \
+             mock.patch.object(app_module.make_profile, "generate", fake_generate), \
+             mock.patch("tailor.get_client", lambda key: object()):
+            r = app.test_client().post("/derive")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(tuple(seen["models"]), tuple(cfg.MODELS))
+        self.assertGreater(len(seen["models"]), 1)
+
     def test_a_named_model_failure_is_named_on_the_screen(self):
         # ModelAnswerError is the one exception whose text this app composed
         # itself, from the response's own finish_reason enum — so it is safe

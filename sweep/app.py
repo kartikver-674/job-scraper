@@ -187,8 +187,11 @@ def create_app(state=None, extract=None, resume_dir=None,
             api_key = os.environ.get("GEMINI_API_KEY")
             if not api_key:
                 raise RuntimeError("GEMINI_API_KEY is missing from .env.")
+            # The ladder, not the pin: RPD is counted per model on the free
+            # tier, so an exhausted primary is a reason to ask the next model,
+            # not to fail the upload.
             return make_profile.generate(
-                tailor.get_client(api_key), cfg.MODEL, resume_text, prefs)
+                tailor.get_client(api_key), cfg.MODELS, resume_text, prefs)
 
     if profile_exists is None:
         def profile_exists(name):

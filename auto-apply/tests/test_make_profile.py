@@ -476,6 +476,163 @@ class TestUnusableAnswers(unittest.TestCase):
         self.assertGreaterEqual(make_profile.MAX_OUTPUT_TOKENS, 8192)
 
 
+class Ladder:
+    """A client whose models each fail in a stated way, or answer."""
+
+    def __init__(self, outcomes, payload=None):
+        self.outcomes = outcomes          # {model: Exception | "ok"}
+        self.asked = []
+        self.payload = payload or PAYLOAD
+        outer = self
+
+        class Models:
+            def generate_content(self, **kw):
+                model = kw["model"]
+                outer.asked.append(model)
+                result = outer.outcomes.get(model, RuntimeError("404 NOT_FOUND"))
+                if isinstance(result, Exception):
+                    raise result
+                return FakeResponse(json.dumps(outer.payload))
+
+        self.models = Models()
+
+
+class TestModelLadder(unittest.TestCase):
+    """Free-tier RPD is counted PER MODEL and resets on a clock. An exhausted
+    primary is a reason to ask the next model, not to fail an upload — which
+    is what it did, with a message blaming the user's PDF."""
+
+    def _err(self, text):
+        return RuntimeError(text)
+
+    def test_an_exhausted_model_falls_through_to_the_next(self):
+        client = Ladder({"a": self._err("429 RESOURCE_EXHAUSTED"), "b": "ok"})
+        data = make_profile.generate(client, ("a", "b"), "résumé", PREFS,
+                                      sleep=lambda s: None, log=lambda m: None)
+        self.assertEqual(data["field_summary"], PAYLOAD["field_summary"])
+        self.assertEqual(client.asked, ["a", "b"])
+
+    def test_a_retired_model_does_not_stop_the_ladder(self):
+        # "Retired models 404 with 'no longer available', which is silent
+        # until you spend" — and only the first id on this ladder is one the
+        # repo has measured.
+        client = Ladder({"a": self._err("404 model not found"), "b": "ok"})
+        make_profile.generate(client, ("a", "b"), "r", PREFS,
+                              sleep=lambda s: None, log=lambda m: None)
+        self.assertEqual(client.asked, ["a", "b"])
+
+    def test_the_first_model_that_answers_wins(self):
+        client = Ladder({"a": "ok", "b": "ok"})
+        make_profile.generate(client, ("a", "b"), "r", PREFS, log=lambda m: None)
+        self.assertEqual(client.asked, ["a"])
+
+    def test_a_real_error_is_not_walked_down_the_ladder(self):
+        # An auth failure or a bad schema fails identically on every model, so
+        # walking them spends calls to reach the same place.
+        client = Ladder({"a": self._err("401 API key not valid"), "b": "ok"})
+        with self.assertRaises(RuntimeError):
+            make_profile.generate(client, ("a", "b"), "r", PREFS,
+                                   sleep=lambda s: None, log=lambda m: None)
+        self.assertEqual(client.asked, ["a"])
+
+    def test_a_503_is_retried_on_the_same_model_before_moving_on(self):
+        # 503 is about the endpoint being busy, not about which model was
+        # asked, so the ladder must not eat the retry budget.
+        seen = []
+        client = Ladder({"a": self._err("503 UNAVAILABLE"), "b": "ok"})
+        make_profile.generate(client, ("a", "b"), "r", PREFS, attempts=3,
+                              sleep=lambda s: seen.append(s), log=lambda m: None)
+        self.assertEqual(client.asked, ["a", "a", "a", "b"])
+        self.assertTrue(seen, "the 503 backoff should still sleep")
+
+    def test_a_ladder_that_is_only_busy_is_not_called_exhausted(self):
+        # Nothing is out of quota, so the error must stay the 503 the CLI's
+        # own branch reads — not a reset time for a quota that is fine.
+        client = Ladder({"a": self._err("503 UNAVAILABLE"),
+                         "b": self._err("503 UNAVAILABLE")})
+        with self.assertRaises(RuntimeError) as caught:
+            make_profile.generate(client, ("a", "b"), "r", PREFS, attempts=2,
+                                   sleep=lambda s: None, log=lambda m: None)
+        self.assertNotIsInstance(caught.exception, make_profile.QuotaExhausted)
+        self.assertIn("503", str(caught.exception))
+
+    def test_everything_exhausted_says_when_it_comes_back(self):
+        client = Ladder({"a": self._err("429 RESOURCE_EXHAUSTED"),
+                         "b": self._err("429 RESOURCE_EXHAUSTED")})
+        with self.assertRaises(make_profile.QuotaExhausted) as caught:
+            make_profile.generate(client, ("a", "b"), "r", PREFS,
+                                   sleep=lambda s: None, log=lambda m: None)
+        message = str(caught.exception)
+        self.assertIn("midnight Pacific", message)
+        self.assertIn("from now", message)
+        # And which models were spent, so the ladder can be widened.
+        self.assertIn("a, b", message)
+
+    def test_a_quota_failure_is_a_model_answer_error(self):
+        # So the screen shows the reason instead of the fixed "your PDF is
+        # probably a scan" message.
+        self.assertTrue(issubclass(make_profile.QuotaExhausted,
+                                    make_profile.ModelAnswerError))
+
+    def test_the_shipped_ladder_has_somewhere_to_fall(self):
+        # A one-entry ladder is the behaviour this replaced: RPD is counted
+        # per model, so the fallbacks ARE the feature.
+        import apply_config as cfg
+        self.assertGreater(len(cfg.MODELS), 1)
+        self.assertEqual(cfg.MODELS[0], cfg.MODEL)
+        self.assertEqual(len(set(cfg.MODELS)), len(cfg.MODELS))
+
+    def test_a_bare_model_id_still_works(self):
+        # apply.py and older callers pass one string.
+        client = Ladder({"a": "ok"})
+        make_profile.generate(client, "a", "r", PREFS, log=lambda m: None)
+        self.assertEqual(client.asked, ["a"])
+
+
+class TestQuotaReset(unittest.TestCase):
+    """ai.google.dev/gemini-api/docs/rate-limits: "Requests per day (RPD)
+    quotas reset at midnight Pacific time." So the wait is answerable exactly,
+    and "try again later" is a worse answer than the time."""
+
+    def _at(self, hour, minute=0, month=9, day=9):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        return datetime(2026, month, day, hour, minute,
+                        tzinfo=ZoneInfo("America/Los_Angeles"))
+
+    def test_it_counts_to_the_next_pacific_midnight(self):
+        _, left = make_profile.quota_reset(self._at(23, 30))
+        self.assertEqual(left, "30m")
+
+    def test_just_after_midnight_is_nearly_a_whole_day(self):
+        _, left = make_profile.quota_reset(self._at(0, 5))
+        self.assertEqual(left, "23h 55m")
+
+    def test_the_time_is_shown_where_the_reader_is(self):
+        # The quota is Pacific; the person waiting for it is not.
+        at, _ = make_profile.quota_reset(self._at(12))
+        self.assertTrue(at, "a local time must be rendered")
+        self.assertNotIn("PST", at + " ")   # unless the reader is in Pacific
+        self.assertNotIn("PDT", at + " ")
+
+    def test_it_counts_to_pacific_midnight_from_anywhere(self):
+        # The caller's clock is not Pacific. Counting to midnight in the
+        # reader's own zone would be right only in California — from India it
+        # is out by half a day.
+        from datetime import datetime, timedelta, timezone
+        ist = timezone(timedelta(hours=5, minutes=30))
+        # 09:00 IST is 20:30 the previous day in Pacific: 3h 30m to reset.
+        _, left = make_profile.quota_reset(datetime(2026, 9, 10, 9, 0, tzinfo=ist))
+        self.assertEqual(left, "3h 30m")
+
+    def test_it_survives_the_dst_boundary(self):
+        # Pacific shifts by an hour in November; a hardcoded UTC offset would
+        # put the answer an hour out for half the year.
+        _, november = make_profile.quota_reset(self._at(12, month=11, day=20))
+        _, july = make_profile.quota_reset(self._at(12, month=7, day=20))
+        self.assertEqual(november, july)
+
+
 class TestCli(unittest.TestCase):
     def test_preferences_a_resume_cannot_state_are_required(self):
         # Never guessed: argparse must reject a run that omits them.
