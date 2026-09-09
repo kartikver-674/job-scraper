@@ -27,8 +27,13 @@
     {# The credit figure appears once, on the right. Repeating it here as a
        "cap" chip the way the v3 mock does would name one number twice: this
        app has no separate hard cap to show until the confirm screen. #}
-    <span class="chip {{ 'on' if cap_usd is not none else 'quiet' }}">
-      {%- if cap_usd is not none %}Key connected{% else %}No key yet{% endif -%}
+    {# Three states, not two: "no key yet" and "no key wanted" are different
+       facts about the same absent token, and only one of them is something
+       still to do. #}
+    <span class="chip {% if free_only %}free{% elif cap_usd is not none %}on{% else %}quiet{% endif %}">
+      {%- if free_only %}Free sources only
+      {%- elif cap_usd is not none %}Key connected
+      {%- else %}No key yet{% endif -%}
     </span>
   </div>
   {# A tracker, not tabs. These seven are a sequence, and four of them

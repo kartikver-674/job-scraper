@@ -103,6 +103,9 @@ header {
   border: 1px solid rgba(126, 214, 205, 0.3); border-radius: var(--radius);
 }
 .chip.quiet { color: var(--slate); border-color: var(--dim); }
+/* The free path: teal is this palette's "costs nothing", and no dot — the
+   dot on .chip.on means a live key. */
+.chip.free { color: var(--free); border-color: var(--free); }
 .chip.on::before {
   content: ""; width: 6px; height: 6px; border-radius: 50%;
   background: var(--free); flex: none;

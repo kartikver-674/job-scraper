@@ -1195,6 +1195,11 @@ class TestStepTracker(unittest.TestCase):
                       "derived": DERIVED},
         "keyed": {"resume_text": "x", "profile": "kanav", "derived": DERIVED,
                    "cap_usd": 8.41},
+        # No key at all, and none wanted: step 3 was answered the other way.
+        "free": {"resume_text": "x", "profile": "kanav", "derived": DERIVED,
+                  "free_only": True,
+                  "sites_enabled": {"linkedin": False, "indeed": False,
+                                     "naukri": False}},
     }
 
     def test_no_offered_step_ever_redirects(self):
@@ -1333,6 +1338,188 @@ class TestBrandMark(unittest.TestCase):
         self.assertIn("#03161c", svg)
         # And it cannot use CSS variables — nothing resolves them there.
         self.assertNotIn("var(--", svg)
+
+
+class TestFreeOnlyPath(unittest.TestCase):
+    """Step 3 is a fork: connect a key, or search only what costs nothing.
+
+    The free answer opens /configure, /confirm and /run with no verified key
+    at all, so the tests that matter most here are the ones proving it cannot
+    become a way to spend money without one.
+    """
+
+    FREE_PLAN = {"profile": "kanav", "sites": {}, "max_results": {},
+                 "free_sources": 39}
+
+    def _app(self, state=None, plan=None, **kw):
+        def no_token(token):
+            raise AssertionError("the free path must not verify a token")
+
+        def no_account():
+            raise AssertionError("the free path must not read the account")
+
+        state = {"resume_text": "x", "profile": "kanav", "derived": DERIVED} \
+            if state is None else state
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=kw.pop("check_token", no_token),
+            fetch_plan=lambda profile: plan or self.FREE_PLAN,
+            read_rows=lambda profile: [], read_done=lambda profile, day: [],
+            read_spend=kw.pop("read_spend", no_account),
+            output_dir=tempfile.mkdtemp(), **kw)
+        app.config.update(TESTING=True)
+        app.written = {}
+        app.write_profile = lambda n, src: app.written.update({n: src})
+        return app
+
+    def free(self, app):
+        """Take the free path the way the screen does."""
+        r = app.test_client().post("/key/free")
+        self.assertEqual(r.status_code, 302, r.get_data(as_text=True)[:400])
+        self.assertIn("/configure", r.headers["Location"])
+        return app
+
+    # ---- the choice -----------------------------------------------------
+    def test_step_three_offers_both_answers(self):
+        body = self._app().test_client().get("/key").get_data(as_text=True)
+        self.assertIn('action="/key/free"', body)
+        self.assertIn('action="/key"', body)
+        # And names the boards the paid answer buys, from paid_sites().
+        self.assertIn("LinkedIn, Indeed, Naukri", " ".join(body.split()))
+
+    def test_the_free_answer_verifies_no_token_and_sets_no_cap(self):
+        # check_token raises in this fixture: reaching Apify at all fails.
+        app = self.free(self._app())
+        self.assertTrue(app.state["free_only"])
+        # cap_usd stays absent, not 0.0 — a zero cap is an exhausted account,
+        # which is a different thing to say than "no account".
+        self.assertIsNone(app.state.get("cap_usd"))
+
+    def test_the_free_answer_switches_every_paid_site_off(self):
+        app = self.free(self._app())
+        self.assertEqual(app.state["sites_enabled"],
+                         {s: False for s in app_module.paid_sites()})
+
+    def test_the_free_answer_rewrites_the_profile_it_will_price(self):
+        # /configure prices the profile FILE. Without this rewrite the free
+        # path would be quoted the paid plan it just declined.
+        app = self.free(self._app())
+        source = app.written["kanav"]
+        self.assertEqual(source.count('"enabled": False'),
+                         len(app_module.paid_sites()))
+        self.assertNotIn('"enabled": True', source)
+
+    def test_the_free_answer_needs_a_profile_to_apply_to(self):
+        for state in ({}, {"resume_text": "x"}, {"profile": "kanav"}):
+            app = self._app(state=dict(state))
+            r = app.test_client().post("/key/free")
+            self.assertEqual(r.status_code, 302)
+            self.assertIn("/review", r.headers["Location"], str(state))
+            self.assertNotIn("free_only", app.state)
+
+    # ---- what the choice opens ------------------------------------------
+    def test_the_flow_continues_with_no_key(self):
+        app = self.free(self._app())
+        client = app.test_client()
+        for path in ("/configure", "/confirm"):
+            self.assertEqual(client.get(path).status_code, 200, path)
+        r = client.post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.get_json()["total"], 0.0)
+
+    def test_the_sweep_starts_with_no_key(self):
+        launched = []
+        app = self.free(self._app(
+            start_sweep=lambda profile: launched.append(profile) or FakeProc()))
+        client = app.test_client()
+        client.get("/confirm")           # costs the plan, as the screen does
+        r = client.post("/run")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/running", r.headers["Location"])
+        self.assertEqual(launched, ["kanav"])
+
+    def test_a_free_sweep_promises_no_cap_it_does_not_have(self):
+        app = self.free(self._app())
+        app.test_client().get("/confirm")
+        # spend_cap_for() has a $0.50 floor because naukri alone costs that
+        # much per run — but nothing here runs, so a $0.50 "hard cap" would
+        # be a promise about a purchase that cannot happen.
+        self.assertEqual(app.state["plan"]["spend_cap"], 0.0)
+
+    # ---- and what it must never open ------------------------------------
+    def test_run_refuses_a_free_sweep_that_somehow_prices_paid_searches(self):
+        # The one that matters. free_only opened /run without a verified key,
+        # so if a paid site is enabled after all, the engine would launch a
+        # paid actor on whatever APIFY_TOKEN is already in .env.
+        app = self.free(self._app(plan=RAW_PLAN))
+        client = app.test_client()
+        client.get("/confirm")
+        self.assertGreater(app.state["plan"]["total"], 0)
+        r = client.post("/run")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("free sources only", r.get_data(as_text=True))
+
+    def test_configure_cannot_price_a_paid_site_back_on(self):
+        app = self.free(self._app())
+        r = app.test_client().post("/estimate", json={
+            "sites_present": "1", "site_linkedin": "on"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(app.state["sites_enabled"],
+                         {s: False for s in app_module.paid_sites()})
+
+    def test_configure_renders_no_paid_toggles_at_all_in_free_mode(self):
+        # Not rendered disabled: a disabled checkbox posts nothing, so a form
+        # still carrying the sites_present marker would read as "switch them
+        # all off" — the marker has to go with the boxes.
+        body = self.free(self._app()).test_client().get(
+            "/configure").get_data(as_text=True)
+        self.assertNotIn('name="site_linkedin"', body)
+        self.assertNotIn('name="sites_present"', body)
+
+    # ---- the money display ----------------------------------------------
+    def test_a_free_sweep_reports_a_known_zero_not_an_unknown_figure(self):
+        # read_spend raises in this fixture: there is no account to read, and
+        # "not known" over a sweep that cannot spend is worse than the truth.
+        app = self.free(self._app(
+            start_sweep=lambda profile: FakeProc()))
+        client = app.test_client()
+        client.get("/confirm")
+        client.post("/run")
+        body = client.get("/running").get_data(as_text=True)
+        self.assertIn('"spend": 0.0', body)
+        self.assertIn('"spend_known": true', body)
+        self.assertNotIn("numeral unknown", body)
+        numeral = re.search(r'<span class="numeral[^"]*"[^>]*>([^<]*)<', body)
+        self.assertEqual(numeral.group(1), "$0.00")
+        self.assertIn("$0.00", client.get("/results").get_data(as_text=True))
+
+    def test_every_screen_says_which_path_it_is_on(self):
+        app = self.free(self._app())
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("Free sources only", body)
+        self.assertNotIn("No key yet", body)
+        self.assertNotIn("Key connected", body)
+
+    # ---- changing your mind ---------------------------------------------
+    def test_connecting_a_key_afterwards_leaves_the_free_path(self):
+        app = self.free(self._app(check_token=lambda t: (8.41, None)))
+        r = app.test_client().post("/key", data={"token": "apify_api_xxx"})
+        self.assertEqual(r.status_code, 302)
+        self.assertNotIn("free_only", app.state)
+        # The free path's own side effect is undone with it: unset means
+        # "inherit config.py's SITES", where all three are on. Left as {}
+        # every site would stay off with no control rendered to say so.
+        self.assertNotIn("sites_enabled", app.state)
+        self.assertNotIn('"enabled": False', app.written["kanav"])
+
+    def test_the_tracker_counts_step_three_as_answered(self):
+        app = self.free(self._app())
+        steps = app_module.step_states(app_module.STEPS, app.state, "configure")
+        by_slug = {s["slug"]: s for s in steps}
+        self.assertTrue(by_slug["key"]["done"])
+        self.assertEqual(by_slug["key"]["label"], "Free or paid")
+        self.assertTrue(by_slug["configure"]["open"])
+        self.assertTrue(by_slug["confirm"]["open"])
 
 
 class TestKeyScreen(unittest.TestCase):

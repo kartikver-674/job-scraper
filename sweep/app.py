@@ -33,10 +33,14 @@ import scraper  # noqa: E402
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    _valid_profile_name, bucket_rows, fill_pct, paid_sites, site_label, step_states,
-    worst_filter)
+    _valid_profile_name, bucket_rows, fill_pct, paid_sites, site_label,
+    step_states, worst_filter)
 
-STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Connect key"),
+# Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
+# label has to be true after either answer — a step chip reading "Connect key"
+# with a tick beside it, for someone who declined one, is a lie the tracker
+# tells on every screen after it.
+STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Free or paid"),
          ("configure", "Configure"), ("confirm", "Confirm"),
          ("running", "Running"), ("results", "Results")]
 
@@ -336,6 +340,14 @@ def create_app(state=None, extract=None, resume_dir=None,
             # of "is this site free" that could disagree with it.
             tile["free"] = config.SITE_RATES.get(tile["site"], 0.0) == 0.0
 
+        # No account to poll on the free path, and nothing that reading it
+        # could report: skipped rather than called every 15s for a figure
+        # that is zero by construction.
+        if free_only():
+            p["spend"] = 0.0
+            p["spend_known"] = p["baseline_known"] = True
+            return _liveness(p)
+
         last_at = app.state.get("spend_read_at")
         if last_at is None or (now() - last_at) >= SPEND_POLL_SECONDS:
             app.state["spend_read_val"] = read_spend()
@@ -355,12 +367,25 @@ def create_app(state=None, extract=None, resume_dir=None,
         else:
             p["spend"] = spend_delta()
 
+        return _liveness(p)
+
+    def _liveness(p):
+        """Is the child still alive, and what does that make of the counts.
+
+        Shared with the free path above: two readings of "finished" is how a
+        screen ends up offering results for a sweep still running.
+        """
         proc = app.state.get("proc")
         running_now = proc is not None and proc.poll() is None
         p["finished"] = (not running_now) and p["outstanding"] == 0
         p["interrupted"] = (not running_now) and p["outstanding"] > 0
+        # A free sweep has no per-search progress to count: the free sources
+        # are one pass inside the engine, so "0 searches left" — literally
+        # true, since none are planned — reads as a finished sweep for the
+        # whole run.
         p["remaining_text"] = (
-            f"{p['outstanding']} searches left" if running_now else
+            ("fetching the free sources" if free_only()
+             else f"{p['outstanding']} searches left") if running_now else
             ("finished" if p["finished"] else "stopped early"))
         return p
 
@@ -386,7 +411,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         # The hard stop POST /run will write into the profile. Computed here,
         # once, so the figure /confirm promises the user and the figure the
         # engine enforces cannot be two different numbers.
-        out["spend_cap"] = spend_cap_for(out["total"])
+        out["spend_cap"] = (0.0 if free_only()
+                            else spend_cap_for(out["total"]))
         app.state["raw_plan"] = raw
         app.state["plan"] = out
         return out
@@ -402,6 +428,26 @@ def create_app(state=None, extract=None, resume_dir=None,
         prices or launches a sweep fails closed on this, not just one.
         """
         return app.state.get("cap_usd") is None
+
+    def free_only():
+        """The user chose to search only the sources that cost nothing.
+
+        Recorded on state by POST /key/free, never inferred from a missing
+        key: "hasn't connected one yet" and "declined one" need opposite
+        answers from every guard below, and cap_usd cannot tell them apart.
+        """
+        return bool(app.state.get("free_only"))
+
+    def needs_key():
+        """Nothing may be priced or launched: no verified key, and no free
+        choice either.
+
+        The free path is safe HERE, at the flow guards, only because it is
+        unsafe to be wrong further down — POST /run re-checks the priced plan
+        itself, so a free-only session that somehow arrives with a paid site
+        enabled is refused rather than trusted to have chosen well.
+        """
+        return no_key_yet() and not free_only()
 
     def shell(step, spend=0.0, spend_is_this_sweep=True, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
@@ -427,6 +473,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         cap = app.state.get("cap_usd")
         return dict(steps=step_states(STEPS, app.state, step),
                     step=step, spend=spend, cap_usd=cap,
+                    free_only=free_only(),
                     spend_is_this_sweep=spend_is_this_sweep,
                     fill_pct=fill_pct(spend, cap) if spend_is_this_sweep else 0,
                     # Counted from the environment, not from state: that is
@@ -450,6 +497,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         it can qualify than by nothing, while /results shows "not known"
         rather than attribute a whole month to one sweep.
         """
+        # A free sweep launches no paid actor, so zero is a KNOWN figure
+        # here, not an unreadable one: there is no token to read the account
+        # with, and "not known" over a run that cannot spend is a worse
+        # answer than the truth.
+        if free_only():
+            return 0.0
         spend_now = app.state.get("spend_read_val")
         baseline = app.state.get("baseline_usd")
         if spend_now is None or baseline is None:
@@ -651,26 +704,90 @@ def create_app(state=None, extract=None, resume_dir=None,
         app.state["profile"] = name
         return redirect(url_for("key"))
 
+    def key_screen(**kw):
+        """Step 3, from all four ways it is reached. The paid boards are named
+        in its copy AND are what the free choice switches off, so both come
+        from paid_sites() rather than a list typed into the template."""
+        return render_template("key.html", **shell(
+            "key", paid=[site_label(s) for s in paid_sites()], **kw))
+
     @app.get("/key")
     def key():
-        return render_template("key.html", **shell("key"))
+        return key_screen()
+
+    def _apply_choice(free):
+        """Record the free/paid choice and re-render the profile it implies.
+
+        The paid toggles belong to this choice: taking the free path switches
+        every metered site off, and coming back with a key restores config's
+        own set rather than leaving a sweep silently all-off. Without the
+        rewrite the choice would be state-only — /configure prices the
+        profile FILE, so a free-only session would be quoted the paid plan it
+        just declined.
+
+        Returns an error string, or None. render() is the same validator the
+        CLI path uses; nothing here is user input, so a failure is a bug
+        rather than a bad field, but it must not reach the user as a 500 on
+        the screen that was about to price a sweep.
+        """
+        if free:
+            app.state["free_only"] = True
+            app.state["sites_enabled"] = {s: False for s in paid_sites()}
+        elif not app.state.pop("free_only", None):
+            # A key pasted on the paid path switches nothing on or off, so
+            # the profile on disk is already the one to price. Rewriting it
+            # anyway would rebuild a profile from a session that may not
+            # carry a derivation at all.
+            return None
+        else:
+            # Undo the free path's own side effect, and only that: popping
+            # unconditionally would discard a deliberate per-site choice
+            # made later on Configure.
+            app.state.pop("sites_enabled", None)
+        name = app.state.get("profile")
+        if not name:
+            return None
+        try:
+            source = make_profile.render(
+                name, app.state["derived"], _prefs(app.state))
+        except KeyError as exc:
+            return f"That profile could not be rewritten: {exc}"
+        app.write_profile(name, source)
+        return None
+
+    @app.post("/key/free")
+    def key_free():
+        """Skip Apify entirely and search only what costs nothing.
+
+        No token is asked for, none is verified, and cap_usd stays None —
+        there is no credit figure to be honest against, and a 0.0 cap would
+        render as an account with nothing left on it.
+        """
+        # The derivation as well as the profile: this path rewrites the
+        # profile from it, and a session that cannot be rewritten would be
+        # quoted the paid plan it just declined.
+        if not (app.state.get("profile") and app.state.get("derived")):
+            return redirect(url_for("review"))
+        error = _apply_choice(free=True)
+        if error:
+            return key_screen(error=error), 500
+        return redirect(url_for("configure"))
 
     @app.post("/key")
     def key_post():
         token = (request.form.get("token") or "").strip()
         if not token:
-            return render_template("key.html", **shell(
-                "key", error="Paste your Apify token.")), 400
+            return key_screen(error="Paste your Apify token."), 400
         if not _ENV_VALUE_RE.fullmatch(token):
             # Never echo the token back — say what's wrong, not what it was.
-            return render_template("key.html", **shell(
-                "key", error="That doesn't look like a token — remove any "
-                              "extra characters and paste it again.")), 400
+            return key_screen(
+                error="That doesn't look like a token — remove any extra "
+                      "characters and paste it again."), 400
 
         available, error = check_token(token)
         if error:
             # Never render the token back into the page.
-            return render_template("key.html", **shell("key", error=error)), 400
+            return key_screen(error=error), 400
 
         app.write_env("APIFY_TOKEN", token)
         os.environ["APIFY_TOKEN"] = token
@@ -682,6 +799,9 @@ def create_app(state=None, extract=None, resume_dir=None,
         app.state["key_credit"] = {"APIFY_TOKEN": available}
         app.state["cap_usd"], app.state["credit_total_usd"] = sweep_budget(
             app.state["key_credit"].values())
+        error = _apply_choice(free=False)
+        if error:
+            return key_screen(error=error), 500
         return redirect(url_for("configure"))
 
     @app.errorhandler(PlanUnavailable)
@@ -699,7 +819,7 @@ def create_app(state=None, extract=None, resume_dir=None,
     def configure():
         if not app.state.get("profile"):
             return redirect(url_for("review"))
-        if no_key_yet():
+        if needs_key():
             return redirect(url_for("key"))
         estimate = costed(app.state["profile"])
         chosen = app.state.get("sites_enabled") or {}
@@ -714,14 +834,15 @@ def create_app(state=None, extract=None, resume_dir=None,
                     # A site bills per run when config.py pins its depth —
                     # the reason the depth control cannot move naukri.
                     "per_run": bool(config.SITES[site].get("results_per_run"))}
-                   for site in paid_sites()]))
+                   for site in paid_sites()],
+            paid=[site_label(s) for s in paid_sites()]))
 
     @app.post("/estimate")
     def estimate():
         from flask import jsonify
         if not app.state.get("profile"):
             return jsonify({"error": "No profile yet — approve the review first."}), 409
-        if no_key_yet():
+        if needs_key():
             return jsonify({"error": "Connect your Apify key first."}), 409
 
         form = request.get_json(silent=True) or {}
@@ -738,6 +859,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         # an unknown config key gets caught (shared with the CLI path), and
         # that failure must leave nothing applied either, same as a plain
         # invalid field.
+        # The paid toggles are the free choice's to own while it stands.
+        # Configure does not render them in free mode, so this is a forged or
+        # stale form rather than a control the user saw — dropped quietly,
+        # and /run refuses a priced plan regardless.
+        if free_only():
+            overrides.pop("sites_enabled", None)
         skip_terms = overrides.pop("skip_terms", None)
         new_state = dict(app.state)
         new_state.update(overrides)
@@ -784,7 +911,7 @@ def create_app(state=None, extract=None, resume_dir=None,
     def confirm():
         if not app.state.get("profile"):
             return redirect(url_for("configure"))
-        if no_key_yet():
+        if needs_key():
             return redirect(url_for("key"))
         # Re-costed on every visit, like /configure — the meter shows this
         # screen's own state, never a figure carried over from an earlier one.
@@ -802,8 +929,18 @@ def create_app(state=None, extract=None, resume_dir=None,
         plan_now = app.state.get("plan")
         if not plan_now:
             return "No plan to run — start from Configure.", 400
-        if no_key_yet():
+        if needs_key():
             return "No key connected — connect one before running.", 400
+        # The free path's real guard. free_only() opened /configure, /confirm
+        # and this route without a verified key, so this is where that choice
+        # is checked against what the plan actually says: a priced plan means
+        # a paid actor is about to run on whatever APIFY_TOKEN happens to be
+        # in .env, for someone who asked to spend nothing.
+        if free_only() and plan_now.get("total"):
+            return _confirm_page(
+                error="This sweep is set to free sources only, but the plan "
+                      "now prices paid searches. Connect a key, or switch "
+                      "the paid boards back off.", status=400)
         if plan_now.get("over_cap"):
             return _confirm_page(error="Attach a second key or narrow the search first.", status=400)
 
@@ -835,7 +972,13 @@ def create_app(state=None, extract=None, resume_dir=None,
             # baseline_usd may be None (see read_spend's docstring) —
             # recorded as-is, never coerced to 0.0, so the meter can tell
             # "unknown" from "no spend yet".
-            app.state["baseline_usd"] = read_spend()
+            #
+            # Not read at all on the free path: no paid actor will run, so
+            # spend_delta() answers a known 0.0 without a baseline, and this
+            # would be a live Apify call whose only possible answer — a
+            # month-to-date total from a token this sweep never uses — is a
+            # figure nothing here may attribute to it.
+            app.state["baseline_usd"] = None if free_only() else read_spend()
             app.state["proc"] = start_sweep(app.state["profile"])
             _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))

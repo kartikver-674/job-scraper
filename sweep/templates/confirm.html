@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Confirm the spend — Sweep{% endblock %}
-{% block meter_label %}About to spend{% endblock %}
-{% block meter_facts %}Hard cap <b>${{ '%.2f'|format(plan.spend_cap) }}</b>{% endblock %}
+{% block meter_label %}{% if free_only %}This sweep costs{% else %}About to
+  spend{% endif %}{% endblock %}
+{% block meter_facts %}{% if free_only %}Free sources only{% else %}Hard cap
+  <b>${{ '%.2f'|format(plan.spend_cap) }}</b>{% endif %}{% endblock %}
 {% block body %}
 <div class="stack">
   <div class="stack-tight">
-    <h1>Confirm the spend</h1>
+    <h1>{% if free_only %}Start the free sweep{% else %}Confirm the spend{% endif %}</h1>
   </div>
 
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
@@ -16,10 +18,15 @@
         <h2>What this will cost</h2>
         {% if not plan.lines %}
           <p class="empty"><b>No paid sources in this sweep</b>
-            Every metered source is switched off, so this runs the free feeds
-            only and costs nothing. Turn one back on in Configure to search
-            LinkedIn, Indeed or Naukri.</p>
-        {% endif %}
+            {% if free_only %}You chose the free sources, so nothing here is
+              metered and nothing will be charged. Connect a key on the
+              <a href="{{ url_for('key') }}">free or paid</a> step to add the
+              paid boards.
+            {% else %}Every metered source is switched off, so this runs the
+              free feeds only and costs nothing. Turn one back on in Configure
+              to search LinkedIn, Indeed or Naukri.
+            {% endif %}</p>
+        {% else %}
         <table class="lines">
           {% for line in plan.lines %}
             <tr class="{{ 'free' if line.free }}">
@@ -34,6 +41,7 @@
           the depth this sweep will run at, because a pay-per-event actor bills per
           result. Naukri is the exception — its charge is a per-run minimum at a
           fixed depth of its own, so the depth control does not move it.</p>
+        {% endif %}
       </div>
 
       {% if plan.over_cap %}
@@ -79,11 +87,17 @@
         </div>
       {% else %}
         <div class="panel">
-          <p>This takes about 40 minutes. The estimate comes from measured
-            per-search rates, so the real figure lands close to it but not exactly on it.</p>
+          {% if free_only %}
+            <p>This fetches the free boards and feeds in one pass, then ranks
+              everything against your résumé. No key is used and no credit is
+              spent.</p>
+          {% else %}
+            <p>This takes about 40 minutes. The estimate comes from measured
+              per-search rates, so the real figure lands close to it but not exactly on it.</p>
+          {% endif %}
           <p class="muted">Re-ranking these results afterwards is free — you can change
             the weights later without paying to scrape again.</p>
-          {% if spans_midnight %}
+          {% if spans_midnight and not free_only %}
             <p class="error">It is late in the day. A sweep that runs past midnight
               starts its ledger over and re-bills searches it already paid for.
               Consider starting tomorrow.</p>
@@ -95,11 +109,17 @@
     <aside class="aside stack">
       <div class="panel">
         <div class="headline-figure">
-          <span class="label">Total to spend</span>
+          <span class="label">{% if free_only %}Total cost{% else %}Total to
+            spend{% endif %}</span>
           <p class="numeral {{ 'over' if plan.over_cap }}">${{ '%.2f'|format(plan.total) }}</p>
         </div>
-        <p class="muted">Hard stop at ${{ '%.2f'|format(plan.spend_cap) }}. The sweep
-          is told to stop spending there and will, even if searches are left.</p>
+        {% if free_only %}
+          <p class="muted">Nothing in this sweep is metered, so there is no cap
+            to set and no account to read.</p>
+        {% else %}
+          <p class="muted">Hard stop at ${{ '%.2f'|format(plan.spend_cap) }}. The sweep
+            is told to stop spending there and will, even if searches are left.</p>
+        {% endif %}
         {% if not plan.over_cap %}
           {# _run_lock already refuses a second concurrent sweep server-side;
              this stops the click that would race it, on the button that
@@ -107,7 +127,8 @@
           <form method="post" action="{{ url_for('run') }}"
                 x-data="{ sent: false }" @submit="sent = true">
             <button class="primary" type="submit" :disabled="sent">
-              Run the sweep — ${{ '%.2f'|format(plan.total) }}</button>
+              {%- if free_only %}Run the free sweep
+              {%- else %}Run the sweep — ${{ '%.2f'|format(plan.total) }}{% endif %}</button>
             <span class="meta sending" x-show="sent" x-cloak>Starting the
               sweep…</span>
           </form>

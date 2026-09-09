@@ -138,6 +138,12 @@ def step_states(steps, state, current):
     # `cap_usd is not None` is what no_key_yet() checks, and a real zero cap
     # is a verified key — `bool(cap)` would call an exhausted account no key.
     has_key = state.get("cap_usd") is not None
+    # Chose the free path on step 3. A CHOICE, not the absence of a key: the
+    # two states are opposites downstream ("has not connected one yet" must
+    # still send you to step 3, "declined one" must not), and only a recorded
+    # choice can tell them apart.
+    free_only = bool(state.get("free_only"))
+    has_access = has_key or free_only
     has_plan = bool(state.get("raw_plan"))
     # Set by POST /run only, so it is the one cheap fact that says a sweep
     # was launched. Nothing here may read .done_combos or the account: this
@@ -147,14 +153,14 @@ def step_states(steps, state, current):
     opens = {"upload": True,
              "review": has_resume,
              "key": True,
-             "configure": has_profile and has_key,
-             "confirm": has_profile and has_key,
+             "configure": has_profile and has_access,
+             "confirm": has_profile and has_access,
              # launched, not has_plan: see the docstring.
              "running": launched,
              "results": has_profile}
     done = {"upload": has_resume,
             "review": has_profile,
-            "key": has_key,
+            "key": has_access,
             "configure": has_plan,
             "confirm": launched,
             "running": launched,
