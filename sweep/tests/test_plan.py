@@ -146,8 +146,20 @@ class TestDryRunJsonCarriesDepth(unittest.TestCase):
     def test_the_plan_json_reports_a_depth_for_every_planned_site(self):
         repo_root = os.path.dirname(os.path.dirname(os.path.dirname(
             os.path.abspath(__file__))))
-        raw = plan.fetch("kartik_reachable", runner=lambda argv: subprocess.run(
-            argv, cwd=repo_root, capture_output=True, text=True, check=True).stdout)
+        def runner(argv):
+            # This spawns the real engine, and kartik_reachable is 64 paid
+            # LinkedIn searches. It is safe ONLY because plan.fetch builds
+            # --dry-run --json, which is exactly the shape that already
+            # cost money once: a test that shelled out to scraper.py was
+            # safe only because of the flag it was asserting, and when that
+            # flag was mutated away the subprocess ran live searches. So
+            # refuse to spawn anything that is not a dry run.
+            self.assertIn("--dry-run", argv)
+            self.assertIn("--json", argv)
+            return subprocess.run(argv, cwd=repo_root, capture_output=True,
+                                   text=True, check=True).stdout
+
+        raw = plan.fetch("kartik_reachable", runner=runner)
         self.assertTrue(raw["sites"])
         self.assertEqual(set(raw["max_results"]), set(raw["sites"]))
         for site, depth in raw["max_results"].items():
@@ -207,6 +219,14 @@ class TestPerSiteRateBasis(unittest.TestCase):
                         line["rate"] * line["searches"], line["subtotal"],
                         places=6,
                         msg=f"{site} depth={depth} n={n}")
+
+    def test_every_paid_rate_declares_the_depth_it_was_measured_at(self):
+        # DEFAULT_RATE_BASIS means a fourth paid site added to SITE_RATES
+        # without a SITE_RATE_BASIS entry silently prices from 25 — the exact
+        # bug this pair of dicts was introduced to fix. A high mis-price is
+        # the worse direction: the written cap is the estimate x1.25, so it
+        # loosens the only guard that can actually stop an overspend.
+        self.assertEqual(set(self.rates), set(self.basis))
 
     def test_an_absent_depth_prices_at_that_sites_own_basis(self):
         raw = {"profile": "t",

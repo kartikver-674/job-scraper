@@ -1,5 +1,6 @@
 import io
 import itertools
+import json
 import os
 import re
 import shutil
@@ -39,6 +40,51 @@ def alpine_scope(body):
     return found
 
 
+class TestProfileNameCollision(unittest.TestCase):
+    """POST /review wrote profiles/<name>.py with no existence check, so
+    typing a name that already existed destroyed it — and /estimate rewrites
+    the same file on every configure change, so there was no second chance.
+    profiles/kartik_reachable.py carries hand-tuning from a real sweep, and
+    an untracked profile has no git fallback at all."""
+
+    def _app(self, existing=()):
+        app = app_module.create_app(
+            state={"derived": dict(DERIVED), "resume_text": "x"},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            profile_exists=lambda name: name in existing)
+        app.config.update(TESTING=True)
+        self.writes = []
+        app.write_profile = lambda n, src: self.writes.append(n)
+        return app
+
+    def test_an_existing_name_is_refused_and_nothing_is_written(self):
+        app = self._app(existing={"kartik_reachable"})
+        r = app.test_client().post("/review", data={"name": "kartik_reachable"})
+        self.assertEqual(r.status_code, 409)
+        body = r.get_data(as_text=True)
+        self.assertIn("already exists", body)
+        self.assertEqual(self.writes, [])          # the profile survives
+
+    def test_a_fresh_name_is_written_without_a_prompt(self):
+        app = self._app(existing={"kartik_reachable"})
+        r = app.test_client().post("/review", data={"name": "handtest_1"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.writes, ["handtest_1"])
+
+    def test_an_explicit_confirmation_replaces_it(self):
+        app = self._app(existing={"kartik_reachable"})
+        r = app.test_client().post("/review", data={
+            "name": "kartik_reachable", "overwrite": "yes"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.writes, ["kartik_reachable"])
+
+    def test_the_refusal_offers_the_confirmation_control(self):
+        app = self._app(existing={"kartik_reachable"})
+        body = app.test_client().post(
+            "/review", data={"name": "kartik_reachable"}).get_data(as_text=True)
+        self.assertIn('name="overwrite"', body)
+
+
 class TestEngineFlagAndPathHygiene(unittest.TestCase):
     """Two fixes the last round claimed were pinned and were not — nothing in
     the repo referenced either."""
@@ -69,6 +115,57 @@ class TestEngineFlagAndPathHygiene(unittest.TestCase):
                                 ["scraper.py", "--dry-run", "--json"]):
             args = scraper.parse_args()
         self.assertTrue(args.json and args.dry_run)
+
+    def test_repeated_profile_writes_do_not_grow_sys_path(self):
+        # make_profile.load_config ran sys.path.insert on every call, and
+        # /estimate calls it on every configure change.
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": dict(DERIVED)},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: None
+        client = app.test_client()
+        # A real value each time: an empty form submits no overrides, so it
+        # never reaches make_profile.render and the path never moves.
+        client.post("/estimate", json={"max_age_days": "7"})
+        before = len(sys.path)
+        for i in range(25):
+            client.post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(len(sys.path), before)
+
+    def test_the_default_done_reader_stays_inside_the_injected_output_dir(self):
+        # Every running-screen test injects read_done, so the closure that
+        # feeds a 40-minute paid sweep's progress display was exercised
+        # nowhere — and its docstring makes a paid-data safety claim. Pointing
+        # it at the real tree used to leave all 186 tests green.
+        out = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, out)
+        os.makedirs(os.path.join(out, "kanav"))
+        plan = {"profile": "kanav", "sites": {"linkedin": [
+            {"keywords": "A", "location": "India", "company": ""}]},
+            "max_results": {"linkedin": 25}, "free_sources": 0}
+        from sweep import runs as runs_mod
+        key = runs_mod.combo_keys(plan, runs_mod.today())[0]
+        with open(os.path.join(out, "kanav", ".done_combos"), "w") as fh:
+            fh.write(key + "\n")
+
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "raw_plan": plan,
+                   "plan": {"total": 0.045, "total_searches": 1,
+                            "over_cap": False, "lines": []},
+                   "baseline_usd": 1.0, "proc": FakeProc()},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            fetch_plan=lambda p: plan, read_spend=lambda: 2.0,
+            output_dir=out)                 # read_done NOT injected
+        app.config.update(TESTING=True)
+        payload = app.test_client().get("/progress").get_json()
+        # It read the ledger under the INJECTED dir. The real
+        # output/kanav/.done_combos has no line for this synthetic combo, so
+        # a default that ignored output_dir would report 0 done.
+        self.assertEqual(payload["done"], 1)
+        self.assertEqual(payload["planned"], 1)
 
     def test_repeated_progress_reads_do_not_grow_sys_path(self):
         # read_spend ran sys.path.insert on every call — about 160 times a
@@ -131,29 +228,52 @@ class TestRunningMeterBindings(unittest.TestCase):
         return app.test_client().get("/running").get_data(as_text=True)
 
     def test_every_name_the_header_bindings_use_is_in_the_scope(self):
+        # Parse the scope's real shape rather than substring-matching it: a
+        # substring check passes when a name is renamed to a superstring, and
+        # when a top-level name merely appears inside the nested progress
+        # object. Both produce a false green over bindings that throw.
         body = self._body()
-        scope = re.search(r"x-data='([^']*)'", body).group(1)
-        for name in ("cap", "spend", "baseline_known"):
-            self.assertIn(name, scope,
-                          f"{name} is referenced by a header binding but is "
-                          f"not in the Alpine scope, so it throws at runtime")
+        scope = re.search(r"x-data='(\{.*\})'\s", body, re.S).group(1)
+        top = re.findall(r"(?:^\{|,)\s*([A-Za-z_][A-Za-z0-9_]*)\s*:", scope)
+        self.assertIn("cap", top)
+        self.assertIn("p", top)
+        inner = json.loads(re.search(r"p:\s*(\{.*?\}),\s*cap:", scope, re.S).group(1))
+        for name in ("spend", "baseline_known", "tiles"):
+            self.assertIn(name, inner,
+                          f"p.{name} is referenced by a binding but is not in "
+                          f"the progress payload, so it throws at runtime")
 
     def test_the_header_label_follows_whether_the_baseline_is_known(self):
         # With no baseline, p.spend is the account's month-to-date total,
         # which is NOT this sweep's spend — so the header must not call it
         # "Spent so far", and must not paint it the over-cap red.
         body = self._body(baseline=None, spend=40.0)
+        # Both the Alpine expression and the first paint must say it: the
+        # server-rendered fallback used to read "Spent so far" over a
+        # month-to-date figure until Alpine corrected it.
         self.assertIn("Account spend this month", body)
+        self.assertNotIn(">Spent so far</span>", body)
         # The LABEL's own expression has to branch on it. Asserting that both
         # strings merely appear in the page cannot fail: a mutation to
         # `true ? 'Spent so far' : 'Account spend this month'` leaves both
         # literals sitting there, and "p.baseline_known" survives elsewhere
         # in the :class binding.
-        label = re.search(r"<span x-text=\"([^\"]*)\">Spent so far</span>",
-                           body).group(1)
+        label = re.search(r"<span x-text=\"([^\"]*)\">", body).group(1)
         self.assertIn("p.baseline_known", label)
         over = re.search(r':class="\{ over: ([^}]*)\}"', body).group(1)
         self.assertIn("baseline_known", over)
+        # The FILL too, not just the colour: an ungated bar paints 100% hard
+        # against the cap marker under "Account spend this month" — reading
+        # as "you have spent your whole budget" on a figure that is not this
+        # sweep's spend at all.
+        fill = re.search(r':style="([^"]*)"', body).group(1)
+        self.assertIn("baseline_known", fill)
+        # And the server-rendered first paint must not fill it, nor paint it
+        # the over-cap red: with spend 40.0 against a cap of 8.41 the
+        # ungated template rendered class="meter over" before Alpine ran.
+        self.assertIn('class="meter-fill" style="width: 0%"', body)
+        meter = re.search(r'<div class="meter([^"]*)"', body).group(1)
+        self.assertNotIn("over", meter)
 
 
 class TestPageShell(unittest.TestCase):
@@ -2097,6 +2217,46 @@ class TestResultsScreen(unittest.TestCase):
         # rescore_from_apify.py truncates jobs_combined.csv in place, so the
         # second child must never have been started.
         self.assertEqual(calls, [("kanav", 6)])
+
+    def test_two_simultaneous_rescore_posts_launch_one_child(self):
+        # _rescore_lock had the same gap _run_lock did: sequential posts
+        # behave correctly with the lock deleted, and only concurrency sees
+        # it. Two children both rewrite jobs_combined.csv in place, on data
+        # the user already paid for.
+        import threading
+
+        calls = []
+        at_the_door = threading.Barrier(2)
+
+        class Running:
+            def poll(self):
+                return None
+
+        def slow_start(profile, hours):
+            time.sleep(0.1)             # widen the check-to-set window
+            calls.append((profile, hours))
+            return Running()
+
+        app = self._app(start_rescore=slow_start)
+        codes, errors = [], []
+
+        def post():
+            try:
+                at_the_door.wait(timeout=5)
+                codes.append(app.test_client().post(
+                    "/rescore", data={"hours": "6"}).status_code)
+            except Exception as exc:
+                errors.append(repr(exc))
+
+        threads = [threading.Thread(target=post) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(sorted(codes), [302, 409])
+        self.assertEqual(len(calls), 1)
 
     def test_a_finished_rescore_does_not_block_the_next_one(self):
         calls = []

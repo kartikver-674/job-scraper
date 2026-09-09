@@ -12,7 +12,12 @@
     <label>Name this profile
       <input name="name" value="{{ suggested_name }}" required>
     </label>
-    <p class="muted">Saved as profiles/&lt;name&gt;.py, so you can re-run it later.</p>
+    <p class="muted">Saved as profiles/&lt;name&gt;.py, so you can re-run it later.
+      An existing profile of the same name is never replaced without asking.</p>
+    {% if clash %}
+      <label><input type="checkbox" name="overwrite" value="yes">
+        Replace the existing {{ clash }} profile</label>
+    {% endif %}
   </div>
 
   <div class="panel">

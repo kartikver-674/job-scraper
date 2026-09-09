@@ -87,7 +87,7 @@ def create_app(state=None, extract=None, resume_dir=None,
                check_token=None, env_path=None, fetch_plan=None,
                start_sweep=None, read_spend=None, output_dir=None,
                read_done=None, now=None, read_rows=None,
-               start_rescore=None, hour_now=None):
+               start_rescore=None, hour_now=None, profile_exists=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -118,6 +118,11 @@ def create_app(state=None, extract=None, resume_dir=None,
                 raise RuntimeError("GEMINI_API_KEY is missing from .env.")
             return make_profile.generate(
                 tailor.get_client(api_key), cfg.MODEL, resume_text, prefs)
+
+    if profile_exists is None:
+        def profile_exists(name):
+            return os.path.exists(
+                os.path.join(REPO_ROOT, "profiles", f"{name}.py"))
 
     def default_write_profile(name, source):
         if not _valid_profile_name(name):
@@ -329,7 +334,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         return app.state.get("cap_usd") is None
 
-    def shell(step, spend=0.0, **kw):
+    def shell(step, spend=0.0, spend_is_this_sweep=True, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
         figure carried over from another step.
 
@@ -342,10 +347,19 @@ def create_app(state=None, extract=None, resume_dir=None,
         None means "not known" and renders as that, never as $0.00: a
         fabricated zero on a money display is the same defect pointing the
         other way.
+
+        `spend_is_this_sweep` is False when the figure is the account's
+        month-to-date total with no baseline to subtract. The meter then
+        must not label it "spent so far", must not paint it the over-cap
+        red, and must not fill the bar against the cap — R74 gated the
+        Alpine layer of exactly this and left the server-rendered layer,
+        so the first paint was the dishonest state it removed.
         """
         cap = app.state.get("cap_usd")
         return dict(steps=STEPS, step=step, spend=spend, cap_usd=cap,
-                    fill_pct=fill_pct(spend, cap), **kw)
+                    spend_is_this_sweep=spend_is_this_sweep,
+                    fill_pct=fill_pct(spend, cap) if spend_is_this_sweep else 0,
+                    **kw)
 
     def spend_delta():
         """This sweep's own spend, or None when it cannot be known.
@@ -447,6 +461,18 @@ def create_app(state=None, extract=None, resume_dir=None,
         kept = dict(derived)
         kept["skill_weights"] = [w for w in derived["skill_weights"]
                                  if w["term"] not in dropped]
+        # Refuse to overwrite an existing profile unless the user says so.
+        # This screen writes profiles/<name>.py, /estimate rewrites the same
+        # file on every configure change, and a profile can carry weeks of
+        # hand-tuning — profiles/kartik_reachable.py exists precisely because
+        # someone tuned it against a real sweep.
+        if profile_exists(name) and not request.form.get("overwrite"):
+            return render_template("review.html", **shell(
+                "review", derived=derived, suggested_name=name,
+                clash=name,
+                error=f"A profile named {name} already exists. Pick another "
+                      f"name, or confirm you want to replace it.")), 409
+
         source = make_profile.render(name, kept, _prefs(app.state))
         app.write_profile(name, source)
         app.state["profile"] = name
@@ -654,8 +680,9 @@ def create_app(state=None, extract=None, resume_dir=None,
             return redirect(url_for("configure"))
         progress_now = snapshot()
         return render_template("running.html", **shell(
-            "running", spend=progress_now["spend"], progress=progress_now,
-            plan=app.state["plan"]))
+            "running", spend=progress_now["spend"],
+            spend_is_this_sweep=progress_now["baseline_known"],
+            progress=progress_now, plan=app.state["plan"]))
 
     @app.get("/progress")
     def progress():

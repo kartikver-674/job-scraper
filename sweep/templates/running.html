@@ -4,7 +4,8 @@
    account's month-to-date total, which is NOT this sweep's spend. The body
    copy already says so; the header used to claim "Spent so far" over it. #}
 {% block meter_label %}<span x-text="p.baseline_known ? 'Spent so far'
-    : 'Account spend this month'">Spent so far</span>{% endblock %}
+    : 'Account spend this month'">{% if spend_is_this_sweep %}Spent so far{%
+    else %}Account spend this month{% endif %}</span>{% endblock %}
 {# The Alpine scope wraps the header meter as well as the body, so the header
    numeral and bar follow the SSE stream instead of sitting at their first
    value for the whole ~40-minute sweep. Same p.spend the body reads. #}

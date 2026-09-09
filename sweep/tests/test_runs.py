@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from sweep import runs
 
@@ -149,6 +150,34 @@ class TestStart(unittest.TestCase):
         # while poll() still reported it as running.
         self.assertIsNone(proc.stderr)
         self.assertTrue(proc.text)
+
+
+class TestActorDepthFloor(unittest.TestCase):
+    """Both LinkedIn depth floors read ACTOR_MIN_RESULTS now instead of a
+    repeated literal 10, but neither new read site had a test — only
+    effective_search's own floor did."""
+
+    def test_build_input_never_asks_linkedin_for_fewer_than_the_minimum(self):
+        import scraper
+        got = scraper.build_input("linkedin", {
+            "keywords": "k", "location": "India", "max_results": 3,
+            "company": "", "country": None, "experience": None})
+        self.assertEqual(got["count"], scraper.ACTOR_MIN_RESULTS["linkedin"])
+
+    def test_the_printed_plan_reports_the_depth_the_actor_is_sent(self):
+        # print_plan reported the pre-floor depth, so the prose dry-run and
+        # --dry-run --json disagreed below the floor — and that prose figure
+        # is a cost number a user reads.
+        import io as _io
+        import contextlib
+        import scraper
+        with mock.patch.dict(scraper.SEARCH, {"max_results": 3}):
+            buf = _io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                scraper.print_plan({"linkedin": [
+                    {"keywords": "k", "location": "India", "company": ""}]})
+        self.assertIn(f"max {scraper.ACTOR_MIN_RESULTS['linkedin']} results",
+                      buf.getvalue())
 
 
 class TestStartRescore(unittest.TestCase):

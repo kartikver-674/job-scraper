@@ -167,7 +167,11 @@ def _load_config():
     argv, job_profile = sys.argv, os.environ.pop("JOB_PROFILE", None)
     sys.argv = [argv[0]]
     try:
-        sys.path.insert(0, cfg.REPO_ROOT)
+        # Inserted once, not per call: this runs on every /estimate and every
+        # /run, and repeating it grew sys.path by an entry each time — the
+        # third instance of a defect fixed twice elsewhere.
+        if cfg.REPO_ROOT not in sys.path:
+            sys.path.insert(0, cfg.REPO_ROOT)
         import config
         return config
     finally:

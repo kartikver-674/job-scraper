@@ -28,7 +28,10 @@
 </header>
 
 <div{% block meter_scope %}{% endblock %}>
-  <div class="meter {{ 'over' if spend and cap_usd is not none and spend > cap_usd }}"{% block meter_class_bind %}{% endblock %}>
+  {# over-cap red is for a sweep that outran its credit, so it is gated on
+     the figure actually BEING this sweep's spend — not on a month-to-date
+     total that merely happens to exceed the cap. #}
+  <div class="meter {{ 'over' if spend and spend_is_this_sweep and cap_usd is not none and spend > cap_usd }}"{% block meter_class_bind %}{% endblock %}>
     <span class="muted">{% block meter_label %}Current spend{% endblock %}</span>
     {# None means the figure genuinely is not known (no baseline to subtract,
        or the account-usage call failed). It renders as that, never as
