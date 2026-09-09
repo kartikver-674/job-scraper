@@ -3,6 +3,7 @@
    scores against. One macro so the two cannot drift apart — the POST field
    names here are the contract logic.reweighted() reads. #}
 {% macro weight_editor(skill_weights, commodity=()) -%}
+{% if skill_weights %}
 <div class="scroll-x">
   <table class="weights">
     <tr class="muted">
@@ -45,5 +46,30 @@
       </tr>
     {% endfor %}
   </table>
+</div>
+{% endif %}
+{# The parse misses things, and until now the editor could only re-weight or
+   remove what the model happened to find. Rendered even when the table is
+   not: a résumé the model read no skills from is exactly the one that needs
+   this, and it used to offer nothing at all.
+
+   NOT named "weight": that name belongs to the parallel term/weight lists
+   above, and a third value under it would desync them — which reassigns
+   every weight to the wrong term, silently, on the numbers that decide the
+   ranking. #}
+<div class="row">
+  <label><span class="label">Add skills the parse missed</span>
+    <input type="text" name="add_skills"
+           placeholder="kubernetes, terraform, grpc"></label>
+  <label class="add-weight"><span class="label">At weight</span>
+    <div class="stepper" x-data="{ n: 3 }">
+      <button type="button" @click="n = Math.max(1, n - 1)"
+              aria-label="Lower the weight for the added skills">&minus;</button>
+      <input type="number" name="add_weight" min="1" max="5" value="3"
+             x-model.number="n" aria-label="Weight for the added skills">
+      <button type="button" @click="n = Math.min(5, n + 1)"
+              aria-label="Raise the weight for the added skills">+</button>
+    </div>
+  </label>
 </div>
 {%- endmacro %}

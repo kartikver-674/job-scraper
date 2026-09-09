@@ -811,7 +811,9 @@ def create_app(state=None, extract=None, resume_dir=None,
         try:
             kept = reweighted(derived, request.form.getlist("term"),
                               request.form.getlist("weight"),
-                              request.form.getlist("drop"))
+                              request.form.getlist("drop"),
+                              request.form.get("add_skills") or "",
+                              request.form.get("add_weight") or "")
         except _FormError as exc:
             return render_template("review.html", **shell(
                 "review", derived=derived, commodity=commodity,
@@ -1449,7 +1451,9 @@ def create_app(state=None, extract=None, resume_dir=None,
             try:
                 kept = reweighted(derived, request.form.getlist("term"),
                                   request.form.getlist("weight"),
-                                  request.form.getlist("drop"))
+                                  request.form.getlist("drop"),
+                                  request.form.get("add_skills") or "",
+                                  request.form.get("add_weight") or "")
             except _FormError as exc:
                 return _results_page(error=str(exc)), 400
             if kept == derived:

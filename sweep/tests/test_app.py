@@ -3898,9 +3898,10 @@ class TestReRankWeights(unittest.TestCase):
         self.assertIn('name="weight"', body)
         self.assertIn('name="drop"', body)
         self.assertIn("react native", body)
-        # And a stepper per skill, not a bare number box.
+        # A stepper per skill, not a bare number box — plus the one on the
+        # add-a-skill row.
         self.assertEqual(body.count('class="stepper"'),
-                         len(DERIVED["skill_weights"]))
+                         len(DERIVED["skill_weights"]) + 1)
 
     def test_the_editor_and_the_review_screen_render_the_same_table(self):
         app = self._app(state={"profile": "kanav", "cap_usd": 8.41,
@@ -4151,6 +4152,185 @@ class TestMergeOffer(unittest.TestCase):
         body = client.get("/results").get_data(as_text=True)
         self.assertIn("Merging now", body)
         self.assertNotIn('action="/merge"', body)
+
+
+class TestAddingASkill(unittest.TestCase):
+    """The parse misses things. Until now the editor could re-weight and
+    remove what the model found and nothing else, so a skill it never saw
+    could not be scored on at all."""
+
+    def _app(self, state=None, **kw):
+        self.written = {}
+        state = state if state is not None else {
+            "resume_text": "x", "derived": DERIVED, "cap_usd": 8.41,
+            "profile": "kanav"}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=lambda profile: list(ROWS),
+            read_done=lambda profile, day: [], read_spend=lambda: 4.12,
+            profile_exists=lambda n: False,
+            output_dir=tempfile.mkdtemp(), **kw)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: self.written.update({n: src})
+        self.state = state
+        return app
+
+    def skills_of(self, source):
+        block = source.split('"skill_weights": {', 1)[1].split("}", 1)[0]
+        return {m.group(1): int(m.group(2))
+                for m in re.finditer(r"'([^']+)':\s*(\d+)", block)}
+
+    def review(self, app, **fields):
+        data = {"name": "kanav", "term": [w["term"] for w in DERIVED["skill_weights"]],
+                "weight": [str(w["weight"]) for w in DERIVED["skill_weights"]]}
+        data.update(fields)
+        return app.test_client().post("/review", data=data)
+
+    # ---- the control is there, on both screens --------------------------
+    def test_both_editors_offer_it(self):
+        app = self._app()
+        client = app.test_client()
+        for path in ("/review", "/results"):
+            body = client.get(path).get_data(as_text=True)
+            self.assertIn('name="add_skills"', body, path)
+            self.assertIn('name="add_weight"', body, path)
+
+    def test_it_is_offered_even_when_the_model_found_nothing(self):
+        # The résumé that most needs this is the one the parse read no skills
+        # from, and that screen used to offer only an apology.
+        bare = dict(DERIVED, skill_weights=[])
+        body = self._app(state={"resume_text": "x", "derived": bare}).test_client(
+            ).get("/review").get_data(as_text=True)
+        self.assertIn("No skills came back", body)
+        self.assertIn('name="add_skills"', body)
+
+    def test_a_profile_can_be_built_from_added_skills_alone(self):
+        # The résumé the model read nothing from: before this the screen
+        # offered an apology and a submit button that saved an unscoreable
+        # profile. Now the skills can be named by hand.
+        bare = dict(DERIVED, skill_weights=[])
+        app = self._app(state={"resume_text": "x", "derived": bare,
+                                "profile": "kanav"})
+        r = app.test_client().post("/review", data={
+            "name": "kanav", "add_skills": "salesforce, apex",
+            "add_weight": "5"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.skills_of(self.written["kanav"]),
+                         {"salesforce": 5, "apex": 5})
+
+    def test_the_added_weight_is_not_named_weight(self):
+        # "weight" is one of the two parallel lists. A third value under that
+        # name desyncs them, which reassigns every weight to the wrong term.
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        self.assertEqual(body.count('name="weight"'),
+                         len(DERIVED["skill_weights"]))
+
+    # ---- what it writes --------------------------------------------------
+    def test_an_added_skill_reaches_the_profile(self):
+        app = self._app()
+        self.review(app, add_skills="kubernetes, Terraform", add_weight="4")
+        written = self.skills_of(self.written["kanav"])
+        self.assertEqual(written["kubernetes"], 4)
+        # Lowercased, because that is the form the profile stores and scraper
+        # matches on.
+        self.assertEqual(written["terraform"], 4)
+        # And the skills that were already there are untouched.
+        self.assertEqual(written["react native"], 5)
+
+    def test_adding_a_skill_does_not_shift_the_existing_weights(self):
+        app = self._app()
+        self.review(app, add_skills="kubernetes", add_weight="1")
+        written = self.skills_of(self.written["kanav"])
+        for w in DERIVED["skill_weights"]:
+            self.assertEqual(written[w["term"]], w["weight"], w["term"])
+
+    def test_an_added_skill_that_already_exists_updates_it(self):
+        # Asserted on STATE, not the rendered profile: _weights() folds the
+        # list into a lowercased dict, so a duplicate collapses there and the
+        # file looks fine while state carries the same term twice — and state
+        # is what /estimate re-renders from and the re-rank editor shows.
+        app = self._app()
+        before = len(DERIVED["skill_weights"])
+        self.review(app, add_skills="react native", add_weight="2")
+        weights = self.state["derived"]["skill_weights"]
+        self.assertEqual(len(weights), before)
+        self.assertEqual([w for w in weights if w["term"] == "react native"],
+                         [{"term": "react native", "weight": 2}])
+
+    def test_a_differently_cased_term_is_the_same_term(self):
+        # Terms are stored and matched lowercase. Without normalising, "React
+        # Native" becomes a SECOND entry beside "react native", and the editor
+        # then shows one skill twice with two different weights.
+        app = self._app()
+        before = len(DERIVED["skill_weights"])
+        self.review(app, add_skills="React Native", add_weight="1")
+        weights = self.state["derived"]["skill_weights"]
+        self.assertEqual(len(weights), before)
+        self.assertNotIn("React Native", [w["term"] for w in weights])
+        self.assertEqual([w for w in weights if w["term"] == "react native"],
+                         [{"term": "react native", "weight": 1}])
+
+    def test_adding_a_term_takes_it_back_off_the_remove_list(self):
+        # The remove column is pre-checked for commodity skills, so someone
+        # typing one back has said the more specific thing.
+        app = self._app()
+        self.review(app, drop=["javascript"], add_skills="javascript",
+                    add_weight="5")
+        self.assertEqual(self.skills_of(self.written["kanav"])["javascript"], 5)
+
+    def test_a_skill_can_be_added_from_the_re_rank_panel_too(self):
+        # Same macro, same parser — and the whole point of that panel is to
+        # change what a re-rank scores against.
+        started = []
+        app = self._app(start_rescore=lambda profile, hours: started.append(profile)
+                        or FakeProc())
+        r = app.test_client().post("/rescore", data={
+            "hours": "6",
+            "term": [w["term"] for w in DERIVED["skill_weights"]],
+            "weight": [str(w["weight"]) for w in DERIVED["skill_weights"]],
+            "add_skills": "kubernetes", "add_weight": "5"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.skills_of(self.written["kanav"])["kubernetes"], 5)
+        self.assertEqual(started, ["kanav"])
+
+    def test_removing_still_works_when_nothing_is_added(self):
+        app = self._app()
+        self.review(app, drop=["javascript"])
+        self.assertNotIn("javascript", self.skills_of(self.written["kanav"]))
+
+    # ---- and what it refuses --------------------------------------------
+    def test_a_term_with_odd_characters_is_refused_not_sanitised(self):
+        # It becomes a scoring pattern and a line in a generated Python file.
+        app = self._app()
+        r = self.review(app, add_skills="react; drop table")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Added skills", r.get_data(as_text=True))
+        self.assertEqual(self.written, {})
+
+    def test_the_stacks_that_look_like_punctuation_are_allowed(self):
+        app = self._app()
+        self.review(app, add_skills="node.js, c++, c#, ci/cd, .net",
+                    add_weight="3")
+        written = self.skills_of(self.written["kanav"])
+        for term in ("node.js", "c++", "c#", "ci/cd", ".net"):
+            self.assertIn(term, written)
+
+    def test_a_weight_out_of_range_is_refused(self):
+        app = self._app()
+        r = self.review(app, add_skills="kubernetes", add_weight="9")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.written, {})
+
+    def test_an_empty_box_is_not_an_error(self):
+        # The overwhelmingly common submit: the form carries the control
+        # whether or not anyone typed in it.
+        app = self._app()
+        r = self.review(app, add_skills="", add_weight="")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(len(self.skills_of(self.written["kanav"])),
+                         len(DERIVED["skill_weights"]))
 
 
 class TestReadRowsDefault(unittest.TestCase):

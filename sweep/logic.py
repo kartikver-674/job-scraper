@@ -216,7 +216,7 @@ def sweep_dates(isos, limit=4):
     return out
 
 
-def reweighted(derived, terms, weights, dropped):
+def reweighted(derived, terms, weights, dropped, add_raw="", add_weight=""):
     """`derived` with the posted weight edits applied. Raises _FormError.
 
     Shared by the review screen and the results screen's re-rank panel, so
@@ -230,17 +230,39 @@ def reweighted(derived, terms, weights, dropped):
 
     A term with no posted weight keeps the one it has: a form that renders
     only some of the weights must not zero the rest.
+
+    `add_raw` is comma-separated free text for the skills the model missed —
+    the whole reason the editor is not read-only. Added terms are lowercased,
+    because that is the form the profile stores and scraper matches on, and an
+    added term that is already in the list UPDATES it rather than appearing
+    twice: skill_weights renders into a dict literal, where a duplicate term
+    would silently keep whichever copy was written last.
+
+    Adding a term also UN-DROPS it, by way of the append below rather than a
+    special case: the remove column is pre-checked for the commodity skills on
+    the review screen, so a user who types one of those back has said the more
+    specific thing, and the alternative is their typing doing nothing at all.
     """
     if len(terms) != len(weights):
         raise _FormError("The weights didn't come through — reload the page "
                          "and try again.")
     edited = {term: _parse_int(raw, 1, 5, f"Weight for {term}")
               for term, raw in zip(terms, weights)}
+    added = {t.lower(): None for t in _parse_chips(add_raw, "Added skills")}
+    if added:
+        # Only parsed when something was actually added, so an untouched form
+        # cannot fail on the weight beside an empty box.
+        weight = _parse_int(add_weight or 3, 1, 5, "Weight for the added skills")
+        added = {term: weight for term in added}
     dropped = set(dropped)
     kept = dict(derived)
     kept["skill_weights"] = [
-        dict(w, weight=edited.get(w["term"], w["weight"]))
+        dict(w, weight=added.get(w["term"], edited.get(w["term"], w["weight"])))
         for w in derived["skill_weights"] if w["term"] not in dropped]
+    known = {w["term"] for w in kept["skill_weights"]}
+    kept["skill_weights"] += [{"term": term, "weight": weight}
+                              for term, weight in added.items()
+                              if term not in known]
     return kept
 
 

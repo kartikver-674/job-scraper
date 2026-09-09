@@ -31,12 +31,14 @@
             <p class="empty"><b>No skills came back</b>
               The model read the résumé but derived no skill weights, so
               nothing would be scored. That usually means the PDF's text layer
-              is thin — try a text-based export and upload it again.</p>
-          {% else %}
+              is thin — try a text-based export and upload it again, or name
+              the skills yourself below.</p>
+          {% endif %}
           {{ weight_editor(derived.skill_weights, commodity) }}
-          <p class="muted">A higher weight means a listing naming that skill
-            scores higher. Remove a term to take it out of the scoring
-            entirely.</p>
+          {% if derived.skill_weights %}
+            <p class="muted">A higher weight means a listing naming that skill
+              scores higher. Remove a term to take it out of the scoring
+              entirely.</p>
           {% endif %}
         </div>
 
