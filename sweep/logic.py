@@ -305,6 +305,65 @@ def sort_rows(rows, sort):
     return sorted(rows, key=key)
 
 
+# How many listings a section shows before it offers the rest. A real sweep
+# is 1600 rows; three sections of everything is a page nobody scrolls to the
+# bottom of, and the rows past the first screenful of a score-ranked list are
+# the ones least worth reading first.
+SECTION_CAP = 25
+
+
+def posted_age(iso, today=None):
+    """"3d ago" for a posting date, "" when there is not a usable one.
+
+    The results screen offers a "Newest first" sort and then showed no date
+    at all, so the order it produced was unverifiable from the page. This is
+    the smallest thing that fixes that: relative, because the question a
+    shortlist answers is "is this stale", not "what was the date".
+    """
+    from datetime import date
+
+    stamp = _sortable_date(iso)
+    if not stamp:
+        return ""
+    try:
+        when = date.fromisoformat(stamp)
+    except ValueError:
+        return ""
+    days = ((today or date.today()) - when).days
+    if days < 0:
+        # A posting dated in the future is a source's bad data, not a
+        # reason to render "-3d ago".
+        return ""
+    if days == 0:
+        return "today"
+    if days < 7:
+        return f"{days}d ago"
+    if days < 60:
+        return f"{days // 7}w ago"
+    return f"{days // 30}mo ago"
+
+
+def shortlist(all_rows, min_score=0, source="", q="", sort=DEFAULT_SORT):
+    """The rows the results screen is showing, in the order it shows them.
+
+    Shared with the export routes rather than copied into them: a file
+    labelled "Export CSV (128)" has to contain the same 128 rows the screen
+    is displaying, and two copies of this filter would eventually disagree
+    about which ones those are.
+    """
+    rows = [r for r in all_rows if _as_int(r.get("score")) >= min_score]
+    if source:
+        rows = [r for r in rows if r.get("source_site") == source]
+    if q:
+        needle = q.lower()
+        rows = [r for r in rows if needle in
+                f"{r.get('title', '')} {r.get('company', '')}".lower()]
+    # Sorted explicitly rather than trusting the CSV's own order — the real
+    # files happen to arrive score-descending today, but that is another
+    # script's undocumented behaviour, not a guarantee.
+    return sort_rows(rows, sort)
+
+
 def sweep_dates(isos, limit=4):
     """Distinct sweep dates as "26 Aug", newest first, at most `limit`.
 

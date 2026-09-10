@@ -6,7 +6,8 @@ import sys
 import threading
 from datetime import datetime
 
-from flask import (Flask, redirect, render_template, request, url_for)
+from flask import (Flask, Response, abort, redirect, render_template,
+                   request, url_for)
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESUME_DIR = os.path.join(REPO_ROOT, "auto-apply", "resume")
@@ -31,11 +32,12 @@ import scraper  # noqa: E402
 # split, the empty-result diagnosis. Re-exported here because these are part
 # of this module's surface for its callers and tests, and because the split
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
+from sweep import exports  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    DEFAULT_SORT, SORTS, _valid_profile_name, bucket_rows, fill_pct,
-    paid_sites, reweighted, searchable_locations, site_label, sort_rows,
-    step_states, sweep_dates, worst_filter)
+    DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, bucket_rows,
+    fill_pct, paid_sites, posted_age, reweighted, searchable_locations,
+    shortlist, site_label, sort_rows, step_states, sweep_dates, worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -1355,6 +1357,22 @@ def create_app(state=None, extract=None, resume_dir=None,
             runs_mod.stop(proc)
         return redirect(url_for("running"))
 
+    def _shortlist_args():
+        """The filter and the sort in the query string, validated.
+
+        Read in one place because two screens now depend on them agreeing:
+        a file offered as "Export CSV (128)" has to hold the same 128 rows
+        the page is showing, and it is reached by a separate request that
+        carries the filters along in its own query string.
+        """
+        sort = request.args.get("sort") or DEFAULT_SORT
+        return (request.args.get("min", type=int) or 0,
+                request.args.get("source") or "",
+                (request.args.get("q") or "").strip(),
+                # Validated against the table rather than trusted: it
+                # arrives in a query string and picks a sort key by name.
+                sort if sort in SORTS else DEFAULT_SORT)
+
     def _results_page(error=None, notice=None):
         """Shared by GET /results and a failed POST /rescore, so an
         out-of-range hours value re-renders the same screen with an error
@@ -1372,26 +1390,9 @@ def create_app(state=None, extract=None, resume_dir=None,
         # earlier ones, and merge_jobs.py is what combines them.
         merged = bool(all_rows) and all_rows[0].get("_merged") == "1"
 
-        min_score = request.args.get("min", type=int) or 0
-        source = request.args.get("source") or ""
-        q = (request.args.get("q") or "").strip()
-        # Validated against the table rather than trusted: it arrives in a
-        # query string and picks a sort key by name.
-        sort = request.args.get("sort") or DEFAULT_SORT
-        if sort not in SORTS:
-            sort = DEFAULT_SORT
+        min_score, source, q, sort = _shortlist_args()
 
-        rows = [r for r in all_rows if _as_int(r.get("score")) >= min_score]
-        if source:
-            rows = [r for r in rows if r.get("source_site") == source]
-        if q:
-            needle = q.lower()
-            rows = [r for r in rows if needle in
-                    f"{r.get('title', '')} {r.get('company', '')}".lower()]
-        # Sorted explicitly rather than trusting the CSV's own order — the
-        # real files happen to arrive score-descending today, but that's
-        # another script's undocumented behaviour, not a guarantee.
-        rows = sort_rows(rows, sort)
+        rows = shortlist(all_rows, min_score, source, q, sort)
 
         sources = sorted({r.get("source_site") for r in all_rows
                            if r.get("source_site")})
@@ -1408,6 +1409,12 @@ def create_app(state=None, extract=None, resume_dir=None,
             # $0.00 rate is free either way, never a second "is this site
             # free" rule that could disagree with them.
             rates=config.SITE_RATES, merged=merged,
+            # Each section shows its best N until asked for the rest: a real
+            # sweep is 1600 rows, and three sections of everything is a page
+            # nobody reaches the bottom of.
+            section_cap=SECTION_CAP,
+            full=bool(request.args.get("full")),
+            posted_age=posted_age,
             # Only consumed when nothing survived the filters, and it makes
             # one pass over every unfiltered row per active filter — three
             # passes over up to 1607 rows, thrown away, on every page load.
@@ -1552,6 +1559,64 @@ def create_app(state=None, extract=None, resume_dir=None,
         if not app.state.get("profile"):
             return redirect(url_for("upload"))
         return _results_page()
+
+    # (mimetype, builder) by extension. The extension in the path IS the
+    # format, so an unknown one is a 404 — a file that is not what its name
+    # says is worse than no file at all.
+    EXPORTS = {
+        "csv": ("text/csv; charset=utf-8", exports.as_csv),
+        "json": ("application/json; charset=utf-8", exports.as_json),
+        "xlsx": ("application/vnd.openxmlformats-officedocument"
+                 ".spreadsheetml.sheet", exports.as_xlsx),
+    }
+
+    @app.get("/export.<fmt>")
+    def export(fmt):
+        """The listings on screen, as a file.
+
+        Costs nothing and fetches nothing: it re-reads the shortlist already
+        on disk and applies the filters from the query string, which is why
+        the buttons carry the current filters with them.
+        """
+        if fmt not in EXPORTS:
+            abort(404)
+        if not app.state.get("profile"):
+            return redirect(url_for("upload"))
+
+        profile = app.state["profile"]
+        min_score, source, q, sort = _shortlist_args()
+        rows = shortlist(read_rows(profile), min_score, source, q, sort)
+        # Tagged from the SAME buckets the screen renders, so a row cannot be
+        # filed under one heading on the page and another in the file.
+        tagged = exports.rows_for_export(bucket_rows(rows), SECTIONS)
+
+        mimetype, build = EXPORTS[fmt]
+        if fmt == "xlsx":
+            try:
+                body = build(tagged, about=[
+                    ("Profile", profile),
+                    ("Exported", datetime.now().strftime("%Y-%m-%d %H:%M")),
+                    ("Listings", len(tagged)),
+                    ("Minimum score", min_score or "no minimum"),
+                    ("Source", source or "All sources"),
+                    ("Search text", q or "none"),
+                    ("Sorted by", SORTS[sort][0])])
+            except ImportError:
+                # A fresh clone that has not reinstalled. Say what to run
+                # rather than 500 — CSV and JSON still work meanwhile.
+                return _results_page(
+                    error="Excel export needs the openpyxl package. Run "
+                          "pip install -r requirements.txt and try again — "
+                          "CSV and JSON work without it."), 503
+        else:
+            body = build(tagged)
+
+        # Stripped, not quoted: the profile name reaches a response header
+        # here, and a quote or a newline in one would end the header early.
+        safe = re.sub(r"[^A-Za-z0-9_-]", "", profile) or "sweep"
+        name = f"sweep-{safe}-{datetime.now():%Y-%m-%d}.{fmt}"
+        return Response(body, mimetype=mimetype, headers={
+            "Content-Disposition": f'attachment; filename="{name}"'})
 
     @app.post("/rescore")
     def rescore():

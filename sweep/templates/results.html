@@ -34,21 +34,73 @@
           <td>{{ row['salary'] or 'Not stated' }}</td>
           <td>{{ row['experience_required'] or 'Not stated' }}</td>
           {# Split into tags: the column is a comma-joined string, and at four
-             or five terms it reads as one run-on cell otherwise. #}
-          {%- set skills = (row['matched_skills'] or '')|trim %}
-          <td>{% for s in skills.split(',') if s|trim %}<span class="tag">{{ s|trim }}</span>{% endfor %}</td>
-          <td>
+             or five terms it reads as one run-on cell otherwise.
+
+             Capped, because a dozen of them wrap to three lines and make
+             every row three times as tall — on a screen whose job is letting
+             you compare listings by scanning down it. The rest are on the
+             hover, and the count says they exist. #}
+          {%- set terms = (row['matched_skills'] or '').split(',')|map('trim')|select|list %}
+          <td>{% for s in terms[:6] %}<span class="tag">{{ s }}</span>{% endfor %}
+            {%- if terms|length > 6 %}<span class="tag more"
+              title="{{ terms[6:]|join(', ') }}">+{{ terms|length - 6 }}</span>{% endif %}</td>
+          <td class="act">
             {%- if linkable %}
-              <a href="{{ href }}" target="_blank" rel="noopener">Apply</a>
+              <a class="apply" href="{{ href }}" target="_blank" rel="noopener">Apply</a>
             {%- else %}
               <span class="muted">No link</span>
             {%- endif %}
+            {# The screen offers "Newest first" and showed no date anywhere,
+               so the order it produced could not be checked from the page. #}
+            {%- set age = posted_age(row['date_posted']) %}
+            {%- if age %}<span class="posted">{{ age }}</span>{% endif %}
           </td>
         </tr>
       {% endfor %}
     </table>
   </div>
 {% endmacro %}
+
+{# One link per format, carrying the current filter and sort so the file
+   matches the screen. Same omit-the-default pattern the re-rank action URL
+   uses, to keep /export.csv clean when nothing is filtered. #}
+{% macro export_link(fmt, label, kind) %}
+  <a class="{{ kind }}" href="{{ url_for('export', fmt=fmt,
+       min=min_score or none, source=source or none, q=q or none,
+       sort=sort if sort != 'score' else none) }}">{{ label }}</a>
+{%- endmacro %}
+
+{# What the section is, and how big it is, on the heading's own line. It
+   used to be a full paragraph underneath — a line of prose between the
+   heading and the table, three times down the page, saying something you
+   read once. #}
+{% macro section_note(note, held) %}
+  <span class="meta head-note">{{ note }}
+    <b>{{ held }} listing{{ '' if held == 1 else 's' }}</b></span>
+{%- endmacro %}
+
+{# Only when there is something held back. "Show all" lifts the cap on every
+   section rather than this one: the intent behind the click is "stop hiding
+   things", and one flag beats a parameter per section. #}
+{% macro section_foot(shown, held) %}
+  {% if shown < held %}
+    <div class="section-foot">
+      <span class="meta">Showing the top {{ shown }} of {{ held }}</span>
+      <a href="{{ url_for('results', min=min_score or none,
+           source=source or none, q=q or none,
+           sort=sort if sort != 'score' else none, full=1) }}">Show
+        all {{ held }}</a>
+    </div>
+  {% elif full and held > section_cap %}
+    <div class="section-foot">
+      <span class="meta">Showing all {{ held }}</span>
+      <a href="{{ url_for('results', min=min_score or none,
+           source=source or none, q=q or none,
+           sort=sort if sort != 'score' else none) }}">Back to the top
+        {{ section_cap }}</a>
+    </div>
+  {% endif %}
+{%- endmacro %}
 
 {% from "_weights.html" import weight_editor %}
 {% block body %}
@@ -138,6 +190,27 @@
       </label>
     </div>
     <button class="secondary" type="submit">Update the list</button>
+
+    {# The exports carry the filters that are APPLIED, not what the fields
+       above happen to say — they are links, and the query string is the
+       applied state. Naming the count on the label is what keeps that
+       honest: "Export 128 listings" beside a filter you have typed but not
+       submitted still describes the file you will get. #}
+    {% if total %}
+      <div class="panel-foot">
+        <div class="exports">
+          {# One text node: "Export 128 listings" is the label AND the
+             statement of what the file will hold, so it must not be broken
+             up by the template's own line wrapping. #}
+          <span class="label">Export {{ total }} listing{{ '' if total == 1 else 's' }}</span>
+          {{ export_link('xlsx', 'Excel', 'primary') }}
+          {{ export_link('csv', 'CSV', 'secondary') }}
+          {{ export_link('json', 'JSON', 'secondary') }}
+        </div>
+        <p class="meta">Reads the shortlist already on your disk and writes
+          the file here. No API calls, no credit, nothing uploaded.</p>
+      </div>
+    {% endif %}
   </form>
 
   {% if free_only %}
@@ -239,6 +312,8 @@
 
   {% for key, heading, note in sections %}
     {% if buckets[key] %}
+      {%- set held = buckets[key] %}
+      {%- set shown = held if full else held[:section_cap] %}
       {% if key == 'abroad' %}
         {# Collapsed by default: these need a visa, so they are the least
            actionable rows on the screen. Otherwise identical to the panels
@@ -246,21 +321,19 @@
         <details class="panel">
           <summary>
             <h2>{{ heading }}</h2>
-            <span class="meta">{{ buckets[key]|length }}
-              listing{{ "" if buckets[key]|length == 1 else "s" }}</span>
+            {{ section_note(note, held|length) }}
           </summary>
-          <p class="muted">{{ note }}</p>
-          {{ listings_table(buckets[key]) }}
+          {{ listings_table(shown) }}
+          {{ section_foot(shown|length, held|length) }}
         </details>
       {% else %}
         <div class="panel">
           <div class="panel-head">
             <h2>{{ heading }}</h2>
-            <span class="meta">{{ buckets[key]|length }}
-              listing{{ "" if buckets[key]|length == 1 else "s" }}</span>
+            {{ section_note(note, held|length) }}
           </div>
-          <p class="muted">{{ note }}</p>
-          {{ listings_table(buckets[key]) }}
+          {{ listings_table(shown) }}
+          {{ section_foot(shown|length, held|length) }}
         </div>
       {% endif %}
     {% endif %}

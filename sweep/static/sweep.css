@@ -898,3 +898,29 @@ td.score {
    read as a denser, lesser kind of thing than the cards it sits under. */
 .strip .tile { gap: var(--s3); padding: var(--s5); }
 .strip .tile p { margin: 0; color: var(--warm); }
+
+/* Export row. The label is part of the control, not a caption above it: the
+   count is what tells you which rows the file will hold, so it has to sit on
+   the same line as the buttons that produce it. */
+.exports { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+.exports > .label { margin-right: var(--s2); }
+
+/* The overflow chip. Quieter than a matched skill, because it is a count of
+   what is hidden rather than one more thing that matched. */
+.tag.more { border-style: dashed; color: var(--slate); }
+
+/* Apply, and how old the posting is, in the row's last cell. */
+.listings td.act { white-space: nowrap; text-align: right; }
+.listings .posted { display: block; margin-top: 2px; color: var(--slate); font-size: 11px; }
+
+/* The section's own description, on the heading's line rather than a
+   paragraph below it. Capped so it stays a caption: at full width it reads
+   as body copy and competes with the heading. */
+.head-note { max-width: 34rem; text-align: right; }
+.head-note > b { color: var(--chalk); white-space: nowrap; }
+
+.section-foot {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  justify-content: space-between; gap: var(--s4);
+  margin-top: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--rule);
+}

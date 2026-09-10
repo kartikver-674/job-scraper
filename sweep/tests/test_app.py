@@ -1,3 +1,4 @@
+import datetime
 import io
 import itertools
 import json
@@ -3438,6 +3439,268 @@ class TestCreditLeft(unittest.TestCase):
         self.assertIn("Credit left $8.33", body)
 
 
+class TestResultsDensity(unittest.TestCase):
+    """A real sweep is 1600 rows with a dozen matched skills each. The screen
+    has to stay scannable at that size, not only at the fixture's six."""
+
+    def _app(self, rows):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None), fetch_plan=lambda p: RAW_PLAN,
+            read_rows=lambda profile: rows, read_spend=lambda: None,
+            env_path=os.path.join(tempfile.mkdtemp(), ".env"),
+            output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app
+
+    def _many(self, n):
+        # All in one bucket, so the cap is what decides the count on screen.
+        return [dict(ROWS[3], title=f"Role {i}", score=str(100 - i))
+                for i in range(n)]
+
+    def test_a_long_section_shows_its_best_and_offers_the_rest(self):
+        cap = app_module.SECTION_CAP
+        body = self._app(self._many(cap + 12)).test_client().get(
+            "/results").get_data(as_text=True)
+        self.assertEqual(body.count('class="rowlink"'), cap)
+        flat = " ".join(body.split())
+        self.assertIn(f"Showing the top {cap} of {cap + 12}", flat)
+        self.assertIn(f"Show all {cap + 12}", flat)
+        # The best ones, not an arbitrary N: the cap is applied after the
+        # sort, so the row ranked last must be the one held back.
+        self.assertIn("Role 0", body)
+        self.assertNotIn(f"Role {cap + 11}", body)
+
+    def test_show_all_lifts_the_cap_and_offers_the_way_back(self):
+        cap = app_module.SECTION_CAP
+        body = self._app(self._many(cap + 12)).test_client().get(
+            "/results?full=1").get_data(as_text=True)
+        self.assertEqual(body.count('class="rowlink"'), cap + 12)
+        flat = " ".join(body.split())
+        self.assertIn(f"Showing all {cap + 12}", flat)
+        self.assertIn(f"Back to the top {cap}", flat)
+
+    def test_a_short_section_is_offered_no_expansion(self):
+        body = self._app(self._many(3)).test_client().get(
+            "/results").get_data(as_text=True)
+        self.assertNotIn("Showing the top", body)
+        self.assertNotIn("section-foot", body)
+
+    def test_the_cap_is_display_only_and_the_export_is_whole(self):
+        # The file is what someone analyses. Handing them 25 of 37 rows
+        # because a screen was paginated would be a silent data loss.
+        client = self._app(self._many(app_module.SECTION_CAP + 12)).test_client()
+        rows = json.loads(client.get("/export.json").get_data())
+        self.assertEqual(len(rows), app_module.SECTION_CAP + 12)
+
+    def test_a_dozen_matched_skills_collapse_to_a_counted_chip(self):
+        # Twelve of them wrap to three lines and make every row three times
+        # as tall, on the screen whose job is scanning down a list.
+        row = dict(ROWS[0], matched_skills="a, b, c, d, e, f, g, h, i")
+        body = self._app([row]).test_client().get("/results").get_data(as_text=True)
+        self.assertEqual(body.count('<span class="tag">'), 6)
+        # The rest are still reachable, and the count says they exist.
+        self.assertIn('title="g, h, i">+3<', body)
+
+    def test_six_or_fewer_skills_are_all_shown_with_no_chip(self):
+        row = dict(ROWS[0], matched_skills="a, b, c")
+        body = self._app([row]).test_client().get("/results").get_data(as_text=True)
+        self.assertEqual(body.count('<span class="tag">'), 3)
+        self.assertNotIn("tag more", body)
+
+    def test_a_row_says_how_old_the_posting_is(self):
+        # "Newest first" was offered with no date anywhere on the screen, so
+        # the order it produced could not be checked from the page.
+        row = dict(ROWS[0],
+                   date_posted=(datetime.date.today()
+                                - datetime.timedelta(days=9)).isoformat())
+        body = self._app([row]).test_client().get("/results").get_data(as_text=True)
+        self.assertIn('<span class="posted">1w ago</span>', body)
+
+    def test_an_undated_posting_claims_no_age(self):
+        row = dict(ROWS[0], date_posted="")
+        body = self._app([row]).test_client().get("/results").get_data(as_text=True)
+        self.assertNotIn('class="posted"', body)
+
+
+class TestPostedAge(unittest.TestCase):
+    TODAY = datetime.date(2026, 9, 10)
+
+    def test_it_reads_as_an_age_not_a_date(self):
+        for iso, want in (("2026-09-10", "today"), ("2026-09-08", "2d ago"),
+                          ("2026-08-25", "2w ago"), ("2026-06-02", "3mo ago")):
+            self.assertEqual(app_module.posted_age(iso, self.TODAY), want, iso)
+
+    def test_a_timestamp_is_read_by_its_date_prefix(self):
+        # 353 real rows carry a full ISO-8601 timestamp rather than a date.
+        self.assertEqual(
+            app_module.posted_age("2026-08-25T10:00:00Z", self.TODAY), "2w ago")
+
+    def test_nothing_usable_says_nothing(self):
+        for iso in ("", None, "shortly", "2026-13-45"):
+            self.assertEqual(app_module.posted_age(iso, self.TODAY), "", repr(iso))
+
+    def test_a_date_in_the_future_is_bad_data_not_a_negative_age(self):
+        self.assertEqual(app_module.posted_age("2026-09-20", self.TODAY), "")
+
+
+class TestExports(unittest.TestCase):
+    """The shortlist as a file. It re-reads what is already on disk, so it
+    costs nothing — but it has to describe the same rows the screen does."""
+
+    def _app(self, rows=None):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None), fetch_plan=lambda p: RAW_PLAN,
+            read_rows=lambda profile: ROWS if rows is None else rows,
+            read_spend=lambda: None,
+            env_path=os.path.join(tempfile.mkdtemp(), ".env"),
+            output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app
+
+    def _sheet(self, body, name="Listings"):
+        from openpyxl import load_workbook
+        return load_workbook(io.BytesIO(body))[name]
+
+    def test_every_format_downloads_as_a_named_file(self):
+        client = self._app().test_client()
+        for fmt, kind in (("csv", "text/csv"),
+                          ("json", "application/json"),
+                          ("xlsx", "spreadsheetml")):
+            r = client.get(f"/export.{fmt}")
+            self.assertEqual(r.status_code, 200, fmt)
+            self.assertIn(kind, r.headers["Content-Type"], fmt)
+            # An attachment with a name: without the disposition the browser
+            # renders the CSV as a page of text instead of saving it.
+            self.assertIn(f'attachment; filename="sweep-kanav-',
+                          r.headers["Content-Disposition"], fmt)
+            self.assertTrue(r.headers["Content-Disposition"].endswith(
+                f'.{fmt}"'), fmt)
+
+    def test_an_unknown_format_is_a_404_not_a_csv(self):
+        # The extension in the path IS the format. Falling back to CSV would
+        # hand someone a file that is not what its name says.
+        self.assertEqual(self._app().test_client().get(
+            "/export.pdf").status_code, 404)
+
+    def test_the_file_holds_the_rows_the_screen_is_showing(self):
+        # The count on the button comes from the page's own filter; the file
+        # is built by a separate request. They read the same query string
+        # through the same function, and this is what says so.
+        client = self._app().test_client()
+        page = client.get("/results?min=39").get_data(as_text=True)
+        self.assertIn("Export 2 listings", page)
+        rows = json.loads(client.get("/export.json?min=39").get_data())
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(r["Score"] >= 39 for r in rows))
+
+    def test_the_search_and_sort_travel_with_the_export(self):
+        client = self._app().test_client()
+        rows = json.loads(client.get(
+            "/export.json?q=gitlab").get_data())
+        self.assertEqual([r["Company"] for r in rows], ["GitLab"])
+        by_score = json.loads(client.get("/export.json").get_data())
+        by_date = json.loads(client.get("/export.json?sort=recent").get_data())
+        self.assertNotEqual([r["Role"] for r in by_score],
+                            [r["Role"] for r in by_date])
+
+    def test_each_row_carries_the_section_it_was_filed_under(self):
+        # The screen's three headings are the most useful thing to filter a
+        # spreadsheet on, and they are not derivable from any single column.
+        rows = json.loads(self._app().test_client().get(
+            "/export.json").get_data())
+        self.assertEqual(set(r["Reachable"] for r in rows),
+                         {"In India", "Remote", "Needs a visa"})
+
+    def test_the_sheet_is_laid_out_to_be_worked_in(self):
+        sheet = self._sheet(self._app().test_client().get("/export.xlsx").data)
+        self.assertEqual(sheet["A1"].value, "Reachable")
+        self.assertTrue(sheet["A1"].font.bold)
+        # Freeze and filter are the two things that make 400 rows usable.
+        self.assertEqual(sheet.freeze_panes, "A2")
+        self.assertTrue(sheet.auto_filter.ref.startswith("A1:O"))
+        # A column of text digits will not sort or chart.
+        self.assertIsInstance(sheet["B2"].value, int)
+
+    def test_the_role_links_to_the_posting(self):
+        sheet = self._sheet(self._app().test_client().get("/export.xlsx").data)
+        self.assertTrue(sheet["C2"].hyperlink.target.startswith("https://"))
+
+    def test_a_row_with_no_usable_link_is_not_hyperlinked(self):
+        # Same allowlist the results table applies to the row click: a
+        # javascript: URL must not become a clickable cell in a spreadsheet
+        # either.
+        rows = [dict(ROWS[0], apply_url="javascript:alert(1)")]
+        sheet = self._sheet(self._app(rows).test_client().get(
+            "/export.xlsx").data)
+        self.assertIsNone(sheet["C2"].hyperlink)
+
+    def test_a_scraped_title_cannot_become_a_formula(self):
+        # Job titles come off web pages, and a spreadsheet executes any cell
+        # that opens with = + - or @. This is the whole of CSV injection and
+        # .xlsx is no safer.
+        rows = [dict(ROWS[0], title="=HYPERLINK(\"http://x\",\"click\")")]
+        app = self._app(rows)
+        sheet = self._sheet(app.test_client().get("/export.xlsx").data)
+        self.assertTrue(sheet["C2"].value.startswith("'="))
+        body = app.test_client().get("/export.csv").get_data()
+        self.assertIn("'=HYPERLINK", body.decode("utf-8-sig"))
+
+    def test_the_csv_opens_in_excel_with_the_right_encoding(self):
+        # Without the BOM Excel decodes a .csv as the local code page and
+        # every accented company name arrives mojibake.
+        body = self._app().test_client().get("/export.csv").get_data()
+        self.assertTrue(body.startswith(b"\xef\xbb\xbf"))
+
+    def test_the_sheet_records_which_filters_made_it(self):
+        # Three exports taken while narrowing a filter are otherwise three
+        # files nobody can tell apart.
+        about = self._sheet(self._app().test_client().get(
+            "/export.xlsx?min=5&q=gitlab").data, "About this export")
+        pairs = {row[0].value: row[1].value for row in about.iter_rows()}
+        self.assertEqual(pairs["Profile"], "kanav")
+        self.assertEqual(pairs["Minimum score"], 5)
+        self.assertEqual(pairs["Search text"], "gitlab")
+        self.assertEqual(pairs["Listings"], 1)
+
+    def test_a_missing_openpyxl_is_a_message_not_a_500(self):
+        # A fresh clone that has not reinstalled. CSV and JSON still work,
+        # so the screen says which one command fixes it.
+        app = self._app()
+        with mock.patch.dict(sys.modules, {"openpyxl": None}):
+            r = app.test_client().get("/export.xlsx")
+        self.assertEqual(r.status_code, 503)
+        self.assertIn("pip install -r requirements.txt",
+                      r.get_data(as_text=True))
+        self.assertEqual(app.test_client().get("/export.csv").status_code, 200)
+
+    def test_exporting_before_a_sweep_goes_back_to_the_start(self):
+        app = app_module.create_app(state={})
+        app.config.update(TESTING=True)
+        r = app.test_client().get("/export.csv")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/", r.headers["Location"])
+
+    def test_a_profile_name_cannot_break_the_download_header(self):
+        # The profile reaches a response header here. A quote or a newline in
+        # one would end the header early.
+        app = self._app()
+        app.state["profile"] = 'ka"nav\r\nX-Evil: 1'
+        name = app.test_client().get("/export.csv").headers[
+            "Content-Disposition"]
+        self.assertEqual(name, 'attachment; filename="sweep-kanavX-Evil1-'
+                         + datetime.date.today().isoformat() + '.csv"')
+
+    def test_nothing_to_export_offers_no_button(self):
+        page = self._app().test_client().get(
+            "/results?min=999").get_data(as_text=True)
+        self.assertNotIn("Export 0 listings", page)
+        self.assertNotIn("/export.xlsx", page)
+
+
 class TestRunningScreen(unittest.TestCase):
     def _app(self, done=(), alive=True, read_spend=None, now=None):
         proc = FakeProc()
@@ -4105,7 +4368,7 @@ class TestResultsScreen(unittest.TestCase):
                          {"india": [], "remote": [], "abroad": refusal})
 
     def test_filtering_by_score_is_free_and_says_so(self):
-        body = self._app().test_client().get("/results?min=40").get_data(as_text=True)
+        body = self._app().test_client().get("/results?min=39").get_data(as_text=True)
         self.assertIn("Filtering and re-ranking these is free", body)
         self.assertIn("Node.JS Developer", body)          # score 47
         self.assertNotIn("Full Stack Developer (AI Agents)", body)   # score 22
@@ -4366,8 +4629,10 @@ class TestResultsScreen(unittest.TestCase):
         self.assertIn('<tr class="rowlink" data-href="https://board.example/job">',
                       body)
         # And the anchor stays: it is the keyboard and screen-reader path, and
-        # the row is a mouse convenience on top of it.
-        self.assertIn('<a href="https://board.example/job"', body)
+        # the row is a mouse convenience on top of it. Matched on target
+        # rather than on the tag opening, which the row's own data-href does
+        # not carry — so this cannot pass on the <tr> alone.
+        self.assertIn('href="https://board.example/job" target="_blank"', body)
 
     def test_an_unsafe_url_makes_the_row_unclickable_too(self):
         # data-href is a second place the scraped URL reaches the page. It is
