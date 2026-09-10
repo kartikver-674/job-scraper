@@ -1,0 +1,1307 @@
+{
+ "ada-plain": {
+  "parsed": {
+   "name": "Ada Okonkwo",
+   "years_experience": null,
+   "titles": [
+    "Backend Engineer",
+    "Senior Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "django",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "celery",
+    "graphql"
+   ],
+   "companies": [
+    "Fettle Health",
+    "Northwind Logistics"
+   ],
+   "education": [
+    "BSc Computer Science"
+   ],
+   "institutions": [
+    "University of Leeds"
+   ],
+   "projects": [
+    "Split a Django monolith into four services behind GraphQL",
+    "Cut p99 checkout latency from 1.9s to 340ms",
+    "Built the routing API serving 40k deliveries a day",
+    "Moved batch jobs from cron to Celery with retries"
+   ],
+   "certifications": []
+  },
+  "seconds": 7.179823875427246
+ },
+ "ada-twocol": {
+  "parsed": {
+   "name": "Ada Okonkwo",
+   "years_experience": null,
+   "titles": [
+    "Backend Engineer",
+    "Senior Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "django",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "celery",
+    "graphql"
+   ],
+   "companies": [
+    "Fettle Health",
+    "Northwind Logistics"
+   ],
+   "education": [
+    "BSc Computer Science"
+   ],
+   "institutions": [
+    "University of Leeds"
+   ],
+   "projects": [
+    "Split a Django monolith into four services behind GraphQL.",
+    "Cut p99 checkout latency from 1.9s to 340ms.",
+    "Built the routing API serving 40k deliveries a day.",
+    "Moved batch jobs from cron to Celery with retries."
+   ],
+   "certifications": []
+  },
+  "seconds": 5.672091960906982
+ },
+ "ada-tables": {
+  "parsed": {
+   "name": "Ada Okonkwo",
+   "years_experience": null,
+   "titles": [
+    "Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "django",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "celery",
+    "graphql"
+   ],
+   "companies": [
+    "Fettle Health",
+    "Northwind Logistics"
+   ],
+   "education": [
+    "BSc Computer Science"
+   ],
+   "institutions": [
+    "University of Leeds"
+   ],
+   "projects": [
+    "Split a Django monolith into four services behind GraphQL",
+    "Built the routing API serving 40k deliveries a day"
+   ],
+   "certifications": []
+  },
+  "seconds": 4.556963682174683
+ },
+ "ada-messy": {
+  "parsed": {
+   "name": "Ada Okonkwo",
+   "years_experience": null,
+   "titles": [
+    "Backend Engineer",
+    "Senior Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "django",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "celery",
+    "graphql"
+   ],
+   "companies": [
+    "Fettle Health",
+    "Northwind Logistics"
+   ],
+   "education": [
+    "BSc Computer Science"
+   ],
+   "institutions": [
+    "University of Leeds"
+   ],
+   "projects": [
+    "Split a Django monolith into four services behind GraphQL.",
+    "Cut p99 checkout latency from 1.9s to 340ms.",
+    "Built the routing API serving 40k deliveries a day.",
+    "Moved batch jobs from cron to Celery with retries."
+   ],
+   "certifications": []
+  },
+  "seconds": 5.771832704544067
+ },
+ "bhaskar-plain": {
+  "parsed": {
+   "name": "Bhaskar Nair",
+   "years_experience": null,
+   "titles": [
+    "Final-year student",
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "mysql",
+    "git",
+    "html",
+    "css"
+   ],
+   "companies": [
+    "Zenith Softworks"
+   ],
+   "education": [
+    "B.Tech Computer Science"
+   ],
+   "institutions": [
+    "Cochin University of Science and Technology"
+   ],
+   "projects": [
+    "Campus Swap"
+   ],
+   "certifications": []
+  },
+  "seconds": 4.009153127670288
+ },
+ "bhaskar-twocol": {
+  "parsed": {
+   "name": "Bhaskar Nair",
+   "years_experience": null,
+   "titles": [
+    "Final-year student",
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "mysql",
+    "git",
+    "html",
+    "css"
+   ],
+   "companies": [
+    "Zenith Softworks"
+   ],
+   "education": [
+    "B.Tech Computer Science"
+   ],
+   "institutions": [
+    "Cochin University of Science and Technology"
+   ],
+   "projects": [
+    "Campus Swap"
+   ],
+   "certifications": []
+  },
+  "seconds": 3.905179023742676
+ },
+ "bhaskar-tables": {
+  "parsed": {
+   "name": "Bhaskar Nair",
+   "years_experience": null,
+   "titles": [
+    "Final-year student",
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "mysql",
+    "git",
+    "html",
+    "css"
+   ],
+   "companies": [
+    "Zenith Softworks"
+   ],
+   "education": [
+    "B.Tech Computer Science"
+   ],
+   "institutions": [
+    "Cochin University of Science and Technology"
+   ],
+   "projects": [
+    "Campus Swap"
+   ],
+   "certifications": []
+  },
+  "seconds": 3.9423890113830566
+ },
+ "bhaskar-messy": {
+  "parsed": {
+   "name": "Bhaskar Nair",
+   "years_experience": null,
+   "titles": [
+    "Final-year student",
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "mysql",
+    "git",
+    "html",
+    "css"
+   ],
+   "companies": [
+    "Zenith Softworks"
+   ],
+   "education": [
+    "B.Tech Computer Science"
+   ],
+   "institutions": [
+    "Cochin University of Science and Technology"
+   ],
+   "projects": [
+    "Campus Swap spring boot, mysql"
+   ],
+   "certifications": []
+  },
+  "seconds": 4.1943359375
+ },
+ "chen-plain": {
+  "parsed": {
+   "name": "Chen Wei-Lin",
+   "years_experience": null,
+   "titles": [
+    "Staff Platform Engineer",
+    "Senior Platform Engineer",
+    "Site Reliability Engineer",
+    "Infrastructure Engineer"
+   ],
+   "skills": [
+    "go",
+    "terraform",
+    "kubernetes",
+    "aws",
+    "prometheus",
+    "envoy",
+    "kafka",
+    "postgresql",
+    "bazel"
+   ],
+   "companies": [
+    "Meridian Pay",
+    "Halcyon Media",
+    "Baystone Bank"
+   ],
+   "education": [
+    "MSc Computer Science",
+    "BSc Information Engineering"
+   ],
+   "institutions": [
+    "National Taiwan University"
+   ],
+   "projects": [
+    "multi-region control plane",
+    "Kubernetes migration off bare EC2",
+    "Kafka estate for settlement messaging"
+   ],
+   "certifications": [
+    "Certified Kubernetes Administrator \u2014 CNCF",
+    "AWS Solutions Architect \u2013 Professional \u2014 AWS"
+   ]
+  },
+  "seconds": 6.199206829071045
+ },
+ "chen-twocol": {
+  "parsed": {
+   "name": "Chen Wei-Lin",
+   "years_experience": null,
+   "titles": [
+    "Staff Platform Engineer",
+    "Senior Platform Engineer",
+    "Site Reliability Engineer",
+    "Infrastructure Engineer"
+   ],
+   "skills": [
+    "go",
+    "terraform",
+    "kubernetes",
+    "aws",
+    "prometheus",
+    "envoy",
+    "kafka",
+    "postgresql",
+    "bazel"
+   ],
+   "companies": [
+    "Meridian Pay",
+    "Halcyon Media",
+    "Baystone Bank"
+   ],
+   "education": [
+    "MSc Computer Science",
+    "BSc Information Engineering"
+   ],
+   "institutions": [
+    "National Taiwan University"
+   ],
+   "projects": [],
+   "certifications": [
+    "Certified Kubernetes Administrator \u2014 CNCF",
+    "AWS Solutions Architect \u2013 Professional \u2014 AWS"
+   ]
+  },
+  "seconds": 5.565571069717407
+ },
+ "chen-tables": {
+  "parsed": {
+   "name": "Chen Wei-Lin",
+   "years_experience": null,
+   "titles": [
+    "Staff Platform Engineer",
+    "Senior Platform Engineer",
+    "Site Reliability Engineer",
+    "Infrastructure Engineer"
+   ],
+   "skills": [
+    "go",
+    "terraform",
+    "kubernetes",
+    "aws",
+    "prometheus",
+    "envoy",
+    "kafka",
+    "postgresql",
+    "bazel"
+   ],
+   "companies": [
+    "Meridian Pay",
+    "Halcyon Media",
+    "Baystone Bank"
+   ],
+   "education": [
+    "MSc Computer Science",
+    "BSc Information Engineering"
+   ],
+   "institutions": [
+    "National Taiwan University"
+   ],
+   "projects": [
+    "multi-region control plane",
+    "Kubernetes migration off bare EC2",
+    "rewriting Prometheus rules",
+    "Kafka estate for settlement messaging"
+   ],
+   "certifications": [
+    "Certified Kubernetes Administrator \u2014 CNCF",
+    "AWS Solutions Architect \u2013 Professional \u2014 AWS"
+   ]
+  },
+  "seconds": 6.45976996421814
+ },
+ "chen-messy": {
+  "parsed": {
+   "name": "Chen Wei-Lin",
+   "years_experience": null,
+   "titles": [
+    "Staff Platform Engineer",
+    "Senior Platform Engineer",
+    "Site Reliability Engineer",
+    "Infrastructure Engineer"
+   ],
+   "skills": [
+    "go",
+    "terraform",
+    "kubernetes",
+    "aws",
+    "prometheus",
+    "envoy",
+    "kafka",
+    "postgresql",
+    "bazel"
+   ],
+   "companies": [
+    "Meridian Pay",
+    "Halcyon Media",
+    "Baystone Bank"
+   ],
+   "education": [
+    "MSc Computer Science",
+    "BSc Information Engineering"
+   ],
+   "institutions": [
+    "National Taiwan University"
+   ],
+   "projects": [
+    "multi-region control plane",
+    "Kubernetes migration off bare EC2",
+    "Kafka estate for settlement messaging"
+   ],
+   "certifications": [
+    "Certified Kubernetes Administrator \u2014 CNCF",
+    "AWS Solutions Architect \u2013 Professional \u2014 AWS"
+   ]
+  },
+  "seconds": 6.416956901550293
+ },
+ "dmitri-plain": {
+  "parsed": {
+   "name": "Dmitri Sarkisyan",
+   "years_experience": null,
+   "titles": [
+    "Systems Engineer",
+    "formal methods",
+    "Verification Engineer"
+   ],
+   "skills": [
+    "ocaml",
+    "coq",
+    "tla+",
+    "lean 4",
+    "zig",
+    "seL4",
+    "isabelle",
+    "rust",
+    "spark ada",
+    "frama-c"
+   ],
+   "companies": [
+    "Kestrel Systems",
+    "Aragats Robotics"
+   ],
+   "education": [
+    "MSc Mathematics"
+   ],
+   "institutions": [
+    "Yerevan State University"
+   ],
+   "projects": [
+    "seL4 capability audit"
+   ],
+   "certifications": []
+  },
+  "seconds": 4.769308090209961
+ },
+ "dmitri-twocol": {
+  "parsed": {
+   "name": "Dmitri Sarkisyan",
+   "years_experience": null,
+   "titles": [
+    "Systems Engineer",
+    "formal methods",
+    "Verification Engineer"
+   ],
+   "skills": [
+    "ocaml",
+    "coq",
+    "tla+",
+    "lean 4",
+    "zig",
+    "seL4",
+    "isabelle",
+    "rust",
+    "spark ada",
+    "frama-c"
+   ],
+   "companies": [
+    "Kestrel Systems",
+    "Aragats Robotics"
+   ],
+   "education": [
+    "MSc Mathematics"
+   ],
+   "institutions": [
+    "Yerevan State University"
+   ],
+   "projects": [
+    "seL4 capability audit"
+   ],
+   "certifications": []
+  },
+  "seconds": 4.763560771942139
+ },
+ "dmitri-tables": {
+  "parsed": {
+   "name": "Dmitri Sarkisyan",
+   "years_experience": null,
+   "titles": [
+    "Systems Engineer",
+    "formal methods"
+   ],
+   "skills": [
+    "ocaml",
+    "coq",
+    "tla+",
+    "lean 4",
+    "zig",
+    "seL4",
+    "isabelle",
+    "rust",
+    "spark ada",
+    "frama-c"
+   ],
+   "companies": [
+    "Kestrel Systems",
+    "Aragats Robotics"
+   ],
+   "education": [
+    "MSc Mathematics, Yerevan State University Sep 2016 \u2013 Jun 2018"
+   ],
+   "institutions": [
+    "Yerevan State University"
+   ],
+   "projects": [
+    "seL4 capability audit"
+   ],
+   "certifications": []
+  },
+  "seconds": 5.293900012969971
+ },
+ "dmitri-messy": {
+  "parsed": {
+   "name": "Dmitri Sarkisyan",
+   "years_experience": null,
+   "titles": [
+    "Systems Engineer",
+    "formal methods",
+    "Verification Engineer"
+   ],
+   "skills": [
+    "ocaml",
+    "coq",
+    "tla+",
+    "lean 4",
+    "zig",
+    "seL4",
+    "isabelle",
+    "rust",
+    "spark ada",
+    "frama-c"
+   ],
+   "companies": [
+    "Kestrel Systems",
+    "Aragats Robotics"
+   ],
+   "education": [
+    "MSc Mathematics"
+   ],
+   "institutions": [
+    "Yerevan State University"
+   ],
+   "projects": [
+    "seL4 capability audit"
+   ],
+   "certifications": []
+  },
+  "seconds": 4.937179088592529
+ },
+ "esi-plain": {
+  "parsed": {
+   "name": "Esi Boateng",
+   "years_experience": null,
+   "titles": [
+    "Full-Stack Developer"
+   ],
+   "skills": [
+    "react",
+    "typescript",
+    "node.js",
+    "prisma",
+    "postgresql",
+    "tailwind css",
+    "trpc",
+    "vitest"
+   ],
+   "companies": [
+    "Kola Digital"
+   ],
+   "education": [
+    "BSc Computer Engineering"
+   ],
+   "institutions": [
+    "Kwame Nkrumah University of Science and Technology"
+   ],
+   "projects": [
+    "Tro Tracker",
+    "Chophouse",
+    "Adinkra UI",
+    "Sika Split",
+    "Kente Weave",
+    "Farm Gate",
+    "Clinic Queue",
+    "Exam Drill",
+    "Solar Ledger",
+    "Trotro Fare API",
+    "Bantaba",
+    "Papaye Bot"
+   ],
+   "certifications": []
+  },
+  "seconds": 6.229691982269287
+ },
+ "esi-twocol": {
+  "parsed": {
+   "name": "Esi Boateng",
+   "years_experience": null,
+   "titles": [
+    "Full-Stack Developer"
+   ],
+   "skills": [
+    "react",
+    "typescript",
+    "node.js",
+    "prisma",
+    "postgresql",
+    "tailwind css",
+    "trpc",
+    "vitest"
+   ],
+   "companies": [
+    "Kola Digital"
+   ],
+   "education": [
+    "BSc Computer Engineering"
+   ],
+   "institutions": [
+    "Kwame Nkrumah University of Science and Technology"
+   ],
+   "projects": [
+    "Tro Tracker",
+    "Chophouse",
+    "Adinkra UI",
+    "Sika Split",
+    "Kente Weave",
+    "Farm Gate",
+    "Clinic Queue",
+    "Exam Drill",
+    "Solar Ledger",
+    "Trotro Fare API",
+    "Bantaba",
+    "Papaye Bot"
+   ],
+   "certifications": []
+  },
+  "seconds": 6.931936025619507
+ },
+ "esi-tables": {
+  "parsed": {
+   "name": "Esi Boateng",
+   "years_experience": null,
+   "titles": [
+    "Full-Stack Developer"
+   ],
+   "skills": [
+    "react",
+    "typescript",
+    "node.js",
+    "prisma",
+    "postgresql",
+    "tailwind css",
+    "trpc",
+    "vitest"
+   ],
+   "companies": [
+    "Kola Digital"
+   ],
+   "education": [
+    "BSc Computer Engineering"
+   ],
+   "institutions": [
+    "Kwame Nkrumah University of Science and Technology"
+   ],
+   "projects": [
+    "Tro Tracker",
+    "Chophouse",
+    "Adinkra UI",
+    "Sika Split",
+    "Kente Weave",
+    "Farm Gate",
+    "Clinic Queue",
+    "Exam Drill",
+    "Solar Ledger",
+    "Trotro Fare API",
+    "Bantaba",
+    "Papaye Bot"
+   ],
+   "certifications": []
+  },
+  "seconds": 11.848909139633179
+ },
+ "esi-messy": {
+  "parsed": {
+   "name": "Esi Boateng",
+   "years_experience": null,
+   "titles": [
+    "Full-Stack Developer"
+   ],
+   "skills": [
+    "react",
+    "typescript",
+    "node.js",
+    "prisma",
+    "postgresql",
+    "tailwind css",
+    "trpc",
+    "vitest"
+   ],
+   "companies": [
+    "Kola Digital"
+   ],
+   "education": [
+    "BSc Computer Engineering"
+   ],
+   "institutions": [
+    "Kwame Nkrumah University of Science and Technology"
+   ],
+   "projects": [
+    "Tro Tracker",
+    "Chophouse",
+    "Adinkra UI",
+    "Sika Split",
+    "Kente Weave",
+    "Farm Gate",
+    "Clinic Queue",
+    "Exam Drill",
+    "Solar Ledger",
+    "Trotro Fare API",
+    "Bantaba",
+    "Papaye Bot"
+   ],
+   "certifications": []
+  },
+  "seconds": 6.285943984985352
+ },
+ "farida-plain": {
+  "parsed": {
+   "name": "Farida Haddad",
+   "years_experience": null,
+   "titles": [
+    "Data Engineer",
+    "Analytics Engineer"
+   ],
+   "skills": [
+    "python",
+    "spark",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "sql",
+    "kafka",
+    "great expectations"
+   ],
+   "companies": [
+    "Atlas Retail Group",
+    "Marchica Analytics"
+   ],
+   "education": [
+    "MSc Statistics"
+   ],
+   "institutions": [
+    "Universit\u00e9 Hassan II"
+   ],
+   "projects": [
+    "Owns 200 dbt models and the Airflow estate.",
+    "Built the Spark pipeline behind weekly forecasts."
+   ],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake",
+    "dbt Analytics Engineering \u2014 dbt Labs",
+    "Databricks Spark Developer \u2014 Databricks",
+    "Airflow Fundamentals \u2014 Astronomer",
+    "Deep Learning Specialisation \u2014 Coursera"
+   ]
+  },
+  "seconds": 6.273359775543213
+ },
+ "farida-twocol": {
+  "parsed": {
+   "name": "Farida Haddad",
+   "years_experience": null,
+   "titles": [
+    "Data Engineer",
+    "Analytics Engineer"
+   ],
+   "skills": [
+    "python",
+    "spark",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "sql",
+    "kafka",
+    "great expectations"
+   ],
+   "companies": [
+    "Atlas Retail Group",
+    "Marchica Analytics"
+   ],
+   "education": [
+    "MSc Statistics"
+   ],
+   "institutions": [
+    "Universit\u00e9 Hassan II"
+   ],
+   "projects": [
+    "Owns 200 dbt models and the Airflow estate.",
+    "Built the Spark pipeline behind weekly forecasts."
+   ],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake",
+    "dbt Analytics Engineering \u2014 dbt Labs",
+    "Databricks Spark Developer \u2014 Databricks",
+    "Airflow Fundamentals \u2014 Astronomer",
+    "Deep Learning Specialisation \u2014 Coursera"
+   ]
+  },
+  "seconds": 6.275375843048096
+ },
+ "farida-tables": {
+  "parsed": {
+   "name": "Farida Haddad",
+   "years_experience": null,
+   "titles": [
+    "Data Engineer",
+    "Analytics Engineer"
+   ],
+   "skills": [
+    "python",
+    "spark",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "sql",
+    "kafka",
+    "great expectations"
+   ],
+   "companies": [
+    "Atlas Retail Group",
+    "Marchica Analytics"
+   ],
+   "education": [
+    "MSc Statistics"
+   ],
+   "institutions": [
+    "Universit\u00e9 Hassan II"
+   ],
+   "projects": [
+    "Seasonal demand forecasting for Moroccan grocery retail.",
+    "A note on data quality gates in dbt."
+   ],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake",
+    "dbt Analytics Engineering \u2014 dbt Labs",
+    "Databricks Spark Developer \u2014 Databricks",
+    "Airflow Fundamentals \u2014 Astronomer",
+    "Deep Learning Specialisation \u2014 Coursera"
+   ]
+  },
+  "seconds": 6.1643970012664795
+ },
+ "farida-messy": {
+  "parsed": {
+   "name": "Farida Haddad",
+   "years_experience": null,
+   "titles": [
+    "Data Engineer",
+    "Analytics Engineer"
+   ],
+   "skills": [
+    "python",
+    "spark",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "sql",
+    "kafka",
+    "great expectations"
+   ],
+   "companies": [
+    "Atlas Retail Group",
+    "Marchica Analytics"
+   ],
+   "education": [
+    "MSc Statistics"
+   ],
+   "institutions": [
+    "Universit\u00e9 Hassan II"
+   ],
+   "projects": [
+    "Owns 200 dbt models and the Airflow estate.",
+    "Built the Spark pipeline behind weekly forecasts."
+   ],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake",
+    "dbt Analytics Engineering \u2014 dbt Labs",
+    "Databricks Spark Developer \u2014 Databricks",
+    "Airflow Fundamentals \u2014 Astronomer",
+    "Deep Learning Specialisation \u2014 Coursera"
+   ]
+  },
+  "seconds": 6.952999830245972
+ },
+ "gopal-plain": {
+  "parsed": {
+   "name": "Gopal Krishnan",
+   "years_experience": null,
+   "titles": [
+    "QA Automation Lead",
+    "SDET",
+    "Test Engineer"
+   ],
+   "skills": [
+    "selenium",
+    "playwright",
+    "pytest",
+    "java",
+    "testng",
+    "appium",
+    "jenkins",
+    "rest assured",
+    "jmeter"
+   ],
+   "companies": [
+    "Tessellate Systems",
+    "Vaigai Infotech",
+    "Kaveri Software"
+   ],
+   "education": [
+    "BE Information Technology"
+   ],
+   "institutions": [
+    "Anna University"
+   ],
+   "projects": [
+    "Runs a suite of 4,200 Playwright specs on Jenkins.",
+    "Introduced Appium coverage for the mobile app.",
+    "Manual to Selenium migration for the billing suite."
+   ],
+   "certifications": [
+    "ISTQB Advanced Test Automation Engineer \u2014 ISTQB, Oct 2020"
+   ]
+  },
+  "seconds": 8.15477204322815
+ },
+ "gopal-twocol": {
+  "parsed": {
+   "name": "Gopal Krishnan",
+   "years_experience": null,
+   "titles": [
+    "QA Automation Lead",
+    "SDET",
+    "Test Engineer"
+   ],
+   "skills": [
+    "selenium",
+    "playwright",
+    "pytest",
+    "java",
+    "testng",
+    "appium",
+    "jenkins",
+    "rest assured",
+    "jmeter"
+   ],
+   "companies": [
+    "Tessellate Systems",
+    "Vaigai Infotech",
+    "Kaveri Software"
+   ],
+   "education": [
+    "BE Information Technology"
+   ],
+   "institutions": [
+    "Anna University"
+   ],
+   "projects": [
+    "Runs a suite of 4,200 Playwright specs on Jenkins.",
+    "Introduced Appium coverage for the mobile app.",
+    "Manual to Selenium migration for the billing suite."
+   ],
+   "certifications": [
+    "ISTQB Advanced Test Automation Engineer \u2014 ISTQB, Oct 2020"
+   ]
+  },
+  "seconds": 10.754969120025635
+ },
+ "gopal-tables": {
+  "parsed": {
+   "name": "Gopal Krishnan",
+   "years_experience": null,
+   "titles": [
+    "QA Automation Lead",
+    "SDET",
+    "Test Engineer"
+   ],
+   "skills": [
+    "selenium",
+    "playwright",
+    "pytest",
+    "java",
+    "testng",
+    "appium",
+    "jenkins",
+    "rest assured",
+    "jmeter"
+   ],
+   "companies": [
+    "Tessellate Systems",
+    "Vaigai Infotech",
+    "Kaveri Software"
+   ],
+   "education": [
+    "BE Information Technology"
+   ],
+   "institutions": [
+    "Anna University"
+   ],
+   "projects": [
+    "Runs a suite of 4,200 Playwright specs on Jenkins.",
+    "Introduced Appium coverage for the mobile app.",
+    "Manual to Selenium migration for the billing suite."
+   ],
+   "certifications": [
+    "ISTQB Advanced Test Automation Engineer \u2014 ISTQB, Oct 2020"
+   ]
+  },
+  "seconds": 6.04150390625
+ },
+ "gopal-messy": {
+  "parsed": {
+   "name": "Gopal Krishnan",
+   "years_experience": 7,
+   "titles": [
+    "QA Automation Lead",
+    "SDET",
+    "Test Engineer"
+   ],
+   "skills": [
+    "selenium",
+    "playwright",
+    "pytest",
+    "java",
+    "testng",
+    "appium",
+    "jenkins",
+    "rest assured",
+    "jmeter"
+   ],
+   "companies": [
+    "Tessellate Systems",
+    "Vaigai Infotech",
+    "Kaveri Software"
+   ],
+   "education": [
+    "BE Information Technology, Anna University"
+   ],
+   "institutions": [
+    "Anna University"
+   ],
+   "projects": [
+    "Runs a suite of 4,200 Playwright specs on Jenkins.",
+    "Introduced Appium coverage for the mobile app.",
+    "Manual to Selenium migration for the billing suite."
+   ],
+   "certifications": [
+    "ISTQB Advanced Test Automation Engineer \u2014 ISTQB, Oct 2020"
+   ]
+  },
+  "seconds": 6.344743967056274
+ },
+ "hana-plain": {
+  "parsed": {
+   "name": "Hana Fujimoto",
+   "years_experience": 10,
+   "titles": [
+    "Machine Learning Engineer",
+    "Computer Vision Engineer",
+    "Machine Learning Intern",
+    "Structural Engineer"
+   ],
+   "skills": [
+    "python",
+    "pytorch",
+    "onnx",
+    "opencv",
+    "cuda",
+    "numpy",
+    "ray",
+    "mlflow",
+    "polars"
+   ],
+   "companies": [
+    "Sakura Vision",
+    "Rinku Robotics",
+    "Naniwa Data Lab",
+    "Kansai Bridge & Structure"
+   ],
+   "education": [
+    "MEng Civil Engineering",
+    "Certificate in Applied Statistics",
+    "BEng Civil Engineering"
+   ],
+   "institutions": [
+    "Kyoto University",
+    "Osaka Institute of Technology"
+   ],
+   "projects": [
+    "Bridge crack segmentation"
+   ],
+   "certifications": [
+    "Professional Engineer, Civil (Japan)",
+    "Deep Learning Specialisation",
+    "JDLA Deep Learning for Engineers"
+   ]
+  },
+  "seconds": 7.713731050491333
+ },
+ "hana-twocol": {
+  "parsed": {
+   "name": "Hana Fujimoto",
+   "years_experience": null,
+   "titles": [
+    "Machine Learning Engineer",
+    "Computer Vision Engineer",
+    "Machine Learning Intern",
+    "Structural Engineer"
+   ],
+   "skills": [
+    "python",
+    "pytorch",
+    "onnx",
+    "opencv",
+    "cuda",
+    "numpy",
+    "ray",
+    "mlflow",
+    "polars"
+   ],
+   "companies": [
+    "Sakura Vision",
+    "Rinku Robotics",
+    "Naniwa Data Lab",
+    "Kansai Bridge & Structure"
+   ],
+   "education": [
+    "MEng Civil Engineering",
+    "Certificate in Applied Statistics",
+    "BEng Civil Engineering"
+   ],
+   "institutions": [
+    "Kyoto University",
+    "Osaka Institute of Technology"
+   ],
+   "projects": [
+    "Bridge crack segmentation pytorch, opencv"
+   ],
+   "certifications": [
+    "Professional Engineer, Civil (Japan)",
+    "Deep Learning Specialisation",
+    "JDLA Deep Learning for Engineers"
+   ]
+  },
+  "seconds": 9.920388221740723
+ },
+ "hana-tables": {
+  "parsed": {
+   "name": "Hana Fujimoto",
+   "years_experience": 10,
+   "titles": [
+    "Machine Learning Engineer",
+    "Computer Vision Engineer",
+    "Machine Learning Intern",
+    "Structural Engineer"
+   ],
+   "skills": [
+    "python",
+    "pytorch",
+    "onnx",
+    "opencv",
+    "cuda",
+    "numpy",
+    "ray",
+    "mlflow",
+    "polars"
+   ],
+   "companies": [
+    "Sakura Vision",
+    "Rinku Robotics",
+    "Naniwa Data Lab",
+    "Kansai Bridge & Structure"
+   ],
+   "education": [
+    "MEng Civil Engineering",
+    "Certificate in Applied Statistics",
+    "BEng Civil Engineering"
+   ],
+   "institutions": [
+    "Kyoto University",
+    "Osaka Institute of Technology"
+   ],
+   "projects": [
+    "Bridge crack segmentation pytorch, opencv"
+   ],
+   "certifications": [
+    "Professional Engineer, Civil (Japan)",
+    "Deep Learning Specialisation",
+    "JDLA Deep Learning for Engineers"
+   ]
+  },
+  "seconds": 8.054716110229492
+ },
+ "hana-messy": {
+  "parsed": {
+   "name": "Hana Fujimoto",
+   "years_experience": null,
+   "titles": [
+    "Machine Learning Engineer",
+    "Computer Vision Engineer",
+    "Machine Learning Intern",
+    "Structural Engineer"
+   ],
+   "skills": [
+    "python",
+    "pytorch",
+    "onnx",
+    "opencv",
+    "cuda",
+    "numpy",
+    "ray",
+    "mlflow",
+    "polars"
+   ],
+   "companies": [
+    "Sakura Vision",
+    "Rinku Robotics",
+    "Naniwa Data Lab",
+    "Kansai Bridge & Structure"
+   ],
+   "education": [
+    "MEng Civil Engineering",
+    "Certificate in Applied Statistics",
+    "BEng Civil Engineering"
+   ],
+   "institutions": [
+    "Kyoto University",
+    "Osaka Institute of Technology"
+   ],
+   "projects": [
+    "Bridge crack segmentation pytorch, opencv"
+   ],
+   "certifications": [
+    "Professional Engineer, Civil (Japan)",
+    "Deep Learning Specialisation",
+    "JDLA Deep Learning for Engineers"
+   ]
+  },
+  "seconds": 8.036663055419922
+ }
+}
