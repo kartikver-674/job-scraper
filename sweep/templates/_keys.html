@@ -1,0 +1,32 @@
+{# The keys this sweep can spend from. Shared by the two screens that offer
+   to attach one, so the list and the thing that adds to it cannot drift.
+
+   The token itself never reaches the page — only its last four characters,
+   which is enough to match a row against the Apify console and not enough
+   to use. The remove control posts the .env SLOT NAME, so the secret is not
+   in the DOM even as a form value. #}
+{% macro key_pills_row(pills, back, in_flight=false) -%}
+{% if pills %}
+<div class="keys">
+  <span class="label">{{ pills|length }}
+    key{{ '' if pills|length == 1 else 's' }} attached</span>
+  {% for key in pills %}
+    <span class="keypill" title="{{ key.name }} in your .env">
+      <b>{{ key.label }}</b>
+      <code>{{ key.tail }}</code>
+      {# A balance this screen could not read is not a balance of zero. #}
+      <span class="bal">{% if key.credit is not none %}${{
+        '%.2f'|format(key.credit) }}{% else %}not read{% endif %}</span>
+      <form method="post" action="{{ url_for('key_remove') }}">
+        <input type="hidden" name="name" value="{{ key.name }}">
+        <input type="hidden" name="back" value="{{ back }}">
+        <button type="submit" class="keyx"{% if in_flight %} disabled{% endif %}
+                aria-label="Detach {{ key.label }}, {{ key.tail }}"
+                title="{% if in_flight %}A sweep is running{% else
+                       %}Detach this key{% endif %}">&times;</button>
+      </form>
+    </span>
+  {% endfor %}
+</div>
+{% endif %}
+{%- endmacro %}

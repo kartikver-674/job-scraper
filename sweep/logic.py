@@ -361,6 +361,33 @@ def cheapest_rate(tiles, rates):
     return min(paid) if paid else None
 
 
+def mask_token(token, keep=4):
+    """A token as it may appear on screen: the last few characters only.
+
+    Enough to tell two keys apart and to match one against the Apify
+    console, and not enough to use. The whole value never reaches the page —
+    the remove control posts the .env slot NAME, not the secret.
+    """
+    tail = (token or "")[-keep:] if keep > 0 else ""
+    return "****" + tail
+
+
+def key_pills(tokens, credits=None):
+    """One row per configured key: what to call it, enough of it to tell
+    them apart, what is left on it, and the slot it lives in.
+
+    Numbered by position rather than by slot, because the slots have gaps —
+    deleting APIFY_TOKEN_2 by hand leaves APIFY_TOKEN and APIFY_TOKEN_3, and
+    a list that reads "Token 1, Token 3" invites the question of where Token
+    2 went. The slot name travels along for the hover and for the control
+    that removes it, so the link to .env is never lost.
+    """
+    credits = credits or {}
+    return [{"name": name, "label": f"Token {position}",
+             "tail": mask_token(token), "credit": credits.get(name)}
+            for position, (name, token) in enumerate(tokens, start=1)]
+
+
 def and_list(items):
     """"a", "a and b", "a, b and c" — an English list, not "a and b and c"."""
     items = [str(i) for i in items]

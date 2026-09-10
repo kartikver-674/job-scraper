@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_keys.html" import key_pills_row %}
 {% block title %}Confirm the spend — Sweep{% endblock %}
 {% block meter_label %}{% if free_only %}This sweep costs{% else %}About to
   spend{% endif %}{% endblock %}
@@ -67,6 +68,12 @@
           result. Naukri is the exception — its charge is a per-run minimum at a
           fixed depth of its own, so the depth control does not move it.</p>
         {% endif %}
+
+        {# What will pay for it, and the way to prune it — outside the
+           over-cap branch on purpose. Attaching a key can take a plan back
+           under the cap, and a list that then disappeared would leave no
+           way to detach the one you did not mean to add. #}
+        {{ key_pills_row(key_pills, 'confirm', sweep_running) }}
       </div>
 
       {% if plan.over_cap %}
@@ -76,10 +83,9 @@
             than ${{ '%.2f'|format(cap_usd) }}, so you are
             ${{ '%.2f'|format(plan.shortfall) }} short. Left as it is, the sweep
             would stop partway through.</p>
-          {% if keys_attached > 1 %}
-            <p class="muted">{{ keys_attached }} keys attached{% if credit_total_usd %},
-              ${{ '%.2f'|format(credit_total_usd) }} between them — but a sweep
-              can only spend from one of them at a time{% endif %}.</p>
+          {% if keys_attached > 1 and credit_total_usd %}
+            <p class="muted">${{ '%.2f'|format(credit_total_usd) }} between
+              them — but a sweep can only spend from one at a time.</p>
           {% endif %}
 
           <h3>Add another key</h3>

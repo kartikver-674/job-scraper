@@ -3959,6 +3959,193 @@ class TestPricingWhatIsLeft(Isolated):
         self.assertFalse(app.state["plan"]["over_cap"])
 
 
+class TestKeyPills(Isolated):
+    """The attached keys, as a row you can read and prune. The screen this
+    sits on is the one where the NUMBER of keys is the problem."""
+
+    SECRET = "apify_api_" + "z" * 32 + "8F2A"
+
+    def _app(self, env="APIFY_TOKEN=%s\n", credits=None, alive=False,
+             balances=None):
+        # /confirm re-verifies every key on arrival, so a balance seeded in
+        # state is replaced by whatever check_token says. Per-token here, or
+        # every pill shows the same figure.
+        def check(token):
+            figure = (balances or {}).get(token, 1.00)
+            return (None, "network is down") if figure is None else (figure, None)
+
+        self.dir = tempfile.mkdtemp()
+        self.env_path = os.path.join(self.dir, ".env")
+        pathlib.Path(self.env_path).write_text(env % self.SECRET
+                                               if "%s" in env else env)
+        proc = FakeProc()
+        if not alive:
+            proc.poll = lambda: 0
+        state = {"profile": "kanav", "cap_usd": 1.00, "derived": DERIVED,
+                 "credit_total_usd": 1.00, "proc": proc,
+                 "key_credit": credits or {"APIFY_TOKEN": 1.00},
+                 "raw_plan": RUNNING_PLAN,
+                 "plan": {"total": 2.70, "total_searches": 46, "lines": [],
+                          "over_cap": True, "shortfall": 1.70,
+                          "spend_cap": 3.38, "already_done": 0}}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=check,
+            fetch_plan=lambda p: RUNNING_PLAN, read_rows=lambda p: [],
+            read_done=lambda p, d: [], read_spend=lambda: None,
+            start_sweep=lambda p: proc,
+            env_path=self.env_path, output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app
+
+    def _on_file(self):
+        return pathlib.Path(self.env_path).read_text()
+
+    # ---- what reaches the page -------------------------------------------
+
+    def test_the_token_itself_never_reaches_the_page(self):
+        # The whole point of the mask. Asserted on the SECRET, not on the
+        # mask, because a template that rendered both would still pass a
+        # test that only looked for the four characters.
+        body = self._app().test_client().get("/confirm").get_data(as_text=True)
+        self.assertNotIn(self.SECRET, body)
+        self.assertNotIn(self.SECRET[:20], body)
+        self.assertIn("****8F2A", body)
+
+    def test_each_key_is_a_numbered_pill_with_its_balance(self):
+        body = self._app(
+            env="APIFY_TOKEN=aaaa1111\nAPIFY_TOKEN_3=bbbb2222\n",
+            balances={"aaaa1111": 5.00, "bbbb2222": 3.33},
+        ).test_client().get("/confirm").get_data(as_text=True)
+        flat = " ".join(body.split())
+        self.assertIn("2 keys attached", flat)
+        self.assertIn("<b>Token 1</b>", body)
+        self.assertIn("<b>Token 2</b>", body)
+        self.assertIn("****1111", body)
+        self.assertIn("****2222", body)
+        self.assertIn("$5.00", body)
+
+    def test_the_numbering_is_by_position_not_by_slot(self):
+        # Deleting APIFY_TOKEN_2 by hand leaves a gap, and a list reading
+        # "Token 1, Token 3" invites the question of where Token 2 went.
+        body = self._app(
+            env="APIFY_TOKEN=aaaa1111\nAPIFY_TOKEN_4=bbbb2222\n",
+            credits={},
+        ).test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn("<b>Token 2</b>", body)
+        self.assertNotIn("<b>Token 4</b>", body)
+        # The slot it really lives in stays reachable.
+        self.assertIn('title="APIFY_TOKEN_4 in your .env"', body)
+
+    def test_a_balance_that_could_not_be_read_is_not_shown_as_zero(self):
+        # A key whose limits call fails keeps its last known figure, and
+        # there is no last known figure here — which is "not read", not $0.
+        body = self._app(credits={"APIFY_TOKEN": None},
+                         balances={self.SECRET: None}
+                         ).test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn("not read", body)
+        self.assertNotIn("$0.00", body.split('class="keys"')[1][:600])
+
+    def test_the_remove_control_posts_the_slot_not_the_secret(self):
+        body = self._app().test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn('<input type="hidden" name="name" value="APIFY_TOKEN">',
+                      body)
+
+    # ---- removing one -----------------------------------------------------
+
+    def test_removing_a_key_takes_it_off_the_file_and_the_environment(self):
+        # Both, or the engine — which inherits this environment — goes on
+        # spending from an account the user thinks they detached.
+        app = self._app(env="APIFY_TOKEN=aaaa1111\nAPIFY_TOKEN_3=bbbb2222\n")
+        os.environ["APIFY_TOKEN_3"] = "bbbb2222"
+        r = app.test_client().post("/key/remove",
+                                   data={"name": "APIFY_TOKEN_3",
+                                         "back": "confirm"})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("APIFY_TOKEN=aaaa1111", self._on_file())
+        self.assertNotIn("APIFY_TOKEN_3", self._on_file())
+        self.assertNotIn("APIFY_TOKEN_3", os.environ)
+
+    def test_removing_one_leaves_every_other_line_alone(self):
+        app = self._app(env="GEMINI_API_KEY=g\nAPIFY_TOKEN=aaaa1111\n"
+                            "SMTP_USER=me\nAPIFY_TOKEN_3=bbbb2222\n")
+        app.test_client().post("/key/remove", data={"name": "APIFY_TOKEN"})
+        self.assertEqual(self._on_file().splitlines(),
+                         ["GEMINI_API_KEY=g", "SMTP_USER=me",
+                          "APIFY_TOKEN_3=bbbb2222"])
+
+    def test_the_removed_key_stops_counting_toward_the_budget(self):
+        app = self._app(env="APIFY_TOKEN=aaaa1111\nAPIFY_TOKEN_3=bbbb2222\n",
+                        credits={"APIFY_TOKEN": 5.00, "APIFY_TOKEN_3": 3.00})
+        app.test_client().post("/key/remove", data={"name": "APIFY_TOKEN_3"})
+        self.assertNotIn("APIFY_TOKEN_3", app.state["key_credit"])
+        # check_token returns 1.00 for whatever is left, so the total is the
+        # one surviving key rather than the pair.
+        self.assertAlmostEqual(app.state["credit_total_usd"], 1.00, places=2)
+
+    def test_a_stale_figure_does_not_outlive_the_key(self):
+        # refresh_credits keeps the last known figure for a key it cannot
+        # reach, so a removed key whose entry was left behind would have its
+        # balance resurrected on the next unreadable read.
+        app = self._app(env="APIFY_TOKEN=aaaa1111\nAPIFY_TOKEN_3=bbbb2222\n",
+                        credits={"APIFY_TOKEN": 5.00, "APIFY_TOKEN_3": 99.00})
+        app.test_client().post("/key/remove", data={"name": "APIFY_TOKEN_3"})
+        self.assertNotIn(99.00, list(app.state["key_credit"].values()))
+
+    def test_a_key_that_is_already_gone_is_not_an_error(self):
+        # A double submit, or a hand edit in between. The state the user
+        # asked for is the state.
+        app = self._app()
+        r = app.test_client().post("/key/remove", data={"name": "APIFY_TOKEN_9"})
+        self.assertEqual(r.status_code, 302)
+
+    def test_a_name_that_is_not_a_key_touches_nothing(self):
+        app = self._app(env="GEMINI_API_KEY=g\nAPIFY_TOKEN=aaaa1111\n")
+        before = self._on_file()
+        app.test_client().post("/key/remove", data={"name": "GEMINI_API_KEY"})
+        self.assertEqual(self._on_file(), before)
+
+    def test_the_writer_refuses_a_name_that_is_not_an_env_key(self):
+        # The route filters to keys already on file, so nothing invalid
+        # reaches this today — but it is a public seam that writes the file
+        # the process re-reads as configuration, and the validation belongs
+        # at the funnel rather than at each future caller. write_env is
+        # guarded the same way.
+        app = self._app()
+        for bad in ("not a key", "lower_case", "A B", "", "X=Y\nEVIL=1"):
+            with self.assertRaises(ValueError, msg=bad):
+                app.remove_env(bad)
+        # And a valid name on a file that has no such line is a no-op.
+        before = self._on_file()
+        app.remove_env("APIFY_TOKEN_9")
+        self.assertEqual(self._on_file(), before)
+
+    def test_a_key_cannot_be_detached_from_under_a_running_sweep(self):
+        # The engine is holding a client built from one of these, and which
+        # one is its business, not this screen's.
+        app = self._app(alive=True)
+        r = app.test_client().post("/key/remove", data={"name": "APIFY_TOKEN"})
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("A sweep is running", r.get_data(as_text=True))
+        self.assertIn("APIFY_TOKEN", self._on_file())
+
+    def test_the_control_is_disabled_while_a_sweep_runs(self):
+        # The refusal above is the guard; this is so it is not offered.
+        body = self._app(alive=True).test_client().get(
+            "/confirm").get_data(as_text=True)
+        self.assertIn('class="keyx" disabled', body)
+
+    def test_the_return_screen_is_checked_against_a_list(self):
+        # An endpoint name off a form field reaches url_for.
+        app = self._app()
+        r = app.test_client().post("/key/remove",
+                                   data={"name": "APIFY_TOKEN_9",
+                                         "back": "static"})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].endswith("/confirm"),
+                        r.headers["Location"])
+
+
 class TestMotion(Isolated):
     """docs/stitch-ui-prompt.md's motion spec. One orchestrated moment per
     screen, the meter as protagonist, and a reduced-motion branch that sets

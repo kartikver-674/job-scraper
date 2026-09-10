@@ -36,9 +36,10 @@ from sweep import exports  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
-    bucket_rows, cheapest_rate, fill_pct, paid_sites, posted_age,
-    remaining_cost, reweighted, searchable_locations, shortlist, site_label,
-    sort_rows, step_states, sweep_dates, sweep_state, worst_filter)
+    bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
+    posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
+    site_label, sort_rows, step_states, sweep_dates, sweep_state,
+    worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -251,7 +252,25 @@ def create_app(state=None, extract=None, resume_dir=None,
         with open(env_path, "w") as fh:
             fh.writelines(lines)
 
+    def default_remove_env(env_key):
+        """Drop one key from .env. Every other line is left byte for byte.
+
+        The counterpart to default_write_env and validated the same way: the
+        name reaches a file the process re-reads as configuration, so it is
+        checked here at the single funnel rather than at each caller.
+        """
+        if not _ENV_KEY_RE.fullmatch(env_key):
+            raise ValueError(f"not a valid env key: {env_key!r}")
+        if not os.path.exists(env_path):
+            return
+        with open(env_path) as fh:
+            lines = [ln if ln.endswith("\n") else ln + "\n"
+                     for ln in fh if not ln.startswith(f"{env_key}=")]
+        with open(env_path, "w") as fh:
+            fh.writelines(lines)
+
     app.write_env = default_write_env
+    app.remove_env = default_remove_env
     app.jinja_env.globals["and_list"] = and_list
 
     def read_env_tokens():
@@ -747,6 +766,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         cap = app.state.get("cap_usd")
         total = app.state.get("credit_total_usd")
+        # Read from the FILE, which also reconciles os.environ with it — so
+        # every render leaves this process (and any engine it launches)
+        # agreeing with what is actually configured. keys_attached used to
+        # count os.environ while this list came from disk: two answers to
+        # one question.
+        pills = key_pills(read_env_tokens(), app.state.get("key_credit"))
         # "Credit left" means every account's credit added up, which is what
         # the header used to LABEL while showing cap_usd — the best single
         # key's balance. On four keys holding $8.33 it read $5.00.
@@ -773,7 +798,17 @@ def create_app(state=None, extract=None, resume_dir=None,
                     # what the engine will actually discover, so a key left in
                     # .env by an earlier session is included rather than the
                     # screen claiming fewer keys than the sweep will see.
-                    keys_attached=len(scraper.apify_tokens()),
+                    keys_attached=len(pills),
+                    key_pills=pills,
+                    # One-shot: popped as it is handed over, so a refusal
+                    # shows on the screen it happened on and not again on
+                    # the next one.
+                    key_notice=app.state.pop("key_notice", None),
+                    # Whether a child is alive right now. The detach control
+                    # is disabled while one is, because the engine is
+                    # holding a client built from one of these keys and
+                    # which one is its business, not this screen's.
+                    sweep_running=_sweep_in_flight(),
                     # Which résumé this session is working from. A session
                     # fact, so it belongs here rather than in one render:
                     # five routes render the review screen, and the four
@@ -1316,6 +1351,54 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state["proc"] = start_sweep(app.state["profile"])
             _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))
+
+    # Where a removal may return to. An endpoint name off a form field
+    # reaches url_for, so it is checked against a list rather than trusted —
+    # and Referer is not usable for this, being both absent and forgeable.
+    KEY_RETURN = {"confirm", "running"}
+
+    @app.post("/key/remove")
+    def key_remove():
+        """Detach one key. It stops funding sweeps and stops being counted.
+
+        Removed from the FILE and from os.environ together: the engine
+        inherits this process's environment, so a key dropped from only one
+        of the two would go on paying for searches the user thought they had
+        detached.
+        """
+        name = (request.form.get("name") or "").strip()
+        back = request.form.get("back") or "confirm"
+        if back not in KEY_RETURN:
+            back = "confirm"
+        on_file = read_env_tokens_as_env()
+        if name not in on_file:
+            # Already gone — a double submit, or a hand edit in between.
+            # Not an error: the state the user asked for is the state.
+            return redirect(url_for(back))
+        # A sweep in flight is holding a client built from one of these, and
+        # which one is the engine's business, not this screen's.
+        if _sweep_in_flight():
+            return _key_error(back, "A sweep is running. Stop it before "
+                                    "detaching a key.")
+        app.remove_env(name)
+        # One call does the rest, and both halves matter: read_env_tokens()
+        # inside it drops every APIFY_TOKEN* that is no longer in the file
+        # from os.environ — which is what stops the engine, that inherits
+        # this environment, spending from an account the user detached — and
+        # it rebuilds key_credit keyed only on what the file holds, so the
+        # removed key's last known balance goes with it.
+        #
+        # Popping either by hand here first was dead code, and a mutation
+        # said so: both lines could be deleted with nothing failing.
+        refresh_credits()
+        return redirect(url_for(back))
+
+    def _key_error(back, message):
+        """The refusal, on the screen it came from."""
+        if back == "running":
+            app.state["key_notice"] = message
+            return redirect(url_for("running"))
+        return _confirm_page(error=message, status=409)
 
     @app.post("/second-key")
     def second_key():

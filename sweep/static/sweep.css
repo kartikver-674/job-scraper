@@ -1118,3 +1118,34 @@ td.score {
    reverts to its base style when the animation is dropped, which IS the end
    state the spec asks for — a scaled-to-1 fill, an opaque section, a cap
    tick in place. motion.js reads the same query for the counter. */
+
+/* ---- Attached keys ------------------------------------------------------ */
+
+/* One row, one pill per key. A list rather than a count, because the screen
+   this sits on is the one where the number of keys is the problem. */
+.keys { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
+.keys > .label { margin-right: var(--s2); }
+.keypill {
+  display: inline-flex; align-items: center; gap: var(--s3);
+  padding: var(--s2) var(--s2) var(--s2) var(--s4);
+  background: var(--well); border: 1px solid var(--rule);
+  border-radius: var(--radius); font-size: 12px;
+}
+.keypill > b { color: var(--chalk); font-weight: 600; }
+/* The masked tail is an identifier, so it is set like one. */
+.keypill > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px; color: var(--slate); letter-spacing: 0.02em;
+}
+.keypill > .bal { color: var(--paid); font-weight: 600; }
+.keypill > form { display: contents; }
+.keyx {
+  display: grid; place-items: center; width: 1.4rem; height: 1.4rem;
+  flex: none; padding: 0; font: 400 15px/1 var(--text);
+  color: var(--slate); background: transparent; border: 0;
+  border-radius: var(--radius); cursor: pointer;
+}
+.keyx:hover { color: var(--ground); background: var(--over); }
+.keyx[disabled], .keyx[disabled]:hover {
+  color: var(--dim); background: transparent; cursor: default;
+}

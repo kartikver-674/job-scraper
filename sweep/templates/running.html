@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_keys.html" import key_pills_row %}
 {% block title %}Sweep running — Sweep{% endblock %}
 {# Label follows the figure: with no baseline to subtract, p.spend is the
    account's month-to-date total, which is NOT this sweep's spend. The body
@@ -47,6 +48,8 @@
   <span x-text="'$' + Math.max(0, {{ credit_total_usd|tojson }} - p.spend).toFixed(2)"></span></span>{% endif %}{% endblock %}
 {% block body %}
 <div class="stack">
+
+  {% if key_notice %}<p class="error">{{ key_notice }}</p>{% endif %}
 
   <div class="stack-tight">
     {# The heading says WHAT happened, the banner below says why and what
@@ -295,6 +298,9 @@
         <p class="muted">There is nothing left to spend on the keys you have,
           so finishing this needs another one.</p>
       </div>
+      {# Which keys those are, and what is left on each. A key the sweep has
+         just emptied is the one most worth detaching. #}
+      {{ key_pills_row(key_pills, 'running') }}
       <form method="post" action="{{ url_for('second_key') }}">
         <label><span class="label">Another Apify token</span>
           <input type="password" name="token" autocomplete="off" required></label>
