@@ -58,7 +58,7 @@ def frequencies(output_dir=None):
                           recursive=True):
         sweep = per_sweep[os.path.basename(os.path.dirname(path))]
         try:
-            with open(path, newline="", encoding="utf-8") as fh:
+            with open(path, newline="", encoding="utf-8-sig") as fh:
                 reader = csv.DictReader(fh)
                 if "matched_skills" not in (reader.fieldnames or ()):
                     continue
@@ -166,7 +166,7 @@ def title_yield(output_dir=None):
     for path in glob.glob(os.path.join(output_dir, "**", "*.csv"),
                           recursive=True):
         try:
-            with open(path, newline="", encoding="utf-8") as fh:
+            with open(path, newline="", encoding="utf-8-sig") as fh:
                 reader = csv.DictReader(fh)
                 if not reader.fieldnames or "title" not in reader.fieldnames:
                     continue
@@ -281,6 +281,21 @@ def demo():
     assert keyword_yield("cobol", titles) == (0, None), "no listings, no opinion"
     # Substring on purpose: a keyword is what the board is asked for.
     assert keyword_yield("mobile", [("mobile engineer ii", 9)]) == (1, 9.0)
+    # -- the BOM -----------------------------------------------------------
+    # 41 of the 54 files in output/ are written with a byte-order mark, so
+    # the first column's NAME carries it and row.get("score") returns None.
+    # Read as plain utf-8, 58.8% of the corpus came back as score 0 and the
+    # market baseline read 15% instead of 32% — every precision figure
+    # measured against this corpus divides by that.
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        with open(os.path.join(tmp, "bom.csv"), "w",
+                  encoding="utf-8-sig", newline="") as fh:
+            fh.write("score,title,matched_skills\n44,React Developer,react\n")
+        rows = title_yield(tmp)
+        assert rows == [("react developer", 44)], rows
+        assert frequencies(tmp)["react"][0] == 1
+
     print("corpus_signal demo ok")
 
 
