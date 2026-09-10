@@ -1,0 +1,834 @@
+{
+ "ada-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "devops engineer",
+   "cloud engineer",
+   "full stack engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "api engineer",
+   "database engineer",
+   "network engineer",
+   "security engineer",
+   "qa engineer",
+   "test engineer",
+   "product engineer",
+   "business analyst engineer"
+  ],
+  "domain_half_a": [
+   "docker",
+   "kubernetes",
+   "postgresql",
+   "redis"
+  ],
+  "domain_half_b": [
+   "celery",
+   "django",
+   "graphql",
+   "python"
+  ],
+  "domain_bonus": 6
+ },
+ "ada-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "devops engineer",
+   "cloud engineer",
+   "full stack engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "api engineer",
+   "network engineer",
+   "security engineer",
+   "database engineer",
+   "machine learning engineer",
+   "data scientist",
+   "data analyst",
+   "product engineer"
+  ],
+  "domain_half_a": [
+   "docker",
+   "kubernetes",
+   "postgresql",
+   "redis"
+  ],
+  "domain_half_b": [
+   "django",
+   "celery",
+   "graphql",
+   "python"
+  ],
+  "domain_bonus": 6
+ },
+ "bhaskar-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "software engineer",
+   "systems engineer",
+   "network engineer",
+   "database engineer",
+   "cloud engineer",
+   "full stack engineer",
+   "mobile engineer",
+   "devops engineer",
+   "ui engineer",
+   "ux engineer",
+   "game engineer",
+   "embedded engineer",
+   "security engineer",
+   "ai engineer"
+  ],
+  "domain_half_a": [
+   "spring boot",
+   "java"
+  ],
+  "domain_half_b": [
+   "mysql",
+   "html",
+   "css",
+   "git"
+  ],
+  "domain_bonus": 6
+ },
+ "bhaskar-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "software engineer",
+   "systems engineer",
+   "network engineer",
+   "database engineer",
+   "cloud engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "full stack engineer",
+   "devops engineer",
+   "qa engineer",
+   "test engineer",
+   "security engineer",
+   "game engineer"
+  ],
+  "domain_half_a": [
+   "java",
+   "spring boot",
+   "mysql"
+  ],
+  "domain_half_b": [
+   "html",
+   "css",
+   "git"
+  ],
+  "domain_bonus": 6
+ },
+ "chen-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "site reliability engineer",
+   "devops engineer",
+   "cloud engineer",
+   "systems engineer",
+   "network engineer",
+   "security engineer",
+   "database engineer",
+   "application engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "full stack engineer",
+   "frontend engineer",
+   "backend engineer"
+  ],
+  "domain_half_a": [
+   "kubernetes",
+   "terraform",
+   "aws"
+  ],
+  "domain_half_b": [
+   "envoy",
+   "kafka",
+   "postgresql",
+   "prometheus",
+   "go"
+  ],
+  "domain_bonus": 6
+ },
+ "chen-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "site reliability engineer",
+   "cloud engineer",
+   "devops engineer",
+   "systems engineer",
+   "network engineer",
+   "security engineer",
+   "database engineer",
+   "application engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "full stack engineer",
+   "frontend engineer",
+   "backend engineer"
+  ],
+  "domain_half_a": [
+   "kubernetes",
+   "terraform",
+   "aws"
+  ],
+  "domain_half_b": [
+   "envoy",
+   "kafka",
+   "postgresql",
+   "prometheus",
+   "go"
+  ],
+  "domain_bonus": 6
+ },
+ "dmitri-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "software engineer",
+   "systems analyst",
+   "technical writer",
+   "devops engineer",
+   "cloud engineer",
+   "network engineer",
+   "security engineer",
+   "embedded engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "test engineer",
+   "quality engineer",
+   "product engineer"
+  ],
+  "domain_half_a": [
+   "formal methods",
+   "verified systems"
+  ],
+  "domain_half_b": [
+   "correctness",
+   "verification",
+   "proof",
+   "certification"
+  ],
+  "domain_bonus": 6
+ },
+ "dmitri-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "software engineer",
+   "systems analyst",
+   "technical writer",
+   "devops engineer",
+   "cloud engineer",
+   "embedded engineer",
+   "network engineer",
+   "security engineer",
+   "product engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "game engineer",
+   "test engineer"
+  ],
+  "domain_half_a": [
+   "formal methods",
+   "verified systems"
+  ],
+  "domain_half_b": [
+   "correctness",
+   "verification",
+   "proof",
+   "certification"
+  ],
+  "domain_bonus": 6
+ },
+ "esi-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "devops engineer",
+   "mobile engineer",
+   "cloud engineer",
+   "ui engineer",
+   "ux engineer",
+   "game engineer",
+   "embedded engineer",
+   "security engineer",
+   "ai engineer",
+   "quantum engineer",
+   "blockchain engineer",
+   "iot engineer",
+   "network engineer",
+   "database engineer"
+  ],
+  "domain_half_a": [
+   "react",
+   "typescript",
+   "tailwind css"
+  ],
+  "domain_half_b": [
+   "node.js",
+   "postgresql",
+   "prisma",
+   "trpc"
+  ],
+  "domain_bonus": 6
+ },
+ "esi-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "devops engineer",
+   "cloud engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "game engineer",
+   "embedded engineer",
+   "ai engineer",
+   "ml engineer",
+   "robotics engineer",
+   "iot engineer",
+   "network engineer",
+   "security engineer",
+   "database engineer"
+  ],
+  "domain_half_a": [
+   "react",
+   "typescript",
+   "tailwind css"
+  ],
+  "domain_half_b": [
+   "node.js",
+   "postgresql",
+   "prisma",
+   "trpc"
+  ],
+  "domain_bonus": 6
+ },
+ "farida-plain": {
+  "title_exclude": [
+   "data analyst",
+   "data scientist",
+   "data architect",
+   "data warehouse engineer",
+   "data pipeline engineer",
+   "data integration engineer",
+   "data modeling engineer",
+   "data processing engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline engineer",
+   "data pipeline analyst",
+   "data pipeline manager",
+   "data pipeline designer",
+   "data pipeline optimizer"
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline"
+  ],
+  "domain_half_b": [
+   "processing",
+   "integration"
+  ],
+  "domain_bonus": 6
+ },
+ "farida-messy": {
+  "title_exclude": [
+   "data scientist",
+   "data analyst",
+   "data architect",
+   "data warehouse engineer",
+   "data pipeline engineer",
+   "data integration engineer",
+   "data modeling",
+   "data pipeline",
+   "data platform",
+   "data processing",
+   "data transformation",
+   "data validation",
+   "data quality",
+   "data governance",
+   "data pipeline",
+   "data pipeline developer"
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline"
+  ],
+  "domain_half_b": [
+   "processing",
+   "transformation"
+  ],
+  "domain_bonus": 6
+ },
+ "gopal-plain": {
+  "title_exclude": [
+   "test engineer",
+   "quality engineer",
+   "automation engineer",
+   "software engineer",
+   "devops engineer",
+   "qa engineer",
+   "test analyst",
+   "test lead",
+   "qa analyst",
+   "qa specialist",
+   "qa tester",
+   "test automation engineer",
+   "test automation specialist",
+   "test automation lead",
+   "test automation architect",
+   "test automation developer"
+  ],
+  "domain_half_a": [
+   "test automation",
+   "api testing"
+  ],
+  "domain_half_b": [
+   "performance testing",
+   "ui automation"
+  ],
+  "domain_bonus": 6
+ },
+ "gopal-messy": {
+  "title_exclude": [
+   "test automation engineer",
+   "quality assurance engineer",
+   "software test engineer",
+   "test lead",
+   "qa engineer",
+   "qa automation specialist",
+   "test analyst",
+   "test manager",
+   "quality assurance specialist",
+   "test automation specialist"
+  ],
+  "domain_half_a": [
+   "test automation",
+   "api testing"
+  ],
+  "domain_half_b": [
+   "performance testing",
+   "ui testing"
+  ],
+  "domain_bonus": 6
+ },
+ "hana-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "software engineer",
+   "systems engineer",
+   "mechanical engineer",
+   "civil engineer",
+   "project engineer",
+   "process engineer",
+   "field engineer",
+   "engineering manager",
+   "engineering lead",
+   "engineering director",
+   "engineering consultant",
+   "engineering analyst",
+   "engineering technician",
+   "engineering intern"
+  ],
+  "domain_half_a": [
+   "machine learning",
+   "deep learning"
+  ],
+  "domain_half_b": [
+   "systems",
+   "pipelines",
+   "automation"
+  ],
+  "domain_bonus": 6
+ },
+ "hana-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "software engineer",
+   "systems engineer",
+   "mechanical engineer",
+   "civil engineer",
+   "project engineer",
+   "process engineer",
+   "mechanical engineer",
+   "electrical engineer",
+   "chemical engineer",
+   "structural engineer",
+   "civil engineer",
+   "construction engineer",
+   "environmental engineer",
+   "transportation engineer"
+  ],
+  "domain_half_a": [
+   "machine learning",
+   "deep learning"
+  ],
+  "domain_half_b": [
+   "systems",
+   "pipelines",
+   "automation"
+  ],
+  "domain_bonus": 6
+ },
+ "iris-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "devops engineer",
+   "cloud engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "full stack engineer",
+   "web engineer",
+   "frontend engineer",
+   "backend engineer",
+   "platform engineer",
+   "application engineer",
+   "software engineer",
+   "systems engineer",
+   "network engineer"
+  ],
+  "domain_half_a": [
+   "frontend",
+   "react",
+   "next.js",
+   "tailwind",
+   "typescript"
+  ],
+  "domain_half_b": [
+   "testing",
+   "automation",
+   "playwright",
+   "storybook",
+   "graphql",
+   "vite"
+  ],
+  "domain_bonus": 6
+ },
+ "iris-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "devops engineer",
+   "cloud engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "full stack engineer",
+   "web engineer",
+   "api engineer",
+   "product engineer",
+   "site reliability engineer",
+   "platform engineer",
+   "application engineer",
+   "system engineer",
+   "network engineer"
+  ],
+  "domain_half_a": [
+   "frontend",
+   "react",
+   "typescript",
+   "tailwind",
+   "next.js",
+   "storybook"
+  ],
+  "domain_half_b": [
+   "graphql",
+   "playwright",
+   "vite",
+   "testing",
+   "automation",
+   "component"
+  ],
+  "domain_bonus": 6
+ },
+ "jonas-plain": {
+  "title_exclude": [
+   "data scientist",
+   "data analyst",
+   "data architect",
+   "big data engineer",
+   "cloud engineer",
+   "machine learning engineer",
+   "data warehouse engineer",
+   "data pipeline engineer",
+   "data integration engineer",
+   "data modeling engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline engineer",
+   "data pipeline analyst",
+   "data pipeline manager"
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline",
+   "processing",
+   "integration",
+   "transformation"
+  ],
+  "domain_half_b": [
+   "streaming",
+   "batch",
+   "cloud",
+   "warehouse",
+   "automation"
+  ],
+  "domain_bonus": 6
+ },
+ "jonas-messy": {
+  "title_exclude": [
+   "data scientist",
+   "data analyst",
+   "data architect",
+   "cloud engineer",
+   "machine learning engineer",
+   "big data engineer",
+   "data pipeline engineer",
+   "data warehouse engineer",
+   "data integration engineer",
+   "data platform engineer",
+   "data operations engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline engineer",
+   "data pipeline builder"
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline",
+   "processing",
+   "integration",
+   "transformation",
+   "automation"
+  ],
+  "domain_half_b": [
+   "cloud",
+   "streaming",
+   "batch",
+   "orchestration",
+   "etl",
+   "sql",
+   "dataflow"
+  ],
+  "domain_bonus": 6
+ },
+ "kwame-plain": {
+  "title_exclude": [
+   "data analyst",
+   "data scientist",
+   "data architect",
+   "data warehouse",
+   "data modeling",
+   "data pipeline",
+   "data integration",
+   "data processing",
+   "data transformation",
+   "data visualization",
+   "data platform",
+   "data strategy",
+   "data governance",
+   "data quality",
+   "data catalog",
+   "data pipeline engineer"
+  ],
+  "domain_half_a": [
+   "bigquery",
+   "sql",
+   "python",
+   "pandas"
+  ],
+  "domain_half_b": [
+   "airflow",
+   "dbt",
+   "looker",
+   "data engineering"
+  ],
+  "domain_bonus": 6
+ },
+ "kwame-messy": {
+  "title_exclude": [
+   "data analyst",
+   "data scientist",
+   "data architect",
+   "data warehouse",
+   "data pipeline",
+   "data modeling",
+   "data integration",
+   "data processing",
+   "data storage",
+   "data visualization",
+   "data reporting",
+   "data strategy",
+   "data governance",
+   "data quality",
+   "data security",
+   "data compliance"
+  ],
+  "domain_half_a": [
+   "bigquery",
+   "sql",
+   "python",
+   "pandas"
+  ],
+  "domain_half_b": [
+   "airflow",
+   "dbt",
+   "looker",
+   "data pipeline"
+  ],
+  "domain_bonus": 6
+ },
+ "lena-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "cloud engineer",
+   "devops engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "full stack engineer",
+   "web engineer",
+   "application engineer",
+   "systems engineer",
+   "network engineer",
+   "database engineer",
+   "security engineer",
+   "test engineer",
+   "qa engineer"
+  ],
+  "domain_half_a": [
+   "kafka",
+   "docker",
+   "postgresql"
+  ],
+  "domain_half_b": [
+   "spring boot",
+   "java",
+   "kotlin",
+   "junit"
+  ],
+  "domain_bonus": 6
+ },
+ "lena-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "cloud engineer",
+   "devops engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "full stack engineer",
+   "web engineer",
+   "application engineer",
+   "database engineer",
+   "network engineer",
+   "security engineer",
+   "test engineer",
+   "qa engineer",
+   "integration engineer"
+  ],
+  "domain_half_a": [
+   "kafka",
+   "docker",
+   "java",
+   "spring boot"
+  ],
+  "domain_half_b": [
+   "kotlin",
+   "postgresql",
+   "junit"
+  ],
+  "domain_bonus": 6
+ },
+ "mateo-plain": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "cloud engineer",
+   "devops engineer",
+   "full stack engineer",
+   "systems engineer",
+   "network engineer",
+   "database engineer",
+   "api engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "security engineer",
+   "qa engineer",
+   "test engineer",
+   "product engineer"
+  ],
+  "domain_half_a": [
+   "postgresql",
+   "redis",
+   "docker",
+   "aws"
+  ],
+  "domain_half_b": [
+   "fastapi",
+   "pytest",
+   "python",
+   "rabbitmq"
+  ],
+  "domain_bonus": 6
+ },
+ "mateo-messy": {
+  "title_exclude": [
+   "data engineer",
+   "sales engineer",
+   "devops engineer",
+   "cloud engineer",
+   "full stack engineer",
+   "machine learning engineer",
+   "systems engineer",
+   "network engineer",
+   "security engineer",
+   "mobile engineer",
+   "ui engineer",
+   "ux engineer",
+   "front end engineer",
+   "back end engineer",
+   "api engineer",
+   "database engineer"
+  ],
+  "domain_half_a": [
+   "aws",
+   "docker",
+   "postgresql",
+   "redis",
+   "rabbitmq"
+  ],
+  "domain_half_b": [
+   "fastapi",
+   "pytest",
+   "python"
+  ],
+  "domain_bonus": 6
+ }
+}
