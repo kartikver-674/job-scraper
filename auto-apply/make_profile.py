@@ -270,8 +270,58 @@ def _is(exc, needles):
     return any(n in low for n in needles)
 
 
+def reweight_from_corpus(data, output_dir=None, log=print):
+    """Re-score the model's skill weights against the jobs already scraped.
+
+    RULE 1 asks the model how much each term NARROWS the market. That is a
+    fact about the market, not about the résumé, and output/ holds the
+    market: corpus_signal measures each term's document frequency across
+    every listing already fetched and blends it with what the model said —
+    the model supplies which terms are the candidate's and how central, the
+    corpus supplies how much each one separates.
+
+    Here rather than in render(), because render() is also where the USER's
+    reviewed weights arrive from Sweep's review screen. Re-scoring those
+    would silently discard the one explicit override the UI offers. This
+    runs first, so what the user reviews is already corrected and their
+    edits still win.
+
+    Degrades on its own: an absent or empty output/ leaves every term
+    unmeasured, and blend() treats abstention as "keep what you were told".
+    """
+    # The same guarded insert _load_config() uses. generate() does not call
+    # it, so nothing has put the repo root on the path by the time this runs.
+    if cfg.REPO_ROOT not in sys.path:
+        sys.path.insert(0, cfg.REPO_ROOT)
+    import corpus_signal
+
+    weights = {e["term"].strip().lower(): e["weight"]
+               for e in data.get("skill_weights") or () if e["term"].strip()}
+    if not weights:
+        return data
+    freqs = corpus_signal.frequencies(output_dir)
+    blended, moved = corpus_signal.reweight(weights, freqs)
+    if not moved:
+        return data
+
+    data = dict(data, skill_weights=[
+        {"term": e["term"], "weight": blended.get(e["term"].strip().lower(),
+                                                  e["weight"])}
+        for e in data["skill_weights"]])
+    # Said out loud, not applied in silence: these are the numbers that
+    # decide which jobs reach the top of a shortlist.
+    log(f"  re-scored {len(moved)} weight(s) against {len(freqs)} terms"
+        f" measured in output/:")
+    for term, before, after, share in moved[:10]:
+        pct = f"{share:.1%}" if share is not None else "n/a"
+        log(f"    {before} -> {after}  {term:<24} in {pct} of listings")
+    if len(moved) > 10:
+        log(f"    ... and {len(moved) - 10} more")
+    return data
+
+
 def generate(client, models, resume_text, prefs, attempts=5, sleep=time.sleep,
-             log=print):
+             log=print, output_dir=None):
     """One structured Gemini call, down a ladder of models.
 
     `models` is a model id or a sequence of them, tried in order. A model whose
@@ -289,8 +339,10 @@ def generate(client, models, resume_text, prefs, attempts=5, sleep=time.sleep,
     spent, last = [], None
     for index, model in enumerate(models):
         try:
-            return _generate_one(client, model, resume_text, prefs, attempts,
-                                 sleep, log)
+            return reweight_from_corpus(
+                _generate_one(client, model, resume_text, prefs, attempts,
+                              sleep, log),
+                output_dir, log)
         except Exception as exc:
             last = exc
             if _is(exc, _SPENT):
@@ -735,6 +787,9 @@ def main(argv=None):
     print(f"  role_keywords : {len(data['role_keywords'])}")
     print(f"  skill_weights : {len(data['skill_weights'])}")
     print(f"  penalty_terms : {len(data['penalty_terms'])}")
+    # Said out loud, not applied in silence: these are the numbers that
+    # decide which jobs reach the top of a shortlist.
+
     print(f"\nRead it, then verify at zero cost:\n"
           f"  python scraper.py --profile {args.name} --dry-run")
 

@@ -1,10 +1,44 @@
 import contextlib
+import csv
 import io
 import json
+import os
 import re
+import shutil
+import tempfile
 import unittest
 
 import make_profile
+
+_REAL_CORPUS_ROOT = None
+_CORPUS_TMP = None
+
+
+def setUpModule():
+    """No test in this module may read the developer's real output/.
+
+    generate() re-scores the model's weights against the corpus, so every
+    call reaches it — and a suite whose assertions depend on what was last
+    scraped is a suite that fails for reasons nobody changed. Patched at the
+    module level rather than per call site: the first attempt isolated the
+    six calls that existed and missed the four in the model-ladder tests,
+    which is the same lesson the sweep suite learned.
+    """
+    global _REAL_CORPUS_ROOT, _CORPUS_TMP
+    import sys as _sys
+    if make_profile.cfg.REPO_ROOT not in _sys.path:
+        _sys.path.insert(0, make_profile.cfg.REPO_ROOT)
+    import corpus_signal
+
+    _CORPUS_TMP = tempfile.mkdtemp(prefix="aa-corpus-")
+    _REAL_CORPUS_ROOT = corpus_signal.REPO_ROOT
+    corpus_signal.REPO_ROOT = _CORPUS_TMP
+
+
+def tearDownModule():
+    import corpus_signal
+    corpus_signal.REPO_ROOT = _REAL_CORPUS_ROOT
+    shutil.rmtree(_CORPUS_TMP, ignore_errors=True)
 
 
 class FakeResponse:
@@ -327,6 +361,100 @@ class TestHimalayasQueries(unittest.TestCase):
         self.assertNotIn("FEEDS", ns)
 
 
+class TestCorpusReweighting(unittest.TestCase):
+    """RULE 1 asks the model how much a term narrows the market. output/ is
+    the market, so the answer is measured and blended with the model's."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, ignore_errors=True)
+
+    def corpus(self, rows):
+        """A sweep directory shaped like a real one."""
+        sweep = os.path.join(self.dir, "aprofile")
+        os.makedirs(sweep, exist_ok=True)
+        with open(os.path.join(sweep, "jobs.csv"), "w", newline="",
+                  encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=["title", "score",
+                                               "matched_skills"])
+            w.writeheader()
+            for skills in rows:
+                w.writerow({"title": "engineer", "score": "5",
+                            "matched_skills": skills})
+        return self.dir
+
+    def payload(self, weights):
+        return {"skill_weights": [{"term": t, "weight": w}
+                                  for t, w in weights.items()]}
+
+    def weights_of(self, data):
+        return {e["term"]: e["weight"] for e in data["skill_weights"]}
+
+    def test_a_commodity_term_is_demoted(self):
+        # "react" in every listing separates nothing, whatever the résumé
+        # says — which is RULE 1, measured instead of guessed.
+        corpus = self.corpus(["react"] * 300)
+        out = make_profile.reweight_from_corpus(
+            self.payload({"react": 5}), corpus, log=lambda *a: None)
+        self.assertEqual(self.weights_of(out)["react"], 2)
+
+    def test_a_rare_term_the_resume_barely_mentions_is_not_promoted(self):
+        # The failure that killed rarity-alone: opencv in 0.3% of listings
+        # would top a React Native developer's weights and float every
+        # computer-vision job to the front of the shortlist.
+        corpus = self.corpus(["react"] * 299 + ["opencv"])
+        out = make_profile.reweight_from_corpus(
+            self.payload({"opencv": 1}), corpus, log=lambda *a: None)
+        self.assertEqual(self.weights_of(out)["opencv"], 2)
+
+    def test_strong_and_rare_stays_at_the_top(self):
+        corpus = self.corpus(["react"] * 299 + ["maven"])
+        out = make_profile.reweight_from_corpus(
+            self.payload({"maven": 5}), corpus, log=lambda *a: None)
+        self.assertEqual(self.weights_of(out)["maven"], 5)
+
+    def test_an_empty_corpus_changes_nothing(self):
+        # A first run has no output/ at all. Abstention is not a vote.
+        stated = {"react": 5, "maven": 3}
+        out = make_profile.reweight_from_corpus(
+            self.payload(stated), self.dir, log=lambda *a: None)
+        self.assertEqual(self.weights_of(out), stated)
+
+    def test_the_original_payload_is_not_mutated(self):
+        # Sweep keeps the derived payload on session state and re-renders
+        # from it; rewriting it in place would make the weights depend on
+        # how many times the screen was drawn.
+        data = self.payload({"react": 5})
+        make_profile.reweight_from_corpus(
+            data, self.corpus(["react"] * 300), log=lambda *a: None)
+        self.assertEqual(self.weights_of(data)["react"], 5)
+
+    def test_it_says_what_it_changed(self):
+        # These are the numbers that decide which jobs reach the top.
+        lines = []
+        make_profile.reweight_from_corpus(
+            self.payload({"react": 5}), self.corpus(["react"] * 300),
+            log=lines.append)
+        said = " ".join(lines)
+        self.assertIn("re-scored 1 weight(s)", said)
+        self.assertIn("react", said)
+        self.assertIn("5 -> 2", said)
+
+    def test_a_weight_off_the_1_to_5_scale_is_left_alone(self):
+        # RESPONSE_SCHEMA bounds weight only to "integer" and the renderer
+        # has always passed it through. Re-bounding the scale is a different
+        # change from measuring importance.
+        out = make_profile.reweight_from_corpus(
+            self.payload({"react": 10}), self.corpus(["react"] * 300),
+            log=lambda *a: None)
+        self.assertEqual(self.weights_of(out)["react"], 10)
+
+    def test_a_payload_with_no_skills_is_returned_untouched(self):
+        data = {"skill_weights": []}
+        self.assertIs(make_profile.reweight_from_corpus(
+            data, self.dir, log=lambda *a: None), data)
+
+
 class TestValidateKeys(unittest.TestCase):
     def test_real_config_keys_pass(self):
         make_profile.validate_keys({"SEARCH": ["role_keywords", "locations"]})
@@ -341,34 +469,47 @@ class TestValidateKeys(unittest.TestCase):
 
 
 class TestGenerate(unittest.TestCase):
+    """generate() now re-scores the model's weights against output/, so
+    every case here passes an empty corpus: reading the developer's real
+    sweeps would make these tests depend on what was last scraped, and read
+    53 files to assert something about a prompt."""
+
+    def setUp(self):
+        self.empty = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.empty, ignore_errors=True)
+
+    def gen(self, client, resume="résumé", **kw):
+        kw.setdefault("output_dir", self.empty)
+        return make_profile.generate(client, "m", resume, PREFS, **kw)
+
     def test_returns_parsed_json(self):
         client = FakeClient(PAYLOAD)
-        data = make_profile.generate(client, "m", "résumé text", PREFS)
+        data = self.gen(client, "résumé text")
         self.assertEqual(data["years_experience"], 4)
         self.assertEqual(client.models.calls, 1)
 
     def test_retries_past_transient_503s(self):
         client = FakeClient(PAYLOAD, fails=4)
-        data = make_profile.generate(client, "m", "résumé", PREFS, sleep=lambda s: None)
+        data = self.gen(client, sleep=lambda s: None)
         self.assertEqual(data["years_experience"], 4)
         self.assertEqual(client.models.calls, 5)
 
     def test_gives_up_after_the_attempt_budget(self):
         client = FakeClient(PAYLOAD, fails=99)
         with self.assertRaises(RuntimeError):
-            make_profile.generate(client, "m", "résumé", PREFS, sleep=lambda s: None)
+            self.gen(client, sleep=lambda s: None)
         self.assertEqual(client.models.calls, 5)
 
     def test_does_not_retry_a_real_error(self):
         # A 404 on a retired model must fail on the first call, not burn the budget.
         client = FakeClient(PAYLOAD, fails=99, fail_with="404 NOT_FOUND")
         with self.assertRaises(RuntimeError):
-            make_profile.generate(client, "m", "résumé", PREFS, sleep=lambda s: None)
+            self.gen(client, sleep=lambda s: None)
         self.assertEqual(client.models.calls, 1)
 
     def test_prompt_carries_the_resume_and_the_stated_preferences(self):
         client = FakeClient(PAYLOAD)
-        make_profile.generate(client, "m", "UNIQUE_RESUME_MARKER", PREFS)
+        self.gen(client, "UNIQUE_RESUME_MARKER")
         prompt = client.models.last_kwargs["contents"]
         self.assertIn("UNIQUE_RESUME_MARKER", prompt)
         self.assertIn("Bengaluru", prompt)
