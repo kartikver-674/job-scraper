@@ -53,6 +53,49 @@ _VERIFIED_COUNTRIES = ["United States", "United Kingdom", "Canada", "Ireland",
                        "Germany", "Netherlands", "Australia", "Singapore",
                        "United Arab Emirates"]
 
+# "Remote" has no geoId: the adapter special-cases it onto SITES.linkedin's
+# remote_geo (config.py's SITES comment). It is a location you can search, so
+# it belongs in the picker; it is just not a place.
+REMOTE = "Remote"
+
+
+def searchable_locations():
+    """The locations the Configure screen may offer, grouped for the menu.
+
+    Every entry is a config.LINKEDIN_GEO_IDS key. That table is the whole
+    guard: "A missing or wrong geoId is NOT a soft failure: LinkedIn ignores
+    the free-text location and returns US results, so you pay full price for
+    the wrong country" — so a picker of free text would be a way to buy the
+    United States by typing "Bangalore". Read live rather than copied, so a
+    geoId verified (or removed) in config appears (or stops appearing) here.
+    """
+    import config
+    known = list(config.LINKEDIN_GEO_IDS)
+    cities = [c for c in _INDIA_CITY_NAMES if c in known]
+    # Everything else, in config's own order. Grouping only: a city added to
+    # that table later lands under "Countries" until it is named above, which
+    # is untidy rather than wrong.
+    countries = [c for c in known
+                 if c not in cities and c not in _INDIA_ALIASES]
+    return [("Anywhere remote", [REMOTE]),
+            ("India", cities),
+            ("Countries", countries)]
+
+
+def allowed_locations():
+    """Flat set of everything searchable_locations() offers."""
+    return {name for _, names in searchable_locations() for name in names}
+
+
+# Gurugram is the same geoId as Gurgaon under LinkedIn's own label; offering
+# both would let someone pay twice for one city.
+_INDIA_ALIASES = {"Gurugram"}
+# Presentation only — which verified names sit under the "India" heading.
+# Separate from _INDIA_CITIES, which is what the india SCOPE searches:
+# widening that set would change what an existing choice costs.
+_INDIA_CITY_NAMES = ["Delhi", "Gurgaon", "Chandigarh", "Bengaluru",
+                     "Hyderabad", "Pune", "Mumbai"]
+
 _SCOPE = {
     # India only, onsite/hybrid: no "Remote" in the mix — that is what the
     # "remote" scope is for.
@@ -369,6 +412,28 @@ def _configure_overrides(form):
         if scope not in _SCOPE:
             raise _FormError("Choose where you can work.")
         out.update(_SCOPE[scope])
+
+    # Locations, when the picker sent any. Applied AFTER the scope above, so
+    # an empty box means "whatever the scope covers" and picking narrows it —
+    # which is what "All locations" means on that control.
+    #
+    # Validated against the verified table, never trusted: an unknown name
+    # reaches LinkedIn as free text, and LinkedIn answers free text with US
+    # results at full price (config.LINKEDIN_GEO_IDS). This is the one field
+    # on the screen where a typo costs money in the wrong currency.
+    if "locations" in form:
+        picked = _parse_chips(form["locations"], "Locations")
+        unknown = [p for p in picked if p not in allowed_locations()]
+        if unknown:
+            raise _FormError(
+                f"{unknown[0]!r} is not a location this can search. LinkedIn "
+                "needs a verified geoId for each one, or it silently returns "
+                "United States results and bills for them.")
+        if picked:
+            # linkedin_locations too: SITES[site].get("locations", ...) means
+            # the most expensive site keeps config.py's default otherwise.
+            out["locations"] = picked
+            out["linkedin_locations"] = picked
 
     if "max_age_days" in form:
         out["max_age_days"] = _parse_int(

@@ -618,6 +618,42 @@ td.score {
   .rerank { grid-template-columns: minmax(0, 36rem) 20rem; }
 }
 
+/* ---- Location picker ---------------------------------------------------- */
+
+/* A field that holds chips and opens a menu. The box is styled as an input
+   because that is what it behaves like, but it is a div: a <button> may not
+   contain the per-chip remove buttons, and those have to be real buttons. */
+.picker { position: relative; }
+.picker-box {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2);
+  min-height: 2.6rem; padding: var(--s3) var(--s4);
+  background: var(--well); border: 1px solid var(--surface-edge);
+  border-radius: var(--radius); cursor: pointer;
+}
+.picker-box:hover { border-color: var(--slate); }
+.picker-caret { margin-left: auto; color: var(--slate); font-size: 11px; }
+.tag.pick {
+  display: inline-flex; align-items: center; gap: var(--s2); margin: 0;
+  color: var(--chalk); border-color: var(--slate);
+}
+.pick-x {
+  padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--slate); font-size: 13px; line-height: 1;
+}
+.pick-x:hover { color: var(--over); }
+
+/* Anchored to the field and above everything after it, so a long menu does
+   not push the rest of the form down the page every time it opens. */
+.picker-menu {
+  position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px);
+  max-height: 20rem; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--s2);
+  padding: var(--s4); background: var(--surface-high);
+  border: 1px solid var(--surface-edge); border-radius: var(--radius);
+}
+.picker-menu .label { margin: var(--s3) 0 0; }
+.picker-menu .choice { padding: var(--s2) var(--s3); }
+
 /* ---- Arrivals ----------------------------------------------------------- */
 
 /* Newest on top, dimming down the list, so the eye lands on what just came

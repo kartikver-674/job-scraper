@@ -459,9 +459,22 @@ class TestAlpineScopeSurvivesHtmlParsing(unittest.TestCase):
         app.write_profile = lambda n, s: None
         body = app.test_client().get("/configure").get_data(as_text=True)
         scopes = alpine_scope(body)
-        self.assertEqual(len(scopes), 1)
-        self.assertIn("total", scopes[0])
-        self.assertIn("lines", scopes[0])
+        # Every scope on the page, not just the first: the failure this
+        # guards is an attribute that ENDS at a stray quote, which leaves a
+        # component that never initialises and a screen that silently stops
+        # updating. A truncated one cannot close its own brace.
+        self.assertTrue(scopes)
+        for scope in scopes:
+            self.assertTrue(scope.strip().startswith("{"), scope[:60])
+            self.assertTrue(scope.strip().endswith("}"), scope[-60:])
+        cost = [s for s in scopes if "total" in s]
+        self.assertEqual(len(cost), 1, "exactly one cost scope")
+        self.assertIn("lines", cost[0])
+        # The location picker is the other one, and it holds a JSON list
+        # rendered by |tojson — the exact shape that truncates a
+        # double-quoted attribute.
+        picker = [s for s in scopes if "picked" in s]
+        self.assertEqual(len(picker), 1)
 
     def test_the_running_progress_scope_parses_whole(self):
         app, _, _ = TestRunningScreen()._app()
@@ -2427,6 +2440,124 @@ class FakeProc:
 
     def send_signal(self, sig):
         self.signals.append(sig)
+
+
+class TestLocationPicker(unittest.TestCase):
+    """Locations are the one field on Configure where a typo costs money in
+    the wrong currency: LinkedIn answers an unverified location with United
+    States results and bills for them (config.LINKEDIN_GEO_IDS). So the
+    control is a picker over that table, and the form is checked against it
+    again on the way in."""
+
+    def _app(self, state=None):
+        self.written = {}
+        state = state if state is not None else {
+            "profile": "kanav", "cap_usd": 8.41, "derived": DERIVED}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN, output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: self.written.update({n: src})
+        self.state = state
+        return app
+
+    def body(self, state=None):
+        return self._app(state).test_client().get(
+            "/configure").get_data(as_text=True)
+
+    # ---- what it offers --------------------------------------------------
+    def test_only_verified_locations_are_offered(self):
+        import config as live
+        body = self.body()
+        offered = set(re.findall(r'<input type="checkbox" value="([^"]+)"', body))
+        self.assertTrue(offered)
+        for name in offered:
+            self.assertTrue(name == "Remote" or name in live.LINKEDIN_GEO_IDS,
+                            f"{name} has no verified geoId")
+
+    def test_the_documented_traps_are_not_offered(self):
+        body = self.body()
+        # config records this one as returning Inner Mongolia, CHINA.
+        self.assertNotIn('value="New Delhi"', body)
+        # Same geoId as Gurgaon under LinkedIn's own label — offering both
+        # lets someone pay twice for one city.
+        self.assertNotIn('value="Gurugram"', body)
+
+    def test_it_posts_one_field_not_a_repeated_one(self):
+        # /estimate reads Object.fromEntries(new FormData(form)), which keeps
+        # only the LAST value of a repeated key — the trap sites_present
+        # exists for. One comma-joined hidden field cannot hit it.
+        body = self.body()
+        self.assertEqual(body.count('name="locations"'), 1)
+        # The whole pick in ONE value, not one input per location — which is
+        # what an x-for around this field would produce, and which renders
+        # as a single tag either way, so the binding is what to check.
+        self.assertRegex(
+            body, r'type="hidden" name="locations" :value="picked\.join')
+
+    def test_the_estimate_is_asked_after_the_field_is_written(self):
+        # Alpine writes the hidden input on the NEXT tick, so dispatching the
+        # change straight after a pick prices the PREVIOUS selection — the
+        # cost panel would trail the control by one click, which on a money
+        # display is the whole problem.
+        body = self.body()
+        self.assertRegex(body, r"\$nextTick\(\(\) =(&gt;|>) this\.\$dispatch")
+
+    def test_the_current_pick_comes_back_into_the_control(self):
+        body = self.body({"profile": "kanav", "cap_usd": 8.41,
+                          "derived": DERIVED, "locations": ["Delhi", "Germany"],
+                          "linkedin_locations": ["Delhi", "Germany"]})
+        self.assertIn('picked: ["Delhi", "Germany"]', body)
+
+    def test_a_scope_default_is_not_shown_as_a_deliberate_pick(self):
+        # state["locations"] is also what the scope choice sets. Rendering
+        # that as chips would show a choice the user never made — and post it
+        # straight back as one.
+        body = self.body({"profile": "kanav", "cap_usd": 8.41,
+                          "derived": DERIVED, "locations": ["Delhi", "Mumbai"]})
+        self.assertIn("picked: []", body)
+
+    # ---- what it accepts -------------------------------------------------
+    def test_picking_locations_narrows_both_lists(self):
+        # SITES[site].get("locations", SEARCH["locations"]) means LinkedIn —
+        # the most expensive site — keeps config's own default unless
+        # linkedin_locations is set too.
+        app = self._app()
+        r = app.test_client().post("/estimate", json={
+            "scope": "india", "locations": "Delhi, Germany"})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        self.assertEqual(self.state["locations"], ["Delhi", "Germany"])
+        self.assertEqual(self.state["linkedin_locations"], ["Delhi", "Germany"])
+
+    def test_an_empty_pick_leaves_the_scope_alone(self):
+        # "All locations" is the absence of a narrowing, not a location.
+        app = self._app()
+        app.test_client().post("/estimate", json={"scope": "india",
+                                                   "locations": ""})
+        self.assertEqual(self.state["locations"],
+                         app_module._SCOPE["india"]["locations"])
+
+    def test_an_unverified_location_is_refused_and_nothing_is_applied(self):
+        app = self._app()
+        for bad in ("Bangalore", "New Delhi", "Gurugram", "Atlantis"):
+            r = app.test_client().post("/estimate", json={
+                "scope": "india", "locations": f"Delhi, {bad}"})
+            self.assertEqual(r.status_code, 400, bad)
+            self.assertIn("verified geoId", r.get_json()["error"])
+            # A partial form must never partially write.
+            self.assertNotIn("locations", self.state)
+            self.assertEqual(self.written, {})
+
+    def test_a_location_reaches_the_rendered_profile(self):
+        app = self._app()
+        app.test_client().post("/estimate", json={"scope": "india",
+                                                   "locations": "Bengaluru"})
+        source = self.written["kanav"]
+        self.assertIn("'Bengaluru'", source)
+        # And in the LinkedIn block, not only in SEARCH.
+        sites = source.split("SITES = {", 1)[1].split("\n}\n", 1)[0]
+        self.assertIn("'Bengaluru'", sites)
 
 
 class TestConfirmScreen(unittest.TestCase):

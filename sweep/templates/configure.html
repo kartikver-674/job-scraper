@@ -109,6 +109,75 @@
         {% endif %}
       </div>
 
+      {# Locations. Every name comes from config.LINKEDIN_GEO_IDS and the
+         form is validated against the same table, because an unverified name
+         reaches LinkedIn as free text and LinkedIn answers free text with US
+         results at full price. That is why this is a picker and not a box
+         you can type a city into.
+
+         Checkboxes, not radios: the control has to hold several locations at
+         once, and a radio group cannot. They sit on the left of each row the
+         same way the scope choices above them do. #}
+      <div class="panel">
+        <h2>Locations</h2>
+        <p class="muted">Empty means every location the choice above covers.
+          Pick some to narrow it — each one is a separate paid search on
+          LinkedIn and Indeed, so the cost beside this moves with the
+          count.</p>
+        {# Single-quoted for the |tojson rule at the top of this file. #}
+        <div class="picker" @click.outside="open = false"
+             x-data='{ open: false, picked: {{ picked_locations|tojson }},
+               has(name) { return this.picked.indexOf(name) !== -1 },
+               toggle(name) {
+                 const at = this.picked.indexOf(name);
+                 if (at === -1) { this.picked.push(name); } else { this.picked.splice(at, 1); }
+                 this.changed();
+               },
+               clear() { this.picked = []; this.changed(); },
+               changed() {
+                 /* The hidden input is written by Alpine on the next tick, so
+                    firing the estimate now would price the PREVIOUS pick. */
+                 this.$nextTick(() =&gt; this.$dispatch("change"));
+               } }'>
+          <input type="hidden" name="locations" :value="picked.join(&#39;, &#39;)">
+          <div class="picker-box" tabindex="0" role="button"
+               :aria-expanded="open ? &#39;true&#39; : &#39;false&#39;"
+               @click="open = !open" @keydown.enter.prevent="open = !open"
+               @keydown.space.prevent="open = !open">
+            <span class="muted" x-show="!picked.length">All locations</span>
+            <template x-for="name in picked" :key="name">
+              <span class="tag pick">
+                <span x-text="name"></span>
+                <button type="button" class="pick-x" @click.stop="toggle(name)"
+                        :aria-label="&#39;Remove &#39; + name">&times;</button>
+              </span>
+            </template>
+            <span class="picker-caret" aria-hidden="true">&#9662;</span>
+          </div>
+          <div class="picker-menu" x-show="open" x-cloak>
+            {# Not a checkbox of its own: "all" is the state of having picked
+               nothing, so it cannot disagree with the list below it. #}
+            <label class="choice">
+              <input type="checkbox" :checked="!picked.length"
+                     @click.prevent="clear()">
+              <span><b>All locations</b>
+                <span class="why">Everything the choice above covers.</span></span>
+            </label>
+            {% for heading, names in location_groups %}
+              <span class="label">{{ heading }}</span>
+              {% for name in names %}
+                <label class="choice">
+                  <input type="checkbox" value="{{ name }}"
+                         :checked="has('{{ name }}')"
+                         @click.prevent="toggle('{{ name }}')">
+                  <span>{{ name }}</span>
+                </label>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="grid2">
           <label><span class="label">How recent</span>

@@ -34,8 +34,8 @@ import scraper  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
     DEFAULT_SORT, SORTS, _valid_profile_name, bucket_rows, fill_pct,
-    paid_sites, reweighted, site_label, sort_rows, step_states, sweep_dates,
-    worst_filter)
+    paid_sites, reweighted, searchable_locations, site_label, sort_rows,
+    step_states, sweep_dates, worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -974,7 +974,16 @@ def create_app(state=None, extract=None, resume_dir=None,
                     # the reason the depth control cannot move naukri.
                     "per_run": bool(config.SITES[site].get("results_per_run"))}
                    for site in paid_sites()],
-            paid=[site_label(s) for s in paid_sites()]))
+            paid=[site_label(s) for s in paid_sites()],
+            # Read live from config.LINKEDIN_GEO_IDS: a geoId verified (or
+            # removed) there appears (or stops appearing) here, and the form
+            # is validated against the same table.
+            location_groups=searchable_locations(),
+            # Only what the user picked — never the scope's own list, which
+            # would render as an explicit choice they did not make and post
+            # itself back as one.
+            picked_locations=app.state.get("locations")
+            if app.state.get("linkedin_locations") else []))
 
     @app.post("/estimate")
     def estimate():
