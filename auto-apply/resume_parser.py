@@ -4,15 +4,39 @@ happens when the PDF is newer than the cache, so repeat runs are fast.
 """
 
 import os
+import re
+import unicodedata
 
 from pypdf import PdfReader
 
+# Characters a PDF text layer carries that no downstream matcher expects.
+# Zero-width joiners and soft hyphens sit INSIDE words, so a term carrying
+# one never matches the same term without it.
+_INVISIBLE = re.compile("[\u00ad\u200b\u200c\u200d\ufeff]")
+
+
+def normalise(text):
+    """PDF text as the rest of the system assumes text looks like.
+
+    NFKC because exporters emit typographic ligatures: Chrome renders
+    "airflow" as "air\ufb02ow" and "snowflake" as "snow\ufb02ake" with a
+    single ﬂ glyph, and every exact match downstream then misses. The
+    benchmark corpus in bench/ hit this on two of eight résumés before a
+    model was involved at all.
+
+    NFKC and not NFKD-plus-strip-combining: that pair is right for the
+    profile NAME slug, where "María" must become a filename, and wrong for
+    body text, where flattening every accent corrupts employers and
+    institutions that legitimately carry them.
+    """
+    return _INVISIBLE.sub("", unicodedata.normalize("NFKC", text))
+
 
 def extract_text(pdf_path):
-    """Extract all text from a PDF using pypdf."""
+    """Extract all text from a PDF using pypdf, normalised."""
     reader = PdfReader(pdf_path)
     parts = [page.extract_text() or "" for page in reader.pages]
-    return "\n".join(parts).strip()
+    return normalise("\n".join(parts)).strip()
 
 
 def load_resume(pdf_path, cache_path, extractor=extract_text):

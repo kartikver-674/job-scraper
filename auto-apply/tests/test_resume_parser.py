@@ -53,3 +53,47 @@ class TestLoadResume(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestNormalise(unittest.TestCase):
+    """A PDF text layer is not plain text, and every exact match downstream
+    assumes it is."""
+
+    def test_ligatures_fold_to_their_letters(self):
+        # Chrome renders "airflow" with a single U+FB02 glyph, so the term
+        # the model reads back is not the term any job listing contains.
+        # bench/ hit this on two of eight résumés before a model was
+        # involved at all.
+        self.assertEqual(resume_parser.normalise("air\ufb02ow"), "airflow")
+        self.assertEqual(resume_parser.normalise("snow\ufb02ake"), "snowflake")
+        self.assertEqual(resume_parser.normalise("o\ufb03ce"), "office")
+        self.assertEqual(resume_parser.normalise("\ufb00"), "ff")
+
+    def test_accents_are_kept(self):
+        # NFKC, not NFKD-plus-strip-combining: that pair is for the profile
+        # NAME slug, where "María" must become a filename. Flattening body
+        # text corrupts employers and institutions that carry accents.
+        self.assertEqual(resume_parser.normalise("María Peña"), "María Peña")
+        self.assertEqual(resume_parser.normalise("Université Hassan II"),
+                         "Université Hassan II")
+
+    def test_characters_inside_words_are_removed(self):
+        # A soft hyphen or zero-width joiner sits INSIDE a word, so the term
+        # carrying one never matches the same term without it.
+        self.assertEqual(resume_parser.normalise("soft\u00adhyphen"),
+                         "softhyphen")
+        self.assertEqual(resume_parser.normalise("a\u200bb"), "ab")
+        self.assertEqual(resume_parser.normalise("\ufeffleading"), "leading")
+
+    def test_a_non_breaking_space_becomes_a_space(self):
+        self.assertEqual(resume_parser.normalise("Node\u00a0js"), "Node js")
+
+    def test_ordinary_text_is_unchanged(self):
+        plain = "React Native, Node.js — 5 years (2019-2024)"
+        self.assertEqual(resume_parser.normalise(plain), plain)
+
+    def test_extraction_normalises(self):
+        # The guard belongs at the boundary, not at each caller.
+        got = resume_parser.extract_text.__doc__
+        self.assertIn("normalised", got)
+
