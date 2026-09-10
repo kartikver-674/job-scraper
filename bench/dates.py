@@ -73,6 +73,13 @@ from bench.run import OLLAMA, KEEP_ALIVE, RESUMES, ctx_for
 SCHEMA = {
     "type": "object",
     "properties": {
+        # First on purpose. JSON is generated in property order, so the
+        # model writes down what this résumé is targeting before it judges
+        # a single row against it. Asked the other way round — a bare
+        # per-row boolean — it kept kwame's nine years of teaching, because
+        # nothing on his page announces the change the way hana's headline
+        # does, and there was no written anchor to compare the row to.
+        "target_field": {"type": "string"},
         "employment": {
             "type": "array",
             "items": {
@@ -95,7 +102,7 @@ SCHEMA = {
             },
         },
     },
-    "required": ["employment"],
+    "required": ["target_field", "employment"],
 }
 
 PROMPT = """List every EMPLOYMENT entry in this résumé.
@@ -103,12 +110,15 @@ PROMPT = """List every EMPLOYMENT entry in this résumé.
 - One entry per row of work history, including internships.
 - Do NOT include education, certifications, publications or projects.
 - Copy the dates exactly as written. If a role is current, end is "present".
-- relevant: true if the role is the same kind of work as the person's
-  current or most recent role; false if it belongs to a different career
-  they have since left. Judge the work itself, not the job title — a
-  part-time or contract role in the same field is relevant. Most résumés
-  are one career throughout, so relevant is true for every row unless the
-  person has clearly changed field.
+- target_field: the field this person is looking for work in now, in two
+  or three words, taken from their most recent role. For example "backend
+  engineering", "data engineering", "secondary school teaching".
+- relevant: true if the role is work in target_field, false if it is not.
+  Answer this for each row by comparing the row against target_field, not
+  by asking whether the résumé looks like a career change — a résumé does
+  not have to announce one. A part-time, contract or differently titled
+  role in the same field is relevant; a role in another field is not, even
+  if it is the longest one on the page.
 
 Résumé:
 {text}"""
@@ -262,7 +272,7 @@ def run(model, cache_path=None, asker=ask):
 
 
 def report(model, cache):
-    exact = ambiguous = 0
+    exact = 0
     print(f"\n{'=' * 66}\n{model}: years COMPUTED from extracted dates"
           f"\n{'=' * 66}")
     per_person = {}
@@ -273,21 +283,20 @@ def report(model, cache):
         want = truth(slug)["years_experience"]
         hits = sum(1 for g in got if g == want)
         exact += hits
+        # A career change is the case worth marking, because it is where
+        # the arithmetic depends on the model's one judgement rather than
+        # only on its dates.
         note = ""
-        # hana's answer key takes her headline's reading (four years since
-        # the career change). Summing her rows gives twelve, which is also
-        # true. No arithmetic settles which one a job filter should use, so
-        # this is the case that needs a model or a question to the user —
-        # and it is exactly the case a confidence check should flag.
-        if slug == "hana":
-            note = "  <- ambiguous: 4 since the change, 12 in total"
-            ambiguous += len(got)
+        if any(j.get("relevant") is False
+               for j in PEOPLE[slug]["employment"]):
+            total_years = years_from(truth(slug)["employment_rows"],
+                                     ignore_relevance=True)
+            note = (f"  <- career change; {total_years} without clause 3"
+                    + ("" if hits == len(got) else ", and not caught"))
         print(f"  {slug:<9} truth {want:>2}   computed {got}"
               f"   {hits}/{len(got)}{note}")
     total = sum(len(v) for v in per_person.values())
     print(f"\n  exact: {exact}/{total} = {exact / total:.0%}")
-    print(f"  excluding the one case dates cannot settle: "
-          f"{exact}/{total - ambiguous} = {exact / (total - ambiguous):.0%}")
     return exact / total
 
 
@@ -376,7 +385,8 @@ def demo():
             {"company": j["company"], "title": j["title"],
              "start": j["start"], "end": j["end"] or "present",
              "relevant": j.get("relevant", True)}
-            for j in PEOPLE[slug]["employment"]]}
+            for j in PEOPLE[slug]["employment"]],
+            "target_field": PEOPLE[slug]["headline"]}
 
     import tempfile
     cache = run("fake:dates", os.path.join(tempfile.mkdtemp(), "d.json"), fake)
