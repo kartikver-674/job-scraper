@@ -245,6 +245,160 @@ def keywords_for(own, rows, idx, total, want=12, need=2,
     return taken
 
 
+# Words that mark a résumé line as a CONCEPT rather than a searchable
+# tool. "SOLID principles" and "Data Structures & Algorithms (DSA)" are
+# real things to know and nobody posts a job titled after them, so they
+# add nothing to a search and dilute the weights that decide ranking.
+CONCEPT = {"principles", "principle", "patterns", "pattern", "algorithms",
+           "algorithm", "structures", "programming", "concepts", "concept",
+           "methodologies", "methodology", "paradigms", "fundamentals",
+           "practices", "oop", "oops", "dsa", "solid"}
+
+
+def vocabulary(rows):
+    """Every skill term the market has ever named, with its listing count."""
+    seen = collections.Counter()
+    for _t, _s, skills, _c in rows:
+        seen.update(skills)
+    return seen
+
+
+def clean_skills(skills, resume_text=None, vocab=(), rows=()):
+    """(kept, dropped) — the searchable half of an extracted skill list.
+
+    Local extraction returned "data structures & algorithms (dsa)",
+    "object-oriented programming (oop)", "solid principles" and "design
+    patterns (builder, singleton, factory)". The résumé files them under
+    "Core CS Fundamentals", which is exactly what they are: real things
+    to know that nobody posts a job titled after. They dilute the weights
+    that decide ranking and they feed keyword retrieval.
+
+    A term is dropped only when it reads as a concept AND the market does
+    not use it as a skill, so a rare-but-real tool the corpus has never
+    seen survives.
+
+    RECOVERY WAS TRIED AND REMOVED. Local extraction also MISSES
+    technologies buried in experience prose — apex, soql, smartstore and
+    smartsync are all on this page and all absent, where Gemini found
+    them. Two attempts failed to get them back safely:
+
+      a corpus-vocabulary scan of the résumé text, which also recovered
+      "field sales", "change requests" and "e-commerce" — market skill
+      terms sitting in achievement prose. Corpus lift cannot separate
+      them: "field sales" scores 1.83 on four listings and so does apex.
+      Nor can position, because all of them are in the same Experience
+      section.
+
+      a prompt telling the model to read technologies from experience
+      bullets too, and to read apart words the PDF ran together. It
+      changed nothing.
+
+    So this is a measured gap against Gemini rather than a solved
+    problem. A wrong skill feeds keyword retrieval and spends money; a
+    missing one does not.
+    """
+    vocab = vocab or ()
+    kept, dropped = [], []
+    for skill in skills:
+        term = str(skill).strip().lower()
+        if not term:
+            continue
+        words = set(re.findall(r"[a-z0-9+#.]+", term))
+        if words & CONCEPT and term not in vocab:
+            dropped.append(term)
+        else:
+            kept.append(term)
+    return kept, dropped
+
+
+def canonical(fragment, titles, seniority=(), max_words=4):
+    """The most common COMPLETE job title containing this fragment.
+
+    role_keywords are sent to LinkedIn and Indeed as literal search
+    strings, and the ranked n-grams are not titles: "developer react
+    native", "js developer", "stack ai". Only 4 of 13 derived for a real
+    résumé were things anyone posts. Ranking finds the right concept and
+    this puts a real title back on it — "native developer" becomes "react
+    native developer", which 86 listings are actually called.
+    """
+    needle = fragment.strip().lower()
+    if not needle:
+        return None
+    plain, senior = (None, 0), (None, 0)
+    for title, count in titles.items():
+        if needle not in title or not (2 <= len(title.split()) <= max_words):
+            continue
+        words = title.split()
+        bucket = "senior" if any(w in seniority for w in words) else "plain"
+        if bucket == "plain" and count > plain[1]:
+            plain = (title, count)
+        elif bucket == "senior" and count > senior[1]:
+            senior = (title, count)
+    # A title with no seniority word in it is preferred outright. Stripping
+    # one produces a string that may be no title at all: "senior software
+    # engineer onsite" became "software engineer onsite", which nobody
+    # posts, and it went straight out as a search query.
+    if plain[0]:
+        return plain[0]
+    if not senior[0]:
+        return None
+    stripped = " ".join(w for w in senior[0].split() if w not in seniority)
+    # Only usable if the stripped form is itself something people post.
+    return stripped if stripped and stripped in titles else None
+
+
+def canonicalise(fragments, rows, seniority=()):
+    """Ranked fragments as real, deduplicated job titles."""
+    titles = collections.Counter(t for t, _s, _sk, _c in rows)
+    out = []
+    for fragment in fragments:
+        title = canonical(fragment, titles, seniority)
+        if title and title not in out:
+            out.append(title)
+    return out
+
+
+def hints_for(own, rows, idx, total, seniority=(), floor=20, ceiling=40):
+    """title_hints: the gate on every free source, deliberately wide.
+
+    RULE 3 asks for twenty to forty entries and says a missing fragment
+    is inventory nobody ever sees. The first version took only the twelve
+    ranked keywords and their component words and produced thirteen, so
+    the free sources were gated more tightly than config's own default.
+
+    This gate only ever WIDENS — scraper.is_dev_title drops a posting
+    whose title contains none of these — so the cost of one more entry is
+    nothing and the cost of one missing entry is a job never seen. It
+    therefore reaches for `floor` before it stops, taking lower-ranked
+    fragments and the single words inside them.
+    """
+    out = []
+
+    def add(value):
+        value = value.strip().lower()
+        if value and value not in out:
+            out.append(value)
+
+    ranked = keywords_for(own, rows, idx, total, want=ceiling,
+                          seniority=seniority)
+    for fragment in ranked:
+        add(fragment)
+        for title in (canonical(fragment,
+                                collections.Counter(t for t, _s, _k, _c in rows),
+                                seniority),):
+            if title:
+                add(title)
+        if len(out) >= ceiling:
+            break
+    # Single words, but only ones the market posts often enough to be a
+    # real fragment of a title rather than a stray token.
+    for fragment in ranked:
+        for word in fragment.split():
+            if idx.get(word, {}).get("listings", 0) >= MIN_LISTINGS * 5:
+                add(word)
+    return out[:ceiling]
+
+
 def coverage(own, rows):
     """How much of this person's vocabulary the corpus has ever seen."""
     seen = set()
@@ -387,6 +541,15 @@ def report(want=12, model="qwen3:8b"):
           f"{'':>14} lift 1.0x  reachable {base_reach:.0%}")
 
 
+def rows_for(hist):
+    """A corpus shaped from a title histogram, for the demo only."""
+    out = []
+    for title, count in hist.items():
+        out += [(title, 40, frozenset({"react", "typescript"}),
+                 f"{title}-{i}") for i in range(count)]
+    return out
+
+
 def demo():
     sen = ("senior", "intern", "ii")
     assert fragments("Senior Backend Engineer II, Remote", sen) == {
@@ -451,6 +614,66 @@ def demo():
     assert keywords_for({"cobol", "fortran"}, rows, idx, total,
                         seniority=sen) == []
     assert coverage({"react", "cobol"}, rows) == (1, 2)
+
+    # clean_skills: concept filler out, specific tools kept.
+    kept, junk = clean_skills(
+        ["React Native", "SOLID Principles", "apex",
+         "Data Structures & Algorithms (DSA)", "smartstore",
+         "Object-Oriented Programming (OOP)"], vocab={"react native"})
+    assert kept == ["react native", "apex", "smartstore"], kept
+    assert len(junk) == 3, junk
+    # A concept word the MARKET uses as a skill survives, because then it
+    # is searchable whatever it reads like.
+    assert clean_skills(["solid principles"],
+                        vocab={"solid principles"}) == (["solid principles"], [])
+
+    # canonical(): a ranked n-gram is not a job title, and role_keywords
+    # are sent to the boards as literal search strings.
+    hist = collections.Counter({"react native developer": 86,
+                                "native developer": 1,
+                                "senior react js developer": 4,
+                                "react js developer": 2,
+                                "senior data engineer": 9})
+    assert canonical("native developer", hist, sen) == "react native developer"
+    # A seniority-free title wins outright over a more common senior one.
+    assert canonical("react js", hist, sen) == "react js developer"
+    # When only a senior title exists, stripping is allowed only if what
+    # is left is itself something people post. "senior software engineer
+    # onsite" became "software engineer onsite", which nobody posts, and
+    # it went out as a search query.
+    assert canonical("engineer onsite", collections.Counter(
+        {"senior software engineer onsite": 5}), sen) is None
+    assert canonical("data engineer", hist, sen) is None, "only a senior one"
+    assert canonical("nothing", hist, sen) is None
+    assert canonical("", hist, sen) is None
+    # Two fragments naming one title collapse to one search, not two.
+    assert canonicalise(["native developer", "react native developer"],
+                        rows_for(hist), sen) == ["react native developer"]
+
+    # hints_for reaches the floor RULE 3 asks for; the first version
+    # produced thirteen and gated the free sources tighter than config.
+    # Filler with no skills, so the matching rows are a MINORITY of the
+    # market and lift can exceed 1. Without it every fragment is exactly
+    # as common among the matches as in the market, lift is 1.0 for all
+    # of them, and the ranking correctly returns nothing.
+    wide = (rows_for(hist)
+            + [("react developer", 40, frozenset({"react", "typescript"}),
+                f"co{i}") for i in range(30)]
+            + [("warehouse operative", 0, frozenset(), f"w{i}")
+               for i in range(400)])
+    widx = index(wide, sen)
+    own_wide = {"react", "typescript"}
+    hints = hints_for(own_wide, wide, widx, len(wide), sen, floor=5)
+    keys = keywords_for(own_wide, wide, widx, len(wide), want=12,
+                        seniority=sen)
+    # The property that matters: the gate is WIDER than the paid keyword
+    # list, and free of duplicates. How wide it gets is a function of how
+    # many titles the market has, which five fixture titles cannot show —
+    # the real corpus produces 40 against RULE 3's floor of 20.
+    assert set(hints) >= set(keys), (hints, keys)
+    assert len(hints) > len(keys), (hints, keys)
+    assert hints == list(dict.fromkeys(hints)), "no duplicates"
+    assert all(h.strip() == h and h.islower() for h in hints)
 
     bought = buys(["react developer"], rows, own)
     assert bought["listings"] == 70 and bought["relevance"] == 1.0

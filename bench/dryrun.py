@@ -64,13 +64,22 @@ def local_profile(model, resume_text, prefs, log=print):
     seniority = hard + soft
     rows = ds.corpus_rows()
     idx = ds.index(rows, seniority)
-    own = {s.strip().lower() for s in checked.get("skills") or ()}
+    # Concept filler out before anything downstream sees it: these terms
+    # feed both keyword retrieval and the weights that decide ranking.
+    vocab = ds.vocabulary(rows)
+    skills, filler = ds.clean_skills(checked.get("skills") or (), vocab=vocab)
+    own = set(skills)
+    if filler:
+        log(f"    dropped {len(filler)} concept term(s): {filler}")
     person = {"skills": sorted(own),
               "employment": (employment or {}).get("employment") or []}
+    # Canonicalised, because these are sent to LinkedIn and Indeed as
+    # literal search strings and the ranked n-grams are not job titles.
     keywords = cold_start.validated(
         cold_start.from_resume(person, seniority)
-        + ds.keywords_for(own, rows, idx, len(rows), want=12,
-                          seniority=seniority),
+        + ds.canonicalise(
+            ds.keywords_for(own, rows, idx, len(rows), want=12,
+                            seniority=seniority), rows, seniority),
         rows, seniority)
     mark_from = mark("derive keywords", mark_from)
 
@@ -80,15 +89,15 @@ def local_profile(model, resume_text, prefs, log=print):
     halves, _fixes = semantic.check_halves(answer, rows, seniority)
     mark_from = mark("semantic halves", mark_from)
 
-    # title_hints: the keywords plus every single word inside them that is
-    # itself a real fragment. This gate only widens, so it errs wide.
-    hints = sorted({k for k in keywords} | {
-        w for k in keywords for w in k.split()
-        if idx.get(w, {}).get("listings", 0) >= ds.MIN_LISTINGS})
+    # RULE 3 wants twenty to forty. Taking only the keywords and their
+    # component words gave thirteen, gating the free sources tighter than
+    # config's own default.
+    hints = ds.hints_for(own, rows, idx, len(rows), seniority)
 
     # skill_weights: the résumé supplies the terms, the corpus the numbers.
     import corpus_signal
     weights = {s: 3 for s in sorted(own)}
+    _ = weights
     blended, _moved = corpus_signal.reweight(weights, corpus_signal.frequencies())
     mark_from = mark("weight against corpus", mark_from)
 

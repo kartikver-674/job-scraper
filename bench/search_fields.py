@@ -712,6 +712,15 @@ def from_config(module=None):
         return list(got)
 
     return {
+        # make_profile.render() writes years into SEARCH, not SCORING, so
+        # reading it back needs its own line. Without it the dry run
+        # printed "gemini None" against a locally derived 1 and looked
+        # like a disagreement where the two actually agree.
+        "years_experience": (config.SEARCH.get("experience_years")
+                             if module is None else
+                             (getattr(module, "SEARCH", {}) or {}).get(
+                                 "experience_years",
+                                 config.SEARCH.get("experience_years"))),
         "role_keywords": keywords,
         "title_hints": hints,
         "title_exclude": excludes,
