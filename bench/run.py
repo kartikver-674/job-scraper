@@ -166,6 +166,13 @@ def ask(model, text, timeout=600, url=OLLAMA):
         "format": SCHEMA,
         "stream": False,
         "keep_alive": KEEP_ALIVE,
+        # Only ask_nuextract sent this, so every qwen3 fields call in every
+        # run so far reasoned at length before extracting — a 37.4s median
+        # against NuExtract's 6.3s, most of which was thinking rather than
+        # reading. Copying values out of a document is not a reasoning
+        # task, and the benchmark cannot compare two models when one is
+        # thinking and the other is not.
+        "think": False,
         "options": {"temperature": 0, "num_ctx": ctx_for(prompt)},
     }).encode()
     started = time.time()

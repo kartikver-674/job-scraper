@@ -27,8 +27,11 @@ Six clauses, each with a case in the corpus that fails without it:
   1. Completed years, floored — never rounded.        ada: 5y7m is 5, not 6
   2. Paid professional work only. Internships,
      traineeships and study do not count.             bhaskar: 0.  lena: 1
-  3. In the targeted line of work. An unrelated
-     prior career does not count.                     hana: 4.  kwame: 3
+  3. In the targeted line of work — a PROFESSION, not
+     a specialism. Site reliability, platform and
+     infrastructure engineering are one field; civil
+     engineering and machine learning are two.        hana: 4.  kwame: 3
+                                                      chen: 11, not 6
   4. Calendar time, so concurrent roles count
      once rather than being added.                    mateo: 4.  iris: 5
   5. Time worked, so gaps are not counted — the
@@ -110,15 +113,21 @@ PROMPT = """List every EMPLOYMENT entry in this résumé.
 - One entry per row of work history, including internships.
 - Do NOT include education, certifications, publications or projects.
 - Copy the dates exactly as written. If a role is current, end is "present".
-- target_field: the field this person is looking for work in now, in two
-  or three words, taken from their most recent role. For example "backend
-  engineering", "data engineering", "secondary school teaching".
+- target_field: the BROAD profession this person is looking for work in
+  now, in two or three words, taken from their most recent role. For
+  example "software engineering", "data engineering", "school teaching".
+  Name the profession, not the specialism: someone whose last role was
+  Staff Platform Engineer is in "software engineering", not "platform
+  engineering".
 - relevant: true if the role is work in target_field, false if it is not.
   Answer this for each row by comparing the row against target_field, not
   by asking whether the résumé looks like a career change — a résumé does
-  not have to announce one. A part-time, contract or differently titled
-  role in the same field is relevant; a role in another field is not, even
-  if it is the longest one on the page.
+  not have to announce one. Adjacent specialisms within one profession are
+  the SAME field: site reliability, infrastructure, platform and backend
+  engineering are all software engineering, and a promotion, a sideways
+  move, a part-time or a contract role are all relevant. A different field
+  means a different profession — teaching, nursing, civil engineering —
+  and it is not relevant even if it is the longest role on the page.
 
 Résumé:
 {text}"""
