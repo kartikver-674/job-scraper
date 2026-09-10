@@ -486,10 +486,24 @@ select:focus-visible, summary:focus-visible,
    columns stretched across whatever the panel happens to be. */
 .search-grid {
   display: grid; gap: 4px; justify-content: start;
-  grid-template-columns: repeat(auto-fill, minmax(2.25rem, 2.75rem));
+  grid-template-columns: repeat(auto-fill, minmax(2.6rem, 3rem));
   max-width: 34rem;
 }
-.search-grid > div { height: 22px; border-radius: 2px; }
+/* Wide enough for the longest code config's verified names produce (UAE) at
+   this size, and no wider: the grid is a glance, not a table. */
+.cell {
+  height: 22px; border-radius: 2px;
+  border: 1px solid var(--rule); background: var(--well);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--slate); overflow: hidden;
+}
+/* A filled cell is amber or teal, so its text has to be the dark ground —
+   chalk on either of them is unreadable. */
+.cell.done { background: var(--paid); border-color: var(--paid); color: var(--ground); }
+.cell.done.free { background: var(--free); border-color: var(--free); }
+.grid-group + .grid-group { margin-top: var(--s4); }
+.grid-group .label { margin-bottom: var(--s2); }
 
 /* A costed line item: site, count, rate, subtotal. */
 .lines { width: 100%; }

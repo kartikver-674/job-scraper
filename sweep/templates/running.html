@@ -114,14 +114,28 @@
       <b>No paid searches in this sweep</b>
       Only the free feeds are running, so there is nothing metered to track
       here. The listings still land on the results screen.</p>
-    <div class="search-grid" x-show="p.tiles.length"
+    {# Grouped by site, and each cell says which location it is searching.
+       The cells are 44px wide, so the full "keyword @ location" never fit —
+       but the plan is keyword-major, so the location is what changes from
+       one cell to the next, and the site is constant down a whole group.
+       That leaves the hover to carry the keyword, which is the part that
+       does not change between neighbours. #}
+    <div class="grid-groups" x-show="p.tiles.length"
          {% if not progress.tiles %}style="display:none"{% endif %}>
-      <template x-for="(t, i) in p.tiles" :key="i">
-        <div :title="t.label"
-             :style="'border:1px solid var(--rule);background:' +
-                     (t.state === 'done'
-                        ? (t.free ? 'var(--free)' : 'var(--paid)')
-                        : 'var(--well)')"></div>
+      <template x-for="site in p.sites" :key="site">
+        <div class="grid-group">
+          <span class="label" x-text="site"></span>
+          <div class="search-grid">
+            <template x-for="(t, i) in p.tiles.filter(x =&gt; x.site === site)"
+                      :key="i">
+              {# Classes, not an inline style: the text has to invert on the
+                 filled cells, and a done cell is unreadable in chalk. #}
+              <div class="cell" :title="t.label"
+                   :class="t.state === 'done' ? (t.free ? 'done free' : 'done') : ''"
+                   x-text="t.short"></div>
+            </template>
+          </div>
+        </div>
       </template>
     </div>
     <p class="muted" x-text="p.done + ' of ' + p.planned + ' finished'"></p>

@@ -1002,7 +1002,7 @@ class TestEmptyAndPendingStates(unittest.TestCase):
                      "lines": [], "spend_cap": 0.5, "free_sources": 39}})
         body = app.test_client().get("/running").get_data(as_text=True)
         self.assertIn("No paid searches in this sweep", body)
-        self.assertRegex(body, r'class="search-grid"[^>]*style="display:none"')
+        self.assertRegex(body, r'class="grid-groups"[^>]*style="display:none"')
 
     # ---- nothing derived ------------------------------------------------
     def test_review_says_when_no_skills_came_back(self):
@@ -3197,6 +3197,33 @@ class TestRunningScreen(unittest.TestCase):
         self.assertEqual(len(calls), 2)
 
     # -- Review round 1: the amber/teal tile mapping needs direct coverage -
+
+    def test_each_cell_says_which_location_it_is_searching(self):
+        # The grid was colour alone: you could not tell what a box was for
+        # without hovering it.
+        app, _, _ = self._app()
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn('x-text="t.short"', body)
+        # Grouped by site, so the site is stated once per row instead of
+        # squeezed into every 44px cell.
+        self.assertIn('x-for="site in p.sites"', body)
+        self.assertIn('x-text="site"', body)
+        # And the hover still carries the keyword, which is the part that
+        # does NOT change between neighbouring cells.
+        self.assertIn(':title="t.label"', body)
+
+    def test_a_finished_cell_is_readable(self):
+        # A done cell is filled amber or teal; chalk text on either is
+        # unreadable, which is why the state is a class and not an inline
+        # background.
+        app, _, _ = self._app()
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertRegex(body, r":class=\"t\.state === 'done'")
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        done = re.search(r"\.cell\.done \{([^}]*)\}", css)
+        self.assertIsNotNone(done)
+        self.assertIn("color: var(--ground)", done.group(1))
 
     def test_tile_free_flag_matches_site_rates(self):
         plan = {

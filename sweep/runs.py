@@ -7,6 +7,7 @@ honest record — stdout is a formatting detail that would break in silence.
 """
 
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -46,6 +47,27 @@ def done_keys(done_path, day):
         return {ln.strip() for ln in fh if ln.startswith(day)}
 
 
+def short_location(location, limit=3):
+    """A 2-4 character stand-in for a location name, for the progress grid.
+
+    The cells are 44px wide, so the full name never fit — but the plan is
+    keyword-major (scraper.build_search_plan loops locations INSIDE keywords),
+    which means the location is what changes from one cell to the next and so
+    the one worth showing. The full "keyword @ location" stays on the hover.
+
+    Initials for a multi-word name ("United Arab Emirates" -> UAE), the first
+    few letters otherwise ("Bengaluru" -> BEN). Ambiguity is possible in
+    principle and absent in practice across config's verified names — and the
+    tooltip resolves it either way.
+    """
+    words = re.findall(r"[A-Za-z0-9]+", location or "")
+    if not words:
+        return "?"
+    if len(words) > 1:
+        return "".join(w[0] for w in words)[:4].upper()
+    return words[0][:limit].upper()
+
+
 def progress(planned, done):
     """Per-tile state plus counts. Never divides by zero on an empty plan."""
     tiles = []
@@ -56,11 +78,18 @@ def progress(planned, done):
         tiles.append({
             "site": site,
             "label": f"{keywords or '(all)'} @ {location}",
+            # Shown INSIDE the cell, so the grid says what each search is
+            # for without a hover. Computed here rather than in the template:
+            # one place, and testable without a browser.
+            "short": short_location(location),
             "state": "done" if key in done else "pending",
         })
     finished = sum(1 for t in tiles if t["state"] == "done")
     return {
         "planned": len(planned),
+        # Distinct sites in plan order. The grid groups by these so the site
+        # is stated once per row instead of squeezed into every cell.
+        "sites": list(dict.fromkeys(t["site"] for t in tiles)),
         "done": finished,
         "outstanding": len(planned) - finished,
         "fraction": (finished / len(planned)) if planned else 0.0,

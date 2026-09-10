@@ -277,3 +277,72 @@ class TestStop(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestShortLocation(unittest.TestCase):
+    """The progress cells are 44px wide, so the full location never fit. The
+    code inside them is what makes the grid readable without a hover, and it
+    is computed here rather than in the template — one place, and testable
+    without a browser."""
+
+    def test_a_single_word_keeps_its_first_letters(self):
+        self.assertEqual(runs.short_location("India"), "IND")
+        self.assertEqual(runs.short_location("Bengaluru"), "BEN")
+        self.assertEqual(runs.short_location("Remote"), "REM")
+
+    def test_a_multi_word_name_becomes_its_initials(self):
+        # "UNI" for all four of United States / Kingdom / Arab Emirates would
+        # make the grid worse than no label at all.
+        self.assertEqual(runs.short_location("United States"), "US")
+        self.assertEqual(runs.short_location("United Kingdom"), "UK")
+        self.assertEqual(runs.short_location("United Arab Emirates"), "UAE")
+        self.assertEqual(runs.short_location("New Zealand"), "NZ")
+
+    def test_punctuation_is_not_an_initial(self):
+        # config's naukri table writes one as "Delhi / NCR".
+        self.assertEqual(runs.short_location("Delhi / NCR"), "DN")
+
+    def test_a_missing_location_still_renders_something(self):
+        # A combo with no location is possible (company-only LinkedIn
+        # searches), and an empty cell would read as a rendering fault.
+        self.assertEqual(runs.short_location(""), "?")
+        self.assertEqual(runs.short_location(None), "?")
+
+    def test_no_code_stands_for_two_different_places(self):
+        # Ambiguity is possible in principle; this records that it does not
+        # happen across the names config actually offers.
+        #
+        # Keyed on the geoId, not the name: Gurgaon and Gurugram are the same
+        # city under two spellings (one geoId, and config says LinkedIn uses
+        # the second), so one code for both is right. Two codes colliding
+        # across two real places is what would make the grid lie.
+        import config
+        places = dict(config.LINKEDIN_GEO_IDS)
+        places["Remote"] = "remote"          # no geoId; the adapter maps it
+        codes = {}
+        for name, geo in places.items():
+            codes.setdefault(runs.short_location(name), set()).add(geo)
+        clashes = {c: g for c, g in codes.items() if len(g) > 1}
+        self.assertEqual(clashes, {}, f"one code, two places: {clashes}")
+        # And the aliases really do share one, rather than the test having
+        # been weakened into vacuity.
+        self.assertEqual(runs.short_location("Gurgaon"),
+                         runs.short_location("Gurugram"))
+
+
+class TestProgressTiles(unittest.TestCase):
+    def test_a_tile_carries_what_the_cell_shows_and_what_the_hover_shows(self):
+        key = "2026-09-10|linkedin|Full Stack Developer|United States|"
+        tile = runs.progress([key], set())["tiles"][0]
+        self.assertEqual(tile["short"], "US")
+        self.assertEqual(tile["label"], "Full Stack Developer @ United States")
+        self.assertEqual(tile["site"], "linkedin")
+
+    def test_the_sites_are_listed_once_each_in_plan_order(self):
+        keys = ["2026-09-10|linkedin|a|India|", "2026-09-10|linkedin|b|Remote|",
+                "2026-09-10|indeed|a|India|"]
+        self.assertEqual(runs.progress(keys, set())["sites"],
+                         ["linkedin", "indeed"])
+
+    def test_an_empty_plan_lists_no_sites(self):
+        self.assertEqual(runs.progress([], set())["sites"], [])
