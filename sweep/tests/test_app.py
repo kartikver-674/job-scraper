@@ -4333,6 +4333,157 @@ class TestAddingASkill(unittest.TestCase):
                          len(DERIVED["skill_weights"]))
 
 
+class TestResultSorting(unittest.TestCase):
+    """The screen could narrow a shortlist but not reorder it. Everything here
+    is a total order with a deterministic tie-break, because a list that
+    reshuffles between two identical requests is worse than one bad order."""
+
+    ROWS = [
+        dict(ROWS[0], title="old-strong", score="90",
+             date_posted="2026-01-01", experience_required="8+"),
+        dict(ROWS[0], title="new-weak", score="20",
+             date_posted="2026-09-01", experience_required="1+"),
+        dict(ROWS[0], title="mid", score="50",
+             date_posted="2026-05-05T16:05:10.325Z", experience_required="1+"),
+        dict(ROWS[0], title="undated", score="40",
+             date_posted="last tuesday", experience_required=""),
+    ]
+
+    def _app(self, rows=None):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=lambda profile: list(self.ROWS if rows is None else rows),
+            read_done=lambda profile, day: [], read_spend=lambda: 4.12,
+            output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app
+
+    def order(self, query=""):
+        body = self._app().test_client().get(
+            f"/results{query}").get_data(as_text=True)
+        return re.findall(r"<b>(old-strong|new-weak|mid|undated)</b>", body)
+
+    # ---- the orders ------------------------------------------------------
+    def test_best_match_is_the_default(self):
+        self.assertEqual(self.order(), ["old-strong", "mid", "undated", "new-weak"])
+        self.assertEqual(self.order("?sort=score"), self.order())
+
+    def test_newest_first(self):
+        self.assertEqual(self.order("?sort=recent")[:3],
+                         ["new-weak", "mid", "old-strong"])
+
+    def test_a_timestamp_is_a_date_not_a_missing_one(self):
+        # 353 rows on disk carry a full ISO-8601 timestamp rather than a bare
+        # date. Requiring an exact YYYY-MM-DD sank every one of them to the
+        # bottom of "newest first" while looking like it worked.
+        self.assertEqual(self.order("?sort=recent")[1], "mid")
+
+    def test_a_row_with_no_usable_date_sorts_last_not_first(self):
+        # Sorting an unreadable date as text would place it by whatever its
+        # first character happens to be. "last tuesday" lands at the bottom
+        # by luck; a year on its own lands at the TOP, above every real date
+        # of that year, because the key is a prefix of all of them.
+        self.assertEqual(self.order("?sort=recent")[-1], "undated")
+        rows = self.ROWS + [dict(ROWS[0], title="year-only", score="10",
+                                  date_posted="2026")]
+        body = self._app(rows=rows).test_client().get(
+            "/results?sort=recent").get_data(as_text=True)
+        found = re.findall(r"<b>(old-strong|new-weak|mid|undated|year-only)</b>",
+                           body)
+        self.assertEqual(found[0], "new-weak")
+        self.assertIn(found[-1], ("undated", "year-only"))
+        self.assertGreater(found.index("year-only"), found.index("old-strong"))
+
+    def test_least_experience_first(self):
+        # Two rows state 1+; the better-scoring one wins the tie.
+        self.assertEqual(self.order("?sort=experience")[:2], ["mid", "new-weak"])
+
+    def test_an_unstated_experience_sorts_last_not_as_zero(self):
+        # 44% of rows state none. Reading that as 0 would rank every unknown
+        # as the easiest job on the page.
+        self.assertEqual(self.order("?sort=experience")[-1], "undated")
+
+    # ---- the order is a total one ---------------------------------------
+    def test_ties_are_broken_by_score(self):
+        tied = [dict(ROWS[0], title=t, score=s, date_posted="2026-05-05",
+                     experience_required="2+")
+                for t, s in (("low", "10"), ("high", "80"), ("mid2", "40"))]
+        body = self._app(rows=tied).test_client().get(
+            "/results?sort=recent").get_data(as_text=True)
+        self.assertEqual(re.findall(r"<b>(low|high|mid2)</b>", body),
+                         ["high", "mid2", "low"])
+
+    def test_the_same_request_twice_gives_the_same_order(self):
+        self.assertEqual(self.order("?sort=recent"), self.order("?sort=recent"))
+
+    # ---- and it is chosen from a query string ---------------------------
+    def test_an_unknown_sort_falls_back_rather_than_failing(self):
+        self.assertEqual(self.order("?sort=%20;drop"), self.order())
+
+    def test_the_chosen_order_is_selected_in_the_control(self):
+        body = self._app().test_client().get(
+            "/results?sort=recent").get_data(as_text=True)
+        # The control has to post under the name the route reads, or the
+        # whole thing is a dropdown that does nothing.
+        self.assertIn('<select name="sort">', body)
+        self.assertRegex(body, r'<option value="recent" selected>')
+        self.assertNotIn('<option value="score" selected>', body)
+
+    def test_a_forged_sort_does_not_reach_the_rendered_form(self):
+        # The route normalises it before render, so the re-rank form's own
+        # action cannot be built around a value the redirect will then throw
+        # away — the two would disagree about which order you are in.
+        body = self._app().test_client().get(
+            "/results?sort=../etc").get_data(as_text=True)
+        self.assertNotIn("../etc", body)
+        self.assertNotIn("sort=", body[body.index("action=\"/rescore"):][:200])
+
+    def test_the_order_survives_a_re_rank(self):
+        # Coming back from a re-rank into a different order is the same
+        # surprise as coming back with the filters cleared.
+        app = self._app()
+        app.write_profile = lambda n, src: None
+        r = app.test_client().post(
+            "/rescore?sort=recent&min=10", data={"hours": "6"})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("sort=recent", r.headers["Location"])
+        self.assertIn("min=10", r.headers["Location"])
+
+    def test_the_default_order_is_not_written_into_every_url(self):
+        # sort=score is what /results does anyway; carrying it makes every
+        # shared link noisier for nothing.
+        app = self._app()
+        app.write_profile = lambda n, src: None
+        r = app.test_client().post("/rescore?sort=score", data={"hours": "6"})
+        self.assertNotIn("sort=", r.headers["Location"])
+
+    def test_a_forged_sort_is_not_carried_into_the_redirect(self):
+        app = self._app()
+        app.write_profile = lambda n, src: None
+        r = app.test_client().post("/rescore?sort=../etc", data={"hours": "6"})
+        self.assertNotIn("sort=", r.headers["Location"])
+
+    def test_the_submit_does_not_read_as_applying_for_a_job(self):
+        # It applies the sort as well as the filters now, and "Apply" is what
+        # the link in every row means on this screen.
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        form = body[body.index('<form class="panel" method="get">'):]
+        self.assertNotIn(">Apply filter<", form[:form.index("</form>")])
+        self.assertIn("Update the list", form[:form.index("</form>")])
+
+    def test_pay_is_not_offered_as_a_sort(self):
+        # Measured on output/ (10,397 rows): 5% state pay at all, in mixed
+        # currencies and periods. The order would be 516 rows above 9,881
+        # arbitrary ones, which reads as a broken sort rather than a sparse
+        # column.
+        self.assertNotIn("salary", app_module.SORTS)
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        self.assertNotIn('value="salary"', body)
+
+
 class TestReadRowsDefault(unittest.TestCase):
     """The default read_rows closure. Every route test injects read_rows, so
     without this the jobs_combined-not-jobs_* rule A2 exists to enforce runs

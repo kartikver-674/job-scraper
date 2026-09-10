@@ -33,8 +33,9 @@ import scraper  # noqa: E402
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    _valid_profile_name, bucket_rows, fill_pct, paid_sites, reweighted,
-    site_label, step_states, sweep_dates, worst_filter)
+    DEFAULT_SORT, SORTS, _valid_profile_name, bucket_rows, fill_pct,
+    paid_sites, reweighted, site_label, sort_rows, step_states, sweep_dates,
+    worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -1250,6 +1251,11 @@ def create_app(state=None, extract=None, resume_dir=None,
         min_score = request.args.get("min", type=int) or 0
         source = request.args.get("source") or ""
         q = (request.args.get("q") or "").strip()
+        # Validated against the table rather than trusted: it arrives in a
+        # query string and picks a sort key by name.
+        sort = request.args.get("sort") or DEFAULT_SORT
+        if sort not in SORTS:
+            sort = DEFAULT_SORT
 
         rows = [r for r in all_rows if _as_int(r.get("score")) >= min_score]
         if source:
@@ -1261,7 +1267,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         # Sorted explicitly rather than trusting the CSV's own order — the
         # real files happen to arrive score-descending today, but that's
         # another script's undocumented behaviour, not a guarantee.
-        rows.sort(key=lambda r: _as_int(r.get("score")), reverse=True)
+        rows = sort_rows(rows, sort)
 
         sources = sorted({r.get("source_site") for r in all_rows
                            if r.get("source_site")})
@@ -1273,6 +1279,7 @@ def create_app(state=None, extract=None, resume_dir=None,
             buckets=bucket_rows(rows), sections=SECTIONS,
             total=len(rows), all_total=len(all_rows),
             min_score=min_score, source=source, q=q, sources=sources,
+            sort=sort, sorts=SORTS,
             # Same rule plan.cost() and snapshot() use — a site listed at a
             # $0.00 rate is free either way, never a second "is this site
             # free" rule that could disagree with them.
@@ -1345,10 +1352,17 @@ def create_app(state=None, extract=None, resume_dir=None,
         redirect does not silently clear them. The error paths were fixed for
         this and the success path was left bare, which is the same
         one-instance-only fix this branch keeps making."""
+        chosen = request.args.get("sort")
         return url_for("results",
                        min=request.args.get("min", type=int) or None,
                        source=request.args.get("source") or None,
-                       q=(request.args.get("q") or "").strip() or None)
+                       q=(request.args.get("q") or "").strip() or None,
+                       # The order is a filter as far as a redirect is
+                       # concerned: coming back from a re-rank into a
+                       # different order is the same surprise as coming back
+                       # with the filters cleared.
+                       sort=(chosen if chosen in SORTS
+                             and chosen != DEFAULT_SORT else None))
 
     def _rescore_in_flight():
         """Whether a re-score child is still running.

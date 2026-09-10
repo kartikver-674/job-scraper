@@ -126,8 +126,18 @@
       </label>
       <label><span class="label">Title or company</span>
         <input type="text" name="q" value="{{ q }}"></label>
+      {# Same form as the filters, so one submit applies both — and the
+         selected order survives the round trip rather than snapping back to
+         best-match every time a filter changes. #}
+      <label><span class="label">Sort by</span>
+        <select name="sort">
+          {% for key, (label, _) in sorts.items() %}
+            <option value="{{ key }}" {{ 'selected' if key == sort }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
     </div>
-    <button class="secondary" type="submit">Apply filter</button>
+    <button class="secondary" type="submit">Update the list</button>
   </form>
 
   {% if free_only %}
@@ -159,7 +169,7 @@
          drift to opposite edges of a wide table), which left the other half
          of this full-width panel empty. #}
       <form class="rerank" method="post" x-data="{ sent: false }" @submit="sent = true"
-            action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none) }}">
+            action="{{ url_for('rescore', min=min_score or none, source=source or none, q=q or none, sort=sort if sort != 'score' else none) }}">
         <div>
           {# The same editor as the review screen, from the same macro. The
              panel used to say "against your current weights" while offering

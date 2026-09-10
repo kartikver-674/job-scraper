@@ -191,6 +191,77 @@ def site_label(name):
     return SITE_LABELS.get(name, name)
 
 
+# The orders /results offers, and the label each one wears. A key returns a
+# tuple that always sorts ASCENDING — no reverse= anywhere — because reverse
+# would also flip the "no value" flag and float every row missing the field to
+# the top. Every key ends in -score, so rows that tie on the chosen field are
+# still ranked by how well they match.
+#
+# Pay is deliberately absent. Measured across output/ (10,397 rows,
+# 2026-09-10) only 5% state one at all, and those are multi-currency free text
+# ("₹5,00,000 - ₹15,00,000 a year", "Up to ₹1,80,000 a month"), so the order
+# would be 516 rows above 9,881 arbitrary ones. A filter for "states pay"
+# would be the honest version of that, not a sort.
+SORTS = {
+    "score": ("Best match", lambda r: (-_as_int(r.get("score")),)),
+    "recent": ("Newest first",
+               lambda r: (0, _neg_date(_sortable_date(r.get("date_posted"))),
+                          -_as_int(r.get("score")))
+               if _sortable_date(r.get("date_posted"))
+               else (1, "", -_as_int(r.get("score")))),
+    "experience": ("Least experience first",
+                   lambda r: (0, _stated_years(r.get("experience_required")),
+                              -_as_int(r.get("score")))
+                   if _stated_years(r.get("experience_required")) is not None
+                   else (1, 0, -_as_int(r.get("score")))),
+}
+DEFAULT_SORT = "score"
+
+_ISO_DATE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+_LEADING_YEARS = re.compile(r"\s*(\d{1,2})")
+
+
+def _sortable_date(value):
+    """The YYYY-MM-DD at the start of a date cell, or None.
+
+    A PREFIX, not a full match: 353 rows on disk carry a full ISO-8601
+    timestamp ("2026-07-27T16:05:10.325Z") rather than a bare date, and a
+    fullmatch called every one of them undated — sinking 353 well-dated rows
+    to the bottom of "newest first". Anything with no leading date really is
+    undated and sorts last.
+
+    The time is dropped rather than used. Only 3% of rows carry one, so
+    ordering within a day would be false precision for the other 97%; rows
+    from the same day tie and fall through to the score tie-break.
+    """
+    m = _ISO_DATE.match(str(value or "").strip())
+    return m.group(1) if m else None
+
+
+def _neg_date(value):
+    """Newest first, as an ascending key: invert each digit of the date."""
+    return "".join(str(9 - int(c)) if c.isdigit() else c for c in value)
+
+
+def _stated_years(value):
+    """The leading integer of a stored experience cell ("3+" -> 3), or None.
+
+    The column holds what the parser found; older rows hold raw text. Only a
+    leading integer is trusted, and anything else is "the posting didn't say"
+    — which must sort LAST rather than as zero, which would rank every
+    unknown as the easiest job on the page.
+    """
+    m = _LEADING_YEARS.match(str(value or ""))
+    return int(m.group(1)) if m else None
+
+
+def sort_rows(rows, sort):
+    """`rows` in the chosen order. An unknown order falls back to the default
+    rather than raising: it arrives from a query string."""
+    _, key = SORTS.get(sort) or SORTS[DEFAULT_SORT]
+    return sorted(rows, key=key)
+
+
 def sweep_dates(isos, limit=4):
     """Distinct sweep dates as "26 Aug", newest first, at most `limit`.
 
