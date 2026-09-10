@@ -312,6 +312,14 @@ def sort_rows(rows, sort):
 SECTION_CAP = 25
 
 
+def and_list(items):
+    """"a", "a and b", "a, b and c" — an English list, not "a and b and c"."""
+    items = [str(i) for i in items]
+    if len(items) < 3:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + " and " + items[-1]
+
+
 def posted_age(iso, today=None):
     """"3d ago" for a posting date, "" when there is not a usable one.
 

@@ -5,51 +5,70 @@
 <div class="stack">
   <div class="stack-tight">
     <h1>Review what it read</h1>
-    <p class="lede">{{ derived.field_summary }}</p>
-    <p class="muted">Correct bad guesses before spending anything.</p>
+    {# What produced this, and what it is for. The field summary used to be
+       the lede; it is a FINDING, so it now sits in the panel of findings
+       below with the rest of them, and the lede says where they came from. #}
+    <p class="lede">Sweep read your search titles and scoring terms
+      {%- if resume_name %} from <b class="filename">{{ resume_name }}</b>{% endif %}.
+      Correct bad guesses before spending anything.</p>
   </div>
 
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
   <form method="post" action="{{ url_for('review') }}" class="stack"
         x-data="{ sent: false }" @submit="sent = true">
-    <div class="split">
+    {# What it read on the left, how it will score on the right. The order is
+       the job: check the reading, then tune the scoring. #}
+    <div class="split read-first">
       <div class="stack">
         <div class="panel">
-          <h2>Skill weights, 1 to 5</h2>
-          <p class="muted">Weighted by how well a term picks out jobs you want. A word
-            that also appears in jobs you don't want scores low, however central it is
-            to your work.</p>
-
-          {% if commodity %}
-            <p><strong>Worth removing.</strong>
-              {{ commodity|join(' and ') }} appear in most job descriptions, so they
-              add no signal and every posting scores a little higher for free.</p>
-          {% endif %}
-
-          {% if not derived.skill_weights %}
-            <p class="empty"><b>No skills came back</b>
-              The model read the résumé but derived no skill weights, so
-              nothing would be scored. That usually means the PDF's text layer
-              is thin — try a text-based export and upload it again, or name
-              the skills yourself below.</p>
-          {% endif %}
-          {{ weight_editor(derived.skill_weights, commodity) }}
-          {% if derived.skill_weights %}
-            <p class="muted">A higher weight means a listing naming that skill
-              scores higher. Remove a term to take it out of the scoring
-              entirely.</p>
+          <h2>What it read</h2>
+          <div class="read-out">
+            <span class="label">The field it inferred</span>
+            <p class="inset">{{ derived.field_summary }}</p>
+          </div>
+          {% if derived.years_experience is not none %}
+            <div class="read-out">
+              <span class="label">Years of experience</span>
+              <p class="inset">{{ derived.years_experience }}
+                year{{ '' if derived.years_experience == 1 else 's' }}</p>
+            </div>
           {% endif %}
         </div>
 
-        <div class="actions">
-          <button class="primary" type="submit" :disabled="sent">Looks right</button>
-          <span class="meta sending" x-show="sent" x-cloak>Saving the profile…</span>
-          <a class="muted" href="{{ url_for('upload') }}">Start over with a different résumé</a>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Titles it will search for</h2>
+            {% if derived.role_keywords %}
+              <span class="meta">{{ derived.role_keywords|length }}
+                title{{ '' if derived.role_keywords|length == 1 else 's' }}</span>
+            {% endif %}
+          </div>
+          {% if derived.role_keywords %}
+            {# Chips, not a bulleted list: these are the search terms
+               themselves, and a paid search is one of these in one location
+               — so the count of them is the thing to take in at a glance. #}
+            <p class="chips">{% for title in derived.role_keywords %}<span
+                class="tag">{{ title }}</span>{% endfor %}</p>
+            <p class="muted">Every paid search is one of these in one
+              location, so this list multiplies what the sweep costs.</p>
+          {% else %}
+            <p class="empty"><b>No titles derived</b>
+              Every paid search is one title in one location, so a sweep with
+              no titles would search nothing. Upload a clearer résumé.</p>
+          {% endif %}
         </div>
-      </div>
 
-      <aside class="aside stack">
+        {% if derived.notes %}
+          {# The model's own remark about the résumé, written into the profile
+             and never shown until now. It is the one place the parse explains
+             itself, which is exactly what this screen is for. #}
+          <div class="callout">
+            <b>Worth knowing</b>
+            {{ derived.notes }}
+          </div>
+        {% endif %}
+
         <div class="panel">
           <label><span class="label">Name this profile</span>
             <input name="name" value="{{ suggested_name }}" required>
@@ -69,18 +88,84 @@
               <span>Replace the existing {{ clash }} profile</span></label>
           {% endif %}
         </div>
+      </div>
 
+      <div class="stack">
         <div class="panel">
-          <span class="label">Titles it will search for</span>
-          {% if derived.role_keywords %}
-            <ul>{% for title in derived.role_keywords %}<li>{{ title }}</li>{% endfor %}</ul>
-          {% else %}
-            <p class="empty"><b>No titles derived</b>
-              Every paid search is one title in one location, so a sweep with
-              no titles would search nothing. Upload a clearer résumé.</p>
+          <div class="panel-head">
+            <h2>Skill weights, 1 to 5</h2>
+            {% if derived.skill_weights %}
+              <span class="meta">{{ derived.skill_weights|length }}
+                term{{ '' if derived.skill_weights|length == 1 else 's' }}
+                weighted</span>
+            {% endif %}
+          </div>
+
+          <div class="callout">
+            <b>Why some terms are weighted low</b>
+            Weighted by how well a term picks out jobs you want, not by how
+            central it is to your work. A word that also appears in jobs you
+            do not want scores low however good you are at it.
+          </div>
+
+          {% if commodity %}
+            {# The removal has already happened — those boxes render ticked.
+               v3 offers an "auto-prune" button for this; saying it is done
+               is both shorter and truer than a button that changes nothing. #}
+            <div class="callout warn">
+              <b>Worth removing</b>
+              {{ and_list(commodity) }} appear in most job descriptions, so
+              they add no signal and every posting scores a little higher for
+              free. They are already ticked for removal below — untick one to
+              keep it.
+            </div>
+          {% endif %}
+
+          {% if not derived.skill_weights %}
+            <p class="empty"><b>No skills came back</b>
+              The model read the résumé but derived no skill weights, so
+              nothing would be scored. That usually means the PDF's text layer
+              is thin — try a text-based export and upload it again, or name
+              the skills yourself below.</p>
+          {% endif %}
+          {{ weight_editor(derived.skill_weights, commodity) }}
+          {% if derived.skill_weights %}
+            <p class="muted">A higher weight means a listing naming that skill
+              scores higher. Remove a term to take it out of the scoring
+              entirely.</p>
           {% endif %}
         </div>
-      </aside>
+
+        {% if derived.penalty_terms %}
+          {# The other half of the scoring, and it was invisible here: these
+             push a listing DOWN, and a wrong one quietly buries good jobs.
+             Read-only, because the model derives them from what the résumé
+             is NOT about — there is nothing to tune, only something to
+             check. #}
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Terms that push a listing down</h2>
+              <span class="meta">{{ derived.penalty_terms|length }}</span>
+            </div>
+            <p class="chips">{% for p in derived.penalty_terms|sort(attribute='weight', reverse=true) %}<span
+                class="tag">{{ p.term }}</span>{% endfor %}</p>
+            <p class="muted">Read as off-domain for you, so a listing naming
+              one scores lower. Nothing is excluded outright.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# One bar across the foot, the way v3 ends the screen: the way out on
+       the left, the way on at the right, and nothing between them competing
+       for the click that spends money later. #}
+    <div class="actionbar">
+      <a class="muted" href="{{ url_for('upload') }}">Start over with a
+        different résumé</a>
+      <div class="actions">
+        <span class="meta sending" x-show="sent" x-cloak>Saving the profile…</span>
+        <button class="primary" type="submit" :disabled="sent">Looks right</button>
+      </div>
     </div>
   </form>
 </div>

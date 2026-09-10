@@ -35,9 +35,10 @@ import scraper  # noqa: E402
 from sweep import exports  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, bucket_rows,
-    fill_pct, paid_sites, posted_age, reweighted, searchable_locations,
-    shortlist, site_label, sort_rows, step_states, sweep_dates, worst_filter)
+    DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
+    bucket_rows, fill_pct, paid_sites, posted_age, reweighted,
+    searchable_locations, shortlist, site_label, sort_rows, step_states,
+    sweep_dates, worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -251,6 +252,7 @@ def create_app(state=None, extract=None, resume_dir=None,
             fh.writelines(lines)
 
     app.write_env = default_write_env
+    app.jinja_env.globals["and_list"] = and_list
 
     def read_env_tokens():
         """(name, token) for every Apify key in .env ON DISK, and reconcile the
@@ -725,6 +727,14 @@ def create_app(state=None, extract=None, resume_dir=None,
                     # .env by an earlier session is included rather than the
                     # screen claiming fewer keys than the sweep will see.
                     keys_attached=len(scraper.apify_tokens()),
+                    # Which résumé this session is working from. A session
+                    # fact, so it belongs here rather than in one render:
+                    # five routes render the review screen, and the four
+                    # error paths would each have to remember it. The name
+                    # only — the path is this machine's filesystem and says
+                    # nothing the reader needs.
+                    resume_name=os.path.basename(
+                        app.state.get("resume_path") or ""),
                     credit_total_usd=app.state.get("credit_total_usd"),
                     **kw)
 

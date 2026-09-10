@@ -804,6 +804,104 @@ class TestReviewScreen(unittest.TestCase):
         app.config.update(TESTING=True)
         return app, state
 
+    # ---- what the screen now surfaces from the parse --------------------
+
+    def _body(self, state=None):
+        app, _ = self._app(state)
+        return app.test_client().get("/review").get_data(as_text=True)
+
+    def test_it_names_the_resume_the_findings_came_from(self):
+        body = self._body({"resume_text": "a résumé", "derived": DERIVED,
+                           "resume_path": "/tmp/uploads/Kanav_CV_2026.pdf"})
+        self.assertIn("Kanav_CV_2026.pdf", body)
+        # The name, not the path: it is this machine's filesystem and says
+        # nothing the reader needs.
+        self.assertNotIn("/tmp/uploads", body)
+
+    def test_a_long_filename_cannot_widen_the_page(self):
+        # It is user-supplied and has no spaces to break at, so at phone
+        # width one long name would stretch the whole layout rather than
+        # just this line. The only unbounded token this screen renders.
+        body = self._body({"resume_text": "x", "derived": DERIVED,
+                           "resume_path": "/tmp/" + "a" * 90 + ".pdf"})
+        self.assertIn('<b class="filename">', body)
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertIn(".filename { overflow-wrap: anywhere; }", css)
+
+    def test_a_rejected_submit_still_names_the_resume(self):
+        # FIVE routes render this template. resume_name lives on shell() for
+        # exactly this reason — supplied by one render, it is a fact the
+        # four error paths each drop, which is the defect _confirm_page was
+        # written to fix on the screen after this one.
+        app, _ = self._app({"resume_text": "a résumé", "derived": DERIVED,
+                            "resume_path": "/tmp/uploads/Kanav_CV_2026.pdf"})
+        r = app.test_client().post("/review", data={"name": ""})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Kanav_CV_2026.pdf", r.get_data(as_text=True))
+
+    def test_no_resume_path_leaves_the_sentence_whole(self):
+        # A session resumed after a restart has the derived data and no path.
+        body = self._body()
+        self.assertIn("scoring terms.", " ".join(body.split()))
+
+    def test_the_model_note_is_shown_rather_than_only_written_to_disk(self):
+        # derived["notes"] goes into the profile and was never displayed —
+        # the one place the parse explains itself, on the screen whose whole
+        # job is checking the parse.
+        body = self._body()
+        self.assertIn("Worth knowing", body)
+        self.assertIn(DERIVED["notes"], body)
+
+    def test_the_penalty_terms_are_shown(self):
+        # The other half of the scoring: these push a listing DOWN, and a
+        # wrong one quietly buries good jobs.
+        body = self._body()
+        self.assertIn("Terms that push a listing down", body)
+        self.assertIn("salesforce", body)
+
+    def test_a_parse_with_no_note_or_penalties_renders_neither_panel(self):
+        bare = dict(DERIVED, notes="", penalty_terms=[])
+        body = self._body({"resume_text": "x", "derived": bare})
+        self.assertNotIn("Worth knowing", body)
+        self.assertNotIn("Terms that push a listing down", body)
+
+    def test_the_titles_are_chips_with_a_count(self):
+        body = self._body()
+        self.assertIn("2 titles", " ".join(body.split()))
+        # Matched from the class inward, so template line wrapping is not
+        # part of the contract.
+        self.assertIn('class="tag">React Native Developer</span>', body)
+
+    def test_the_commodity_terms_read_as_an_english_list(self):
+        # "javascript and git" for two; three used to render as
+        # "a and b and c", which is a list nobody wrote.
+        three = dict(DERIVED, skill_weights=DERIVED["skill_weights"]
+                     + [{"term": "rest api", "weight": 1}])
+        flat = " ".join(self._body(
+            {"resume_text": "x", "derived": three}).split())
+        self.assertIn("javascript, git and rest api appear", flat)
+
+    def test_the_weight_bar_follows_the_stepper(self):
+        # Server-rendered width AND a binding: correct with no JavaScript,
+        # and it moves as you click rather than showing the weight the page
+        # was loaded with.
+        body = self._body()
+        self.assertIn('style="width: 100%"', body)
+        self.assertIn(':style="\'width: \' + (n * 20) + \'%\'"', body)
+        # The scope is the row, or the bar cannot see the stepper's n.
+        self.assertIn("<tr x-data=", body)
+
+    def test_removing_a_term_strikes_the_term_not_the_rank(self):
+        # The rule targeted td:first-child, which was the skill name until a
+        # rank column went in front of it. A struck-through number reads as
+        # a typo rather than as a removal.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertIn(".weights tr:has(.remove input:checked) .term", css)
+        self.assertNotIn(".weights tr:has(.remove input:checked) td:first-child",
+                         css)
+
     def test_shows_the_derived_titles_and_weights(self):
         app, _ = self._app()
         body = app.test_client().get("/review").get_data(as_text=True)

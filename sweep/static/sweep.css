@@ -512,12 +512,36 @@ select:focus-visible, summary:focus-visible,
 
 /* Three short columns; at full width the checkbox and the weight end up at
    opposite edges of the panel with the term adrift between them. */
-.weights { max-width: 34rem; }
-/* The skill name takes the slack; the two controls stay the size they are,
-   so the remove button sits beside the stepper instead of drifting to the
-   far edge of the panel. */
-.weights td:nth-child(2), .weights th:nth-child(2) { width: 8rem; }
+/* The bar takes the slack now, which is what the old 34rem cap was for:
+   without something elastic in the middle, the skill name and the two
+   controls drifted to opposite edges of a wide table. */
+.weights { width: 100%; }
+/* Centred, not the global top-align: the stepper is the tallest thing in
+   the row and everything beside it was floating at the row's top edge, an
+   inch above the control it describes. */
+.weights td { vertical-align: middle; padding-top: var(--s3); padding-bottom: var(--s3); }
+.weights .rank {
+  width: 2rem; color: var(--dim);
+  font: 500 11px/1 var(--text); font-variant-numeric: tabular-nums;
+}
+.weights .term { font-weight: 500; }
+.weights .level { width: auto; min-width: 4rem; }
+.weights td:nth-child(4), .weights th:nth-child(4) { width: 8rem; }
 .weights td:last-child, .weights th:last-child { width: 3rem; }
+
+/* How much this term is steering the sweep, at a glance and across the
+   whole list — the number alone answers that one row at a time. */
+.weights .bar {
+  display: block; height: 6px; border-radius: var(--radius);
+  background: var(--well); overflow: hidden;
+}
+.weights .bar > span {
+  display: block; height: 100%; background: var(--paid);
+  border-radius: inherit;
+}
+/* A term already ticked for removal is not steering anything. */
+.weights tr:has(input[name="drop"]:checked) .bar > span { background: var(--dim); }
+.tag.low { margin-left: var(--s3); color: var(--slate); border-color: var(--dim); }
 .lines td:first-child { font-weight: 600; }
 .lines td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
 
@@ -598,7 +622,9 @@ td.score {
 .remove input:checked + span[aria-hidden] {
   color: var(--ground); background: var(--over); border-color: var(--over);
 }
-.weights tr:has(.remove input:checked) td:first-child {
+/* The TERM, not the first cell — the first cell is the rank now, and a
+   struck-through number reads as a typo rather than as a removal. */
+.weights tr:has(.remove input:checked) .term {
   text-decoration: line-through; color: var(--slate);
 }
 .weights tr:has(.remove input:checked) .stepper { opacity: .4; }
@@ -923,4 +949,46 @@ td.score {
   display: flex; flex-wrap: wrap; align-items: baseline;
   justify-content: space-between; gap: var(--s4);
   margin-top: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--rule);
+}
+
+/* ---- Review ------------------------------------------------------------- */
+
+/* What it read on the left, how it will score on the right — narrower
+   column first, because checking the reading comes before tuning the
+   scoring. .split's own rule is the reverse, and both are used. */
+@media (min-width: 60rem) {
+  .split.read-first { grid-template-columns: 23rem minmax(0, 1fr); }
+}
+
+/* A filename is user-supplied and has no spaces to break at. At 390px one
+   42-character name made the whole PAGE wider than the viewport — every
+   panel then laid out off-screen, not just this line. */
+.filename { overflow-wrap: anywhere; }
+
+/* A labelled finding: the label above, the value in a recessed box, so a
+   value the model got wrong is readable as a value rather than as prose. */
+.read-out + .read-out { margin-top: var(--s5); }
+.read-out > .inset { margin: var(--s2) 0 0; color: var(--chalk); }
+
+/* Something the screen wants to say, rather than something it is showing.
+   The bar carries which kind: neutral for an explanation, money-coloured
+   for the one that changes what a sweep costs. */
+.callout {
+  padding: var(--s4) var(--s5); border-left: 2px solid var(--rule);
+  background: var(--surface-low); border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--warm); font-size: 12px; line-height: 1.5;
+}
+.callout > b { display: block; margin-bottom: var(--s2); color: var(--chalk); }
+.callout.warn { border-left-color: var(--paid); }
+.callout.warn > b { color: var(--paid); }
+
+/* The chips are the content, so the paragraph holding them carries no
+   leading of its own — .tag already spaces itself. */
+.chips { margin: 0 0 calc(var(--s2) * -1); }
+
+/* The way out and the way on, at opposite ends of one bar. */
+.actionbar {
+  display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: var(--s5);
+  padding-top: var(--s5); border-top: 1px solid var(--rule);
 }

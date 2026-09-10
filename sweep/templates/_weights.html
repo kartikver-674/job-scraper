@@ -7,22 +7,37 @@
 <div class="scroll-x">
   <table class="weights">
     <tr class="muted">
+      <th scope="col"><span class="visually-hidden">Rank</span></th>
       <th scope="col">Skill</th>
+      <th scope="col">Level</th>
       <th scope="col">Weight</th>
       <th scope="col"><span class="visually-hidden">Remove</span></th>
     </tr>
     {% for w in skill_weights|sort(attribute='weight', reverse=true) %}
-      <tr>
+      {# The Alpine scope is the ROW, not the stepper: the bar reads the same
+         `n` the stepper writes, so it moves as you click rather than showing
+         the weight the page was loaded with.
+
+         Single-quoted for the |tojson rule in configure.html: a weight that
+         ever arrived as a string would render with double quotes and
+         silently kill this scope. #}
+      <tr x-data='{ n: {{ w.weight|tojson }} }'>
+        {# The list is weight-sorted, so the position is information: it says
+           which terms this sweep is actually being steered by. #}
+        <td class="rank">{{ '%02d'|format(loop.index) }}</td>
         {# The term travels with its weight so the POST is self-describing,
            rather than the server having to reproduce this sort order to know
            which weight is whose. #}
-        <td>{{ w.term }}
+        <td class="term">{{ w.term }}
+          {%- if w.term in commodity %}<span class="tag low">Low signal</span>{% endif %}
           <input type="hidden" name="term" value="{{ w.term }}"></td>
+        {# Server-rendered width AND a binding: without JavaScript the bar is
+           still correct, and with it the bar follows the stepper. #}
+        <td class="level"><span class="bar" aria-hidden="true"><span
+              style="width: {{ w.weight * 20 }}%"
+              :style="'width: ' + (n * 20) + '%'"></span></span></td>
         <td>
-          {# Single-quoted for the |tojson rule in configure.html: a weight
-             that ever arrived as a string would render with double quotes
-             and silently kill this scope. #}
-          <div class="stepper" x-data='{ n: {{ w.weight|tojson }} }'>
+          <div class="stepper">
             <button type="button" @click="n = Math.max(1, n - 1)"
                     aria-label="Lower the weight for {{ w.term }}">&minus;</button>
             {# A real number input, not a readonly display: without Alpine the
