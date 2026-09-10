@@ -31,10 +31,19 @@
         <td class="term">{{ w.term }}
           {%- if w.term in commodity %}<span class="tag low">Low signal</span>{% endif %}
           <input type="hidden" name="term" value="{{ w.term }}"></td>
-        {# Server-rendered width AND a binding: without JavaScript the bar is
-           still correct, and with it the bar follows the stepper. #}
+        {# Server-rendered level AND a binding: without JavaScript the bar
+           is still correct, and with it the bar follows the stepper.
+
+           A class rather than a width interpolated into a style attribute:
+           that attribute is CSS, an editor validates it as CSS, and a
+           template expression in it is not. A weight is one of five
+           discrete steps, so five rules say it exactly. Clamped because the
+           weight comes back from a model: the schema types it as an integer
+           and does not bound it, and an unbounded one would land on no rule
+           at all, drawing no bar. #}
+        {%- set level = [[w.weight|int, 5]|min, 1]|max %}
         <td class="level"><span class="bar" aria-hidden="true"><span
-              style="width: {{ w.weight * 20 }}%"
+              class="lv{{ level }}"
               :style="'width: ' + (n * 20) + '%'"></span></span></td>
         <td>
           <div class="stepper">

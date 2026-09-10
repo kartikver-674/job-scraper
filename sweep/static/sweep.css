@@ -536,9 +536,16 @@ select:focus-visible, summary:focus-visible,
   background: var(--well); overflow: hidden;
 }
 .weights .bar > span {
-  display: block; height: 100%; background: var(--paid);
+  display: block; height: 100%; width: 0; background: var(--paid);
   border-radius: inherit;
 }
+/* Five steps, five rules. The alternative is a width interpolated into a
+   style attribute, which puts something in it that is not CSS. */
+.weights .bar .lv1 { width: 20%; }
+.weights .bar .lv2 { width: 40%; }
+.weights .bar .lv3 { width: 60%; }
+.weights .bar .lv4 { width: 80%; }
+.weights .bar .lv5 { width: 100%; }
 /* A term already ticked for removal is not steering anything. */
 .weights tr:has(input[name="drop"]:checked) .bar > span { background: var(--dim); }
 .tag.low { margin-left: var(--s3); color: var(--slate); border-color: var(--dim); }

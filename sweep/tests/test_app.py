@@ -912,10 +912,47 @@ class TestReviewScreen(Isolated):
         # and it moves as you click rather than showing the weight the page
         # was loaded with.
         body = self._body()
-        self.assertIn('style="width: 100%"', body)
+        # A class, not a width interpolated into a style attribute: that is
+        # not CSS, and an editor validating the attribute says so.
+        self.assertNotIn('style="width: {{', body)
+        self.assertIn('class="lv5"', body)
         self.assertIn(':style="\'width: \' + (n * 20) + \'%\'"', body)
         # The scope is the row, or the bar cannot see the stepper's n.
         self.assertIn("<tr x-data=", body)
+
+    def test_every_level_class_has_a_width(self):
+        # The class is the whole of the server-rendered bar now, so a rule
+        # that is missing draws nothing and the markup still looks right.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        for level, width in enumerate((20, 40, 60, 80, 100), start=1):
+            self.assertIn(f".weights .bar .lv{level} {{ width: {width}%; }}",
+                          css)
+
+    def test_a_weight_outside_one_to_five_still_draws_a_bar(self):
+        # The response schema types the weight as an integer and does not
+        # bound it, so a model can hand back a 9. Unclamped it lands on no
+        # rule and the bar disappears.
+        wild = dict(DERIVED, skill_weights=[{"term": "react", "weight": 9},
+                                            {"term": "git", "weight": 0}])
+        body = self._body({"resume_text": "x", "derived": wild})
+        self.assertIn('class="lv5"', body)
+        self.assertIn('class="lv1"', body)
+
+    def test_no_template_puts_jinja_inside_a_style_attribute(self):
+        # style="" is CSS, and an editor validates it as CSS. The one place
+        # this is unavoidable is a continuous percentage; everything else
+        # has discrete steps and can say so with a class.
+        import glob
+        offenders = []
+        for path in glob.glob(os.path.join(
+                os.path.dirname(app_module.__file__), "templates", "*.html")):
+            for n, line in enumerate(open(path), 1):
+                if re.search(r'\sstyle="[^"]*\{[{%]', line):
+                    offenders.append(f"{os.path.basename(path)}:{n}")
+        # base.html's meter fill is a continuous 0-100 and has no discrete
+        # steps to enumerate, so it stays and is the only one allowed.
+        self.assertEqual(offenders, ["base.html:109"])
 
     def test_removing_a_term_strikes_the_term_not_the_rank(self):
         # The rule targeted td:first-child, which was the skill name until a
