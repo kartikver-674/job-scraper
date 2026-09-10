@@ -388,6 +388,17 @@ tbody tr:hover td, table tr:hover td { background: rgba(26, 44, 51, 0.5); }
 /* The whole row opens the listing; the hover shade above is already the
    affordance, so this only has to say it is clickable. */
 tr.rowlink { cursor: pointer; }
+
+/* Already opened, in this browser. Faded enough to sort itself out of the
+   ones you have not read yet, and no further: these rows are still live
+   listings, still clickable, and the disabled treatment elsewhere in this
+   file is .5 — so a row that matched that would read as unavailable.
+   Hover restores it fully, which is the other half of saying so. */
+tr.opened td { opacity: .62; transition: opacity .15s ease; }
+tr.opened:hover td { opacity: 1; }
+/* A second channel that costs nothing and needs no JavaScript: the browser's
+   own record of the link. Colour only — :visited permits nothing else. */
+.listings a:visited { color: var(--slate); }
 tr.muted:hover td, tr.muted:hover th { background: none; }
 
 /* ---- Disclosure --------------------------------------------------------- */

@@ -273,13 +273,57 @@
    on top of it — which is why the row gets no tabindex or role, rather than
    adding a duplicate tab stop to every row on the page. #}
 <script>
+  /* Which listings THIS browser has already opened. Kept here rather than on
+     the server: it is a fact about one person's browsing, the sweep state
+     does not survive a restart, and the shortlist itself is a CSV. Every
+     access is wrapped — localStorage throws outright in some privacy modes,
+     and a shortlist that will not render is a far worse outcome than one
+     that forgets which rows you clicked. */
+  var OPENED = "sweep.opened", OPENED_CAP = 2000;
+
+  function openedList() {
+    try { return JSON.parse(localStorage.getItem(OPENED)) || []; }
+    catch (e) { return []; }
+  }
+
+  function markOpened(row) {
+    if (!row || row.classList.contains("opened")) return;
+    row.classList.add("opened");
+    var seen = openedList();
+    if (seen.indexOf(row.dataset.href) !== -1) return;
+    seen.push(row.dataset.href);
+    /* Newest kept: an unbounded list would grow for as long as the profile
+       is used, and the oldest entries are the ones least likely to still be
+       on a shortlist. */
+    try {
+      localStorage.setItem(OPENED,
+        JSON.stringify(seen.slice(-OPENED_CAP)));
+    } catch (e) { /* full, or blocked: the class still applies this visit */ }
+  }
+
+  (function () {
+    var seen = openedList();
+    if (!seen.length) return;
+    var byHref = Object.create(null);
+    for (var i = 0; i < seen.length; i++) { byHref[seen[i]] = true; }
+    document.querySelectorAll("tr[data-href]").forEach(function (row) {
+      if (byHref[row.dataset.href]) row.classList.add("opened");
+    });
+  })();
+
   document.addEventListener("click", function (e) {
     var row = e.target.closest && e.target.closest("tr[data-href]");
     if (!row) return;
-    /* The anchor handles itself — without this the row opens a second tab. */
-    if (e.target.closest("a, button, input, label, summary")) return;
-    /* Selecting a company name to copy it must not navigate. */
+    /* Selecting a company name to copy it must not navigate — or count as
+       having opened the listing. */
     if (String(window.getSelection() || "")) return;
+    /* The anchor handles itself — without this the row opens a second tab.
+       It is still an open, so it is still marked. */
+    if (e.target.closest("a, button, input, label, summary")) {
+      markOpened(row);
+      return;
+    }
+    markOpened(row);
     window.open(row.dataset.href, "_blank", "noopener");
   });
 </script>

@@ -3923,6 +3923,54 @@ class TestResultsScreen(unittest.TestCase):
         self.assertIn("getSelection", script)
         self.assertIn('"_blank", "noopener"', script)
 
+    # ---- rows you have already opened -----------------------------------
+    def test_an_opened_row_is_remembered_in_this_browser(self):
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        script = body[body.index("<script>", body.index("<main>")):]
+        self.assertIn('"sweep.opened"', script)
+        # Marked on BOTH ways of opening a listing: the row, and the anchor
+        # that the row handler deliberately steps aside for.
+        self.assertEqual(script.count("markOpened(row);"), 2)
+
+    def test_a_click_that_only_ends_a_selection_is_not_an_open(self):
+        # It does not navigate, so it must not grey the row out either —
+        # otherwise copying a company name marks it as read.
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        script = body[body.index("<script>", body.index("<main>")):]
+        self.assertLess(script.index("getSelection"),
+                        script.index("markOpened(row);"),
+                        "the selection check has to come first")
+
+    def test_the_record_is_a_set_and_is_bounded(self):
+        # Two rows can carry the same apply URL, and a row re-clicked after
+        # the cap dropped it would append again — either way the list grows
+        # without recording anything new.
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        self.assertIn("if (seen.indexOf(row.dataset.href) !== -1) return;", body)
+        self.assertIn("seen.slice(-OPENED_CAP)", body)
+
+    def test_storage_failing_cannot_take_the_shortlist_with_it(self):
+        # localStorage throws outright in some privacy modes. A shortlist
+        # that will not render is a far worse outcome than one that forgets
+        # which rows were clicked, so every access is wrapped.
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        script = body[body.index("<script>", body.index("<main>")):]
+        for access in ("localStorage.getItem", "localStorage.setItem"):
+            before = script[:script.index(access)]
+            self.assertIn("try", before[-120:], f"{access} is not wrapped")
+
+    def test_an_opened_row_reads_as_seen_not_as_disabled(self):
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        faded = re.search(r"tr\.opened td \{[^}]*opacity: ([\d.]+)", css)
+        self.assertIsNotNone(faded)
+        # Disabled controls in this file sit at .5; a row matching that
+        # would read as unavailable rather than already read.
+        self.assertGreater(float(faded.group(1)), 0.5)
+        self.assertLess(float(faded.group(1)), 0.85)
+        # Hover restores it, which is the other half of saying it is live.
+        self.assertRegex(css, r"tr\.opened:hover td \{[^}]*opacity: 1")
+
     def test_the_row_is_not_a_second_tab_stop(self):
         # A shortlist runs to hundreds of rows; giving each one a tabindex
         # would put a duplicate stop in front of every Apply link on the page.
