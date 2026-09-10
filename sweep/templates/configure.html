@@ -4,11 +4,18 @@
 {# SINGLE-quoted: |tojson escapes ' < & but not ", so inside a
    double-quoted attribute the value ends at the JSON's first " and Alpine
    silently never initialises — on the screen whose whole job is a live cost. #}
-{% block meter_scope %} x-data='{ est: {{ estimate|tojson }}, busy: false, err: null }'{% endblock %}
-{% block meter_numeral_bind %} x-text="'$' + est.total.toFixed(2)"{% endblock %}
+{% block meter_scope %} x-data='{ est: {{ estimate|tojson }}, cap: {{ cap_usd|tojson }}, busy: false, err: null }'{% endblock %}
+{# x-effect, not x-text: the figure COUNTS to its new value while the fill
+   tweens under it (motion.js). x-effect re-runs on every est change, which
+   is the same reactivity x-text had. #}
+{% block meter_numeral_bind %} x-effect="sweepCount($el, est.total)"{% endblock %}
 {% block meter_class_bind %} :class="{ over: est.over_cap }"{% endblock %}
-{# No :style binding here: running.html's fill is found by the first :style on
-   the page, and this band renders above it in the same shell. #}
+{# The bar moves with the estimate too. It used to sit at whatever the page
+   loaded with while the figure above it changed — on the one screen whose
+   whole job is a live cost. Clamped like logic.fill_pct: a plan can exceed
+   the credit, and .meter.over turning it red is what says so, not a bar
+   overflowing its track. #}
+{% block meter_fill_bind %} :style="'width: ' + (cap ? Math.min(100, est.total / cap * 100) : 0) + '%'"{% endblock %}
 {% block meter_facts %}{% if free_only %}Free sources only{% else %}<span
   x-text="est.total_searches + ' searches'"></span>
   · hard cap <b x-text="'$' + est.spend_cap.toFixed(2)"></b>{% endif %}{% endblock %}

@@ -186,7 +186,11 @@ header {
   padding: var(--s3) var(--s5);
 }
 .meter-head .label { flex: none; }
-.meter .numeral { font-size: 30px; letter-spacing: -0.02em; font-weight: 700; }
+.meter .numeral {
+  font-size: 30px; letter-spacing: -0.02em; font-weight: 700;
+  /* A counting figure re-lays-out on every frame without this. */
+  font-variant-numeric: tabular-nums;
+}
 .meter-facts { margin-left: auto; color: var(--slate); font-size: 11px; font-weight: 500; }
 .meter-facts b { color: var(--chalk); }
 
@@ -194,7 +198,7 @@ header {
   position: relative; height: 8px;
   background: var(--well); border-top: 1px solid var(--rule);
 }
-.meter-fill { height: 100%; background: var(--paid); width: 0; transition: width .3s ease; }
+.meter-fill { height: 100%; background: var(--paid); width: 0; transition: width .35s ease; }
 .meter.over .meter-fill { background: var(--over); }
 .meter-cap {
   position: absolute; top: -3px; width: 1px; height: 14px;
@@ -656,7 +660,6 @@ td.score {
    estimate is in flight, and blanking it would flicker the money on every
    keystroke. The label beside it says it is not final. */
 .updating { opacity: .5; transition: opacity .12s ease; }
-@media (prefers-reduced-motion: reduce) { .updating { transition: none; } }
 
 /* A submitted form. The button is disabled by Alpine; this is the note that
    says why nothing is happening yet. */
@@ -1027,3 +1030,91 @@ td.score {
   border-style: dashed; color: var(--dim);
 }
 .key.parked::before { background: transparent; border: 1px dashed var(--dim); }
+
+/* ---- Motion -------------------------------------------------------------
+
+   docs/stitch-ui-prompt.md's motion spec. One orchestrated moment per
+   screen, and the meter is the protagonist — almost all motion belongs to
+   it, which is what keeps the rest from feeling busy. Everything else here
+   answers a click.
+
+   The spec asks for GSAP. Every beat in it except the counter is a keyframe
+   and a class, so it is CSS: the app vendors its one JS dependency on
+   purpose, and 70KB to do this would be the larger change. The counter is
+   in motion.js because a number cannot be tweened in CSS.
+
+   Durations and order are the spec's. */
+
+/* Page load, once per session. base.html sets .first-paint only when this
+   session has not drawn it yet, so navigating between screens never
+   replays it. */
+@keyframes rail-draw { from { transform: scaleX(0); } }
+@keyframes cap-drop { from { opacity: 0; transform: translateY(-6px); } }
+.first-paint .meter-fill {
+  transform-origin: left center;
+  animation: rail-draw 600ms cubic-bezier(.22, .61, .36, 1) both;
+}
+/* After the rail, not with it. */
+.first-paint .meter-cap { animation: cap-drop 240ms ease-out 560ms both; }
+
+/* Crossing the cap: the single dramatic moment in the product. The fill
+   overshoots the tick, the rail shakes once — hard and short — and settles
+   back against it in red, which .meter.over was already painting.
+
+   Bound to the class, so it fires exactly once per state entry: on Confirm
+   the server renders .over and it plays on load; on Configure Alpine adds
+   the class the moment the estimate crosses, and it does not re-fire while
+   the estimate stays over. Ordered after the page-load draw deliberately —
+   if both are live on one paint, this is the one worth seeing. */
+@keyframes cap-cross-fill {
+  0% { transform: scaleX(1); }
+  35% { transform: scaleX(1.04); }
+  100% { transform: scaleX(1); }
+}
+@keyframes cap-cross-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-3px); }
+  35% { transform: translateX(3px); }
+  55% { transform: translateX(-2px); }
+  78% { transform: translateX(1px); }
+}
+.meter.over .meter-fill {
+  transform-origin: left center;
+  animation: cap-cross-fill 500ms cubic-bezier(.36, .07, .19, .97) both;
+}
+.meter.over .meter-track {
+  animation: cap-cross-shake 500ms cubic-bezier(.36, .07, .19, .97);
+}
+
+/* A search finishing. The grid moves because work genuinely completed, so
+   it reads as data rather than decoration — which is also why nothing else
+   on that screen moves. */
+@keyframes tile-land { from { transform: scale(.82); } }
+.cell { transition: background-color .2s ease, color .2s ease,
+                    border-color .2s ease; }
+.cell.done { animation: tile-land 200ms ease-out; }
+/* The spec's 0.01 stagger for a batch landing together. Off the column
+   position rather than a per-cell binding: the cells in a batch are
+   adjacent, so a ramp across the row is the same ripple with no markup. */
+.search-grid .cell:nth-child(8n + 2) { animation-delay: 10ms; }
+.search-grid .cell:nth-child(8n + 3) { animation-delay: 20ms; }
+.search-grid .cell:nth-child(8n + 4) { animation-delay: 30ms; }
+.search-grid .cell:nth-child(8n + 5) { animation-delay: 40ms; }
+.search-grid .cell:nth-child(8n + 6) { animation-delay: 50ms; }
+.search-grid .cell:nth-child(8n + 7) { animation-delay: 60ms; }
+.search-grid .cell:nth-child(8n + 0) { animation-delay: 70ms; }
+
+/* The result groups arrive once, 80ms apart. Rows do NOT animate
+   individually and cards do not lift on hover — those are the generic
+   default the spec rules out. */
+@keyframes section-in { from { opacity: 0; transform: translateY(6px); } }
+.reveal { animation: section-in 320ms ease-out both; }
+.reveal.r2 { animation-delay: 80ms; }
+.reveal.r3 { animation-delay: 160ms; }
+
+/* No reduced-motion block here on purpose: the blanket rule near the top of
+   this file already kills every animation and transition with !important,
+   and .working-bar has an explicit end state of its own. Everything above
+   reverts to its base style when the animation is dropped, which IS the end
+   state the spec asks for — a scaled-to-1 fill, an opaque section, a cap
+   tick in place. motion.js reads the same query for the counter. */

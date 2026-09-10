@@ -318,7 +318,7 @@
         {# Collapsed by default: these need a visa, so they are the least
            actionable rows on the screen. Otherwise identical to the panels
            above it. #}
-        <details class="panel">
+        <details class="panel reveal r{{ loop.index }}">
           <summary>
             <h2>{{ heading }}</h2>
             {{ section_note(note, held|length) }}
@@ -327,7 +327,7 @@
           {{ section_foot(shown|length, held|length) }}
         </details>
       {% else %}
-        <div class="panel">
+        <div class="panel reveal r{{ loop.index }}">
           <div class="panel-head">
             <h2>{{ heading }}</h2>
             {{ section_note(note, held|length) }}

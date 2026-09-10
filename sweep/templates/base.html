@@ -6,6 +6,22 @@
 <title>{% block title %}Sweep{% endblock %}</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='sweep.css') }}">
+{# Synchronous and before the first paint on purpose: the rail draws once a
+   SESSION, and deciding that after paint would either flash the drawn state
+   or replay the draw on every navigation. Set on <html> so the CSS can key
+   off it without waiting for the body.
+
+   sessionStorage throws outright in some privacy modes. Blocked reads as
+   "already drawn": no animation is a quieter failure than one on every
+   screen change. #}
+<script>
+  try {
+    if (!sessionStorage.getItem("sweep.drawn")) {
+      document.documentElement.className += " first-paint";
+      sessionStorage.setItem("sweep.drawn", "1");
+    }
+  } catch (e) { /* no draw */ }
+</script>
 {# Fonts come from Google; the typography is part of the design the spec
    asked for, and a stylesheet cannot execute code. It does mean each page
    view sends a request to Google, which the README says plainly rather than
@@ -19,6 +35,7 @@
    third-party script that can read the DOM does not belong there. A CDN that
    cannot be reached also takes the live cost meter down silently, which
    reads as "the estimate stopped moving" — on the money screen. #}
+<script defer src="{{ url_for('static', filename='motion.js') }}"></script>
 <script defer src="{{ url_for('static', filename='alpine-3.14.1.min.js') }}"></script>
 
 <header>

@@ -947,12 +947,15 @@ class TestReviewScreen(Isolated):
         offenders = []
         for path in glob.glob(os.path.join(
                 os.path.dirname(app_module.__file__), "templates", "*.html")):
-            for n, line in enumerate(open(path), 1):
+            for line in open(path):
                 if re.search(r'\sstyle="[^"]*\{[{%]', line):
-                    offenders.append(f"{os.path.basename(path)}:{n}")
-        # base.html's meter fill is a continuous 0-100 and has no discrete
+                    offenders.append((os.path.basename(path), line.strip()))
+        # base.html's meter fill is a continuous 0-100 with no discrete
         # steps to enumerate, so it stays and is the only one allowed.
-        self.assertEqual(offenders, ["base.html:109"])
+        # Matched on what it IS, not on a line number that every edit above
+        # it moves.
+        self.assertEqual([f for f, _ in offenders], ["base.html"])
+        self.assertIn("meter-fill", offenders[0][1])
 
     def test_removing_a_term_strikes_the_term_not_the_rank(self):
         # The rule targeted td:first-child, which was the skill name until a
@@ -3954,6 +3957,156 @@ class TestPricingWhatIsLeft(Isolated):
         app.state["cap_usd"] = 0.50
         app.test_client().get("/confirm")
         self.assertFalse(app.state["plan"]["over_cap"])
+
+
+class TestMotion(Isolated):
+    """docs/stitch-ui-prompt.md's motion spec. One orchestrated moment per
+    screen, the meter as protagonist, and a reduced-motion branch that sets
+    end states directly."""
+
+    def css(self):
+        return (pathlib.Path(app_module.__file__).parent
+                / "static" / "sweep.css").read_text()
+
+    def _app(self, state=None, **kw):
+        app = app_module.create_app(
+            state=state if state is not None else {
+                "profile": "kanav", "derived": DERIVED, "cap_usd": 8.41},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None), fetch_plan=lambda p: RAW_PLAN,
+            read_rows=lambda p: list(ROWS), read_done=lambda p, d: [],
+            read_spend=lambda: None,
+            env_path=os.path.join(tempfile.mkdtemp(), ".env"),
+            output_dir=tempfile.mkdtemp(), **kw)
+        app.config.update(TESTING=True)
+        return app
+
+    # ---- the counter, on a fake clock ------------------------------------
+
+    def test_the_counter_behaves(self):
+        """motion.js under a stubbed rAF, so the assertions are exact.
+
+        In a browser this is the one beat of the spec CSS cannot do, and the
+        interesting parts are the ones that are easy to get wrong: no
+        entrance animation on first paint, landing on the real figure rather
+        than the easing's last frame, and a change overwriting the tween in
+        flight instead of queueing behind it.
+        """
+        import shutil as _shutil
+        node = _shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        script = os.path.join(os.path.dirname(__file__), "motion_test.js")
+        r = subprocess.run([node, script], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    # ---- page load, once per session -------------------------------------
+
+    def test_the_rail_draw_is_decided_before_the_first_paint(self):
+        # After paint it would either flash the drawn state or replay on
+        # every navigation, so the decision is synchronous and on <html>.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        head = body.split("<header")[0]
+        self.assertIn('sessionStorage.getItem("sweep.drawn")', head)
+        self.assertIn("first-paint", head)
+        # And before Alpine: Alpine calls sweepCount on init.
+        self.assertLess(body.index("motion.js"), body.index("alpine-"))
+
+    def test_a_blocked_sessionstorage_draws_nothing(self):
+        # It throws outright in some privacy modes. No animation is a
+        # quieter failure than one on every screen change.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        block = body[body.index("sessionStorage"):]
+        self.assertRegex(block[:400], r"catch \(e\) \{[^}]*\}")
+        self.assertNotIn("first-paint",
+                         block[block.index("catch"):block.index("catch") + 80])
+
+    def test_the_draw_is_keyed_off_that_class_only(self):
+        css = self.css()
+        self.assertIn(".first-paint .meter-fill", css)
+        self.assertIn("@keyframes rail-draw", css)
+        # The cap tick lands after the rail, not with it.
+        self.assertRegex(css, r"\.first-paint \.meter-cap \{ animation: "
+                              r"cap-drop \d+ms [\w-]+ (\d+)ms both; \}")
+
+    # ---- crossing the cap -------------------------------------------------
+
+    def test_crossing_the_cap_is_bound_to_the_state_not_a_timer(self):
+        # Once per state entry: the class IS the state, so it fires when the
+        # class lands and cannot loop while it stays.
+        css = self.css()
+        self.assertIn("@keyframes cap-cross-shake", css)
+        self.assertIn(".meter.over .meter-track {\n  animation: "
+                      "cap-cross-shake", css)
+        # Ordered after the page-load draw, so a first paint that is already
+        # over cap shows the moment worth seeing. Compared inside the motion
+        # section: .meter.over .meter-fill also sets the red much earlier.
+        motion = css[css.index("/* ---- Motion "):]
+        self.assertGreater(motion.index(".meter.over .meter-fill"),
+                           motion.index(".first-paint .meter-fill"))
+
+    # ---- the estimate screen ---------------------------------------------
+
+    def test_the_figure_counts_and_the_bar_follows_it(self):
+        # The bar used to sit at whatever the page loaded with while the
+        # figure above it changed, on the screen whose job is a live cost.
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn('x-effect="sweepCount($el, est.total)"', body)
+        self.assertIn("est.total / cap * 100", body)
+        # Clamped like logic.fill_pct, or an over-cap plan overflows the track.
+        self.assertIn("Math.min(100", body)
+
+    def test_the_money_figure_does_not_reflow_while_it_counts(self):
+        # Inside .meter .numeral specifically: the property is on the
+        # weights table's rank column too, so a bare substring passed with
+        # the meter's own removed.
+        css = self.css()
+        rule = css[css.index(".meter .numeral {"):]
+        self.assertIn("font-variant-numeric: tabular-nums",
+                      rule[:rule.index("}")])
+
+    # ---- the grid and the sections ---------------------------------------
+
+    def test_a_finished_search_lands_rather_than_appearing(self):
+        css = self.css()
+        self.assertIn("@keyframes tile-land", css)
+        self.assertIn(".cell.done { animation: tile-land", css)
+        # The spec's stagger for a batch landing together.
+        self.assertIn(".search-grid .cell:nth-child(8n + 2)", css)
+
+    def test_the_result_groups_stagger_in_once(self):
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        self.assertIn('class="panel reveal r1"', body)
+        css = self.css()
+        self.assertIn(".reveal.r2 { animation-delay: 80ms; }", css)
+        self.assertIn(".reveal.r3 { animation-delay: 160ms; }", css)
+
+    def test_rows_and_cards_do_not_animate_individually(self):
+        # Explicitly ruled out by the spec as the generic default.
+        css = self.css()
+        self.assertNotIn("tr:hover { transform", css)
+        self.assertNotIn(".panel:hover { transform", css)
+
+    # ---- reduced motion ---------------------------------------------------
+
+    def test_one_rule_kills_every_animation_added_here(self):
+        # The blanket rule was already in this file and beats everything
+        # above with !important, so the motion section adds no reduced-motion
+        # block of its own. Every animation here reverts to its base style
+        # when dropped, which IS the end state: a fill at scale 1, an opaque
+        # section, a cap tick in place.
+        css = self.css()
+        blanket = "* { transition: none !important; animation: none !important; }"
+        self.assertIn(blanket, css)
+        # And it comes first, so nothing added later escapes it on ordering.
+        self.assertLess(css.index(blanket), css.index("/* ---- Motion "))
+        motion = css[css.index("/* ---- Motion "):]
+        self.assertNotIn("prefers-reduced-motion", motion)
+
+    def test_the_progress_bar_gets_an_end_state_not_just_a_stop(self):
+        # An indeterminate bar frozen mid-sweep reads as a stalled sweep.
+        self.assertIn(".working-bar span { animation: none; width: 100%;",
+                      self.css())
 
 
 class TestExports(Isolated):
