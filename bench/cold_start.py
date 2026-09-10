@@ -135,7 +135,17 @@ def validated(keywords, rows, seniority):
     out = sf.validate(profile, titles)
     if out["decision"] == "escalate":
         return []
-    return out["result"]["role_keywords"]
+    # Deduplicated, because the two sources overlap. A résumé saying
+    # "Senior Business Development Associate" yields the stem "business
+    # development associate", and corpus canonicalisation independently
+    # yields the same title — one search's worth of rows bought twice.
+    seen, unique = set(), []
+    for keyword in out["result"]["role_keywords"]:
+        key = keyword.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            unique.append(keyword)
+    return unique
 
 
 def report(want=12):
@@ -293,6 +303,9 @@ def demo():
                for i in range(10)]
     assert validated(["software engineer"], market, sen) == []
     assert validated(["react developer"], market, sen) == ["react developer"]
+    # The two sources overlap and the union must not buy one search twice.
+    assert validated(["react developer", "React Developer",
+                      "react developer"], market, sen) == ["react developer"]
     print("cold_start demo ok")
 
 

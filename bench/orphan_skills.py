@@ -219,7 +219,13 @@ def ask(model, field, blocks, timeout=900):
     body = _json.dumps({
         "model": model, "prompt": prompt, "format": SCHEMA, "stream": False,
         "think": False, "keep_alive": KEEP_ALIVE,
-        "options": {"temperature": 0.2,
+        # Zero, not 0.2. This is a SELECTION from a fixed list, not
+        # generation, and at 0.2 it was a coin flip on the pick that
+        # matters: a Salesforce Apex developer was offered "salesforce
+        # developer" for both apex and soql, and one run took it while
+        # the next took "mobile developer" and "back end developer"
+        # instead. Same inputs, same field, different answer.
+        "options": {"temperature": 0,
                     "num_ctx": ctx_for(prompt, reply_tokens=700)},
     }).encode()
     request = urllib.request.Request(OLLAMA, body,
