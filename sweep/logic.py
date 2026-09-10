@@ -312,6 +312,55 @@ def sort_rows(rows, sort):
 SECTION_CAP = 25
 
 
+# Every way a sweep can be sitting when the child is no longer running.
+# One name per state, decided in one place, because the screen, the SSE
+# payload and the tests each used to re-derive "is it finished" from counts.
+SWEEP_STATES = ("running", "finished", "stopped", "out_of_credit", "halted")
+
+
+def sweep_state(running, outstanding, stopped_by_user=False,
+                credit_left=None, cheapest_search=None):
+    """Which of SWEEP_STATES this sweep is in.
+
+    "halted" is the honest default and it exists on purpose: a sweep that
+    ended early for a reason we cannot name must not be labelled as one we
+    can. Only two reasons are ever claimed — the user pressed Stop, which is
+    recorded when they do, and there is not enough credit left to buy even
+    the cheapest search still outstanding, which is a comparison of two
+    figures rather than a guess about a crash.
+    """
+    if running:
+        return "running"
+    if outstanding == 0:
+        return "finished"
+    if stopped_by_user:
+        return "stopped"
+    if (credit_left is not None and cheapest_search is not None
+            and credit_left < cheapest_search):
+        return "out_of_credit"
+    return "halted"
+
+
+def remaining_cost(tiles, rates):
+    """What the searches that have NOT run would cost, at plan rates.
+
+    `rates` are the EFFECTIVE per-search rates the plan was costed at (each
+    already scaled to the depth this sweep runs), so this and the plan total
+    cannot disagree about what a search on a given site costs.
+    """
+    return round(sum(rates.get(t["site"], 0.0)
+                     for t in tiles if t.get("state") != "done"), 4)
+
+
+def cheapest_rate(tiles, rates):
+    """The lowest per-search rate among the searches still outstanding, or
+    None when nothing paid is left to run."""
+    left = [rates.get(t["site"], 0.0) for t in tiles
+            if t.get("state") != "done"]
+    paid = [r for r in left if r > 0]
+    return min(paid) if paid else None
+
+
 def and_list(items):
     """"a", "a and b", "a, b and c" — an English list, not "a and b and c"."""
     items = [str(i) for i in items]

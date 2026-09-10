@@ -992,3 +992,31 @@ td.score {
   justify-content: space-between; gap: var(--s5);
   padding-top: var(--s5); border-top: 1px solid var(--rule);
 }
+
+/* ---- How a sweep ended -------------------------------------------------- */
+
+/* One line that names the state, at the top of the screen. The accent is
+   the only thing that differs between them: an ending is not decoration,
+   and four differently-shaped boxes would read as four unrelated events. */
+.banner {
+  display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: var(--s5);
+  padding: var(--s4) var(--s5);
+  border-left: 2px solid var(--slate); background: var(--surface);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.banner > div:first-child { flex: 1 1 24rem; }
+.banner b { display: block; font-size: 14px; color: var(--chalk); }
+.banner span { color: var(--warm); font-size: 12px; line-height: 1.5; }
+.banner.ok { border-left-color: var(--free); }
+.banner.ok b { color: var(--free); }
+.banner.warn { border-left-color: var(--paid); }
+.banner.warn b { color: var(--paid); }
+
+/* A search that never ran, once there is no longer any prospect of it
+   running on its own. Distinct from "not run YET", which is the same cell
+   while the sweep is still working through the grid. */
+.cell.parked {
+  border-style: dashed; color: var(--dim);
+}
+.key.parked::before { background: transparent; border: 1px dashed var(--dim); }

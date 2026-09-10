@@ -78,6 +78,31 @@ def tearDownModule():
     shutil.rmtree(_TEMP_ROOT, ignore_errors=True)
 
 
+class Isolated(unittest.TestCase):
+    """A test case whose APIFY_TOKEN* environment is put back afterwards.
+
+    read_env_tokens() reconciles os.environ with .env deliberately — the
+    engine inherits this process's environment, so a key deleted from the
+    file has to disappear from both. That makes it a global this module
+    writes to, and a fixture that leaves APIFY_TOKEN set changes what a
+    LATER test's no_key_yet() decides. The failure lands in whichever test
+    happens to run next, which is the worst possible place for it.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.enterContext(mock.patch.dict(os.environ))
+        # And its own REPO_ROOT, so profiles/ and output/ are per-test too.
+        # Module-scoped, they were shared: POST /run writes the profile it
+        # stamps the spend cap into, so one fixture that did not stub
+        # write_profile left profiles/kanav.py behind and the next test's
+        # "does this name clash" answered yes.
+        root = tempfile.mkdtemp(prefix="sweep-test-")
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        os.mkdir(os.path.join(root, "profiles"))
+        self.enterContext(mock.patch.object(app_module, "REPO_ROOT", root))
+
+
 def alpine_scope(body):
     """The x-data attribute value as a real HTML parser sees it.
 
@@ -102,7 +127,7 @@ def alpine_scope(body):
     return found
 
 
-class TestProfileNameCollision(unittest.TestCase):
+class TestProfileNameCollision(Isolated):
     """POST /review wrote profiles/<name>.py with no existence check, so
     typing a name that already existed destroyed it — and /estimate rewrites
     the same file on every configure change, so there was no second chance.
@@ -147,7 +172,7 @@ class TestProfileNameCollision(unittest.TestCase):
         self.assertIn('name="overwrite"', body)
 
 
-class TestEngineFlagAndPathHygiene(unittest.TestCase):
+class TestEngineFlagAndPathHygiene(Isolated):
     """Two fixes the last round claimed were pinned and were not — nothing in
     the repo referenced either."""
 
@@ -266,7 +291,7 @@ class TestEngineFlagAndPathHygiene(unittest.TestCase):
         self.assertEqual(len(sys.path), before)
 
 
-class TestPaidSourceDefaults(unittest.TestCase):
+class TestPaidSourceDefaults(Isolated):
     """Which paid sources a profile inherits when it says nothing. This is the
     only place the decision is recorded as a test rather than a comment."""
 
@@ -287,7 +312,7 @@ class TestPaidSourceDefaults(unittest.TestCase):
         self.assertTrue(live.SITES["indeed"]["enabled"])
 
 
-class TestRunningMeterBindings(unittest.TestCase):
+class TestRunningMeterBindings(Isolated):
     """The header meter's bindings reference names that must exist in the
     Alpine scope. A missing one is a ReferenceError at runtime, which no
     server-side assertion can see — the blind spot that hid a dead Alpine
@@ -359,7 +384,7 @@ class TestRunningMeterBindings(unittest.TestCase):
         self.assertNotIn("over", meter)
 
 
-class TestPageShell(unittest.TestCase):
+class TestPageShell(Isolated):
     def _app(self):
         app = app_module.create_app(state={}, extract=lambda p: "x",
                                      derive=lambda t, p: DERIVED)
@@ -390,7 +415,7 @@ class TestPageShell(unittest.TestCase):
         self.assertIn("width=device-width", body)
 
 
-class TestFixesThatHadNoTest(unittest.TestCase):
+class TestFixesThatHadNoTest(Isolated):
     """Six fixes from the whole-branch review shipped with no test, so each
     could be reverted with the suite still green. The review found them by
     mutating the code; these pin them instead."""
@@ -506,7 +531,7 @@ class TestFixesThatHadNoTest(unittest.TestCase):
         self.assertNotIn("$40.00", body)
 
 
-class TestAlpineScopeSurvivesHtmlParsing(unittest.TestCase):
+class TestAlpineScopeSurvivesHtmlParsing(Isolated):
     """Every screen whose figures update in place depends on one x-data
     attribute parsing. A test that only greps the raw body cannot see this."""
 
@@ -546,7 +571,7 @@ class TestAlpineScopeSurvivesHtmlParsing(unittest.TestCase):
         self.assertIn("tiles", scopes[0])
 
 
-class TestUploadScreen(unittest.TestCase):
+class TestUploadScreen(Isolated):
     def setUp(self):
         self.app = app_module.create_app(state={})
         self.app.config.update(TESTING=True)
@@ -676,7 +701,7 @@ DERIVED = {
 }
 
 
-class TestFrontDoor(unittest.TestCase):
+class TestFrontDoor(Isolated):
     """The landing screen: the résumé control, and the three facts beside it.
 
     Everything here is one page, but two of these guard money and one guards
@@ -791,7 +816,7 @@ class TestFrontDoor(unittest.TestCase):
         self.assertEqual(app_module.site_label("wellfound"), "wellfound")
 
 
-class TestReviewScreen(unittest.TestCase):
+class TestReviewScreen(Isolated):
     def _app(self, state=None):
         # derived pre-seeded: GET /review no longer makes the model call, it
         # hands back the working screen when there is nothing derived yet.
@@ -983,7 +1008,7 @@ class TestReviewScreen(unittest.TestCase):
             app.write_profile("../evil", "source")
 
 
-class TestProfileNameAutofill(unittest.TestCase):
+class TestProfileNameAutofill(Isolated):
     def _app(self, derived, exists=()):
         app = app_module.create_app(
             state={"resume_text": "a résumé", "derived": derived},
@@ -1033,7 +1058,7 @@ class TestProfileNameAutofill(unittest.TestCase):
         self.assertNotIn('name="overwrite"', body)
 
 
-class TestSkillWeightEditing(unittest.TestCase):
+class TestSkillWeightEditing(Isolated):
     def _app(self):
         app = app_module.create_app(
             state={"resume_text": "a résumé", "cap_usd": 8.41,
@@ -1123,7 +1148,7 @@ EMPTY_PLAN = {"profile": "kanav", "sites": {}, "max_results": {},
               "free_sources": 39}
 
 
-class TestEmptyAndPendingStates(unittest.TestCase):
+class TestEmptyAndPendingStates(Isolated):
     """States the screens can actually reach: no paid sources (newly
     reachable once Configure could switch them off), nothing derived, and a
     profile the engine can no longer plan."""
@@ -1271,7 +1296,7 @@ class TestEmptyAndPendingStates(unittest.TestCase):
         self.assertIn("x-cloak", body)
 
 
-class TestResumeParsingScreen(unittest.TestCase):
+class TestResumeParsingScreen(Isolated):
     """The model call is the longest wait in the app. It used to happen inside
     GET /review's render, so the browser sat on the PREVIOUS page for the
     whole thing and there was no response the server could put a loading
@@ -1477,7 +1502,7 @@ class TestResumeParsingScreen(unittest.TestCase):
         self.assertEqual(r.headers["Location"], "/")
 
 
-class TestStepTracker(unittest.TestCase):
+class TestStepTracker(Isolated):
     """The header was seven plain tabs, four of which redirect away on a
     fresh session. The tracker has to agree with the route guards, so this
     checks it against the actual routes rather than against a second copy of
@@ -1628,7 +1653,7 @@ class TestStepTracker(unittest.TestCase):
         self.assertRegex(css, r"\.tracker-at \{[^}]*\}")
 
 
-class TestBrandMark(unittest.TestCase):
+class TestBrandMark(Isolated):
     def test_every_screen_carries_the_mark_and_a_favicon(self):
         app = app_module.create_app(state={}, extract=lambda p: "x",
                                     derive=lambda t, p: DERIVED)
@@ -1648,7 +1673,7 @@ class TestBrandMark(unittest.TestCase):
         self.assertNotIn("var(--", svg)
 
 
-class TestFreeOnlyPath(unittest.TestCase):
+class TestFreeOnlyPath(Isolated):
     """Step 3 is a fork: connect a key, or search only what costs nothing.
 
     The free answer opens /configure, /confirm and /run with no verified key
@@ -1861,7 +1886,7 @@ class TestFreeOnlyPath(unittest.TestCase):
         self.assertTrue(by_slug["confirm"]["open"])
 
 
-class TestKeyScreen(unittest.TestCase):
+class TestKeyScreen(Isolated):
     def _app(self, credit=(8.41, None), state=None):
         state = state if state is not None else {"profile": "kanav"}
         # A real .env of its own, and the real writer: POST /key sets the cap
@@ -1943,7 +1968,7 @@ class TestKeyScreen(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
 
 
-class TestWriteEnv(unittest.TestCase):
+class TestWriteEnv(Isolated):
     """The real default_write_env, run against a temp file so no test ever
     touches the real .env — which holds live working credentials."""
 
@@ -2156,7 +2181,7 @@ PRICED_PLAN = {
 }
 
 
-class TestConfigureScreen(unittest.TestCase):
+class TestConfigureScreen(Isolated):
     def _app(self):
         app = app_module.create_app(
             state={"profile": "kanav", "cap_usd": 8.41},
@@ -2622,7 +2647,7 @@ class FakeProc:
         self.signals.append(sig)
 
 
-class TestCostMarkers(unittest.TestCase):
+class TestCostMarkers(Isolated):
     """Which controls carry the asterisk is not a judgement call. plan.cost()
     multiplies searches by a rate scaled to the depth, and the plan payload
     the engine hands it carries only `sites`, `max_results` and the combos
@@ -2672,7 +2697,7 @@ class TestCostMarkers(unittest.TestCase):
         self.assertEqual(body.count('<span class="costs" aria-hidden="true">'), 4)
 
 
-class TestLocationPicker(unittest.TestCase):
+class TestLocationPicker(Isolated):
     """Locations are the one field on Configure where a typo costs money in
     the wrong currency: LinkedIn answers an unverified location with United
     States results and bills for them (config.LINKEDIN_GEO_IDS). So the
@@ -2790,7 +2815,7 @@ class TestLocationPicker(unittest.TestCase):
         self.assertIn("'Bengaluru'", sites)
 
 
-class TestConfirmScreen(unittest.TestCase):
+class TestConfirmScreen(Isolated):
     def _app(self, cap=8.41, start_sweep=None, read_spend=None, check_token=None,
               state=None):
         # output_dir is injected — never the real output/kanav, which holds
@@ -3317,7 +3342,7 @@ RUNNING_PLAN = {
 }
 
 
-class TestKeysOnFileAreTheRecord(unittest.TestCase):
+class TestKeysOnFileAreTheRecord(Isolated):
     """os.environ is loaded once at start-up and load_dotenv() does not
     override what is already there, so a key deleted from .env by hand stayed
     visible to this process for as long as the server ran — and to the engine,
@@ -3406,7 +3431,7 @@ class TestKeysOnFileAreTheRecord(unittest.TestCase):
         self.assertEqual(written, {"APIFY_TOKEN_2": "tok-new"})
 
 
-class TestCreditLeft(unittest.TestCase):
+class TestCreditLeft(Isolated):
     """Credit left is every account's credit added up, and it has to keep up
     with a run rather than standing still at what it was when a key was last
     verified."""
@@ -3537,7 +3562,7 @@ class TestCreditLeft(unittest.TestCase):
         self.assertIn("Credit left $8.33", body)
 
 
-class TestResultsDensity(unittest.TestCase):
+class TestResultsDensity(Isolated):
     """A real sweep is 1600 rows with a dozen matched skills each. The screen
     has to stay scannable at that size, not only at the fixture's six."""
 
@@ -3622,7 +3647,7 @@ class TestResultsDensity(unittest.TestCase):
         self.assertNotIn('class="posted"', body)
 
 
-class TestPostedAge(unittest.TestCase):
+class TestPostedAge(Isolated):
     TODAY = datetime.date(2026, 9, 10)
 
     def test_it_reads_as_an_age_not_a_date(self):
@@ -3643,7 +3668,258 @@ class TestPostedAge(unittest.TestCase):
         self.assertEqual(app_module.posted_age("2026-09-20", self.TODAY), "")
 
 
-class TestExports(unittest.TestCase):
+class TestHowASweepEnded(Isolated):
+    """Four endings, not two. "Stopped early" used to cover the user pressing
+    Stop, the credit running out and the engine dying — three problems with
+    three different answers, reported identically."""
+
+    def _app(self, done=(), alive=False, stopped=False, credit=8.41,
+             read_spend=None):
+        proc = FakeProc()
+        if not alive:
+            proc.poll = lambda: 0
+        state = {"profile": "kanav", "cap_usd": 8.41, "proc": proc,
+                 "credit_total_usd": credit, "baseline_usd": 1.00,
+                 "raw_plan": RUNNING_PLAN,
+                 "plan": {"total": 2.70, "total_searches": 46,
+                          "over_cap": False, "spend_cap": 3.38,
+                          "lines": [{"site": "linkedin", "rate": 0.045,
+                                     "searches": 32, "free": False,
+                                     "subtotal": 1.44, "results": 25},
+                                    {"site": "indeed", "rate": 0.09,
+                                     "searches": 14, "free": False,
+                                     "subtotal": 1.26, "results": 15}]}}
+        if stopped:
+            state["stopped_by_user"] = True
+        env = os.path.join(tempfile.mkdtemp(), ".env")
+        pathlib.Path(env).write_text("APIFY_TOKEN=tok-a\n")
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (credit, None),
+            fetch_plan=lambda profile: RUNNING_PLAN,
+            start_sweep=lambda profile: proc,
+            read_spend=read_spend or (lambda: 2.42),
+            read_done=lambda profile, day: set(done),
+            read_rows=lambda profile: [],
+            env_path=env, output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app, state
+
+    def _state(self, **kw):
+        app, _ = self._app(**kw)
+        return app.test_client().get("/progress").get_json()
+
+    # ---- the five states -------------------------------------------------
+
+    def test_a_live_child_is_running(self):
+        self.assertEqual(self._state(alive=True)["state"], "running")
+
+    def test_every_search_done_is_finished(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        self.assertEqual(self._state(done=keys)["state"], "finished")
+
+    def test_the_user_pressing_stop_is_recorded_not_guessed(self):
+        # The one ending the user caused. It ends as a dead child with work
+        # left, exactly like running out of credit does.
+        self.assertEqual(self._state(stopped=True)["state"], "stopped")
+
+    def test_no_credit_left_for_even_the_cheapest_search_is_out_of_credit(self):
+        # Cheapest outstanding search is linkedin at $0.045.
+        self.assertEqual(self._state(credit=0.02)["state"], "out_of_credit")
+
+    def test_an_early_end_with_credit_still_there_is_not_blamed_on_money(self):
+        # Naming a cause we cannot evidence is how someone tops up a key
+        # that was never the problem.
+        p = self._state(credit=8.41)
+        self.assertEqual(p["state"], "halted")
+        self.assertIn("The reason is not recorded", self._body(credit=8.41))
+
+    def test_pressing_stop_is_what_records_it(self):
+        # The other tests seed the flag; this is the one that proves the
+        # button sets it. Without it the ending falls through to whatever
+        # the balance happens to say.
+        app, state = self._app(alive=True)
+        r = app.test_client().post("/stop")
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(state["stopped_by_user"])
+        # The child is signalled, not waited on, so the state it reports
+        # next is what the screen will show.
+        state["proc"].poll = lambda: 0
+        self.assertEqual(app.test_client().get("/progress").get_json()["state"],
+                         "stopped")
+
+    def test_no_key_on_file_at_all_is_not_an_empty_key(self):
+        # sweep_budget() reports a 0.00 TOTAL for an empty ledger, which is
+        # "we know of nothing" rather than "there is nothing". Told apart by
+        # whether any key was actually read.
+        app, state = self._app(credit=0.0)
+        state["key_credit"] = {}
+        state["credit_total_usd"] = 0.0
+        state["interrupt_credit_read"] = True  # do not re-read and refill it
+        self.assertEqual(app.test_client().get("/progress").get_json()["state"],
+                         "halted")
+
+    def test_the_grid_marks_the_searches_that_never_ran(self):
+        # "Not run YET" and "did not run" are the same cell until the sweep
+        # stops, and then they are not.
+        body = self._body(stopped=True)
+        self.assertIn("p.state === 'running' ? '' : 'parked'", body)
+        self.assertIn("did not run", body)
+
+    def test_stop_wins_over_an_empty_balance(self):
+        # Both true at once: the user stopped it AND the keys are spent. The
+        # one they did deliberately is the one to report.
+        self.assertEqual(self._state(stopped=True, credit=0.0)["state"],
+                         "stopped")
+
+    # ---- what it costs to carry on ---------------------------------------
+
+    def test_the_screen_prices_what_is_left_to_run(self):
+        # The figure the decision to resume turns on, and it was nowhere.
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        p = self._state(done=keys[:40])
+        # 6 left: RUNNING_PLAN is 32 linkedin then 14 indeed, so these are
+        # indeed at $0.09.
+        self.assertEqual(p["outstanding"], 6)
+        self.assertAlmostEqual(p["remaining_cost"], 0.54, places=2)
+
+    def test_nothing_outstanding_costs_nothing_to_finish(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        self.assertEqual(self._state(done=keys)["remaining_cost"], 0.0)
+
+    # ---- the screen ------------------------------------------------------
+
+    def _body(self, **kw):
+        app, _ = self._app(**kw)
+        return app.test_client().get("/running").get_data(as_text=True)
+
+    def test_each_ending_names_itself(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        # The heading says what happened; the banner says why. Both, so
+        # neither can drift into contradicting the other.
+        for kw, title, why in (
+                (dict(done=keys), "Sweep finished", "Every search ran"),
+                (dict(stopped=True), "Sweep stopped early", "You stopped it"),
+                (dict(credit=0.0), "Sweep stopped early", "The credit ran out"),
+                (dict(credit=8.41), "Sweep stopped early",
+                 "The reason is not recorded")):
+            body = self._body(**kw)
+            self.assertIn(f"<h1 x-text=", body)
+            self.assertIn(f">{title}</h1>", body, kw)
+            self.assertIn(why, body, kw)
+
+    def test_only_the_current_ending_is_shown_on_arrival(self):
+        # All four blocks are in the DOM for Alpine to switch between over
+        # SSE. Without the server-side display:none they would all paint at
+        # once for the moment before Alpine boots — and with no JavaScript,
+        # forever.
+        body = self._body(stopped=True)
+        block = body.split('x-show="p.state === \'stopped\'"')[1][:60]
+        self.assertNotIn("display:none", block)
+        for other in ("finished", "out_of_credit", "halted"):
+            after = body.split("x-show=\"p.state === '%s'\"" % other)[1][:60]
+            self.assertIn("display:none", after, other)
+
+    def test_a_stopped_sweep_offers_to_carry_on_with_the_keys_it_has(self):
+        body = self._body(stopped=True)
+        self.assertIn("Continue the sweep", body)
+        self.assertIn('href="/confirm"', body)
+
+    def test_an_out_of_credit_sweep_leads_with_another_key(self):
+        body = self._body(credit=0.0)
+        self.assertIn("nothing left to spend on the keys you have", body)
+        self.assertIn('action="/second-key"', body)
+
+    def test_every_ending_can_keep_what_was_already_found(self):
+        # Partial results are still results, and the export reads the file
+        # already on disk.
+        body = self._body(stopped=True)
+        self.assertIn("/export.xlsx", body)
+        self.assertIn("See what it\n            found", body)
+
+    def test_a_finished_sweep_is_offered_no_recovery(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        body = self._body(done=keys)
+        self.assertIn("style=\"display:none\"",
+                      body.split("Finish the remaining")[0][-400:])
+
+    def test_a_new_run_forgets_the_last_one_s_ending(self):
+        # Carried over, a resumed sweep that later died on its own would
+        # report "you stopped it".
+        app, state = self._app(stopped=True)
+        state["derived"] = DERIVED
+        app.test_client().post("/run")
+        self.assertNotIn("stopped_by_user", state)
+
+    def test_a_free_sweep_is_never_reported_as_out_of_credit(self):
+        app, state = self._app(credit=0.0)
+        state["free_only"] = True
+        self.assertEqual(app.test_client().get("/progress").get_json()["state"],
+                         "halted")
+
+
+class TestPricingWhatIsLeft(Isolated):
+    """The engine skips today's finished combos and does not re-bill them.
+    scraper.py prints --dry-run --json before it loads that ledger, so the
+    plan the UI prices is always the whole sweep."""
+
+    def _app(self, done=()):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RUNNING_PLAN,
+            read_done=lambda profile, day: set(done),
+            read_rows=lambda profile: [], read_spend=lambda: None,
+            start_sweep=lambda profile: FakeProc(),
+            env_path=os.path.join(tempfile.mkdtemp(), ".env"),
+            output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app
+
+    def test_a_fresh_plan_is_priced_whole(self):
+        app = self._app()
+        app.test_client().get("/confirm")
+        self.assertEqual(app.state["plan"]["total_searches"], 46)
+        self.assertEqual(app.state["plan"]["already_done"], 0)
+
+    def test_resuming_is_priced_on_what_is_left(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        app = self._app(done=keys[:40])
+        body = app.test_client().get("/confirm").get_data(as_text=True)
+        self.assertEqual(app.state["plan"]["total_searches"], 6)
+        self.assertEqual(app.state["plan"]["already_done"], 40)
+        # And it says why the figure shrank, or it reads as a pricing bug.
+        self.assertIn("already done", body)
+
+    def test_the_progress_grid_still_counts_the_whole_sweep(self):
+        # Only the PRICE is of the remainder: a resumed sweep showing 0 of 6
+        # would lose the 40 it already did.
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        app = self._app(done=keys[:40])
+        app.test_client().get("/confirm")
+        self.assertEqual(len(app_module.planned_keys(app.state)), 46)
+
+    def test_a_second_sweep_the_same_day_says_it_would_fetch_nothing(self):
+        # scraper.py's own comment records this shipping as a run that
+        # "skipped every combo, scraped nothing, and still printed a
+        # normal-looking summary".
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        body = self._app(done=keys).test_client().get(
+            "/confirm").get_data(as_text=True)
+        self.assertIn("Every search in this plan already ran today", body)
+
+    def test_an_affordable_remainder_is_not_refused_as_over_cap(self):
+        # The gate compared the WHOLE plan against the key. After an
+        # interruption that refuses a resume the remainder easily affords.
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        app = self._app(done=keys[:44])
+        app.state["cap_usd"] = 0.50
+        app.test_client().get("/confirm")
+        self.assertFalse(app.state["plan"]["over_cap"])
+
+
+class TestExports(Isolated):
     """The shortlist as a file. It re-reads what is already on disk, so it
     costs nothing — but it has to describe the same rows the screen does."""
 
@@ -3799,7 +4075,7 @@ class TestExports(unittest.TestCase):
         self.assertNotIn("/export.xlsx", page)
 
 
-class TestRunningScreen(unittest.TestCase):
+class TestRunningScreen(Isolated):
     def _app(self, done=(), alive=True, read_spend=None, now=None):
         proc = FakeProc()
         if not alive:
@@ -4126,7 +4402,7 @@ ROWS = [
 ]
 
 
-class TestArrivalsFeed(unittest.TestCase):
+class TestArrivalsFeed(Isolated):
     """A paid sweep takes about 40 minutes and, between searches, nothing on
     the running screen moves — which reads as broken. The feed shows the
     listings the engine has actually checkpointed.
@@ -4365,7 +4641,7 @@ class TestArrivalsFeed(unittest.TestCase):
         self.assertEqual(p["latest"], [])
 
 
-class TestFinishedSweepNavigation(unittest.TestCase):
+class TestFinishedSweepNavigation(Isolated):
     """After forty minutes of waiting, the last thing the screen should ask
     for is another click. It takes you to the results itself — but only from
     the two states where that is what you want."""
@@ -4411,10 +4687,10 @@ class TestFinishedSweepNavigation(unittest.TestCase):
         # "Opening them now" beside a page that is not going to open
         # anything is the same class of lie as a fabricated figure.
         body = self._body()
-        self.assertRegex(body, r'x-show="waiting"[^>]*>Opening them now')
+        self.assertRegex(body, r'x-show="waiting"[^>]*>Opening the results')
 
 
-class TestResultsScreen(unittest.TestCase):
+class TestResultsScreen(Isolated):
     def _app(self, rows=None, start_rescore=None):
         app = app_module.create_app(
             state={"profile": "kanav", "cap_usd": 8.41, "spend": 2.70,
@@ -4813,7 +5089,7 @@ class TestResultsScreen(unittest.TestCase):
         self.assertNotIn('role="link"', body)
 
 
-class TestFilterAndDisclosureUi(unittest.TestCase):
+class TestFilterAndDisclosureUi(Isolated):
     """Two shapes the results screen gets wrong easily: where a form's action
     sits relative to its fields, and what a collapsed section looks like next
     to the panels it sits between."""
@@ -4908,7 +5184,7 @@ class TestFilterAndDisclosureUi(unittest.TestCase):
                          r"details > \*:not\(summary\) \{[^}]*margin-top")
 
 
-class TestReRankWeights(unittest.TestCase):
+class TestReRankWeights(Isolated):
     """The panel said "re-rank against your current weights" and offered no
     way to see or change them — they were two screens back and unreachable
     from here. Editing them is the point of the panel.
@@ -5056,7 +5332,7 @@ class TestReRankWeights(unittest.TestCase):
         self.assertEqual(self.state["derived"], DERIVED)
 
 
-class TestMergeOffer(unittest.TestCase):
+class TestMergeOffer(Isolated):
     """The screen used to tell the user to go and run merge_jobs.py — and told
     them so whenever it was showing an unmerged file, including when there was
     one sweep on disk and nothing to fold in.
@@ -5216,7 +5492,7 @@ class TestMergeOffer(unittest.TestCase):
         self.assertNotIn('action="/merge"', body)
 
 
-class TestAddingASkill(unittest.TestCase):
+class TestAddingASkill(Isolated):
     """The parse misses things. Until now the editor could re-weight and
     remove what the model found and nothing else, so a skill it never saw
     could not be scored on at all."""
@@ -5395,7 +5671,7 @@ class TestAddingASkill(unittest.TestCase):
                          len(DERIVED["skill_weights"]))
 
 
-class TestResultSorting(unittest.TestCase):
+class TestResultSorting(Isolated):
     """The screen could narrow a shortlist but not reorder it. Everything here
     is a total order with a deterministic tie-break, because a list that
     reshuffles between two identical requests is worse than one bad order."""
@@ -5546,7 +5822,7 @@ class TestResultSorting(unittest.TestCase):
         self.assertNotIn('value="salary"', body)
 
 
-class TestReadRowsDefault(unittest.TestCase):
+class TestReadRowsDefault(Isolated):
     """The default read_rows closure. Every route test injects read_rows, so
     without this the jobs_combined-not-jobs_* rule A2 exists to enforce runs
     in production and nowhere else."""

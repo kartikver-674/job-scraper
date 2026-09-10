@@ -20,18 +20,49 @@ def today():
     return datetime.now().strftime("%Y-%m-%d")
 
 
-def combo_keys(raw_plan, day):
-    """Every ledger key this plan intends to write, in plan order.
-
-    Must match scraper.py:1743-1744 byte for byte:
+def combo_key(day, site_key, search):
+    """One ledger key. Must match scraper.py:1743-1744 byte for byte:
         {date}|{site}|{keywords}|{location}|{company or ''}
+
+    One function, because two places now build these — the progress grid and
+    the price of what is left. A second copy that drifted would silently
+    price searches the engine is about to skip.
     """
-    keys = []
+    return (f"{day}|{site_key}|{search['keywords']}|"
+            f"{search['location']}|{search.get('company') or ''}")
+
+
+def combo_keys(raw_plan, day):
+    """Every ledger key this plan intends to write, in plan order."""
+    return [combo_key(day, site_key, s)
+            for site_key, searches in raw_plan["sites"].items()
+            for s in searches]
+
+
+def remaining_plan(raw_plan, done, day):
+    """`raw_plan` with today's finished combos dropped, and how many went.
+
+    scraper.py prints `--dry-run --json` at line 1815, BEFORE it loads
+    .done_combos at 1888 — so the plan the UI prices is always the whole
+    sweep, including searches the engine is about to skip. Pricing that
+    after an interruption quotes the full sweep to resume a fraction of it,
+    and the over-cap gate then refuses a resume the remainder could easily
+    afford.
+
+    The same applies to a second sweep of the SAME day, which the engine
+    skips wholesale — scraper.py's own comment records that shipping as a
+    run which "skipped every combo, scraped nothing, and still printed a
+    normal-looking summary". Priced from here it reads as $0.00 before the
+    button is pressed.
+    """
+    sites, dropped = {}, 0
     for site_key, searches in raw_plan["sites"].items():
-        for s in searches:
-            keys.append(f"{day}|{site_key}|{s['keywords']}|"
-                        f"{s['location']}|{s.get('company') or ''}")
-    return keys
+        kept = [s for s in searches
+                if combo_key(day, site_key, s) not in done]
+        dropped += len(searches) - len(kept)
+        if kept:
+            sites[site_key] = kept
+    return dict(raw_plan, sites=sites), dropped
 
 
 def done_keys(done_path, day):

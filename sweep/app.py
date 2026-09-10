@@ -36,9 +36,9 @@ from sweep import exports  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
-    bucket_rows, fill_pct, paid_sites, posted_age, reweighted,
-    searchable_locations, shortlist, site_label, sort_rows, step_states,
-    sweep_dates, worst_filter)
+    bucket_rows, cheapest_rate, fill_pct, paid_sites, posted_age,
+    remaining_cost, reweighted, searchable_locations, shortlist, site_label,
+    sort_rows, step_states, sweep_dates, sweep_state, worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -602,6 +602,36 @@ def create_app(state=None, extract=None, resume_dir=None,
         running_now = proc is not None and proc.poll() is None
         p["finished"] = (not running_now) and p["outstanding"] == 0
         p["interrupted"] = (not running_now) and p["outstanding"] > 0
+
+        # What the searches that never ran would cost, at the same effective
+        # rates the plan was priced at. It is the figure the decision to
+        # resume turns on, and it was nowhere on the screen.
+        rates = {line["site"]: line["rate"]
+                 for line in (app.state.get("plan") or {}).get("lines") or ()}
+        p["remaining_cost"] = remaining_cost(p["tiles"], rates)
+
+        # One live re-read at the moment it stops, not on every SSE tick:
+        # saying the credit ran out is a claim about a balance, so it has to
+        # be made against a balance read after the spending stopped.
+        if (p["interrupted"] and not free_only()
+                and not app.state.get("interrupt_credit_read")
+                and app.state.get("credit_total_usd") is not None):
+            app.state["interrupt_credit_read"] = True
+            refresh_credits()
+
+        # The refreshed total already has this sweep's spend taken out of it
+        # — the accounts really were charged — so nothing is subtracted here.
+        p["state"] = sweep_state(
+            running_now, p["outstanding"],
+            stopped_by_user=bool(app.state.get("stopped_by_user")),
+            # key_credit empty means no key is on file at all, and
+            # sweep_budget() reports a 0.00 TOTAL for that — which is "we
+            # know of nothing", not "there is nothing". Claiming the credit
+            # ran out needs a key that is actually spent.
+            credit_left=(None if free_only() or not app.state.get("key_credit")
+                         else app.state.get("credit_total_usd")),
+            cheapest_search=cheapest_rate(p["tiles"], rates))
+
         # A free sweep has no per-search progress to count: the free sources
         # are one pass inside the engine, so "0 searches left" — literally
         # true, since none are planned — reads as a finished sweep for the
@@ -609,13 +639,23 @@ def create_app(state=None, extract=None, resume_dir=None,
         p["remaining_text"] = (
             ("fetching the free sources" if free_only()
              else f"{p['outstanding']} searches left") if running_now else
-            ("finished" if p["finished"] else "stopped early"))
+            {"finished": "finished",
+             "stopped": "stopped by you",
+             "out_of_credit": "out of credit",
+             "halted": "stopped early"}[p["state"]])
         return p
 
     def costed(profile):
         """Cost the plan and say whether it exceeds the key's credit. The
-        over-cap flag is advisory: SETTINGS["max_spend_usd"] is the real guard."""
+        over-cap flag is advisory: SETTINGS["max_spend_usd"] is the real guard.
+
+        Priced on what is LEFT to run, not on the whole plan: the engine
+        skips today's finished combos and will not re-bill them, so quoting
+        the full sweep to resume a fraction of it overstates the spend on the
+        one screen that exists to state it correctly.
+        """
         from sweep import plan as plan_mod
+        from sweep import runs as runs_mod
 
         try:
             raw = fetch_plan(profile)
@@ -626,7 +666,15 @@ def create_app(state=None, extract=None, resume_dir=None,
             # on the same screen where a key gets pasted.
             app.logger.warning("plan failed for %r: %s", profile, exc)
             raise PlanUnavailable(profile) from exc
-        out = plan_mod.cost(raw, config.SITE_RATES, config.SITE_RATE_BASIS)
+        # The FULL plan stays in state: the progress grid counts against it,
+        # and a resumed sweep still shows 28 of 56 rather than restarting the
+        # count at nought. Only the PRICE is of what is left.
+        app.state["raw_plan"] = raw
+        day = runs_mod.today()
+        priced, already_done = runs_mod.remaining_plan(
+            raw, set(read_done(profile, day)), day)
+        out = plan_mod.cost(priced, config.SITE_RATES, config.SITE_RATE_BASIS)
+        out["already_done"] = already_done
         cap = app.state.get("cap_usd")
         out["over_cap"] = bool(cap is not None and out["total"] > cap)
         out["shortfall"] = (round(max(0.0, out["total"] - cap), 4)
@@ -636,7 +684,6 @@ def create_app(state=None, extract=None, resume_dir=None,
         # engine enforces cannot be two different numbers.
         out["spend_cap"] = (0.0 if free_only()
                             else spend_cap_for(out["total"]))
-        app.state["raw_plan"] = raw
         app.state["plan"] = out
         return out
 
@@ -1260,6 +1307,12 @@ def create_app(state=None, extract=None, resume_dir=None,
             # feed ignores any output file untouched since before it, which
             # is what stops the previous sweep's rows opening the feed.
             app.state["run_started_at"] = wall_now()
+            # Both belong to the run that just ended. Carried into this one,
+            # a resumed sweep that later dies on its own would report "you
+            # stopped it", and the credit reading behind "out of credit"
+            # would be the one taken before this sweep spent anything.
+            app.state.pop("stopped_by_user", None)
+            app.state.pop("interrupt_credit_read", None)
             app.state["proc"] = start_sweep(app.state["profile"])
             _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))
@@ -1365,6 +1418,11 @@ def create_app(state=None, extract=None, resume_dir=None,
         proc = app.state.get("proc")
         if proc is not None:
             runs_mod.stop(proc)
+        # Recorded, not inferred. A stopped sweep and one that ran out of
+        # credit both end as a dead child with searches left, and the screen
+        # used to report the same "stopped early" for either — so the one
+        # case the user caused looked like the one that costs them money.
+        app.state["stopped_by_user"] = True
         return redirect(url_for("running"))
 
     def _shortlist_args():

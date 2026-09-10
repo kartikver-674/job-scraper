@@ -12,6 +12,31 @@
 
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
+  {# The engine skips combos it already finished TODAY and does not re-bill
+     them, so the plan below is priced on what is LEFT. Without saying so,
+     the total simply appears smaller than the one quoted before the run —
+     which reads as a pricing bug on the screen that must not have one. #}
+  {% if plan.already_done and plan.lines %}
+    <div class="callout">
+      <b>{{ plan.already_done }} search{{ '' if plan.already_done == 1 else 'es' }}
+        from today's run are already done</b>
+      They are recorded, so they will not run again and will not be billed
+      again. Everything below is the cost of finishing the rest.
+    </div>
+  {% elif plan.already_done %}
+    {# The whole plan already ran today. scraper.py's own comment records
+       this shipping as a sweep that "skipped every combo, scraped nothing,
+       and still printed a normal-looking summary" — said here instead,
+       before the button rather than after it. #}
+    <div class="callout warn">
+      <b>Every search in this plan already ran today</b>
+      The engine skips a combo it has already finished until tomorrow, so
+      starting this again would fetch nothing new{% if plan.free_sources %}
+      beyond the free sources{% endif %}. Your results are on the
+      <a href="{{ url_for('results') }}">results screen</a>.
+    </div>
+  {% endif %}
+
   <div class="split">
     <div class="stack">
       <div class="panel">

@@ -32,7 +32,8 @@
 {% block meter_facts %}{% if free_only %}<b>Free sources only</b>{% else %}<b
   x-text="p.done + ' of ' + p.planned + ' searches'"></b>
   · ${{ '%.2f'|format(plan.total) }} planned{% endif %}<span
-  x-show="p.elapsed !== null" x-cloak> · running
+  x-show="p.elapsed !== null" x-cloak>
+  <span x-text="p.state === 'running' ? ' · running' : ' · ran for'"></span>
   <span x-text="hms(p.elapsed + drift)"></span></span>{% if credit_total_usd is not none %}<span
   x-show="p.spend !== null &amp;&amp; p.baseline_known" x-cloak> · credit left
   {# Derived from the figure already polled, not from N live calls per tick:
@@ -48,7 +49,15 @@
 <div class="stack">
 
   <div class="stack-tight">
-    <h1>Running the sweep</h1>
+    {# The heading says WHAT happened, the banner below says why and what
+       to do about it. Left as "Running the sweep", it contradicted the
+       banner directly underneath it for three of the four endings. #}
+    <h1 x-text="p.state === 'running' ? 'Running the sweep'
+                : (p.state === 'finished' ? 'Sweep finished'
+                                          : 'Sweep stopped early')">{%
+      if progress.state == 'running' %}Running the sweep{%
+      elif progress.state == 'finished' %}Sweep finished{%
+      else %}Sweep stopped early{% endif %}</h1>
     {% if free_only %}
       {# No per-search progress exists for these: the engine fetches the free
          boards and feeds in one pass, so the honest report is that it is
@@ -69,6 +78,65 @@
                  + ' of ${{ '%.2f'|format(plan.total) }} planned, ' + p.remaining_text"></p>
     {% endif %}
   </div>
+
+  {# ---- How it ended ---------------------------------------------------
+
+     Four endings, named. They used to be two — "finished", and one
+     "stopped early" that covered the user pressing Stop, the credit running
+     out, and the engine dying, which are three different problems with
+     three different answers. p.state decides, and only ever claims a reason
+     it can evidence (logic.sweep_state).
+
+     Server-rendered for the state the page loads in, then Alpine follows
+     the stream: the transition into these happens mid-sweep, over SSE. #}
+  {% macro ending(name) %}x-show="p.state === '{{ name }}'"{%
+    if progress.state != name %} style="display:none"{% endif %}{% endmacro %}
+
+  <div class="banner ok" {{ ending('finished') }}>
+    <div>
+      <b>Every search ran</b>
+      <span x-text="'All ' + p.planned + ' of them. Nothing was left outstanding.'"></span>
+    </div>
+    <div class="actions">
+      <span class="meta sending" x-show="waiting" x-cloak>Opening the results…</span>
+      {# The screen takes you there itself after a sweep you waited through —
+         forty minutes in, the last thing it should ask for is another click.
+         The link stays for the two cases the script does not cover: no
+         JavaScript, and a page opened after the fact. #}
+      <a class="primary" href="{{ url_for('results') }}">See the results</a>
+    </div>
+  </div>
+
+  <div class="banner" {{ ending('stopped') }}>
+    <div>
+      <b>You stopped it</b>
+      <span x-text="p.outstanding + ' of ' + p.planned
+              + ' searches did not run. Everything already fetched is saved.'"></span>
+    </div>
+  </div>
+
+  <div class="banner warn" {{ ending('out_of_credit') }}>
+    <div>
+      <b>The credit ran out</b>
+      <span x-text="'Every key on file is spent, so the sweep stopped at '
+              + p.done + ' of ' + p.planned
+              + ' searches. Everything already fetched is saved.'"></span>
+    </div>
+  </div>
+
+  <div class="banner warn" {{ ending('halted') }}>
+    <div>
+      <b>The reason is not recorded</b>
+      {# Not "it ran out of credit": the balance says otherwise, and naming
+         a cause we cannot evidence is how someone tops up a key that was
+         never the problem. #}
+      <span x-text="p.outstanding + ' of ' + p.planned
+              + ' searches did not run, and the reason is not recorded — the '
+              + 'credit is not spent. The terminal running Sweep will say '
+              + 'more. Everything already fetched is saved.'"></span>
+    </div>
+  </div>
+
 
   {% if free_only %}
     <div class="working-bar" x-show="!p.finished"><span></span></div>
@@ -114,7 +182,9 @@
       <h2>Searches</h2>
       <span class="meta"><span class="key paid">paid</span>
         <span class="key free">free</span>
-        <span class="key">not run yet</span></span>
+        <span class="key">not run yet</span><span
+          class="key parked" x-show="p.state !== 'running'"
+          x-cloak>did not run</span></span>
     </div>
     {# Server-correct and live, the same pattern the cost sidebar uses: a
        free-feeds-only sweep has no paid searches to tile, and an empty grid
@@ -141,7 +211,8 @@
               {# Classes, not an inline style: the text has to invert on the
                  filled cells, and a done cell is unreadable in chalk. #}
               <div class="cell" :title="t.label"
-                   :class="t.state === 'done' ? (t.free ? 'done free' : 'done') : ''"
+                   :class="t.state === 'done' ? (t.free ? 'done free' : 'done')
+                           : (p.state === 'running' ? '' : 'parked')"
                    x-text="t.short"></div>
             </template>
           </div>
@@ -199,39 +270,81 @@
   </div>
   {% endif %}
 
-  {# Not merely hidden: a free sweep has no credit to run out of, and a
-     token field left in the DOM behind display:none is still a form the page
-     can submit. #}
+  {# ---- What to do about it ------------------------------------------- #}
   {% if not free_only %}
-  <div class="panel" x-show="p.interrupted">
-    <h2>The sweep stopped early</h2>
-    <p x-text="p.outstanding + ' searches did not run.'"></p>
-    <p class="muted">This usually means the key ran out of credit. Everything
-      already fetched is saved, and finished searches will not be re-run or
-      re-billed.</p>
-    <form method="post" action="{{ url_for('second_key') }}">
-      <label><span class="label">Another Apify token</span>
-        <input type="password" name="token" autocomplete="off" required></label>
-      <button class="primary" type="submit">Resume with this key</button>
-    </form>
+  <div class="split" x-show="p.state !== 'running' && p.state !== 'finished'"
+       {% if progress.state in ('running', 'finished') %}style="display:none"{% endif %}>
+    <div class="panel">
+      <h2 x-text="'Finish the remaining ' + p.outstanding + ' searches'"></h2>
+      <p>The <b x-text="p.done"></b> searches already done are recorded, so
+        they will not be re-run and will not be billed again. Only the
+        <b x-text="p.outstanding"></b> left would run, at about
+        <b class="paid" x-text="'$' + p.remaining_cost.toFixed(2)"></b>.</p>
+
+      {# Continue on the keys already attached. Confirm re-prices first, and
+         it now prices only what is left — so the figure there is this one,
+         not the whole sweep over again. #}
+      <div class="actions" x-show="p.state !== 'out_of_credit'" x-cloak>
+        <a class="primary" href="{{ url_for('confirm') }}">Continue the sweep</a>
+        <span class="muted">Re-priced on the Confirm screen before anything runs.</span>
+      </div>
+
+      {# Not merely hidden when free: a token field left in the DOM behind
+         display:none is still a form the page can submit. #}
+      <div x-show="p.state === 'out_of_credit'" x-cloak>
+        <p class="muted">There is nothing left to spend on the keys you have,
+          so finishing this needs another one.</p>
+      </div>
+      <form method="post" action="{{ url_for('second_key') }}">
+        <label><span class="label">Another Apify token</span>
+          <input type="password" name="token" autocomplete="off" required></label>
+        {# Primary when it is the only way on, which is exactly when the
+           credit has run out. #}
+        <button class="{{ 'primary' if progress.state == 'out_of_credit'
+                          else 'secondary' }}" type="submit"
+                :class="{ primary: p.state === 'out_of_credit',
+                          secondary: p.state !== 'out_of_credit' }">Add
+          this key and continue</button>
+      </form>
+    </div>
+
+    <aside class="aside stack">
+      <div class="panel">
+        <h2>Or keep what it found</h2>
+        <p class="muted"><b x-text="p.found"></b> listings are already
+          scored and saved. Stopping here costs nothing more and loses
+          nothing that was fetched.</p>
+        <div class="actions">
+          <a class="secondary" href="{{ url_for('results') }}">See what it
+            found</a>
+        </div>
+        {# The exports read the file already on disk, so a partial sweep is
+           as exportable as a whole one. #}
+        <div class="panel-foot">
+          <div class="exports">
+            <span class="label">Export what it found</span>
+            <a class="secondary" href="{{ url_for('export', fmt='xlsx') }}">Excel</a>
+            <a class="secondary" href="{{ url_for('export', fmt='csv') }}">CSV</a>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+  {% else %}
+  {# A free sweep has no credit to run out of and no searches to resume, so
+     the only ending that needs an action is the one that found something. #}
+  <div class="actions" x-show="p.state === 'stopped' || p.state === 'halted'"
+       x-cloak>
+    <a class="secondary" href="{{ url_for('results') }}">See what it found</a>
   </div>
   {% endif %}
 
   <form class="actions" method="post" action="{{ url_for('stop') }}"
-        x-show="!p.finished && !p.interrupted">
+        x-show="p.state === 'running'"
+        {% if progress.state != 'running' %}style="display:none"{% endif %}>
     <button class="secondary" type="submit">Stop the sweep</button>
-    <span class="muted">Everything already fetched is kept.</span>
+    <span class="muted">Everything already fetched is kept, and you can
+      pick it up again from here.</span>
   </form>
-
-  {# The screen takes you there itself when a sweep you WAITED for finishes
-     — after forty minutes, the last thing it should ask for is another
-     click. The link stays for the two cases the script does not cover: no
-     JavaScript, and a page opened after the fact, where being bounced
-     straight out of the running screen you deliberately came back to would
-     be the surprise instead. #}
-  <div class="actions" x-show="p.finished" x-cloak>
-    <a class="primary" href="{{ url_for('results') }}">See the results</a>
-    <span class="meta sending" x-show="waiting" x-cloak>Opening them now…</span>
-  </div>
 </div>
 {% endblock %}
