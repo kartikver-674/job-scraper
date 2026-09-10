@@ -16,6 +16,66 @@ from sweep import app as app_module
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+_REAL_ROOT = app_module.REPO_ROOT
+_TEMP_ROOT = None
+
+# The three places in this repo a test can do real damage: the developer's
+# API keys, a finished sweep's only copy of its results, and the profiles the
+# engine runs from.
+_NO_WRITE = tuple(os.path.join(_REAL_ROOT, name)
+                  for name in (".env", "output", "profiles"))
+
+
+def _forbid_real_writes(event, args):
+    """Refuse, in the offending test, any write to those three.
+
+    Detection after the fact is not enough: the write that started this was
+    IDEMPOTENT — the junk key it left in .env was already there, so a digest
+    taken before and after the suite matched while the file was being
+    rewritten on every run. Failing at the open() call names the test that
+    did it, which a teardown check cannot.
+    """
+    if event != "open" or len(args) < 2:
+        return
+    path, mode = args[0], args[1]
+    # "r+" writes, so a mode is a write unless it says only read.
+    if not isinstance(path, str) or not mode:
+        return
+    if not any(c in str(mode) for c in "wax+"):
+        return
+    full = os.path.abspath(path)
+    for target in _NO_WRITE:
+        if full == target or full.startswith(target + os.sep):
+            raise AssertionError(
+                f"this test tried to WRITE the repo's real {os.path.relpath(full, _REAL_ROOT)}. "
+                "Inject env_path/output_dir into create_app instead.")
+
+
+def setUpModule():
+    """No test may reach the repo's own .env, output/ or profiles/.
+
+    create_app defaults env_path and output_dir to REPO_ROOT, so a fixture
+    that merely FORGETS to inject one writes to the developer's real files —
+    and one did: test_connecting_a_key_afterwards_leaves_the_free_path posts
+    a token with no env_path, and default_write_env duly put
+    APIFY_TOKEN=apify_api_xxx into the repo's .env, where it sat as a junk
+    key the app counted and tried to verify on every screen.
+
+    Injecting the path is the fix for that fixture. This is the fix for the
+    next one: every path create_app derives from REPO_ROOT now lands in a
+    temp tree, so forgetting is no longer destructive.
+    """
+    global _TEMP_ROOT
+    sys.addaudithook(_forbid_real_writes)
+    _TEMP_ROOT = tempfile.mkdtemp(prefix="sweep-tests-root-")
+    os.mkdir(os.path.join(_TEMP_ROOT, "profiles"))
+    app_module.REPO_ROOT = _TEMP_ROOT
+
+
+def tearDownModule():
+    app_module.REPO_ROOT = _REAL_ROOT
+    shutil.rmtree(_TEMP_ROOT, ignore_errors=True)
+
 
 def alpine_scope(body):
     """The x-data attribute value as a real HTML parser sees it.
@@ -503,15 +563,28 @@ class TestUploadScreen(unittest.TestCase):
         body = self.client.get("/").get_data(as_text=True)
         self.assertNotIn("Credit left", body)
 
-    def test_meter_shows_a_real_zero_cap_once_credit_is_exhausted(self):
-        # cap_usd=0.0 is a genuine value (the account has $0 left), not the
-        # same as "no key connected yet" (cap_usd=None) — Jinja treats both
-        # as falsy under a plain {% if cap_usd %}, so this must use an
-        # explicit "is not none" check to tell them apart.
-        app = app_module.create_app(state={"cap_usd": 0.0})
+    def test_meter_shows_a_real_zero_once_credit_is_exhausted(self):
+        # A verified 0.0 is a genuine value (every account is spent), not the
+        # same as "no key connected yet" (None) — Jinja treats both as falsy
+        # under a plain {% if %}, so the header must use an explicit
+        # "is not none" check to tell them apart or a real zero goes missing
+        # exactly when it matters most.
+        app = app_module.create_app(
+            state={"cap_usd": 0.0, "credit_total_usd": 0.0})
         app.config.update(TESTING=True)
         body = app.test_client().get("/").get_data(as_text=True)
         self.assertIn("Credit left $0.00", body)
+
+    def test_the_header_credit_is_the_total_across_every_key(self):
+        # It showed cap_usd, which is what ONE sweep can spend — the best
+        # single account. On four keys holding $8.33 the header read $5.00
+        # while the confirm screen said "$8.33 between them" two lines below.
+        app = app_module.create_app(
+            state={"cap_usd": 5.00, "credit_total_usd": 8.33})
+        app.config.update(TESTING=True)
+        body = app.test_client().get("/").get_data(as_text=True)
+        self.assertIn("Credit left $8.33", body)
+        self.assertNotIn("Credit left $5.00", body)
 
     def test_posting_no_file_is_rejected_not_guessed(self):
         r = self.client.post("/resume", data={})
@@ -1502,6 +1575,10 @@ class TestFreeOnlyPath(unittest.TestCase):
             fetch_plan=lambda profile: plan or self.FREE_PLAN,
             read_rows=lambda profile: [], read_done=lambda profile, day: [],
             read_spend=kw.pop("read_spend", no_account),
+            # POST /key writes the token it accepts. Without a path of its
+            # own that landed in the repo's real .env.
+            env_path=kw.pop("env_path",
+                            os.path.join(tempfile.mkdtemp(), ".env")),
             output_dir=tempfile.mkdtemp(), **kw)
         app.config.update(TESTING=True)
         app.written = {}
@@ -1688,12 +1765,16 @@ class TestFreeOnlyPath(unittest.TestCase):
 class TestKeyScreen(unittest.TestCase):
     def _app(self, credit=(8.41, None), state=None):
         state = state if state is not None else {"profile": "kanav"}
+        # A real .env of its own, and the real writer: POST /key sets the cap
+        # by re-reading the FILE it has just written, so a stubbed writer
+        # leaves the key nowhere and the fixture then disagrees with the
+        # route about what a verified key does.
         app = app_module.create_app(
             state=state, extract=lambda p: "x",
             derive=lambda t, p: DERIVED,
-            check_token=lambda token: credit)
+            check_token=lambda token: credit,
+            env_path=os.path.join(tempfile.mkdtemp(), ".env"))
         app.config.update(TESTING=True)
-        app.write_env = lambda key, value: None
         return app, state
 
     def test_key_screen_renders(self):
@@ -2629,19 +2710,37 @@ class TestConfirmScreen(unittest.TestCase):
             fetch_plan=lambda profile: RAW_PLAN,
             start_sweep=start_sweep or (lambda profile: FakeProc()),
             read_spend=read_spend or (lambda: 1.00),
+            env_path=os.path.join(output_dir, ".env"),
             output_dir=output_dir)
         app.config.update(TESTING=True)
         app.output_dir = output_dir  # so tests can assert where run.json landed
-        # /second-key's success path writes .env — never the real one just
-        # because this harness didn't inject env_path. write_env's own
-        # allowlist behaviour is Task 5's to test; here it's a pure stub.
-        app.write_env = lambda key, value: None
+        self.env_path = os.path.join(output_dir, ".env")
+        # write_env is NOT stubbed: it writes the temp .env above, and the app
+        # then re-reads that file to re-verify every key. Stubbing it left the
+        # attach flow writing nowhere and reading nothing, which is not the
+        # flow. Tests that want to observe the write override it themselves.
         # POST /run writes profiles/<name>.py to stamp the spend cap in.
         # Stubbed and RECORDED, never the real profiles/ directory — the
         # sources land in app.written for the cap assertions below.
         app.written = []
         app.write_profile = lambda n, s: app.written.append((n, s))
+        # A key on file, because that is this class's whole premise: the
+        # confirm screen re-verifies what .env holds, so a fixture with a cap
+        # in state and an empty file describes a session that has no key at
+        # all — and every route here would redirect back to step 3.
+        self.on_file({"APIFY_TOKEN": "primary-tok"})
         return app
+
+    def on_file(self, keys):
+        """Put these keys in the .env the app reads.
+
+        A real file, not a patched os.environ: the two disagree the moment
+        someone edits .env by hand, and telling them apart is the whole point
+        of read_env_tokens(). Tests that patched the environment were
+        describing a place the app no longer treats as the record.
+        """
+        pathlib.Path(self.env_path).write_text(
+            "".join(f"{name}={token}\n" for name, token in keys.items()))
 
     def test_confirm_names_the_amount_on_the_button(self):
         body = self._app().test_client().get("/confirm").get_data(as_text=True)
@@ -2661,11 +2760,62 @@ class TestConfirmScreen(unittest.TestCase):
         self.assertIn("$3.38", body)
         self.assertIn("even if searches are left", body)
 
-    def test_over_cap_offers_another_key_instead_of_the_run_button(self):
-        # Was "second key" — the remedy is no longer limited to a second one.
+    def test_over_cap_still_offers_the_remedies_first(self):
+        # Was "...instead of the run button", and passed after the button
+        # came back only because the over-cap one is worded differently —
+        # green for the wrong reason. The remedies are still what the panel
+        # leads with; the difference is that it is no longer a dead end.
         body = self._app(cap=1.00).test_client().get("/confirm").get_data(as_text=True)
         self.assertIn("another key", body.lower())
-        self.assertNotIn("Run the sweep", body)
+        self.assertIn("Narrow the search instead", body)
+
+    def test_over_cap_can_be_started_anyway_but_not_by_one_click(self):
+        # It is the user's account, and a sweep that stops partway loses
+        # nothing: the engine stops when the account is spent, .done_combos
+        # keeps the finished searches from being re-billed. What must not
+        # happen is starting one by mis-click, so the control is gated.
+        body = self._app(cap=1.00).test_client().get("/confirm").get_data(as_text=True)
+        self.assertIn('name="over_cap_ack"', body)
+        self.assertIn("Start it anyway", body)
+        # Disabled until the box is ticked, and the copy says what "anyway"
+        # actually gets you.
+        self.assertIn(":disabled=\"sent || !ack\"", body)
+        flat = " ".join(body.split())
+        self.assertIn("stop, partway through the plan", flat)
+
+    def test_a_funded_plan_is_not_gated(self):
+        # The gate is the difference between the two states; putting it on
+        # both would make it noise that gets ticked without reading.
+        body = self._app(cap=8.41).test_client().get("/confirm").get_data(as_text=True)
+        self.assertNotIn('name="over_cap_ack"', body)
+        self.assertIn(':disabled="sent"', body)
+
+    def test_an_over_cap_run_without_the_acknowledgement_starts_nothing(self):
+        launched = []
+        app = self._app(cap=1.00,
+                        start_sweep=lambda p: launched.append(p) or FakeProc())
+        client = app.test_client()
+        client.get("/confirm")
+        r = client.post("/run")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Tick the box", r.get_data(as_text=True))
+        self.assertEqual(launched, [])
+        self.assertNotIn("proc", app.state)
+
+    def test_an_acknowledged_over_cap_run_starts(self):
+        launched = []
+        app = self._app(cap=1.00,
+                        start_sweep=lambda p: launched.append(p) or FakeProc())
+        client = app.test_client()
+        client.get("/confirm")
+        r = client.post("/run", data={"over_cap_ack": "yes"})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/running", r.headers["Location"])
+        self.assertEqual(launched, ["kanav"])
+        # The hard stop is still stamped into the profile: proceeding past
+        # the cap does not mean proceeding without one.
+        self.assertAlmostEqual(app.state["max_spend_usd"],
+                               app.state["plan"]["spend_cap"], places=2)
 
     def test_over_cap_says_how_much_to_cut(self):
         body = self._app(cap=1.00).test_client().get("/confirm").get_data(as_text=True)
@@ -2918,11 +3068,16 @@ class TestConfirmScreen(unittest.TestCase):
         # could not fund it between them — with over_cap False, so /run let
         # it start. The total is still reported, separately, because
         # .done_combos does let a stopped sweep resume on the next key.
-        app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
-        with mock.patch.dict(os.environ, {"APIFY_TOKEN": "primary-tok"}):
-            app.test_client().get("/confirm")
-            r = app.test_client().post(
-                "/second-key", data={"token": "different-tok"})
+        # A real $1 account and a real $2 one, each verified on its own: the
+        # figures used to lean on state's cap as a stand-in for the primary
+        # key's balance, which no longer exists — every key is re-read.
+        balances = {"primary-tok": 1.00, "different-tok": 2.00}
+        app = self._app(cap=1.00,
+                        check_token=lambda t: (balances.get(t, 0.0), None))
+        self.on_file({"APIFY_TOKEN": "primary-tok"})
+        app.test_client().get("/confirm")
+        r = app.test_client().post(
+            "/second-key", data={"token": "different-tok"})
         self.assertEqual(r.status_code, 302)
         self.assertIn("/confirm", r.headers["Location"])
         self.assertAlmostEqual(app.state["cap_usd"], 2.00, places=2)
@@ -2932,11 +3087,16 @@ class TestConfirmScreen(unittest.TestCase):
         # The direction that matters for fail-closed: attaching a $0.50 key
         # beside a $4.00 one must not move the cap at all, because the sweep
         # still runs on the $4.00 account. Under the old sum it read $4.50.
-        app = self._app(cap=4.00, check_token=lambda t: (0.50, None))
-        with mock.patch.dict(os.environ, {"APIFY_TOKEN": "primary-tok"}):
-            app.test_client().get("/confirm")
-            app.test_client().post("/second-key", data={"token": "small-tok"})
+        balances = {"primary-tok": 4.00, "small-tok": 0.50}
+        app = self._app(cap=4.00,
+                        check_token=lambda t: (balances.get(t, 0.0), None))
+        self.on_file({"APIFY_TOKEN": "primary-tok"})
+        app.test_client().get("/confirm")
+        app.test_client().post("/second-key", data={"token": "small-tok"})
         self.assertAlmostEqual(app.state["cap_usd"], 4.00, places=2)
+        # The total still rises: .done_combos lets a stopped sweep resume on
+        # the smaller key without re-billing what finished.
+        self.assertAlmostEqual(app.state["credit_total_usd"], 4.50, places=2)
         self.assertAlmostEqual(app.state["credit_total_usd"], 4.50, places=2)
 
     def test_a_third_and_fourth_key_get_their_own_slots(self):
@@ -2946,11 +3106,15 @@ class TestConfirmScreen(unittest.TestCase):
         app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
         written = {}
         app.write_env = lambda name, value: written.__setitem__(name, value)
-        env = {"APIFY_TOKEN": "tok-1", "APIFY_TOKEN_2": "tok-2"}
-        with mock.patch.dict(os.environ, env, clear=True):
-            app.test_client().get("/confirm")
-            app.test_client().post("/second-key", data={"token": "tok-3"})
-            app.test_client().post("/second-key", data={"token": "tok-4"})
+        self.on_file({"APIFY_TOKEN": "tok-1", "APIFY_TOKEN_2": "tok-2"})
+        app.test_client().get("/confirm")
+        app.test_client().post("/second-key", data={"token": "tok-3"})
+        # The second attach only lands in a fresh slot if the first one
+        # reached the file — write_env is stubbed here, so it is written by
+        # hand, the way .env would already hold it.
+        self.on_file({"APIFY_TOKEN": "tok-1", "APIFY_TOKEN_2": "tok-2",
+                      "APIFY_TOKEN_3": "tok-3"})
+        app.test_client().post("/second-key", data={"token": "tok-4"})
         self.assertEqual(written, {"APIFY_TOKEN_3": "tok-3",
                                     "APIFY_TOKEN_4": "tok-4"})
 
@@ -2959,13 +3123,13 @@ class TestConfirmScreen(unittest.TestCase):
         # re-pasting the key sitting in APIFY_TOKEN_3 counted its credit a
         # second time — the inflated-cap outcome the check exists to stop.
         app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
-        env = {"APIFY_TOKEN": "tok-1", "APIFY_TOKEN_3": "tok-3"}
-        with mock.patch.dict(os.environ, env, clear=True):
-            app.test_client().get("/confirm")
-            r = app.test_client().post("/second-key", data={"token": "tok-3"})
+        self.on_file({"APIFY_TOKEN": "tok-1", "APIFY_TOKEN_3": "tok-3"})
+        app.test_client().get("/confirm")
+        before = app.state["cap_usd"]
+        r = app.test_client().post("/second-key", data={"token": "tok-3"})
         self.assertEqual(r.status_code, 400)
         self.assertIn("same key", r.get_data(as_text=True).lower())
-        self.assertAlmostEqual(app.state["cap_usd"], 1.00, places=2)
+        self.assertAlmostEqual(app.state["cap_usd"], before, places=2)
 
     def test_the_over_cap_panel_does_not_promise_a_mid_sweep_key_switch(self):
         # The copy said the sweep "runs on your first key until its credit is
@@ -2980,12 +3144,14 @@ class TestConfirmScreen(unittest.TestCase):
 
     def test_second_key_rejects_the_token_already_on_file(self):
         app = self._app(cap=1.00, check_token=lambda t: (2.00, None))
-        with mock.patch.dict(os.environ, {"APIFY_TOKEN": "same-tok"}):
-            app.test_client().get("/confirm")
-            r = app.test_client().post("/second-key", data={"token": "same-tok"})
+        self.on_file({"APIFY_TOKEN": "same-tok"})
+        app.test_client().get("/confirm")
+        before = app.state["cap_usd"]
+        r = app.test_client().post("/second-key", data={"token": "same-tok"})
         self.assertEqual(r.status_code, 400)
         self.assertIn("same key", r.get_data(as_text=True).lower())
-        self.assertAlmostEqual(app.state["cap_usd"], 1.00, places=2)
+        # The point of the check: a key already on file adds no credit.
+        self.assertAlmostEqual(app.state["cap_usd"], before, places=2)
 
     def test_second_key_rejects_an_empty_token_the_way_the_key_screen_does(self):
         # /key answered this with "Paste your Apify token."; /second-key sent
@@ -2995,6 +3161,7 @@ class TestConfirmScreen(unittest.TestCase):
         app = self._app(check_token=lambda t: calls.append(t) or (5.0, None))
         client = app.test_client()
         client.get("/confirm")          # establishes the plan
+        calls.clear()                   # ...and re-verifies what is on file
         r = client.post("/second-key", data={"token": "  "})
         self.assertEqual(r.status_code, 400)
         self.assertIn("Paste your Apify token", r.get_data(as_text=True))
@@ -3007,20 +3174,27 @@ class TestConfirmScreen(unittest.TestCase):
         app = self._app(check_token=lambda t: calls.append(t) or (5.0, None))
         client = app.test_client()
         client.get("/confirm")          # establishes the plan
+        calls.clear()
         r = client.post("/second-key", data={"token": "abc def"})
         self.assertEqual(r.status_code, 400)
         self.assertIn("printable characters", r.get_data(as_text=True))
         self.assertEqual(calls, [])
 
     def test_second_key_that_verifies_with_zero_credit_shows_a_message(self):
-        app = self._app(cap=1.00, check_token=lambda t: (0.0, None))
-        with mock.patch.dict(os.environ, {"APIFY_TOKEN": "primary-tok"}):
-            app.test_client().get("/confirm")
-            r = app.test_client().post(
-                "/second-key", data={"token": "zero-credit-tok"})
+        balances = {"primary-tok": 1.00, "zero-credit-tok": 0.0}
+        app = self._app(cap=1.00,
+                        check_token=lambda t: (balances.get(t, 0.0), None))
+        app.test_client().get("/confirm")
+        before = app.state["cap_usd"]
+        r = app.test_client().post(
+            "/second-key", data={"token": "zero-credit-tok"})
         self.assertEqual(r.status_code, 400)
         self.assertIn("no credit", r.get_data(as_text=True).lower())
-        self.assertAlmostEqual(app.state["cap_usd"], 1.00, places=2)
+        # Refused, so it changed nothing — including not being written to
+        # .env and counted on the next refresh.
+        self.assertAlmostEqual(app.state["cap_usd"], before, places=2)
+        self.assertNotIn("zero-credit-tok",
+                         pathlib.Path(self.env_path).read_text())
 
 
 import json as _json
@@ -3042,6 +3216,226 @@ RUNNING_PLAN = {
     },
     "free_sources": 6,
 }
+
+
+class TestKeysOnFileAreTheRecord(unittest.TestCase):
+    """os.environ is loaded once at start-up and load_dotenv() does not
+    override what is already there, so a key deleted from .env by hand stayed
+    visible to this process for as long as the server ran — and to the engine,
+    which inherits the environment. That is why deleting a key and re-adding
+    it still answered "same key already on file"."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir)
+        self.env_path = os.path.join(self.dir, ".env")
+        self.balances = {}
+
+    def on_file(self, keys):
+        pathlib.Path(self.env_path).write_text(
+            "".join(f"{n}={t}\n" for n, t in keys.items()))
+
+    def _app(self, state=None):
+        app = app_module.create_app(
+            state=state if state is not None else {
+                "profile": "kanav", "cap_usd": 5.00, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (self.balances.get(t, 1.00), None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            start_sweep=lambda profile: FakeProc(),
+            read_spend=lambda: 1.00,
+            env_path=self.env_path, output_dir=self.dir)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: None
+        return app
+
+    def test_a_key_deleted_from_the_file_can_be_added_again(self):
+        # The reported bug, end to end.
+        self.on_file({"APIFY_TOKEN": "tok-a"})
+        app = self._app()
+        client = app.test_client()
+        client.get("/confirm")
+        # The user deletes it by hand and pastes it back.
+        self.on_file({})
+        r = client.post("/second-key", data={"token": "tok-a"})
+        self.assertEqual(r.status_code, 302, r.get_data(as_text=True))
+        self.assertIn("tok-a", pathlib.Path(self.env_path).read_text())
+
+    def test_a_stale_environment_variable_is_not_a_key_on_file(self):
+        self.on_file({})
+        app = self._app()
+        client = app.test_client()
+        with mock.patch.dict(os.environ, {"APIFY_TOKEN_9": "ghost-tok"}):
+            client.get("/confirm")
+            r = client.post("/second-key", data={"token": "ghost-tok"})
+            self.assertEqual(r.status_code, 302, r.get_data(as_text=True))
+            # And the ghost is gone from the environment the ENGINE inherits,
+            # or a sweep would go on spending from a detached account.
+            self.assertNotIn("APIFY_TOKEN_9", os.environ)
+
+    def test_a_key_that_really_is_on_file_is_still_refused(self):
+        # The check still earns its keep: re-pasting a key adds no credit
+        # while looking like it did.
+        self.on_file({"APIFY_TOKEN": "tok-a"})
+        app = self._app()
+        client = app.test_client()
+        client.get("/confirm")          # establishes the plan
+        r = client.post("/second-key", data={"token": "tok-a"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("same key", r.get_data(as_text=True).lower())
+
+    def test_a_quoted_value_is_the_same_key(self):
+        # load_dotenv strips quotes, so a reader that does not would compare
+        # a quoted string against a bare one and call one key two.
+        pathlib.Path(self.env_path).write_text('APIFY_TOKEN="tok-a"\n')
+        client = self._app().test_client()
+        client.get("/confirm")
+        r = client.post("/second-key", data={"token": "tok-a"})
+        self.assertEqual(r.status_code, 400)
+
+    def test_a_freed_slot_is_refilled_rather_than_skipped(self):
+        # next_token_name picks by NAME so a slot emptied by hand gets
+        # reused — which only works if it is reading the file that was
+        # edited.
+        self.on_file({"APIFY_TOKEN": "tok-a", "APIFY_TOKEN_3": "tok-c"})
+        app = self._app()
+        written = {}
+        app.write_env = lambda name, value: written.__setitem__(name, value)
+        client = app.test_client()
+        client.get("/confirm")
+        client.post("/second-key", data={"token": "tok-new"})
+        self.assertEqual(written, {"APIFY_TOKEN_2": "tok-new"})
+
+
+class TestCreditLeft(unittest.TestCase):
+    """Credit left is every account's credit added up, and it has to keep up
+    with a run rather than standing still at what it was when a key was last
+    verified."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir)
+        self.env_path = os.path.join(self.dir, ".env")
+        pathlib.Path(self.env_path).write_text(
+            "APIFY_TOKEN=tok-a\nAPIFY_TOKEN_2=tok-b\n")
+        self.balances = {"tok-a": 5.00, "tok-b": 3.33}
+        self.reads = []
+
+    def _app(self, state=None, **kw):
+        def check(token):
+            self.reads.append(token)
+            return self.balances.get(token, 0.0), None
+        app = app_module.create_app(
+            state=state if state is not None else {
+                "profile": "kanav", "cap_usd": 5.00, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=check, fetch_plan=lambda profile: RAW_PLAN,
+            read_rows=lambda profile: [],
+            read_done=kw.pop("read_done", lambda p, d: []),
+            read_spend=kw.pop("read_spend", lambda: 1.00),
+            start_sweep=lambda profile: FakeProc(),
+            env_path=self.env_path, output_dir=self.dir, **kw)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: None
+        return app
+
+    def test_the_confirm_screen_re_reads_every_key(self):
+        app = self._app()
+        body = app.test_client().get("/confirm").get_data(as_text=True)
+        self.assertEqual(sorted(self.reads), ["tok-a", "tok-b"])
+        self.assertIn("Credit left $8.33", body)
+        # And the cap stays the best SINGLE account, because a sweep spends
+        # from one.
+        self.assertAlmostEqual(app.state["cap_usd"], 5.00, places=2)
+
+    def test_the_price_of_a_plan_is_not_taken_off_the_remaining_credit(self):
+        # /configure and /confirm pass the ESTIMATE as `spend` — it is the
+        # meter's "about to spend", not a payment. Subtracting it showed
+        # $5.63 of $8.33 left before a single search had run, and the figure
+        # this screen exists to make trustworthy is exactly that one: it is
+        # what someone reads to decide whether the plan is affordable.
+        app = self._app()
+        client = app.test_client()
+        # /confirm first: it is what verifies the keys, so the total exists.
+        for path in ("/confirm", "/configure"):
+            body = client.get(path).get_data(as_text=True)
+            self.assertIn("Credit left $8.33", body, path)
+
+    def test_a_key_that_cannot_be_read_keeps_its_last_known_figure(self):
+        # The limits endpoint is a live call. On a blip every key comes back
+        # unknown; if that discarded the figures, cap_usd would go None and
+        # needs_key() reads exactly that — so a hiccup would bounce someone
+        # back to step 3 mid-flow. A read that failed is not evidence of
+        # anything, least of all of an empty account.
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 5.00, "derived": DERIVED,
+                   "key_credit": {"APIFY_TOKEN": 5.00, "APIFY_TOKEN_2": 3.33}},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (None, "network is down"),
+            fetch_plan=lambda profile: RAW_PLAN,
+            read_spend=lambda: 1.00, start_sweep=lambda p: FakeProc(),
+            env_path=self.env_path, output_dir=self.dir)
+        app.config.update(TESTING=True)
+        app.write_profile = lambda n, src: None
+        r = app.test_client().get("/confirm")
+        self.assertEqual(r.status_code, 200)
+        self.assertAlmostEqual(app.state["credit_total_usd"], 8.33, places=2)
+        self.assertAlmostEqual(app.state["cap_usd"], 5.00, places=2)
+        self.assertIn("Credit left $8.33", r.get_data(as_text=True))
+
+    def test_the_figure_drops_by_what_this_sweep_has_spent(self):
+        # Otherwise it stands still at the start-of-run total for forty
+        # minutes while the money goes out.
+        app = self._app(state={
+            "profile": "kanav", "cap_usd": 5.00, "derived": DERIVED,
+            "credit_total_usd": 8.33, "baseline_usd": 1.00,
+            "raw_plan": RAW_PLAN, "proc": FakeProc(),
+            "plan": {"total": 2.70, "total_searches": 46, "over_cap": False,
+                     "lines": [], "spend_cap": 3.38}},
+            read_spend=lambda: 2.50, read_done=lambda p, d: [])
+        body = app.test_client().get("/running").get_data(as_text=True)
+        # 8.33 total less 1.50 spent by this sweep.
+        self.assertIn("Credit left $6.83", body)
+
+    def test_the_live_figure_charges_this_sweep_once_not_twice(self):
+        # The header figure already has this sweep's spend taken off. The
+        # live expression takes p.spend off its OWN base on every tick, so
+        # that base must be the total — starting it from credit_left billed
+        # the sweep a second time the moment the first batch landed.
+        app = self._app(state={
+            "profile": "kanav", "cap_usd": 5.00, "derived": DERIVED,
+            "credit_total_usd": 8.33, "baseline_usd": 1.00,
+            "raw_plan": RAW_PLAN, "proc": FakeProc(),
+            "plan": {"total": 2.70, "total_searches": 46, "over_cap": False,
+                     "lines": [], "spend_cap": 3.38}},
+            read_spend=lambda: 2.50, read_done=lambda p, d: [])
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn("8.33 - p.spend", body)
+        self.assertNotIn("6.83 - p.spend", body)
+
+    def test_the_results_screen_re_reads_the_keys_after_the_sweep(self):
+        # The sweep has just spent the money, so this is the one moment the
+        # balances are certain to have moved.
+        app = self._app(state={"profile": "kanav", "cap_usd": 5.00,
+                               "derived": DERIVED, "credit_total_usd": 8.33})
+        self.balances = {"tok-a": 3.10, "tok-b": 1.00}
+        body = app.test_client().get("/results").get_data(as_text=True)
+        self.assertEqual(sorted(self.reads), ["tok-a", "tok-b"])
+        self.assertIn("Credit left $4.10", body)
+
+    def test_a_month_to_date_figure_is_never_subtracted_as_this_sweep(self):
+        # With no baseline there is no way to tell this sweep's spend from
+        # the account's month, and subtracting the month would understate the
+        # remaining credit by everything spent before today.
+        app = self._app(state={
+            "profile": "kanav", "cap_usd": 5.00, "derived": DERIVED,
+            "credit_total_usd": 8.33, "baseline_usd": None,
+            "raw_plan": RAW_PLAN, "proc": FakeProc(),
+            "plan": {"total": 2.70, "total_searches": 46, "over_cap": False,
+                     "lines": [], "spend_cap": 3.38}},
+            read_spend=lambda: 40.0, read_done=lambda p, d: [])
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn("Credit left $8.33", body)
 
 
 class TestRunningScreen(unittest.TestCase):

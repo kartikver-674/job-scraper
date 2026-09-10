@@ -77,10 +77,16 @@
       {% endfor %}
     </ol>
   </nav>
-  {% if cap_usd is not none %}
+  {% if credit_left is not none %}
     {# One text node on purpose: "Credit left $0.00" is asserted contiguously,
-       and a real zero must read as a figure rather than go missing. #}
-    <span class="credit">Credit left ${{ '%.2f'|format(cap_usd) }}</span>
+       and a real zero must read as a figure rather than go missing.
+
+       The TOTAL across every configured key, not cap_usd. cap_usd is what one
+       sweep can spend (a run picks the best single account and stays on it),
+       and calling that "credit left" understated the balance by every other
+       key on file. The confirm screen is where the one-account limit is
+       named, because that is where it decides something. #}
+    <span class="credit">Credit left ${{ '%.2f'|format(credit_left) }}</span>
   {% endif %}
 </header>
 

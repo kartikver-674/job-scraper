@@ -33,7 +33,17 @@
   x-text="p.done + ' of ' + p.planned + ' searches'"></b>
   · ${{ '%.2f'|format(plan.total) }} planned{% endif %}<span
   x-show="p.elapsed !== null" x-cloak> · running
-  <span x-text="hms(p.elapsed + drift)"></span></span>{% endblock %}
+  <span x-text="hms(p.elapsed + drift)"></span></span>{% if credit_total_usd is not none %}<span
+  x-show="p.spend !== null &amp;&amp; p.baseline_known" x-cloak> · credit left
+  {# Derived from the figure already polled, not from N live calls per tick:
+     the total was verified when the sweep started and only this sweep's own
+     spend has moved it since.
+
+     The TOTAL is the base, not credit_left: credit_left is the same figure
+     with this sweep's spend already taken off, so subtracting p.spend from
+     it charged the sweep twice. Both readings then have to agree at first
+     paint, which is what the test asserts. #}
+  <span x-text="'$' + Math.max(0, {{ credit_total_usd|tojson }} - p.spend).toFixed(2)"></span></span>{% endif %}{% endblock %}
 {% block body %}
 <div class="stack">
 

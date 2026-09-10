@@ -250,6 +250,87 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     app.write_env = default_write_env
 
+    def read_env_tokens():
+        """(name, token) for every Apify key in .env ON DISK, and reconcile the
+        process environment with it.
+
+        The process environment is not the record. os.environ is loaded once
+        at start-up and load_dotenv() does not override what is already there,
+        so a key deleted from .env by hand stays visible to this process for
+        as long as the server runs — which is why the duplicate check kept
+        rejecting a key that had just been removed. It also stays visible to
+        the ENGINE, which inherits this environment (runs.start), so a sweep
+        would go on spending from an account the user thought they had
+        detached.
+
+        Reading the file is therefore not enough: the stale names are dropped
+        from os.environ too, so the file is the single answer to "which keys
+        are configured" for the UI and for every child it launches.
+
+        Slot ordering and same-key dedupe stay in scraper.apify_tokens(),
+        called on the file's contents, rather than being reimplemented here.
+        """
+        from_file = {}
+        if os.path.exists(env_path):
+            with open(env_path) as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    name, _, value = line.partition("=")
+                    name = name.strip()
+                    if name == "APIFY_TOKEN" or name.startswith("APIFY_TOKEN_"):
+                        # .env may quote a value; load_dotenv strips those, so
+                        # a reader that does not would compare a quoted string
+                        # against a bare one and call the same key different.
+                        from_file[name] = value.strip().strip("\"'")
+        for name in [n for n in os.environ
+                     if n == "APIFY_TOKEN" or n.startswith("APIFY_TOKEN_")]:
+            if name not in from_file:
+                del os.environ[name]
+        for name, value in from_file.items():
+            os.environ[name] = value
+        return scraper.apify_tokens(env=from_file)
+
+    def read_env_tokens_as_env():
+        """{name: token} from .env, for next_token_name's slot search.
+
+        It picks a slot by NAME rather than by counting keys, precisely so a
+        slot emptied by hand gets refilled — which only works if it is looking
+        at the file the hand edited.
+        """
+        return {name: token for name, token in read_env_tokens()}
+
+    def refresh_credits():
+        """Re-verify every key in .env and rewrite the credit figures.
+
+        Replaces the incremental bookkeeping this used to do. Adding a key's
+        credit to a running total is how the same key pasted twice inflated
+        the cap twice — and reading the limits endpoint costs nothing, so
+        there is no reason to carry arithmetic that can drift instead of
+        asking.
+
+        A key that cannot be read is recorded as None rather than zero:
+        sweep_budget() skips it, so one unreachable account cannot make the
+        other three look spent.
+        """
+        known = app.state.get("key_credit") or {}
+        credits = {}
+        for name, token in read_env_tokens():
+            available, error = check_token(token)
+            # A read that FAILED must not discard a figure already verified.
+            # The limits endpoint is a live call; on a blip every key would
+            # come back unknown, sweep_budget would skip them all, cap_usd
+            # would go None — and needs_key() reads exactly that, so a
+            # network hiccup would bounce someone back to step 3 mid-flow.
+            # A key deleted from .env is different: it is not in this loop at
+            # all, so it drops, which is the user's own instruction.
+            credits[name] = known.get(name) if error else available
+        app.state["key_credit"] = credits
+        app.state["cap_usd"], app.state["credit_total_usd"] = sweep_budget(
+            credits.values())
+        return credits
+
     if fetch_plan is None:
         from sweep import plan as plan_mod
         fetch_plan = plan_mod.fetch
@@ -587,7 +668,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         return no_key_yet() and not free_only()
 
-    def shell(step, spend=0.0, spend_is_this_sweep=True, **kw):
+    def shell(step, spend=0.0, spend_is_this_sweep=True,
+              spend_is_estimate=False, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
         figure carried over from another step.
 
@@ -601,6 +683,10 @@ def create_app(state=None, extract=None, resume_dir=None,
         fabricated zero on a money display is the same defect pointing the
         other way.
 
+        `spend_is_estimate` is True on the two screens where `spend` is a
+        PRICE, not a payment — /configure and /confirm. Nothing has left the
+        account there, so nothing may be taken off the remaining credit.
+
         `spend_is_this_sweep` is False when the figure is the account's
         month-to-date total with no baseline to subtract. The meter then
         must not label it "spent so far", must not paint it the over-cap
@@ -609,8 +695,26 @@ def create_app(state=None, extract=None, resume_dir=None,
         so the first paint was the dishonest state it removed.
         """
         cap = app.state.get("cap_usd")
+        total = app.state.get("credit_total_usd")
+        # "Credit left" means every account's credit added up, which is what
+        # the header used to LABEL while showing cap_usd — the best single
+        # key's balance. On four keys holding $8.33 it read $5.00.
+        #
+        # Minus this sweep's own spend where that is known, so the figure
+        # keeps up with a run instead of standing still at what it was when
+        # the last key was verified. Two guards, because `spend` means a
+        # different thing on different screens: spend_is_estimate stops a
+        # PRICE being subtracted as if it had been paid, and
+        # spend_is_this_sweep stops a month-to-date total being subtracted
+        # as if this sweep had spent it.
+        left = None
+        if total is not None:
+            left = total
+            if spend and spend_is_this_sweep and not spend_is_estimate:
+                left = round(max(0.0, total - spend), 2)
         return dict(steps=step_states(STEPS, app.state, step),
                     step=step, spend=spend, cap_usd=cap,
+                    credit_left=left,
                     free_only=free_only(),
                     spend_is_this_sweep=spend_is_this_sweep,
                     fill_pct=fill_pct(spend, cap) if spend_is_this_sweep else 0,
@@ -930,14 +1034,11 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         app.write_env("APIFY_TOKEN", token)
         os.environ["APIFY_TOKEN"] = token
-        # This screen sets the PRIMARY key, so it replaces the per-key ledger
-        # rather than adding to it: re-pasting a first key must not leave the
-        # credit of a key no longer on file still counted in the budget.
-        # A cap can never go negative — the account may already be over its
-        # own monthly limit, but a negative number makes the meter meaningless.
-        app.state["key_credit"] = {"APIFY_TOKEN": available}
-        app.state["cap_usd"], app.state["credit_total_usd"] = sweep_budget(
-            app.state["key_credit"].values())
+        # Re-verified from the FILE rather than recorded from this one call:
+        # .env may already hold other keys (an earlier session, or a hand
+        # edit), and the credit figures have to describe what is configured
+        # now, not what this request happened to paste.
+        refresh_credits()
         error = _apply_choice(free=False)
         if error:
             return key_screen(error=error), 500
@@ -963,7 +1064,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         estimate = costed(app.state["profile"])
         chosen = app.state.get("sites_enabled") or {}
         return render_template("configure.html", **shell(
-            "configure", spend=estimate["total"], estimate=estimate,
+            "configure", spend=estimate["total"], spend_is_estimate=True,
+            estimate=estimate,
             # Unset means "inherit config.py's SITES", so the box has to show
             # what config actually says — read live, never hardcoded.
             # Rendering a state the profile does not have is how the first
@@ -1061,11 +1163,17 @@ def create_app(state=None, extract=None, resume_dir=None,
             return redirect(url_for("configure"))
         if needs_key():
             return redirect(url_for("key"))
+        if not free_only():
+            # Re-verified on arrival, like the plan beside it. Reading the
+            # limits endpoint costs nothing, and this is the one screen where
+            # a stale balance changes a decision — the figures here decide
+            # whether the plan is affordable at all.
+            refresh_credits()
         # Re-costed on every visit, like /configure — the meter shows this
         # screen's own state, never a figure carried over from an earlier one.
         plan = costed(app.state["profile"])
         return render_template("confirm.html", **shell(
-            "confirm", spend=plan["total"], plan=plan,
+            "confirm", spend=plan["total"], spend_is_estimate=True, plan=plan,
             spans_midnight=_spans_midnight()))
 
     @app.post("/run")
@@ -1089,8 +1197,17 @@ def create_app(state=None, extract=None, resume_dir=None,
                 error="This sweep is set to free sources only, but the plan "
                       "now prices paid searches. Connect a key, or switch "
                       "the paid boards back off.", status=400)
-        if plan_now.get("over_cap"):
-            return _confirm_page(error="Attach a second key or narrow the search first.", status=400)
+        if plan_now.get("over_cap") and not request.form.get("over_cap_ack"):
+            # No longer a refusal: it is the user's account and the sweep is
+            # recoverable — the engine stops when the account is spent, and
+            # .done_combos means the finished searches are not re-billed when
+            # it resumes on another key. What is NOT acceptable is starting
+            # one by mis-click, so the over-cap button carries its own
+            # acknowledgement and this fails closed without it.
+            return _confirm_page(
+                error="This plan costs more than one key can fund. Tick the "
+                      "box to start it anyway, or narrow the search first.",
+                status=400)
 
         # Stamp the real cap into the profile BEFORE the child starts.
         # SETTINGS["max_spend_usd"] is the only guard that can actually stop
@@ -1146,15 +1263,16 @@ def create_app(state=None, extract=None, resume_dir=None,
         if not plan_now:
             return "No plan to attach a key to — start from Configure.", 400
 
-        # Re-pasting the key already on file (the first key, or an earlier
-        # second key) would otherwise add the same credit again: check_token
-        # returns roughly the same available balance, cap_usd is inflated a
-        # second time, and the UI believes an unaffordable sweep is fine —
-        # exactly the wasted-spend outcome this screen exists to prevent.
-        # Every key on file, not the first two: with a third or fourth
-        # attached, re-pasting one of those passed this check and its credit
-        # was counted twice.
-        if token and token in {tok for _, tok in scraper.apify_tokens()}:
+        # Read from .env on disk, not from this process's environment: a key
+        # deleted from the file by hand is still in os.environ for the life of
+        # the server, and this check was rejecting keys that had just been
+        # removed.
+        #
+        # The check itself stays because re-pasting a key that IS on file adds
+        # no credit while looking like it did — but the figures no longer
+        # depend on it being right, since refresh_credits() re-reads every key
+        # rather than adding this one's balance to a running total.
+        if token and token in {tok for _, tok in read_env_tokens()}:
             return _confirm_page(error="That's the same key already on file — it adds no "
                       "new credit.", status=400)
 
@@ -1171,22 +1289,13 @@ def create_app(state=None, extract=None, resume_dir=None,
             return _confirm_page(error="That key verified, but it has no credit "
                       "available.", status=400)
 
-        slot = next_token_name()
+        slot = next_token_name(read_env_tokens_as_env())
         app.write_env(slot, token)
         os.environ[slot] = token
-        credits = dict(app.state.get("key_credit") or {})
-        if not credits and app.state.get("cap_usd") is not None:
-            # A cap with no per-key ledger behind it (a session resumed after
-            # a restart): that cap is one account's credit, so carry it as one
-            # entry rather than dropping it on the floor here.
-            credits["APIFY_TOKEN"] = app.state["cap_usd"]
-        credits[slot] = available
-        app.state["key_credit"] = credits
-        # max, not sum — see sweep_budget. Adding a key raises what one sweep
-        # can spend only if that key alone is bigger than the best already on
-        # file; it always raises the total you can finish the sweep across.
-        app.state["cap_usd"], app.state["credit_total_usd"] = sweep_budget(
-            credits.values())
+        # Every key re-verified, not this one's balance added to a total. The
+        # cap is still max-not-sum (see sweep_budget): another key lifts what
+        # ONE sweep can spend only if that key alone covers the plan.
+        refresh_credits()
         # over_cap is not patched here — GET /confirm re-costs the whole
         # plan via costed() on the redirect below, so any value written
         # here would be discarded before ever being read.
@@ -1250,6 +1359,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         """Shared by GET /results and a failed POST /rescore, so an
         out-of-range hours value re-renders the same screen with an error
         instead of a bare 400."""
+        # A finished sweep is exactly when the balances have moved, and this
+        # is the screen the running screen sends you to. Re-read once here
+        # rather than on every SSE tick, which would be N live calls every
+        # two seconds for forty minutes.
+        if not free_only() and app.state.get("credit_total_usd") is not None:
+            refresh_credits()
         profile = app.state["profile"]
         all_rows = read_rows(profile)
         sweeps = list_sweeps(profile)
@@ -1331,7 +1446,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         away the one warning that prevents a real double bill."""
         plan_now = app.state.get("plan")
         return render_template("confirm.html", **shell(
-            "confirm", spend=plan_now["total"], plan=plan_now,
+            "confirm", spend=plan_now["total"], spend_is_estimate=True,
+            plan=plan_now,
             spans_midnight=_spans_midnight(), error=error)), status
 
     _run_lock = threading.Lock()
