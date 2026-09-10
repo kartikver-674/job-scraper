@@ -2442,6 +2442,56 @@ class FakeProc:
         self.signals.append(sig)
 
 
+class TestCostMarkers(unittest.TestCase):
+    """Which controls carry the asterisk is not a judgement call. plan.cost()
+    multiplies searches by a rate scaled to the depth, and the plan payload
+    the engine hands it carries only `sites`, `max_results` and the combos
+    (keywords x locations x companies). Anything absent from that payload
+    cannot change the price — which is every filter on this screen."""
+
+    def _body(self):
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN, output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app.test_client().get("/configure").get_data(as_text=True)
+
+    def test_every_control_that_moves_the_price_is_marked(self):
+        body = " ".join(self._body().split())
+        for control in ("Sources", "Where you can work", "Locations",
+                        "Results per search"):
+            self.assertRegex(
+                body, re.escape(control) + r'<span class="costs"',
+                f"{control} changes the cost and carries no mark")
+
+    def test_no_filter_is_marked(self):
+        # Marking one would claim a filter spends credit, which sends someone
+        # looking for savings to the control that cannot give them any.
+        body = " ".join(self._body().split())
+        for control in ("How recent", "Pay floor", "Skip these"):
+            self.assertNotRegex(body, re.escape(control) + r'<span class="costs"')
+
+    def test_the_mark_is_explained_where_it_is_used(self):
+        body = " ".join(self._body().split())
+        self.assertIn("Changes what this sweep costs", body)
+        # And it says WHY those and not the rest — "these cost money" with no
+        # rule invites the guess that everything might.
+        self.assertIn("filters and re-ranks what has already been fetched", body)
+
+    def test_the_glyph_is_not_read_aloud_as_an_asterisk(self):
+        body = self._body()
+        self.assertIn('<span class="costs" aria-hidden="true">*</span>', body)
+        self.assertIn("(changes the cost)", body)
+
+    def test_the_marked_count_matches_the_footnote_claim(self):
+        # The footnote says three things reach the price: sources, locations
+        # (from two controls) and depth. Four marks, no strays.
+        body = self._body()
+        self.assertEqual(body.count('<span class="costs" aria-hidden="true">'), 4)
+
+
 class TestLocationPicker(unittest.TestCase):
     """Locations are the one field on Configure where a typo costs money in
     the wrong currency: LinkedIn answers an unverified location with United

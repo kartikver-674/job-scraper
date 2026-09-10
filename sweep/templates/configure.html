@@ -12,6 +12,20 @@
 {% block meter_facts %}{% if free_only %}Free sources only{% else %}<span
   x-text="est.total_searches + ' searches'"></span>
   · hard cap <b x-text="'$' + est.spend_cap.toFixed(2)"></b>{% endif %}{% endblock %}
+{# The marker for a control that moves the estimate. Which ones those are is
+   not a judgement call: plan.cost() multiplies searches by a rate scaled to
+   the depth, and the plan JSON the engine hands it carries only `sites`,
+   `max_results` and the combos (keywords x locations x companies). A setting
+   that is absent from that payload CANNOT change the cost — which is every
+   filter on this screen, since they all run against rows already fetched.
+
+   Hidden from screen readers as a glyph and given words instead: a bare
+   asterisk read aloud is noise, and the footnote it points at is at the
+   other end of the form. #}
+{% macro costs() -%}
+<span class="costs" aria-hidden="true">*</span><span class="visually-hidden">
+  (changes the cost)</span>
+{%- endmacro %}
 {% block body %}
 <div class="stack">
   <div class="stack-tight">
@@ -43,7 +57,7 @@
          the screen and the one control a user reaches for when the estimate
          is too high. #}
       <div class="panel">
-        <h2>Sources</h2>
+        <h2>Sources{{ costs() }}</h2>
         {# In free mode the toggles are not rendered at all, rather than
            rendered disabled: the sites_present marker below is what makes a
            posted form authoritative about every site, and a disabled
@@ -82,7 +96,7 @@
       </div>
 
       <div class="panel">
-        <h2>Where you can work</h2>
+        <h2>Where you can work{{ costs() }}</h2>
         <div class="stack-tight">
           <label class="choice"><input type="radio" name="scope" value="india" checked>
             <span><b>India only, onsite and hybrid</b></span></label>
@@ -119,7 +133,7 @@
          once, and a radio group cannot. They sit on the left of each row the
          same way the scope choices above them do. #}
       <div class="panel">
-        <h2>Locations</h2>
+        <h2>Locations{{ costs() }}</h2>
         <p class="muted">Empty means every location the choice above covers.
           Pick some to narrow it — each one is a separate paid search on
           LinkedIn and Indeed, so the cost beside this moves with the
@@ -187,7 +201,7 @@
               <option value="30">30 days</option>
             </select>
           </label>
-          <label><span class="label">Results per search</span>
+          <label><span class="label">Results per search{{ costs() }}</span>
             <input type="number" name="max_results" placeholder="15" min="1" max="200">
           </label>
         </div>
@@ -219,6 +233,16 @@
           <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"></label>
         <p class="muted">Letters, digits, spaces and . + # / - only.</p>
       </div>
+
+      {# The other half of the marker. Says WHY those four and not the rest,
+         because "these cost money" without the rule invites the guess that
+         everything might. #}
+      <p class="muted footnote"><span class="costs">*</span> Changes what this
+        sweep costs. Only three things reach the price: which sources run, how
+        many locations each one searches — that is what the scope and the
+        location picker set — and how many results each search pulls. The rest
+        of this screen filters and re-ranks what has already been fetched, so
+        it can move the shortlist but never the estimate.</p>
     </form>
 
     <aside class="aside">

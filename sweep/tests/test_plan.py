@@ -240,3 +240,34 @@ class TestPerSiteRateBasis(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestOnlyThreeThingsReachThePrice(unittest.TestCase):
+    """The premise the Configure screen's cost markers rest on. If the engine
+    ever started reporting a filter in its plan, or cost() started reading
+    one, the asterisks would be marking the wrong controls and the footnote
+    beneath them would be false."""
+
+    RAW = {"profile": "p",
+           "sites": {"linkedin": [{"keywords": "k", "location": "India",
+                                    "company": ""}]},
+           "max_results": {"linkedin": 25}, "free_sources": 39}
+    RATES = {"linkedin": 0.045}
+
+    def test_a_filter_cannot_change_the_total(self):
+        before = plan.cost(dict(self.RAW), self.RATES)["total"]
+        # Everything the screen can set that is NOT sources, locations or
+        # depth, dropped into the payload as loudly as possible.
+        loud = dict(self.RAW, max_age_days=1, min_comp_usd=999_999,
+                    skip_terms=["salesforce"], remote_scopes=[], scope="global")
+        self.assertEqual(plan.cost(loud, self.RATES)["total"], before)
+
+    def test_each_of_the_three_does_change_it(self):
+        before = plan.cost(dict(self.RAW), self.RATES)["total"]
+        deeper = dict(self.RAW, max_results={"linkedin": 50})
+        self.assertGreater(plan.cost(deeper, self.RATES)["total"], before)
+        two_locations = dict(self.RAW, sites={"linkedin": [
+            {"keywords": "k", "location": "India", "company": ""},
+            {"keywords": "k", "location": "Germany", "company": ""}]})
+        self.assertGreater(plan.cost(two_locations, self.RATES)["total"], before)
+        self.assertEqual(plan.cost(dict(self.RAW, sites={}), self.RATES)["total"], 0)

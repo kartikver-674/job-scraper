@@ -629,6 +629,18 @@ td.score {
   .rerank { grid-template-columns: minmax(0, 36rem) 20rem; }
 }
 
+/* Marks a control that moves the estimate. Amber is money everywhere else in
+   this palette, so the mark needs no legend of its own beyond the footnote. */
+.costs {
+  color: var(--paid); font-weight: 700;
+  padding-left: 2px; vertical-align: super; font-size: 11px;
+}
+.footnote {
+  margin-top: var(--s3); padding-top: var(--s5);
+  border-top: 1px solid var(--rule);
+}
+.footnote .costs { vertical-align: baseline; font-size: 13px; }
+
 /* ---- Location picker ---------------------------------------------------- */
 
 /* A field that holds chips and opens a menu. The box is styled as an input
