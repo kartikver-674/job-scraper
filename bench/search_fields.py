@@ -43,9 +43,30 @@ scoring a keyword by "did this keyword appear in the search log" would rate
 the incumbent perfect and every alternative zero by construction. Listing
 titles are independent of which query found them.
 
-The limitation that remains: the corpus is one person's market. A keyword
-for a profession Sweep has never searched is unmeasurable here, not bad,
-and the report says "unmeasured" rather than pretending otherwise.
+Two limitations remain, and both are reported rather than smoothed over.
+
+The corpus is one person's market, so a keyword for a profession Sweep has
+never searched is unmeasurable here, not bad. The report says "unmeasured".
+
+The bigger one: the `score` column was computed with the CORPUS OWNER's
+skill_weights. Precision — the share of drawn rows reaching score 20 — is
+therefore only a fair measure for someone in that owner's field. ada is a
+Django backend engineer and the corpus owner is not, so rows that are right
+for her score low, and her 5.2% is partly this artifact rather than her
+keywords. Precision is still worth reporting, because a keyword drawing
+30,000 rows of which almost none score is a bad keyword under any scoring,
+but it is not the number to hang a verdict on.
+
+The verdict-grade numbers are the ones no scoring touches:
+
+  hard-dropped share   of the rows a keyword buys, the share config
+                       DELETES on the title alone. Pure waste, and
+                       title_excluded and hard_drop_terms decide it
+                       without reference to anyone's weights.
+  wildcard count       a keyword matching a quarter of the market
+  stability            agreement between two renderings of one résumé
+  rule compliance      an empty title_exclude, a missing stem, an
+                       internship keyword under exclude_levels
 
     python -m bench.search_fields --demo
     python -m bench.search_fields qwen3:8b        # generate, then measure
@@ -598,7 +619,15 @@ def report(model, cache=None, titles=None):
         row("listings bought", "listings")
         row("of those reachable", "reachable")
         row("of those hard-dropped", "wasted")
-        row("precision", "precision", lambda v: f"{v:.1%}")
+        # The confound-free one: no scoring is involved, only whether
+        # config deletes the row on its title.
+        wb = b["wasted"] / b["listings"] if b["listings"] else None
+        wa = (a["wasted"] / a["listings"]
+              if a and a["listings"] else None)
+        print(f"    {'hard-dropped share':<26}"
+              f"{(f'{wb:.1%}' if wb is not None else '-'):>14}"
+              f"{(f'{wa:.1%}' if wa is not None else '-'):>14}")
+        row("precision (see caveat)", "precision", lambda v: f"{v:.1%}")
         row("spend at the cheapest rate", "spend", lambda v: f"${v:,.2f}")
 
     if gaps:

@@ -1,0 +1,8223 @@
+{
+ "ada-plain": {
+  "candidate_name": "Ada Okonkwo",
+  "field_summary": "Ada Okonkwo is a Senior Backend Engineer with expertise in Python, Django, PostgreSQL, Redis, Docker, Kubernetes, Celery, and GraphQL. She has experience in system architecture, performance optimization, and microservices design.",
+  "years_experience": 5,
+  "role_keywords": [
+   "backend engineer",
+   "senior backend engineer",
+   "python developer",
+   "django developer",
+   "api developer",
+   "system architect",
+   "performance engineer",
+   "microservices developer",
+   "cloud engineer",
+   "devops engineer",
+   "service architect",
+   "graphql developer",
+   "database engineer",
+   "distributed systems engineer"
+  ],
+  "skill_weights": [
+   {
+    "term": "python",
+    "weight": 5
+   },
+   {
+    "term": "django",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "redis",
+    "weight": 5
+   },
+   {
+    "term": "docker",
+    "weight": 5
+   },
+   {
+    "term": "kubernetes",
+    "weight": 5
+   },
+   {
+    "term": "celery",
+    "weight": 5
+   },
+   {
+    "term": "graphql",
+    "weight": 5
+   },
+   {
+    "term": "backend engineer",
+    "weight": 5
+   },
+   {
+    "term": "senior backend engineer",
+    "weight": 5
+   },
+   {
+    "term": "system architect",
+    "weight": 4
+   },
+   {
+    "term": "performance engineer",
+    "weight": 4
+   },
+   {
+    "term": "microservices developer",
+    "weight": 4
+   },
+   {
+    "term": "cloud engineer",
+    "weight": 4
+   },
+   {
+    "term": "devops engineer",
+    "weight": 4
+   },
+   {
+    "term": "service architect",
+    "weight": 4
+   },
+   {
+    "term": "database engineer",
+    "weight": 4
+   },
+   {
+    "term": "distributed systems engineer",
+    "weight": 4
+   },
+   {
+    "term": "api developer",
+    "weight": 3
+   },
+   {
+    "term": "python developer",
+    "weight": 3
+   },
+   {
+    "term": "django developer",
+    "weight": 3
+   },
+   {
+    "term": "graphql developer",
+    "weight": 3
+   },
+   {
+    "term": "cloud architect",
+    "weight": 3
+   },
+   {
+    "term": "service design",
+    "weight": 3
+   },
+   {
+    "term": "system design",
+    "weight": 3
+   },
+   {
+    "term": "performance optimization",
+    "weight": 3
+   },
+   {
+    "term": "distributed systems",
+    "weight": 3
+   },
+   {
+    "term": "containerization",
+    "weight": 3
+   },
+   {
+    "term": "orchestration",
+    "weight": 3
+   },
+   {
+    "term": "service mesh",
+    "weight": 3
+   },
+   {
+    "term": "api gateway",
+    "weight": 3
+   },
+   {
+    "term": "service discovery",
+    "weight": 3
+   },
+   {
+    "term": "load balancing",
+    "weight": 3
+   },
+   {
+    "term": "service reliability",
+    "weight": 3
+   },
+   {
+    "term": "resilience engineering",
+    "weight": 3
+   },
+   {
+    "term": "observability",
+    "weight": 3
+   },
+   {
+    "term": "monitoring",
+    "weight": 3
+   },
+   {
+    "term": "logging",
+    "weight": 3
+   },
+   {
+    "term": "tracing",
+    "weight": 3
+   },
+   {
+    "term": "service mesh",
+    "weight": 3
+   },
+   {
+    "term": "service reliability",
+    "weight": 3
+   },
+   {
+    "term": "observability",
+    "weight": 3
+   },
+   {
+    "term": "monitoring",
+    "weight": 3
+   },
+   {
+    "term": "logging",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "frontend engineer",
+    "weight": 1
+   },
+   {
+    "term": "ui",
+    "weight": 1
+   },
+   {
+    "term": "ux",
+    "weight": 1
+   },
+   {
+    "term": "design",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "mobile developer",
+    "weight": 1
+   },
+   {
+    "term": "mobile app",
+    "weight": 1
+   },
+   {
+    "term": "mobile engineer",
+    "weight": 1
+   },
+   {
+    "term": "web developer",
+    "weight": 1
+   },
+   {
+    "term": "web engineer",
+    "weight": 1
+   },
+   {
+    "term": "web application",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "backend",
+   "api",
+   "service",
+   "system",
+   "distributed",
+   "microservices",
+   "cloud",
+   "orchestration",
+   "containerization",
+   "performance",
+   "architecture"
+  ],
+  "domain_half_b": [
+   "engineering",
+   "developer",
+   "design",
+   "designer",
+   "system",
+   "service",
+   "cloud",
+   "distributed",
+   "microservices",
+   "performance",
+   "architecture"
+  ],
+  "domain_title_terms": [
+   "backend engineer",
+   "senior backend engineer",
+   "python developer",
+   "django developer",
+   "api developer",
+   "system architect",
+   "performance engineer",
+   "microservices developer",
+   "cloud engineer",
+   "devops engineer",
+   "service architect",
+   "graphql developer"
+  ],
+  "title_hints": [
+   "backend",
+   "engineer",
+   "python",
+   "django",
+   "api",
+   "postgresql",
+   "redis",
+   "docker",
+   "kubernetes",
+   "celery",
+   "graphql",
+   "system",
+   "performance",
+   "microservices",
+   "cloud",
+   "orchestration",
+   "containerization",
+   "service",
+   "architecture",
+   "design",
+   "distributed",
+   "service mesh",
+   "load balancing",
+   "service discovery",
+   "observability",
+   "monitoring",
+   "logging",
+   "tracing",
+   "resilience",
+   "reliability",
+   "optimization"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "Ada's field is backend engineering with a focus on system architecture, performance optimization, and microservices. There is no natural split between frontend and backend in her field, so domain_bonus is 0."
+ },
+ "ada-messy": {
+  "candidate_name": "Ada Okonkwo",
+  "field_summary": "Ada Okonkwo is a Senior Backend Engineer with expertise in Python, Django, PostgreSQL, Redis, Docker, Kubernetes, Celery, and GraphQL. She has experience in optimizing backend systems, improving performance, and building scalable APIs for high-volume delivery services.",
+  "years_experience": 5,
+  "role_keywords": [
+   "backend engineer",
+   "senior backend engineer",
+   "django developer",
+   "python developer",
+   "api developer",
+   "system architect",
+   "performance engineer",
+   "service architect",
+   "graphql developer",
+   "cloud engineer",
+   "devops engineer",
+   "distributed systems engineer",
+   "microservices architect",
+   "service decomposition engineer",
+   "latency optimization engineer",
+   "high availability engineer",
+   "scalable systems engineer",
+   "backend systems engineer",
+   "api performance engineer",
+   "distributed architecture engineer"
+  ],
+  "skill_weights": [
+   {
+    "term": "python",
+    "weight": 5
+   },
+   {
+    "term": "django",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "redis",
+    "weight": 5
+   },
+   {
+    "term": "docker",
+    "weight": 5
+   },
+   {
+    "term": "kubernetes",
+    "weight": 5
+   },
+   {
+    "term": "celery",
+    "weight": 5
+   },
+   {
+    "term": "graphql",
+    "weight": 5
+   },
+   {
+    "term": "backend engineer",
+    "weight": 5
+   },
+   {
+    "term": "senior backend engineer",
+    "weight": 5
+   },
+   {
+    "term": "api developer",
+    "weight": 5
+   },
+   {
+    "term": "performance engineer",
+    "weight": 5
+   },
+   {
+    "term": "service architect",
+    "weight": 5
+   },
+   {
+    "term": "system architect",
+    "weight": 5
+   },
+   {
+    "term": "cloud engineer",
+    "weight": 5
+   },
+   {
+    "term": "devops engineer",
+    "weight": 5
+   },
+   {
+    "term": "distributed systems engineer",
+    "weight": 5
+   },
+   {
+    "term": "microservices architect",
+    "weight": 5
+   },
+   {
+    "term": "service decomposition engineer",
+    "weight": 5
+   },
+   {
+    "term": "latency optimization engineer",
+    "weight": 5
+   },
+   {
+    "term": "high availability engineer",
+    "weight": 5
+   },
+   {
+    "term": "scalable systems engineer",
+    "weight": 5
+   },
+   {
+    "term": "backend systems engineer",
+    "weight": 5
+   },
+   {
+    "term": "api performance engineer",
+    "weight": 5
+   },
+   {
+    "term": "distributed architecture engineer",
+    "weight": 5
+   },
+   {
+    "term": "python developer",
+    "weight": 5
+   },
+   {
+    "term": "django developer",
+    "weight": 5
+   },
+   {
+    "term": "graphql developer",
+    "weight": 5
+   },
+   {
+    "term": "cloud systems engineer",
+    "weight": 4
+   },
+   {
+    "term": "service integration engineer",
+    "weight": 4
+   },
+   {
+    "term": "performance optimization engineer",
+    "weight": 4
+   },
+   {
+    "term": "distributed architecture",
+    "weight": 4
+   },
+   {
+    "term": "service decomposition",
+    "weight": 4
+   },
+   {
+    "term": "latency reduction engineer",
+    "weight": 4
+   },
+   {
+    "term": "high throughput systems",
+    "weight": 4
+   },
+   {
+    "term": "service scalability engineer",
+    "weight": 4
+   },
+   {
+    "term": "api latency reduction",
+    "weight": 4
+   },
+   {
+    "term": "distributed system design",
+    "weight": 4
+   },
+   {
+    "term": "service decomposition",
+    "weight": 4
+   },
+   {
+    "term": "service integration",
+    "weight": 4
+   },
+   {
+    "term": "distributed system optimization",
+    "weight": 4
+   },
+   {
+    "term": "service architecture",
+    "weight": 4
+   },
+   {
+    "term": "service performance",
+    "weight": 4
+   },
+   {
+    "term": "service latency",
+    "weight": 4
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "ui",
+    "weight": 1
+   },
+   {
+    "term": "ux",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   },
+   {
+    "term": "vue",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "typescript",
+    "weight": 1
+   },
+   {
+    "term": "frontend engineer",
+    "weight": 1
+   },
+   {
+    "term": "ui engineer",
+    "weight": 1
+   },
+   {
+    "term": "ux engineer",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "backend",
+   "api",
+   "service",
+   "system",
+   "distributed",
+   "performance",
+   "latency",
+   "scalable",
+   "high availability"
+  ],
+  "domain_half_b": [
+   "engineering",
+   "architect",
+   "design",
+   "optimization",
+   "decomposition",
+   "integration",
+   "microservices",
+   "cloud",
+   "system"
+  ],
+  "domain_title_terms": [
+   "backend engineer",
+   "senior backend engineer",
+   "api developer",
+   "system architect",
+   "performance engineer",
+   "service architect",
+   "distributed systems engineer",
+   "cloud engineer",
+   "devops engineer",
+   "microservices architect",
+   "service decomposition engineer",
+   "latency optimization engineer"
+  ],
+  "title_hints": [
+   "backend",
+   "engineer",
+   "api",
+   "system",
+   "performance",
+   "service",
+   "distributed",
+   "cloud",
+   "devops",
+   "microservices",
+   "latency",
+   "optimization",
+   "scalable",
+   "high availability",
+   "service decomposition",
+   "service integration",
+   "distributed systems",
+   "system architecture",
+   "performance engineering",
+   "service architecture",
+   "cloud systems",
+   "service latency",
+   "service scalability",
+   "api performance",
+   "distributed architecture",
+   "service optimization",
+   "service design",
+   "service integration",
+   "service decomposition",
+   "service latency",
+   "service scalability",
+   "service performance",
+   "service architecture",
+   "service integration",
+   "service decomposition",
+   "service latency",
+   "service scalability",
+   "service performance",
+   "service architecture"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 5,
+  "notes": "Ada Okonkwo's field is backend engineering, with a strong focus on distributed systems, performance optimization, and service decomposition. The domain_bonus is high due to the specificity of terms like 'service decomposition' and 'latency optimization', which are unique to her field and not commonly found in adjacent domains."
+ },
+ "bhaskar-plain": {
+  "candidate_name": "Bhaskar Nair",
+  "field_summary": "Software Engineering Intern, Final-Year Computer Science Student",
+  "years_experience": 0,
+  "role_keywords": [
+   "software engineer intern",
+   "software engineering intern",
+   "computer science intern",
+   "software developer intern",
+   "full stack developer intern",
+   "backend developer intern",
+   "frontend developer intern",
+   "java developer intern",
+   "spring boot developer intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern"
+  ],
+  "skill_weights": [
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 5
+   },
+   {
+    "term": "git",
+    "weight": 5
+   },
+   {
+    "term": "html",
+    "weight": 5
+   },
+   {
+    "term": "css",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 5
+   },
+   {
+    "term": "git",
+    "weight": 5
+   },
+   {
+    "term": "html",
+    "weight": 5
+   },
+   {
+    "term": "css",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 5
+   },
+   {
+    "term": "git",
+    "weight": 5
+   },
+   {
+    "term": "html",
+    "weight": 5
+   },
+   {
+    "term": "css",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 5
+   },
+   {
+    "term": "git",
+    "weight": 5
+   },
+   {
+    "term": "html",
+    "weight": 5
+   },
+   {
+    "term": "css",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 5
+   },
+   {
+    "term": "git",
+    "weight": 5
+   },
+   {
+    "term": "html",
+    "weight": 5
+   },
+   {
+    "term": "css",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 5
+   },
+   {
+    "term": "git",
+    "weight": 5
+   },
+   {
+    "term": "html",
+    "weight": 5
+   },
+   {
+    "term": "css",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 5
+   },
+   {
+    "term": "git",
+    "weight": 5
+   },
+   {
+    "term": "html",
+    "weight": 5
+   },
+   {
+    "term": "css",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "entry level",
+    "weight": 1
+   },
+   {
+    "term": "beginner",
+    "weight": 1
+   },
+   {
+    "term": "new",
+    "weight": 1
+   },
+   {
+    "term": "novice",
+    "weight": 1
+   },
+   {
+    "term": "trainee",
+    "weight": 1
+   },
+   {
+    "term": "student",
+    "weight": 1
+   },
+   {
+    "term": "part time",
+    "weight": 1
+   },
+   {
+    "term": "remote",
+    "weight": 1
+   },
+   {
+    "term": "freelance",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [],
+  "domain_half_b": [],
+  "domain_title_terms": [
+   "software engineer intern",
+   "software engineering intern",
+   "computer science intern",
+   "software developer intern",
+   "full stack developer intern",
+   "backend developer intern",
+   "frontend developer intern",
+   "java developer intern",
+   "spring boot developer intern",
+   "software engineering intern",
+   "software engineering intern",
+   "software engineering intern"
+  ],
+  "title_hints": [
+   "software engineer",
+   "software engineering",
+   "java developer",
+   "spring boot",
+   "mysql",
+   "git",
+   "html",
+   "css",
+   "software developer",
+   "full stack developer",
+   "backend developer",
+   "frontend developer",
+   "java",
+   "spring boot",
+   "mysql",
+   "git",
+   "html",
+   "css",
+   "software engineering",
+   "software developer",
+   "full stack developer",
+   "backend developer",
+   "frontend developer",
+   "java",
+   "spring boot",
+   "mysql",
+   "git",
+   "html",
+   "css",
+   "software engineering",
+   "software developer",
+   "full stack developer",
+   "backend developer",
+   "frontend developer",
+   "java",
+   "spring boot",
+   "mysql",
+   "git",
+   "html",
+   "css"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "The candidate is a final-year Computer Science student with no professional experience. All skills are academic or internship-related. The scraper should focus on internships and entry-level roles in software engineering, with emphasis on Java, Spring Boot, and web development. No domain bonus applies as there is no natural split in the field."
+ },
+ "bhaskar-messy": {
+  "candidate_name": "Bhaskar Nair",
+  "field_summary": "Software Engineering Intern with focus on backend development using Java and Spring Boot, with exposure to MySQL and basic frontend technologies.",
+  "years_experience": 0,
+  "role_keywords": [
+   "software engineer intern",
+   "java developer intern",
+   "spring boot developer",
+   "backend developer intern",
+   "java intern",
+   "software engineering intern",
+   "java developer",
+   "backend developer",
+   "software engineer",
+   "java spring boot developer",
+   "software engineering intern",
+   "java backend developer",
+   "software developer intern",
+   "java developer intern",
+   "software engineering intern",
+   "java spring boot intern",
+   "software engineering intern",
+   "java developer intern",
+   "software engineering intern",
+   "java backend intern"
+  ],
+  "skill_weights": [
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 4
+   },
+   {
+    "term": "git",
+    "weight": 3
+   },
+   {
+    "term": "html",
+    "weight": 1
+   },
+   {
+    "term": "css",
+    "weight": 1
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "mysql",
+    "weight": 4
+   },
+   {
+    "term": "git",
+    "weight": 3
+   },
+   {
+    "term": "html",
+    "weight": 1
+   },
+   {
+    "term": "css",
+    "weight": 1
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "java",
+   "spring boot",
+   "mysql",
+   "backend",
+   "developer"
+  ],
+  "domain_half_b": [
+   "software",
+   "engineering",
+   "java",
+   "developer",
+   "backend"
+  ],
+  "domain_title_terms": [
+   "java developer",
+   "spring boot developer",
+   "backend developer",
+   "software engineer",
+   "java intern",
+   "software engineering intern",
+   "java developer intern",
+   "software developer intern",
+   "java backend developer",
+   "java spring boot developer",
+   "software engineering intern",
+   "java backend intern"
+  ],
+  "title_hints": [
+   "java",
+   "spring boot",
+   "mysql",
+   "backend",
+   "developer",
+   "software",
+   "engineering",
+   "java developer",
+   "software engineer",
+   "java intern",
+   "software engineering intern",
+   "java developer intern",
+   "software developer intern",
+   "java backend developer",
+   "java spring boot developer",
+   "software engineering intern",
+   "java backend intern"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "The candidate is a final-year Computer Science student with internship experience in Java and Spring Boot. The field is backend development, with a focus on Java and Spring Boot. The title hints and domain title terms are tailored to reflect the specific technologies and roles the candidate has engaged with. The penalty terms include intern, fresher, and junior to align with the candidate's stated exclusion of these levels."
+ },
+ "chen-plain": {
+  "candidate_name": "Chen Wei-Lin",
+  "field_summary": "Cloud Infrastructure & Platform Engineering",
+  "years_experience": 8,
+  "role_keywords": [
+   "platform engineer",
+   "infrastructure engineer",
+   "site reliability engineer",
+   "kubernetes engineer",
+   "terraform engineer",
+   "aws architect",
+   "cloud platform engineer",
+   "cloud infrastructure engineer",
+   "devops engineer",
+   "system engineer",
+   "cloud operations engineer",
+   "cloud platform specialist",
+   "cloud automation engineer",
+   "cloud systems engineer",
+   "cloud infrastructure specialist"
+  ],
+  "skill_weights": [
+   {
+    "term": "go",
+    "weight": 5
+   },
+   {
+    "term": "terraform",
+    "weight": 5
+   },
+   {
+    "term": "kubernetes",
+    "weight": 5
+   },
+   {
+    "term": "aws",
+    "weight": 5
+   },
+   {
+    "term": "prometheus",
+    "weight": 5
+   },
+   {
+    "term": "envoy",
+    "weight": 4
+   },
+   {
+    "term": "kafka",
+    "weight": 4
+   },
+   {
+    "term": "postgresql",
+    "weight": 4
+   },
+   {
+    "term": "bazel",
+    "weight": 4
+   },
+   {
+    "term": "terraform",
+    "weight": 5
+   },
+   {
+    "term": "kubernetes",
+    "weight": 5
+   },
+   {
+    "term": "aws",
+    "weight": 5
+   },
+   {
+    "term": "prometheus",
+    "weight": 5
+   },
+   {
+    "term": "envoy",
+    "weight": 4
+   },
+   {
+    "term": "kafka",
+    "weight": 4
+   },
+   {
+    "term": "postgresql",
+    "weight": 4
+   },
+   {
+    "term": "bazel",
+    "weight": 4
+   },
+   {
+    "term": "cloud",
+    "weight": 3
+   },
+   {
+    "term": "infrastructure",
+    "weight": 3
+   },
+   {
+    "term": "platform",
+    "weight": 3
+   },
+   {
+    "term": "automation",
+    "weight": 3
+   },
+   {
+    "term": "operations",
+    "weight": 3
+   },
+   {
+    "term": "system",
+    "weight": 3
+   },
+   {
+    "term": "devops",
+    "weight": 3
+   },
+   {
+    "term": "site reliability",
+    "weight": 3
+   },
+   {
+    "term": "cloud platform",
+    "weight": 3
+   },
+   {
+    "term": "cloud infrastructure",
+    "weight": 3
+   },
+   {
+    "term": "cloud automation",
+    "weight": 3
+   },
+   {
+    "term": "cloud operations",
+    "weight": 3
+   },
+   {
+    "term": "cloud systems",
+    "weight": 3
+   },
+   {
+    "term": "cloud specialist",
+    "weight": 3
+   },
+   {
+    "term": "cloud engineer",
+    "weight": 3
+   },
+   {
+    "term": "cloud architect",
+    "weight": 3
+   },
+   {
+    "term": "cloud platform engineer",
+    "weight": 3
+   },
+   {
+    "term": "cloud infrastructure engineer",
+    "weight": 3
+   },
+   {
+    "term": "cloud automation engineer",
+    "weight": 3
+   },
+   {
+    "term": "cloud operations engineer",
+    "weight": 3
+   },
+   {
+    "term": "cloud systems engineer",
+    "weight": 3
+   },
+   {
+    "term": "cloud platform specialist",
+    "weight": 3
+   },
+   {
+    "term": "cloud infrastructure specialist",
+    "weight": 3
+   },
+   {
+    "term": "cloud automation specialist",
+    "weight": 3
+   },
+   {
+    "term": "cloud operations specialist",
+    "weight": 3
+   },
+   {
+    "term": "cloud systems specialist",
+    "weight": 3
+   },
+   {
+    "term": "cloud platform engineer",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "web",
+    "weight": 1
+   },
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "backend",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   },
+   {
+    "term": "vue",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "typescript",
+    "weight": 1
+   },
+   {
+    "term": "node",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   },
+   {
+    "term": "react.js",
+    "weight": 1
+   },
+   {
+    "term": "angular.js",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "platform",
+   "infrastructure",
+   "cloud",
+   "system",
+   "operations"
+  ],
+  "domain_half_b": [
+   "engineering",
+   "automation",
+   "operations",
+   "systems",
+   "platform"
+  ],
+  "domain_title_terms": [
+   "platform engineer",
+   "infrastructure engineer",
+   "site reliability engineer",
+   "kubernetes engineer",
+   "terraform engineer",
+   "aws architect",
+   "cloud platform engineer",
+   "cloud infrastructure engineer",
+   "devops engineer",
+   "system engineer",
+   "cloud operations engineer",
+   "cloud systems engineer"
+  ],
+  "title_hints": [
+   "platform",
+   "infrastructure",
+   "kubernetes",
+   "terraform",
+   "aws",
+   "cloud",
+   "operations",
+   "system",
+   "automation",
+   "devops",
+   "site reliability",
+   "cloud platform",
+   "cloud infrastructure",
+   "cloud operations",
+   "cloud systems",
+   "cloud automation",
+   "cloud engineer",
+   "cloud specialist",
+   "cloud architect",
+   "cloud platform engineer",
+   "cloud infrastructure engineer",
+   "cloud operations engineer",
+   "cloud systems engineer",
+   "cloud automation engineer",
+   "cloud platform specialist",
+   "cloud infrastructure specialist",
+   "cloud operations specialist",
+   "cloud systems specialist",
+   "cloud automation specialist"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 3,
+  "notes": "The candidate has a strong focus on cloud infrastructure and platform engineering, with deep expertise in Kubernetes, Terraform, AWS, and automation tools. The field is highly specialized and does not naturally split into frontend/backend roles. Domain_bonus is applied for matching both halves of the field (infrastructure/platform) in job titles."
+ },
+ "chen-messy": {
+  "candidate_name": "Chen Wei-Lin",
+  "field_summary": "Cloud Infrastructure & Platform Engineering",
+  "years_experience": 8,
+  "role_keywords": [
+   "platform engineer",
+   "infrastructure engineer",
+   "site reliability engineer",
+   "kubernetes engineer",
+   "terraform engineer",
+   "aws architect",
+   "cloud platform engineer",
+   "cloud infrastructure engineer",
+   "devops engineer",
+   "system engineer",
+   "cloud operations engineer",
+   "cloud platform specialist",
+   "cloud infrastructure specialist",
+   "cloud automation engineer",
+   "cloud systems engineer",
+   "cloud deployment engineer",
+   "cloud security engineer",
+   "cloud monitoring engineer",
+   "cloud networking engineer",
+   "cloud architecture engineer"
+  ],
+  "skill_weights": [
+   {
+    "term": "go",
+    "weight": 5
+   },
+   {
+    "term": "go",
+    "weight": 5
+   },
+   {
+    "term": "go",
+    "weight": 5
+   },
+   {
+    "term": "go",
+    "weight": 5
+   },
+   {
+    "term": "terraform",
+    "weight": 5
+   },
+   {
+    "term": "terraform",
+    "weight": 5
+   },
+   {
+    "term": "terraform",
+    "weight": 5
+   },
+   {
+    "term": "terraform",
+    "weight": 5
+   },
+   {
+    "term": "kubernetes",
+    "weight": 5
+   },
+   {
+    "term": "kubernetes",
+    "weight": 5
+   },
+   {
+    "term": "kubernetes",
+    "weight": 5
+   },
+   {
+    "term": "kubernetes",
+    "weight": 5
+   },
+   {
+    "term": "aws",
+    "weight": 5
+   },
+   {
+    "term": "aws",
+    "weight": 5
+   },
+   {
+    "term": "aws",
+    "weight": 5
+   },
+   {
+    "term": "aws",
+    "weight": 5
+   },
+   {
+    "term": "prometheus",
+    "weight": 5
+   },
+   {
+    "term": "prometheus",
+    "weight": 5
+   },
+   {
+    "term": "prometheus",
+    "weight": 5
+   },
+   {
+    "term": "envoy",
+    "weight": 5
+   },
+   {
+    "term": "envoy",
+    "weight": 5
+   },
+   {
+    "term": "envoy",
+    "weight": 5
+   },
+   {
+    "term": "kafka",
+    "weight": 5
+   },
+   {
+    "term": "kafka",
+    "weight": 5
+   },
+   {
+    "term": "kafka",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "bazel",
+    "weight": 5
+   },
+   {
+    "term": "bazel",
+    "weight": 5
+   },
+   {
+    "term": "bazel",
+    "weight": 5
+   },
+   {
+    "term": "cloud infrastructure",
+    "weight": 5
+   },
+   {
+    "term": "cloud platform",
+    "weight": 5
+   },
+   {
+    "term": "cloud operations",
+    "weight": 5
+   },
+   {
+    "term": "cloud automation",
+    "weight": 5
+   },
+   {
+    "term": "cloud systems",
+    "weight": 5
+   },
+   {
+    "term": "cloud deployment",
+    "weight": 5
+   },
+   {
+    "term": "cloud monitoring",
+    "weight": 5
+   },
+   {
+    "term": "cloud networking",
+    "weight": 5
+   },
+   {
+    "term": "cloud architecture",
+    "weight": 5
+   },
+   {
+    "term": "cloud security",
+    "weight": 5
+   },
+   {
+    "term": "cloud engineering",
+    "weight": 5
+   },
+   {
+    "term": "cloud platform engineer",
+    "weight": 5
+   },
+   {
+    "term": "cloud infrastructure engineer",
+    "weight": 5
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "java",
+    "weight": 1
+   },
+   {
+    "term": "python",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   },
+   {
+    "term": "vue",
+    "weight": 1
+   },
+   {
+    "term": "node",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   },
+   {
+    "term": "react.js",
+    "weight": 1
+   },
+   {
+    "term": "react-native",
+    "weight": 1
+   },
+   {
+    "term": "flutter",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "cloud",
+   "platform",
+   "infrastructure",
+   "operations",
+   "system",
+   "automation"
+  ],
+  "domain_half_b": [
+   "engineering",
+   "architecture",
+   "monitoring",
+   "networking",
+   "security",
+   "deployment"
+  ],
+  "domain_title_terms": [
+   "cloud platform engineer",
+   "cloud infrastructure engineer",
+   "cloud operations engineer",
+   "cloud systems engineer",
+   "cloud automation engineer",
+   "cloud deployment engineer",
+   "cloud monitoring engineer",
+   "cloud networking engineer",
+   "cloud security engineer",
+   "cloud architecture engineer",
+   "cloud platform specialist",
+   "cloud infrastructure specialist"
+  ],
+  "title_hints": [
+   "cloud",
+   "platform",
+   "infrastructure",
+   "operations",
+   "system",
+   "automation",
+   "engineering",
+   "architecture",
+   "monitoring",
+   "networking",
+   "security",
+   "deployment",
+   "kubernetes",
+   "terraform",
+   "aws",
+   "prometheus",
+   "envoy",
+   "kafka",
+   "postgresql",
+   "bazel",
+   "cloud platform",
+   "cloud infrastructure",
+   "cloud operations",
+   "cloud systems",
+   "cloud automation",
+   "cloud deployment",
+   "cloud monitoring",
+   "cloud networking",
+   "cloud security",
+   "cloud architecture",
+   "cloud engineering",
+   "cloud platform engineer",
+   "cloud infrastructure engineer",
+   "cloud operations engineer",
+   "cloud systems engineer",
+   "cloud automation engineer",
+   "cloud deployment engineer",
+   "cloud monitoring engineer",
+   "cloud networking engineer",
+   "cloud security engineer"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 5,
+  "notes": "The candidate has a strong focus on cloud infrastructure and platform engineering, with deep expertise in Kubernetes, Terraform, AWS, and monitoring systems like Prometheus. The field has a clear domain split between 'cloud infrastructure' and 'cloud operations', which is reflected in the domain_bonus. No adjacent fields are relevant, so title_exclude is empty."
+ },
+ "dmitri-plain": {
+  "candidate_name": "Dmitri Sarkisyan",
+  "field_summary": "Formal methods and systems verification, with a focus on safety-critical systems and formal verification tools.",
+  "years_experience": 6,
+  "role_keywords": [
+   "formal methods engineer",
+   "verification engineer",
+   "systems verification engineer",
+   "formal verification engineer",
+   "formal methods consultant",
+   "formal methods specialist",
+   "proof engineer",
+   "proof assistant engineer",
+   "coq engineer",
+   "tla+ engineer",
+   "seL4 engineer",
+   "isabelle engineer",
+   "systems verification specialist",
+   "formal systems engineer",
+   "formal verification specialist",
+   "formal methods developer",
+   "formal methods architect",
+   "formal methods researcher",
+   "formal methods analyst"
+  ],
+  "skill_weights": [
+   {
+    "term": "ocaml",
+    "weight": 5
+   },
+   {
+    "term": "coq",
+    "weight": 5
+   },
+   {
+    "term": "tla+",
+    "weight": 5
+   },
+   {
+    "term": "lean 4",
+    "weight": 5
+   },
+   {
+    "term": "zig",
+    "weight": 5
+   },
+   {
+    "term": "seL4",
+    "weight": 5
+   },
+   {
+    "term": "isabelle",
+    "weight": 5
+   },
+   {
+    "term": "rust",
+    "weight": 4
+   },
+   {
+    "term": "spark ada",
+    "weight": 4
+   },
+   {
+    "term": "frama-c",
+    "weight": 4
+   },
+   {
+    "term": "formal methods",
+    "weight": 4
+   },
+   {
+    "term": "verification",
+    "weight": 4
+   },
+   {
+    "term": "proof",
+    "weight": 4
+   },
+   {
+    "term": "systems engineer",
+    "weight": 3
+   },
+   {
+    "term": "engineer",
+    "weight": 3
+   },
+   {
+    "term": "specification",
+    "weight": 3
+   },
+   {
+    "term": "protocol",
+    "weight": 3
+   },
+   {
+    "term": "auditing",
+    "weight": 3
+   },
+   {
+    "term": "formal verification",
+    "weight": 3
+   },
+   {
+    "term": "formal methods engineer",
+    "weight": 3
+   },
+   {
+    "term": "formal methods specialist",
+    "weight": 3
+   },
+   {
+    "term": "formal methods consultant",
+    "weight": 3
+   },
+   {
+    "term": "formal methods developer",
+    "weight": 3
+   },
+   {
+    "term": "formal methods architect",
+    "weight": 3
+   },
+   {
+    "term": "formal methods researcher",
+    "weight": 3
+   },
+   {
+    "term": "formal methods analyst",
+    "weight": 3
+   },
+   {
+    "term": "formal methods expert",
+    "weight": 3
+   },
+   {
+    "term": "formal methods validation",
+    "weight": 3
+   },
+   {
+    "term": "formal methods verification",
+    "weight": 3
+   },
+   {
+    "term": "formal methods validation",
+    "weight": 3
+   },
+   {
+    "term": "formal methods proof",
+    "weight": 3
+   },
+   {
+    "term": "formal methods specification",
+    "weight": 3
+   },
+   {
+    "term": "formal methods audit",
+    "weight": 3
+   },
+   {
+    "term": "formal methods analysis",
+    "weight": 3
+   },
+   {
+    "term": "formal methods design",
+    "weight": 3
+   },
+   {
+    "term": "formal methods implementation",
+    "weight": 3
+   },
+   {
+    "term": "formal methods testing",
+    "weight": 3
+   },
+   {
+    "term": "formal methods debugging",
+    "weight": 3
+   },
+   {
+    "term": "formal methods debugging",
+    "weight": 3
+   },
+   {
+    "term": "formal methods debugging",
+    "weight": 3
+   },
+   {
+    "term": "formal methods debugging",
+    "weight": 3
+   },
+   {
+    "term": "formal methods debugging",
+    "weight": 3
+   },
+   {
+    "term": "formal methods debugging",
+    "weight": 3
+   },
+   {
+    "term": "formal methods debugging",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "entry-level",
+    "weight": 1
+   },
+   {
+    "term": "student",
+    "weight": 1
+   },
+   {
+    "term": "trainee",
+    "weight": 1
+   },
+   {
+    "term": "assistant",
+    "weight": 1
+   },
+   {
+    "term": "support",
+    "weight": 1
+   },
+   {
+    "term": "helpdesk",
+    "weight": 1
+   },
+   {
+    "term": "admin",
+    "weight": 1
+   },
+   {
+    "term": "operations",
+    "weight": 1
+   },
+   {
+    "term": "maintenance",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "formal",
+   "verification",
+   "proof",
+   "specification",
+   "formal methods"
+  ],
+  "domain_half_b": [
+   "systems",
+   "engineer",
+   "engineer",
+   "design",
+   "implementation"
+  ],
+  "domain_title_terms": [
+   "formal methods engineer",
+   "formal verification engineer",
+   "formal methods specialist",
+   "formal methods consultant",
+   "formal methods developer",
+   "formal methods architect",
+   "formal methods researcher",
+   "formal methods analyst",
+   "formal methods expert",
+   "formal methods validation",
+   "formal methods verification",
+   "formal methods proof"
+  ],
+  "title_hints": [
+   "formal methods",
+   "verification",
+   "proof",
+   "specification",
+   "formal verification",
+   "formal methods engineer",
+   "formal methods specialist",
+   "formal methods consultant",
+   "formal methods developer",
+   "formal methods architect",
+   "formal methods researcher",
+   "formal methods analyst",
+   "formal methods expert",
+   "formal methods validation",
+   "formal methods verification",
+   "formal methods proof",
+   "formal methods audit",
+   "formal methods analysis",
+   "formal methods design",
+   "formal methods implementation",
+   "formal methods testing",
+   "formal methods debugging",
+   "formal methods specification",
+   "formal methods validation",
+   "formal methods verification",
+   "formal methods proof",
+   "formal methods specification",
+   "formal methods audit",
+   "formal methods analysis",
+   "formal methods design",
+   "formal methods implementation",
+   "formal methods testing",
+   "formal methods debugging"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "No natural split between domain halves. The field is highly specialized in formal methods and systems verification, with a focus on safety-critical systems and formal verification tools. The candidate has a strong background in proof engineering, specification, and formal audit. Avoid any roles that imply junior or entry-level experience."
+ },
+ "dmitri-messy": {
+  "candidate_name": "Dmitri Sarkisyan",
+  "field_summary": "Formal methods and systems verification, with a focus on safety-critical systems and formal verification tools.",
+  "years_experience": 6,
+  "role_keywords": [
+   "formal methods engineer",
+   "verification engineer",
+   "systems engineer",
+   "formal verification specialist",
+   "proof engineer",
+   "formal methods consultant",
+   "formal verification engineer",
+   "formal methods developer",
+   "formal methods researcher",
+   "formal methods architect",
+   "formal methods analyst",
+   "formal methods systems engineer",
+   "formal methods validation engineer",
+   "formal methods validation specialist",
+   "formal methods validation engineer",
+   "formal methods validation architect",
+   "formal methods validation developer",
+   "formal methods validation analyst",
+   "formal methods validation consultant"
+  ],
+  "skill_weights": [
+   {
+    "term": "ocaml",
+    "weight": 5
+   },
+   {
+    "term": "coq",
+    "weight": 5
+   },
+   {
+    "term": "tla+",
+    "weight": 5
+   },
+   {
+    "term": "lean 4",
+    "weight": 5
+   },
+   {
+    "term": "zig",
+    "weight": 5
+   },
+   {
+    "term": "seL4",
+    "weight": 5
+   },
+   {
+    "term": "isabelle",
+    "weight": 5
+   },
+   {
+    "term": "rust",
+    "weight": 5
+   },
+   {
+    "term": "spark ada",
+    "weight": 5
+   },
+   {
+    "term": "frama-c",
+    "weight": 5
+   },
+   {
+    "term": "formal methods",
+    "weight": 5
+   },
+   {
+    "term": "verification",
+    "weight": 5
+   },
+   {
+    "term": "proof",
+    "weight": 5
+   },
+   {
+    "term": "specification",
+    "weight": 4
+   },
+   {
+    "term": "formal verification",
+    "weight": 5
+   },
+   {
+    "term": "systems engineering",
+    "weight": 5
+   },
+   {
+    "term": "formal methods engineer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods specialist",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation",
+    "weight": 5
+   },
+   {
+    "term": "formal methods architect",
+    "weight": 5
+   },
+   {
+    "term": "formal methods developer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods analyst",
+    "weight": 5
+   },
+   {
+    "term": "formal methods consultant",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation engineer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation specialist",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation architect",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation developer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation analyst",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation consultant",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation engineer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation specialist",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation architect",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation developer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation analyst",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation consultant",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation engineer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation specialist",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation architect",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation developer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation analyst",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation consultant",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation engineer",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation specialist",
+    "weight": 5
+   },
+   {
+    "term": "formal methods validation architect",
+    "weight": 5
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "web",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   },
+   {
+    "term": "vue",
+    "weight": 1
+   },
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "backend",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "ios",
+    "weight": 1
+   },
+   {
+    "term": "android",
+    "weight": 1
+   },
+   {
+    "term": "design",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "formal",
+   "verification",
+   "proof",
+   "specification",
+   "formal methods"
+  ],
+  "domain_half_b": [
+   "engineering",
+   "validation",
+   "validation",
+   "specialist",
+   "consultant"
+  ],
+  "domain_title_terms": [
+   "formal methods engineer",
+   "formal methods specialist",
+   "formal methods validation engineer",
+   "formal methods validation specialist",
+   "formal methods validation architect",
+   "formal methods validation developer",
+   "formal methods validation analyst",
+   "formal methods validation consultant",
+   "formal methods validation engineer",
+   "formal methods validation specialist",
+   "formal methods validation architect",
+   "formal methods validation developer"
+  ],
+  "title_hints": [
+   "formal methods",
+   "verification",
+   "proof",
+   "specification",
+   "formal verification",
+   "formal methods engineer",
+   "formal methods specialist",
+   "formal methods validation",
+   "formal methods validation engineer",
+   "formal methods validation specialist",
+   "formal methods validation architect",
+   "formal methods validation developer",
+   "formal methods validation analyst",
+   "formal methods validation consultant",
+   "formal methods validation engineer",
+   "formal methods validation specialist",
+   "formal methods validation architect",
+   "formal methods validation developer"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 5,
+  "notes": "The candidate is deeply embedded in the field of formal methods and verification, with a focus on safety-critical systems. The domain_bonus is high due to the specificity of terms like 'formal methods', 'verification', 'proof', and 'specification', which are unique to this field and not commonly found in adjacent domains. The title_hints and role_keywords are all derived from the candidate's r\u00e9sum\u00e9 and reflect the exact terminology used in their field."
+ },
+ "esi-plain": {
+  "candidate_name": "Esi Boateng",
+  "field_summary": "Full-Stack Developer with a focus on React, Node.js, and PostgreSQL, building scalable web applications and APIs for local and community-driven projects in Ghana.",
+  "years_experience": 2,
+  "role_keywords": [
+   "full stack developer",
+   "react developer",
+   "node.js developer",
+   "typescript developer",
+   "postgresql developer",
+   "full stack engineer",
+   "web developer",
+   "software developer",
+   "frontend developer",
+   "backend developer",
+   "api developer",
+   "application developer",
+   "web application developer",
+   "full stack application developer",
+   "react developer (Ghana)",
+   "node.js developer (Accra)",
+   "typescript developer (Ghana)",
+   "postgresql developer (Accra)",
+   "web developer (Ghana)",
+   "software engineer (Ghana)"
+  ],
+  "skill_weights": [
+   {
+    "term": "react",
+    "weight": 5
+   },
+   {
+    "term": "typescript",
+    "weight": 5
+   },
+   {
+    "term": "node.js",
+    "weight": 5
+   },
+   {
+    "term": "prisma",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "tailwind css",
+    "weight": 5
+   },
+   {
+    "term": "trpc",
+    "weight": 5
+   },
+   {
+    "term": "vitest",
+    "weight": 5
+   },
+   {
+    "term": "next.js",
+    "weight": 4
+   },
+   {
+    "term": "react.js",
+    "weight": 4
+   },
+   {
+    "term": "node",
+    "weight": 4
+   },
+   {
+    "term": "postgres",
+    "weight": 4
+   },
+   {
+    "term": "postgresql",
+    "weight": 4
+   },
+   {
+    "term": "tailwind",
+    "weight": 4
+   },
+   {
+    "term": "typescript",
+    "weight": 4
+   },
+   {
+    "term": "react",
+    "weight": 4
+   },
+   {
+    "term": "node.js",
+    "weight": 4
+   },
+   {
+    "term": "prisma",
+    "weight": 4
+   },
+   {
+    "term": "trpc",
+    "weight": 4
+   },
+   {
+    "term": "vitest",
+    "weight": 4
+   },
+   {
+    "term": "next",
+    "weight": 3
+   },
+   {
+    "term": "css",
+    "weight": 3
+   },
+   {
+    "term": "javascript",
+    "weight": 3
+   },
+   {
+    "term": "api",
+    "weight": 3
+   },
+   {
+    "term": "web",
+    "weight": 3
+   },
+   {
+    "term": "application",
+    "weight": 3
+   },
+   {
+    "term": "software",
+    "weight": 3
+   },
+   {
+    "term": "developer",
+    "weight": 3
+   },
+   {
+    "term": "engineering",
+    "weight": 3
+   },
+   {
+    "term": "developer",
+    "weight": 3
+   },
+   {
+    "term": "engineering",
+    "weight": 3
+   },
+   {
+    "term": "full stack",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "backend",
+    "weight": 3
+   },
+   {
+    "term": "application",
+    "weight": 3
+   },
+   {
+    "term": "web",
+    "weight": 3
+   },
+   {
+    "term": "software",
+    "weight": 3
+   },
+   {
+    "term": "developer",
+    "weight": 3
+   },
+   {
+    "term": "engineering",
+    "weight": 3
+   },
+   {
+    "term": "developer",
+    "weight": 3
+   },
+   {
+    "term": "engineering",
+    "weight": 3
+   },
+   {
+    "term": "full stack",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "backend",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "entry level",
+    "weight": 1
+   },
+   {
+    "term": "student",
+    "weight": 1
+   },
+   {
+    "term": "trainee",
+    "weight": 1
+   },
+   {
+    "term": "assistant",
+    "weight": 1
+   },
+   {
+    "term": "apprentice",
+    "weight": 1
+   },
+   {
+    "term": "co-op",
+    "weight": 1
+   },
+   {
+    "term": "part-time",
+    "weight": 1
+   },
+   {
+    "term": "remote",
+    "weight": 1
+   },
+   {
+    "term": "contract",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "react",
+   "typescript",
+   "node.js",
+   "trpc",
+   "tailwind css",
+   "vitest"
+  ],
+  "domain_half_b": [
+   "postgresql",
+   "prisma",
+   "next.js",
+   "api",
+   "application",
+   "web"
+  ],
+  "domain_title_terms": [
+   "react developer",
+   "typescript developer",
+   "node.js developer",
+   "trpc developer",
+   "tailwind css developer",
+   "vitest developer",
+   "postgresql developer",
+   "prisma developer",
+   "next.js developer",
+   "api developer",
+   "application developer",
+   "web developer"
+  ],
+  "title_hints": [
+   "react",
+   "typescript",
+   "node.js",
+   "trpc",
+   "tailwind",
+   "vitest",
+   "postgresql",
+   "prisma",
+   "next.js",
+   "api",
+   "application",
+   "web",
+   "developer",
+   "engineer",
+   "software",
+   "full stack",
+   "frontend",
+   "backend",
+   "web application",
+   "application developer",
+   "web developer",
+   "software developer",
+   "full stack developer",
+   "react developer",
+   "typescript developer",
+   "node.js developer",
+   "trpc developer",
+   "tailwind developer",
+   "vitest developer",
+   "postgresql developer",
+   "prisma developer",
+   "next.js developer",
+   "api developer",
+   "application developer",
+   "web developer"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "The candidate has a strong focus on React, TypeScript, Node.js, and PostgreSQL, with a clear emphasis on building full-stack applications for local and community-driven projects. The field is not tied to any specific industry beyond web development, and the title hints reflect the technical stack and the nature of the work. No domain bonus is applicable since the field does not naturally split into frontend and backend in the way that, for example, a web developer might."
+ },
+ "esi-messy": {
+  "candidate_name": "Esi Boateng",
+  "field_summary": "Full-Stack Developer with a focus on React, TypeScript, Node.js, and PostgreSQL, working on local Ghanaian projects and tools for public services and community platforms.",
+  "years_experience": 4,
+  "role_keywords": [
+   "full stack developer",
+   "react developer",
+   "typescript developer",
+   "node.js developer",
+   "postgresql developer",
+   "full stack engineer",
+   "frontend developer",
+   "backend developer",
+   "web developer",
+   "software developer",
+   "web application developer",
+   "application developer",
+   "developer",
+   "software engineer",
+   "full stack developer (Ghana)",
+   "react developer (Ghana)",
+   "typescript developer (Ghana)",
+   "node.js developer (Ghana)",
+   "postgresql developer (Ghana)"
+  ],
+  "skill_weights": [
+   {
+    "term": "react",
+    "weight": 5
+   },
+   {
+    "term": "typescript",
+    "weight": 5
+   },
+   {
+    "term": "node.js",
+    "weight": 5
+   },
+   {
+    "term": "prisma",
+    "weight": 4
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "tailwind css",
+    "weight": 4
+   },
+   {
+    "term": "trpc",
+    "weight": 4
+   },
+   {
+    "term": "vitest",
+    "weight": 3
+   },
+   {
+    "term": "next.js",
+    "weight": 3
+   },
+   {
+    "term": "react.js",
+    "weight": 3
+   },
+   {
+    "term": "typescript.js",
+    "weight": 3
+   },
+   {
+    "term": "node",
+    "weight": 3
+   },
+   {
+    "term": "postgres",
+    "weight": 3
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "tailwind",
+    "weight": 4
+   },
+   {
+    "term": "css",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "html",
+    "weight": 1
+   },
+   {
+    "term": "web development",
+    "weight": 1
+   },
+   {
+    "term": "software development",
+    "weight": 1
+   },
+   {
+    "term": "full stack",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "backend",
+    "weight": 3
+   },
+   {
+    "term": "developer",
+    "weight": 3
+   },
+   {
+    "term": "engineering",
+    "weight": 3
+   },
+   {
+    "term": "application",
+    "weight": 3
+   },
+   {
+    "term": "platform",
+    "weight": 3
+   },
+   {
+    "term": "tool",
+    "weight": 3
+   },
+   {
+    "term": "system",
+    "weight": 3
+   },
+   {
+    "term": "api",
+    "weight": 3
+   },
+   {
+    "term": "database",
+    "weight": 3
+   },
+   {
+    "term": "data",
+    "weight": 1
+   },
+   {
+    "term": "analytics",
+    "weight": 1
+   },
+   {
+    "term": "design",
+    "weight": 1
+   },
+   {
+    "term": "ux",
+    "weight": 1
+   },
+   {
+    "term": "ui",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "web",
+    "weight": 3
+   },
+   {
+    "term": "server",
+    "weight": 3
+   },
+   {
+    "term": "client",
+    "weight": 3
+   },
+   {
+    "term": "cloud",
+    "weight": 1
+   },
+   {
+    "term": "devops",
+    "weight": 1
+   },
+   {
+    "term": "security",
+    "weight": 1
+   },
+   {
+    "term": "testing",
+    "weight": 2
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "entry level",
+    "weight": 1
+   },
+   {
+    "term": "trainee",
+    "weight": 1
+   },
+   {
+    "term": "assistant",
+    "weight": 1
+   },
+   {
+    "term": "student",
+    "weight": 1
+   },
+   {
+    "term": "part time",
+    "weight": 1
+   },
+   {
+    "term": "remote",
+    "weight": 1
+   },
+   {
+    "term": "freelance",
+    "weight": 1
+   },
+   {
+    "term": "contract",
+    "weight": 1
+   },
+   {
+    "term": "temporary",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "react",
+   "typescript",
+   "node.js",
+   "postgresql",
+   "tailwind css",
+   "trpc",
+   "vitest"
+  ],
+  "domain_half_b": [
+   "full stack",
+   "developer",
+   "software",
+   "web",
+   "application",
+   "platform",
+   "tool"
+  ],
+  "domain_title_terms": [
+   "react developer",
+   "typescript developer",
+   "node.js developer",
+   "postgresql developer",
+   "full stack developer",
+   "web developer",
+   "software developer",
+   "application developer",
+   "platform developer",
+   "tool developer",
+   "react engineer",
+   "typescript engineer"
+  ],
+  "title_hints": [
+   "react",
+   "typescript",
+   "node.js",
+   "postgresql",
+   "tailwind",
+   "trpc",
+   "vitest",
+   "next.js",
+   "full stack",
+   "developer",
+   "software",
+   "web",
+   "application",
+   "platform",
+   "tool",
+   "api",
+   "database",
+   "system",
+   "client",
+   "server",
+   "frontend",
+   "backend",
+   "engineering",
+   "development",
+   "code",
+   "build",
+   "design",
+   "ux",
+   "ui",
+   "mobile",
+   "web app",
+   "application",
+   "software",
+   "platform",
+   "tool",
+   "system",
+   "api",
+   "database",
+   "server",
+   "client"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 3,
+  "notes": "The candidate has a strong focus on React, TypeScript, Node.js, and PostgreSQL, with a clear emphasis on building full-stack applications for local Ghanaian use cases. The domain_bonus is high due to the clear split between frontend (React, Tailwind CSS) and backend (Node.js, Prisma, PostgreSQL). The candidate is not aligned with traditional web development roles, but rather with local development and community-focused tools."
+ },
+ "farida-plain": {
+  "candidate_name": "Farida Haddad",
+  "field_summary": "Data Engineering / Analytics Engineering",
+  "years_experience": 4,
+  "role_keywords": [
+   "data engineer",
+   "analytics engineer",
+   "data pipeline engineer",
+   "data pipeline developer",
+   "dbt engineer",
+   "snowflake engineer",
+   "spark engineer",
+   "airflow engineer",
+   "data modeling engineer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline developer",
+   "data pipeline builder",
+   "data pipeline analyst",
+   "data pipeline designer",
+   "data pipeline optimizer",
+   "data pipeline integrator",
+   "data pipeline automation",
+   "data pipeline monitoring",
+   "data pipeline governance",
+   "data pipeline security",
+   "data pipeline performance",
+   "data pipeline scalability",
+   "data pipeline reliability",
+   "data pipeline maintenance",
+   "data pipeline troubleshooting",
+   "data pipeline deployment",
+   "data pipeline configuration",
+   "data pipeline orchestration",
+   "data pipeline scheduling",
+   "data pipeline versioning",
+   "data pipeline documentation",
+   "data pipeline testing",
+   "data pipeline validation",
+   "data pipeline compliance",
+   "data pipeline audit",
+   "data pipeline governance",
+   "data pipeline security",
+   "data pipeline performance",
+   "data pipeline scalability"
+  ],
+  "skill_weights": [
+   {
+    "term": "data engineer",
+    "weight": 5
+   },
+   {
+    "term": "analytics engineer",
+    "weight": 5
+   },
+   {
+    "term": "dbt",
+    "weight": 5
+   },
+   {
+    "term": "snowflake",
+    "weight": 5
+   },
+   {
+    "term": "spark",
+    "weight": 5
+   },
+   {
+    "term": "airflow",
+    "weight": 5
+   },
+   {
+    "term": "sql",
+    "weight": 5
+   },
+   {
+    "term": "kafka",
+    "weight": 5
+   },
+   {
+    "term": "great expectations",
+    "weight": 5
+   },
+   {
+    "term": "python",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline",
+    "weight": 5
+   },
+   {
+    "term": "data modeling",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline engineer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline specialist",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline builder",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline analyst",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline designer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline optimizer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline integrator",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline automation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline monitoring",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline governance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline security",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline performance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline scalability",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline reliability",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline maintenance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline troubleshooting",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline deployment",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline configuration",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline orchestration",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline scheduling",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline versioning",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline documentation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline testing",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline validation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline compliance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline audit",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline governance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline security",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline performance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline scalability",
+    "weight": 5
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "java",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   },
+   {
+    "term": "react.js",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   },
+   {
+    "term": "vue.js",
+    "weight": 1
+   },
+   {
+    "term": "typescript",
+    "weight": 1
+   },
+   {
+    "term": "front-end",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline",
+   "engineer",
+   "analytics",
+   "modeling"
+  ],
+  "domain_half_b": [
+   "engineer",
+   "developer",
+   "specialist",
+   "architect",
+   "designer"
+  ],
+  "domain_title_terms": [
+   "data engineer",
+   "analytics engineer",
+   "data pipeline engineer",
+   "data pipeline developer",
+   "dbt engineer",
+   "snowflake engineer",
+   "spark engineer",
+   "airflow engineer",
+   "data modeling engineer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline builder"
+  ],
+  "title_hints": [
+   "data",
+   "engineer",
+   "pipeline",
+   "analytics",
+   "modeling",
+   "dbt",
+   "snowflake",
+   "spark",
+   "airflow",
+   "sql",
+   "kafka",
+   "great expectations",
+   "python",
+   "data pipeline",
+   "data modeling",
+   "data pipeline engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline builder",
+   "data pipeline analyst",
+   "data pipeline designer",
+   "data pipeline optimizer",
+   "data pipeline integrator",
+   "data pipeline automation",
+   "data pipeline monitoring",
+   "data pipeline governance",
+   "data pipeline security",
+   "data pipeline performance",
+   "data pipeline scalability",
+   "data pipeline reliability",
+   "data pipeline maintenance",
+   "data pipeline troubleshooting",
+   "data pipeline deployment",
+   "data pipeline configuration",
+   "data pipeline orchestration",
+   "data pipeline scheduling",
+   "data pipeline versioning",
+   "data pipeline documentation",
+   "data pipeline testing"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "No natural split between halves in this field. All terms are domain-specific and tightly coupled to the data engineering/analytics engineering niche. No overlap with adjacent fields."
+ },
+ "farida-messy": {
+  "candidate_name": "Farida Haddad",
+  "field_summary": "Data Engineering with a focus on analytics and forecasting, particularly in the retail and grocery sectors in Morocco.",
+  "years_experience": 4,
+  "role_keywords": [
+   "data engineer",
+   "analytics engineer",
+   "data pipeline engineer",
+   "forecasting engineer",
+   "dbt engineer",
+   "snowflake engineer",
+   "spark engineer",
+   "airflow engineer",
+   "data quality engineer",
+   "retail data analyst",
+   "grocery data analyst",
+   "seasonal forecasting analyst",
+   "data modeling engineer",
+   "data pipeline developer",
+   "data transformation engineer",
+   "data pipeline architect"
+  ],
+  "skill_weights": [
+   {
+    "term": "data engineer",
+    "weight": 5
+   },
+   {
+    "term": "analytics engineer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline",
+    "weight": 5
+   },
+   {
+    "term": "dbt",
+    "weight": 5
+   },
+   {
+    "term": "snowflake",
+    "weight": 5
+   },
+   {
+    "term": "spark",
+    "weight": 5
+   },
+   {
+    "term": "airflow",
+    "weight": 5
+   },
+   {
+    "term": "sql",
+    "weight": 5
+   },
+   {
+    "term": "kafka",
+    "weight": 4
+   },
+   {
+    "term": "great expectations",
+    "weight": 4
+   },
+   {
+    "term": "data modeling",
+    "weight": 4
+   },
+   {
+    "term": "forecasting",
+    "weight": 4
+   },
+   {
+    "term": "data quality",
+    "weight": 4
+   },
+   {
+    "term": "seasonal forecasting",
+    "weight": 4
+   },
+   {
+    "term": "retail data",
+    "weight": 4
+   },
+   {
+    "term": "grocery data",
+    "weight": 4
+   },
+   {
+    "term": "data transformation",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 4
+   },
+   {
+    "term": "data modeling engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline engineer",
+    "weight": 4
+   },
+   {
+    "term": "data quality engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 4
+   },
+   {
+    "term": "data modeling engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline engineer",
+    "weight": 4
+   },
+   {
+    "term": "data quality engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 4
+   },
+   {
+    "term": "data modeling engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline engineer",
+    "weight": 4
+   },
+   {
+    "term": "data quality engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 4
+   },
+   {
+    "term": "data modeling engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline engineer",
+    "weight": 4
+   },
+   {
+    "term": "data quality engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 4
+   },
+   {
+    "term": "data modeling engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline engineer",
+    "weight": 4
+   },
+   {
+    "term": "data quality engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 4
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "web developer",
+    "weight": 1
+   },
+   {
+    "term": "software engineer",
+    "weight": 1
+   },
+   {
+    "term": "full stack",
+    "weight": 1
+   },
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "backend",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "node",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline",
+   "modeling",
+   "forecasting",
+   "retail",
+   "grocery"
+  ],
+  "domain_half_b": [
+   "engineer",
+   "analytics",
+   "quality",
+   "transformation",
+   "snowflake",
+   "spark"
+  ],
+  "domain_title_terms": [
+   "data engineer",
+   "analytics engineer",
+   "data pipeline engineer",
+   "forecasting engineer",
+   "dbt engineer",
+   "snowflake engineer",
+   "spark engineer",
+   "airflow engineer",
+   "data quality engineer",
+   "retail data analyst",
+   "grocery data analyst",
+   "seasonal forecasting analyst"
+  ],
+  "title_hints": [
+   "data",
+   "engineer",
+   "analytics",
+   "pipeline",
+   "forecasting",
+   "dbt",
+   "snowflake",
+   "spark",
+   "airflow",
+   "data quality",
+   "retail",
+   "grocery",
+   "seasonal",
+   "modeling",
+   "transformation",
+   "data pipeline",
+   "data modeling",
+   "data transformation",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data modeling engineer",
+   "data pipeline engineer",
+   "data quality engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data modeling engineer",
+   "data pipeline engineer",
+   "data quality engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data modeling engineer",
+   "data pipeline engineer",
+   "data quality engineer",
+   "data pipeline developer",
+   "data pipeline architect"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "The field is highly specialized in data engineering with a focus on retail and grocery forecasting. The domain_bonus is 0 because the field does not naturally split into two distinct halves like frontend and backend. The title_hints are extensive to ensure the scraper captures all relevant job titles in the domain."
+ },
+ "gopal-plain": {
+  "candidate_name": "Gopal Krishnan",
+  "field_summary": "QA Automation and Test Engineering",
+  "years_experience": 8,
+  "role_keywords": [
+   "QA Automation Lead",
+   "SDET",
+   "Test Engineer",
+   "QA Automation Specialist",
+   "Test Automation Lead",
+   "QA Engineer",
+   "Test Automation Engineer",
+   "QA Automation Architect",
+   "Test Automation Architect",
+   "QA Automation Consultant",
+   "Test Automation Consultant",
+   "QA Automation Manager",
+   "Test Automation Manager",
+   "QA Automation Director",
+   "Test Automation Director"
+  ],
+  "skill_weights": [
+   {
+    "term": "selenium",
+    "weight": 5
+   },
+   {
+    "term": "playwright",
+    "weight": 5
+   },
+   {
+    "term": "pytest",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "testng",
+    "weight": 5
+   },
+   {
+    "term": "appium",
+    "weight": 5
+   },
+   {
+    "term": "jenkins",
+    "weight": 5
+   },
+   {
+    "term": "rest assured",
+    "weight": 1
+   },
+   {
+    "term": "jmeter",
+    "weight": 5
+   },
+   {
+    "term": "istqb",
+    "weight": 1
+   },
+   {
+    "term": "test automation",
+    "weight": 1
+   },
+   {
+    "term": "qa automation",
+    "weight": 1
+   },
+   {
+    "term": "test engineer",
+    "weight": 1
+   },
+   {
+    "term": "qa engineer",
+    "weight": 1
+   },
+   {
+    "term": "test lead",
+    "weight": 1
+   },
+   {
+    "term": "qa lead",
+    "weight": 1
+   },
+   {
+    "term": "test automation engineer",
+    "weight": 1
+   },
+   {
+    "term": "qa automation engineer",
+    "weight": 1
+   },
+   {
+    "term": "test automation lead",
+    "weight": 1
+   },
+   {
+    "term": "qa automation lead",
+    "weight": 1
+   },
+   {
+    "term": "test automation specialist",
+    "weight": 1
+   },
+   {
+    "term": "qa automation specialist",
+    "weight": 1
+   },
+   {
+    "term": "test automation architect",
+    "weight": 1
+   },
+   {
+    "term": "qa automation architect",
+    "weight": 1
+   },
+   {
+    "term": "test automation manager",
+    "weight": 1
+   },
+   {
+    "term": "qa automation manager",
+    "weight": 1
+   },
+   {
+    "term": "test automation director",
+    "weight": 1
+   },
+   {
+    "term": "qa automation director",
+    "weight": 1
+   },
+   {
+    "term": "test automation consultant",
+    "weight": 1
+   },
+   {
+    "term": "qa automation consultant",
+    "weight": 1
+   },
+   {
+    "term": "test automation framework",
+    "weight": 1
+   },
+   {
+    "term": "qa automation framework",
+    "weight": 1
+   },
+   {
+    "term": "test automation tools",
+    "weight": 1
+   },
+   {
+    "term": "qa automation tools",
+    "weight": 1
+   },
+   {
+    "term": "test automation pipeline",
+    "weight": 1
+   },
+   {
+    "term": "qa automation pipeline",
+    "weight": 1
+   },
+   {
+    "term": "test automation reporting",
+    "weight": 1
+   },
+   {
+    "term": "qa automation reporting",
+    "weight": 1
+   },
+   {
+    "term": "test automation monitoring",
+    "weight": 1
+   },
+   {
+    "term": "qa automation monitoring",
+    "weight": 1
+   },
+   {
+    "term": "test automation integration",
+    "weight": 1
+   },
+   {
+    "term": "qa automation integration",
+    "weight": 1
+   },
+   {
+    "term": "test automation deployment",
+    "weight": 1
+   },
+   {
+    "term": "qa automation deployment",
+    "weight": 1
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "salesforce",
+    "weight": 1
+   },
+   {
+    "term": "crm",
+    "weight": 1
+   },
+   {
+    "term": "business analyst",
+    "weight": 1
+   },
+   {
+    "term": "data engineer",
+    "weight": 1
+   },
+   {
+    "term": "data scientist",
+    "weight": 1
+   },
+   {
+    "term": "data analyst",
+    "weight": 1
+   },
+   {
+    "term": "software engineer",
+    "weight": 1
+   },
+   {
+    "term": "developer",
+    "weight": 1
+   },
+   {
+    "term": "web developer",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [],
+  "domain_half_b": [],
+  "domain_title_terms": [
+   "qa automation",
+   "test automation",
+   "selenium",
+   "playwright",
+   "pytest",
+   "java",
+   "testng",
+   "appium",
+   "jenkins",
+   "jmeter",
+   "istqb",
+   "qa engineer"
+  ],
+  "title_hints": [
+   "qa automation",
+   "test automation",
+   "selenium",
+   "playwright",
+   "pytest",
+   "java",
+   "testng",
+   "appium",
+   "jenkins",
+   "jmeter",
+   "istqb",
+   "qa engineer",
+   "test engineer",
+   "qa lead",
+   "test lead",
+   "qa specialist",
+   "test specialist",
+   "qa automation lead",
+   "test automation lead",
+   "qa automation engineer",
+   "test automation engineer",
+   "qa automation architect",
+   "test automation architect",
+   "qa automation manager",
+   "test automation manager",
+   "qa automation director",
+   "test automation director",
+   "qa automation consultant",
+   "test automation consultant",
+   "qa automation framework",
+   "test automation framework",
+   "qa automation tools",
+   "test automation tools",
+   "qa automation pipeline",
+   "test automation pipeline",
+   "qa automation reporting",
+   "test automation reporting",
+   "qa automation monitoring",
+   "test automation monitoring",
+   "qa automation integration"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "No natural split between halves in QA Automation field. Focus on QA automation, test automation, and related tools. Avoid terms from adjacent fields like software development, data engineering, or business analysis."
+ },
+ "gopal-messy": {
+  "candidate_name": "Gopal Krishnan",
+  "field_summary": "QA Automation and Test Engineering",
+  "years_experience": 8,
+  "role_keywords": [
+   "QA Automation Lead",
+   "SDET",
+   "Test Engineer",
+   "QA Automation Specialist",
+   "Test Automation Lead",
+   "Test Automation Engineer",
+   "QA Engineer",
+   "Test Lead",
+   "Test Automation Architect",
+   "QA Automation Architect",
+   "Test Automation Developer",
+   "QA Automation Developer"
+  ],
+  "skill_weights": [
+   {
+    "term": "selenium",
+    "weight": 5
+   },
+   {
+    "term": "playwright",
+    "weight": 5
+   },
+   {
+    "term": "pytest",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "testng",
+    "weight": 4
+   },
+   {
+    "term": "appium",
+    "weight": 4
+   },
+   {
+    "term": "jenkins",
+    "weight": 4
+   },
+   {
+    "term": "jmeter",
+    "weight": 3
+   },
+   {
+    "term": "rest assured",
+    "weight": 1
+   },
+   {
+    "term": "qa automation",
+    "weight": 1
+   },
+   {
+    "term": "test automation",
+    "weight": 1
+   },
+   {
+    "term": "test engineer",
+    "weight": 1
+   },
+   {
+    "term": "sdet",
+    "weight": 1
+   },
+   {
+    "term": "qa lead",
+    "weight": 1
+   },
+   {
+    "term": "test lead",
+    "weight": 1
+   },
+   {
+    "term": "qa specialist",
+    "weight": 1
+   },
+   {
+    "term": "test architect",
+    "weight": 1
+   },
+   {
+    "term": "test automation engineer",
+    "weight": 1
+   },
+   {
+    "term": "qa automation engineer",
+    "weight": 1
+   },
+   {
+    "term": "test automation developer",
+    "weight": 1
+   },
+   {
+    "term": "qa automation developer",
+    "weight": 1
+   },
+   {
+    "term": "test automation lead",
+    "weight": 1
+   },
+   {
+    "term": "qa automation lead",
+    "weight": 1
+   },
+   {
+    "term": "test automation architect",
+    "weight": 1
+   },
+   {
+    "term": "qa automation architect",
+    "weight": 1
+   },
+   {
+    "term": "test automation specialist",
+    "weight": 1
+   },
+   {
+    "term": "qa automation specialist",
+    "weight": 1
+   },
+   {
+    "term": "test automation",
+    "weight": 1
+   },
+   {
+    "term": "qa automation",
+    "weight": 1
+   },
+   {
+    "term": "test engineer",
+    "weight": 1
+   },
+   {
+    "term": "qa engineer",
+    "weight": 1
+   },
+   {
+    "term": "test lead",
+    "weight": 1
+   },
+   {
+    "term": "qa lead",
+    "weight": 1
+   },
+   {
+    "term": "test automation",
+    "weight": 1
+   },
+   {
+    "term": "qa automation",
+    "weight": 1
+   },
+   {
+    "term": "test engineer",
+    "weight": 1
+   },
+   {
+    "term": "qa engineer",
+    "weight": 1
+   },
+   {
+    "term": "test lead",
+    "weight": 1
+   },
+   {
+    "term": "qa lead",
+    "weight": 1
+   },
+   {
+    "term": "test automation",
+    "weight": 1
+   },
+   {
+    "term": "qa automation",
+    "weight": 1
+   },
+   {
+    "term": "test engineer",
+    "weight": 1
+   },
+   {
+    "term": "qa engineer",
+    "weight": 1
+   },
+   {
+    "term": "test lead",
+    "weight": 1
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "java",
+    "weight": 1
+   },
+   {
+    "term": "selenium",
+    "weight": 1
+   },
+   {
+    "term": "playwright",
+    "weight": 1
+   },
+   {
+    "term": "pytest",
+    "weight": 1
+   },
+   {
+    "term": "testng",
+    "weight": 1
+   },
+   {
+    "term": "appium",
+    "weight": 1
+   },
+   {
+    "term": "jenkins",
+    "weight": 1
+   },
+   {
+    "term": "jmeter",
+    "weight": 1
+   },
+   {
+    "term": "rest assured",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "qa",
+   "test",
+   "automation",
+   "lead",
+   "engineer",
+   "specialist"
+  ],
+  "domain_half_b": [
+   "selenium",
+   "playwright",
+   "pytest",
+   "java",
+   "testng",
+   "appium",
+   "jenkins",
+   "jmeter"
+  ],
+  "domain_title_terms": [
+   "qa automation lead",
+   "test automation engineer",
+   "qa automation specialist",
+   "test automation lead",
+   "qa automation architect",
+   "test automation architect",
+   "qa automation developer",
+   "test automation developer",
+   "qa automation",
+   "test automation",
+   "qa engineer",
+   "test engineer"
+  ],
+  "title_hints": [
+   "qa",
+   "automation",
+   "test",
+   "selenium",
+   "playwright",
+   "pytest",
+   "java",
+   "testng",
+   "appium",
+   "jenkins",
+   "jmeter",
+   "qa automation",
+   "test automation",
+   "qa engineer",
+   "test engineer",
+   "qa lead",
+   "test lead",
+   "qa specialist",
+   "test specialist",
+   "qa automation lead",
+   "test automation lead",
+   "qa automation engineer",
+   "test automation engineer",
+   "qa automation developer",
+   "test automation developer",
+   "qa automation architect",
+   "test automation architect",
+   "qa automation specialist",
+   "test automation specialist"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "No domain bonus, as QA Automation and Test Engineering do not naturally split into two distinct halves. All terms are strictly QA-focused, with no overlap with software development or web development domains."
+ },
+ "hana-plain": {
+  "candidate_name": "Hana Fujimoto",
+  "field_summary": "Hana Fujimoto is a Machine Learning Engineer with a background in civil engineering, specializing in computer vision and structural analysis. Her work bridges civil engineering and machine learning, particularly in defect detection, crack segmentation, and industrial automation. She has transitioned from civil engineering to ML engineering, with a focus on computer vision and edge computing.",
+  "years_experience": 10,
+  "role_keywords": [
+   "machine learning engineer",
+   "computer vision engineer",
+   "civil engineering",
+   "structural engineer",
+   "defect detection engineer",
+   "crack segmentation engineer",
+   "edge computing engineer",
+   "image processing engineer",
+   "bridge inspection engineer",
+   "civil engineering consultant",
+   "machine learning consultant",
+   "computer vision consultant",
+   "structural analysis engineer",
+   "finite element analysis engineer",
+   "image segmentation engineer",
+   "defect detection specialist",
+   "crack detection engineer",
+   "machine learning model engineer",
+   "edge AI engineer",
+   "image classification engineer",
+   "segmentation model engineer",
+   "int8 quantization engineer",
+   "onnx model engineer",
+   "polars data engineer",
+   "ray framework engineer",
+   "mlflow model registry engineer",
+   "opencv engineer",
+   "cuda engineer",
+   "pytorch engineer",
+   "civil engineering consultant",
+   "bridge engineering consultant",
+   "structural analysis consultant",
+   "finite element consultant",
+   "image processing consultant",
+   "defect detection consultant",
+   "crack detection consultant",
+   "machine learning model consultant"
+  ],
+  "skill_weights": [
+   {
+    "term": "machine learning engineer",
+    "weight": 5
+   },
+   {
+    "term": "computer vision engineer",
+    "weight": 5
+   },
+   {
+    "term": "civil engineering",
+    "weight": 5
+   },
+   {
+    "term": "structural engineer",
+    "weight": 5
+   },
+   {
+    "term": "defect detection engineer",
+    "weight": 5
+   },
+   {
+    "term": "crack segmentation engineer",
+    "weight": 5
+   },
+   {
+    "term": "edge computing engineer",
+    "weight": 5
+   },
+   {
+    "term": "image processing engineer",
+    "weight": 5
+   },
+   {
+    "term": "bridge inspection engineer",
+    "weight": 5
+   },
+   {
+    "term": "civil engineering consultant",
+    "weight": 5
+   },
+   {
+    "term": "machine learning consultant",
+    "weight": 5
+   },
+   {
+    "term": "computer vision consultant",
+    "weight": 5
+   },
+   {
+    "term": "structural analysis engineer",
+    "weight": 5
+   },
+   {
+    "term": "finite element analysis engineer",
+    "weight": 5
+   },
+   {
+    "term": "image segmentation engineer",
+    "weight": 5
+   },
+   {
+    "term": "defect detection specialist",
+    "weight": 5
+   },
+   {
+    "term": "crack detection engineer",
+    "weight": 5
+   },
+   {
+    "term": "machine learning model engineer",
+    "weight": 5
+   },
+   {
+    "term": "edge ai engineer",
+    "weight": 5
+   },
+   {
+    "term": "image classification engineer",
+    "weight": 5
+   },
+   {
+    "term": "segmentation model engineer",
+    "weight": 5
+   },
+   {
+    "term": "int8 quantization engineer",
+    "weight": 5
+   },
+   {
+    "term": "onnx model engineer",
+    "weight": 5
+   },
+   {
+    "term": "polars data engineer",
+    "weight": 5
+   },
+   {
+    "term": "ray framework engineer",
+    "weight": 5
+   },
+   {
+    "term": "mlflow model registry engineer",
+    "weight": 5
+   },
+   {
+    "term": "opencv engineer",
+    "weight": 5
+   },
+   {
+    "term": "cuda engineer",
+    "weight": 5
+   },
+   {
+    "term": "pytorch engineer",
+    "weight": 5
+   },
+   {
+    "term": "civil engineering consultant",
+    "weight": 5
+   },
+   {
+    "term": "bridge engineering consultant",
+    "weight": 5
+   },
+   {
+    "term": "structural analysis consultant",
+    "weight": 5
+   },
+   {
+    "term": "finite element consultant",
+    "weight": 5
+   },
+   {
+    "term": "image processing consultant",
+    "weight": 5
+   },
+   {
+    "term": "defect detection consultant",
+    "weight": 5
+   },
+   {
+    "term": "crack detection consultant",
+    "weight": 5
+   },
+   {
+    "term": "machine learning model consultant",
+    "weight": 5
+   },
+   {
+    "term": "machine learning",
+    "weight": 1
+   },
+   {
+    "term": "computer vision",
+    "weight": 1
+   },
+   {
+    "term": "civil engineering",
+    "weight": 1
+   },
+   {
+    "term": "structural engineering",
+    "weight": 1
+   },
+   {
+    "term": "defect detection",
+    "weight": 1
+   },
+   {
+    "term": "crack segmentation",
+    "weight": 1
+   },
+   {
+    "term": "edge computing",
+    "weight": 1
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "software engineer",
+    "weight": 1
+   },
+   {
+    "term": "web developer",
+    "weight": 1
+   },
+   {
+    "term": "frontend developer",
+    "weight": 1
+   },
+   {
+    "term": "backend developer",
+    "weight": 1
+   },
+   {
+    "term": "full-stack developer",
+    "weight": 1
+   },
+   {
+    "term": "mobile developer",
+    "weight": 1
+   },
+   {
+    "term": "cloud engineer",
+    "weight": 1
+   },
+   {
+    "term": "devops engineer",
+    "weight": 1
+   },
+   {
+    "term": "data scientist",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "machine learning",
+   "computer vision",
+   "edge computing",
+   "defect detection",
+   "crack segmentation",
+   "image processing"
+  ],
+  "domain_half_b": [
+   "civil engineering",
+   "structural analysis",
+   "bridge inspection",
+   "finite element analysis",
+   "image segmentation",
+   "segmentation model"
+  ],
+  "domain_title_terms": [
+   "machine learning engineer",
+   "computer vision engineer",
+   "civil engineering",
+   "structural engineer",
+   "defect detection engineer",
+   "crack segmentation engineer",
+   "edge computing engineer",
+   "image processing engineer",
+   "bridge inspection engineer",
+   "civil engineering consultant",
+   "machine learning consultant",
+   "computer vision consultant"
+  ],
+  "title_hints": [
+   "machine learning",
+   "computer vision",
+   "civil engineering",
+   "structural",
+   "defect detection",
+   "crack segmentation",
+   "edge computing",
+   "image processing",
+   "bridge inspection",
+   "finite element",
+   "segmentation",
+   "model",
+   "int8",
+   "onnx",
+   "polars",
+   "ray",
+   "mlflow",
+   "opencv",
+   "cuda",
+   "pytorch",
+   "civil engineering",
+   "structural analysis",
+   "image segmentation",
+   "defect detection",
+   "crack detection",
+   "edge ai",
+   "image classification",
+   "segmentation model",
+   "quantization",
+   "model registry",
+   "opencv",
+   "cuda",
+   "pytorch",
+   "mlflow",
+   "polars",
+   "ray",
+   "int8",
+   "onnx",
+   "segmentation",
+   "model"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 5,
+  "notes": "Hana Fujimoto has a unique hybrid background in civil engineering and machine learning, particularly in computer vision and structural analysis. Her field is highly specialized, with a focus on defect detection, crack segmentation, and edge computing. The domain_bonus is high due to the natural split between civil engineering and machine learning in her work. Avoid terms like 'software engineer' or 'web developer' as they are off-domain for her field."
+ },
+ "hana-messy": {
+  "candidate_name": "Hana Fujimoto",
+  "field_summary": "Hana Fujimoto is a Machine Learning Engineer with a background in civil engineering, specializing in computer vision and structural analysis. Her expertise lies at the intersection of civil engineering, computer vision, and machine learning, particularly in defect detection, crack segmentation, and industrial automation. She has transitioned from civil engineering to ML engineering, with a focus on edge computing, model optimization, and deployment.",
+  "years_experience": 12,
+  "role_keywords": [
+   "machine learning engineer",
+   "computer vision engineer",
+   "civil engineering",
+   "structural engineer",
+   "defect detection engineer",
+   "segmentation engineer",
+   "edge computing engineer",
+   "model optimization engineer",
+   "crack detection engineer",
+   "bridge inspection engineer",
+   "image processing engineer",
+   "data engineering",
+   "ML pipeline engineer",
+   "retraining engineer",
+   "deployment engineer",
+   "model registry engineer",
+   "quantization engineer",
+   "ONNX engineer",
+   "Polars engineer",
+   "Ray engineer",
+   "MLflow engineer",
+   "drift detection engineer",
+   "finite element analysis engineer",
+   "Abaqus engineer",
+   "civil engineering ML engineer",
+   "structural ML engineer",
+   "inspection automation engineer",
+   "crack segmentation engineer",
+   "bridge asset management engineer"
+  ],
+  "skill_weights": [
+   {
+    "term": "machine learning",
+    "weight": 5
+   },
+   {
+    "term": "machine learning engineer",
+    "weight": 5
+   },
+   {
+    "term": "computer vision",
+    "weight": 5
+   },
+   {
+    "term": "computer vision engineer",
+    "weight": 5
+   },
+   {
+    "term": "civil engineering",
+    "weight": 5
+   },
+   {
+    "term": "structural engineering",
+    "weight": 5
+   },
+   {
+    "term": "defect detection",
+    "weight": 5
+   },
+   {
+    "term": "segmentation",
+    "weight": 5
+   },
+   {
+    "term": "edge computing",
+    "weight": 5
+   },
+   {
+    "term": "model optimization",
+    "weight": 5
+   },
+   {
+    "term": "crack detection",
+    "weight": 5
+   },
+   {
+    "term": "image processing",
+    "weight": 5
+   },
+   {
+    "term": "model registry",
+    "weight": 5
+   },
+   {
+    "term": "quantization",
+    "weight": 5
+   },
+   {
+    "term": "ONNX",
+    "weight": 5
+   },
+   {
+    "term": "Polars",
+    "weight": 5
+   },
+   {
+    "term": "Ray",
+    "weight": 5
+   },
+   {
+    "term": "MLflow",
+    "weight": 5
+   },
+   {
+    "term": "drift detection",
+    "weight": 5
+   },
+   {
+    "term": "finite element analysis",
+    "weight": 5
+   },
+   {
+    "term": "Abaqus",
+    "weight": 5
+   },
+   {
+    "term": "bridge inspection",
+    "weight": 5
+   },
+   {
+    "term": "civil engineering ML",
+    "weight": 5
+   },
+   {
+    "term": "structural ML",
+    "weight": 5
+   },
+   {
+    "term": "inspection automation",
+    "weight": 5
+   },
+   {
+    "term": "crack segmentation",
+    "weight": 5
+   },
+   {
+    "term": "bridge asset management",
+    "weight": 5
+   },
+   {
+    "term": "python",
+    "weight": 4
+   },
+   {
+    "term": "pytorch",
+    "weight": 4
+   },
+   {
+    "term": "opencv",
+    "weight": 4
+   },
+   {
+    "term": "cuda",
+    "weight": 4
+   },
+   {
+    "term": "numpy",
+    "weight": 4
+   },
+   {
+    "term": "ray",
+    "weight": 4
+   },
+   {
+    "term": "mlflow",
+    "weight": 4
+   },
+   {
+    "term": "polars",
+    "weight": 4
+   },
+   {
+    "term": "onnx",
+    "weight": 4
+   },
+   {
+    "term": "opencv",
+    "weight": 4
+   },
+   {
+    "term": "cuda",
+    "weight": 4
+   },
+   {
+    "term": "numpy",
+    "weight": 4
+   },
+   {
+    "term": "ray",
+    "weight": 4
+   },
+   {
+    "term": "mlflow",
+    "weight": 4
+   },
+   {
+    "term": "polars",
+    "weight": 4
+   },
+   {
+    "term": "onnx",
+    "weight": 4
+   },
+   {
+    "term": "opencv",
+    "weight": 4
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "software engineer",
+    "weight": 1
+   },
+   {
+    "term": "web developer",
+    "weight": 1
+   },
+   {
+    "term": "full stack",
+    "weight": 1
+   },
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "backend",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "node",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "machine learning",
+   "computer vision",
+   "segmentation",
+   "defect detection",
+   "crack detection",
+   "edge computing",
+   "model optimization",
+   "quantization",
+   "ONNX",
+   "drift detection",
+   "finite element analysis",
+   "Abaqus"
+  ],
+  "domain_half_b": [
+   "civil engineering",
+   "structural engineering",
+   "bridge inspection",
+   "bridge asset management",
+   "image processing",
+   "model registry",
+   "retraining",
+   "deployment",
+   "Polars",
+   "Ray",
+   "MLflow",
+   "crack segmentation"
+  ],
+  "domain_title_terms": [
+   "machine learning engineer",
+   "computer vision engineer",
+   "civil engineering",
+   "structural engineer",
+   "defect detection engineer",
+   "segmentation engineer",
+   "edge computing engineer",
+   "model optimization engineer",
+   "crack detection engineer",
+   "image processing engineer",
+   "data engineering",
+   "ML pipeline engineer"
+  ],
+  "title_hints": [
+   "machine learning",
+   "computer vision",
+   "civil engineering",
+   "structural engineering",
+   "defect detection",
+   "segmentation",
+   "edge computing",
+   "model optimization",
+   "crack detection",
+   "image processing",
+   "model registry",
+   "quantization",
+   "ONNX",
+   "Polars",
+   "Ray",
+   "MLflow",
+   "drift detection",
+   "finite element analysis",
+   "Abaqus",
+   "bridge inspection",
+   "bridge asset management",
+   "crack segmentation",
+   "retraining",
+   "deployment",
+   "data engineering",
+   "ML pipeline"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 5,
+  "notes": "Hana Fujimoto's field is a hybrid of civil engineering and machine learning, with a strong focus on computer vision and structural analysis. Her domain_bonus is high due to the natural split between civil engineering and machine learning tasks. Avoid using generic terms like 'software engineer' or 'web developer' as they are off-domain. The title_hints are derived from her actual job titles and project focus areas, ensuring precise matching."
+ },
+ "iris-plain": {
+  "candidate_name": "Iris Bergstrom",
+  "field_summary": "Frontend development with a focus on React, TypeScript, and component-based design systems, particularly in the energy and retail sectors.",
+  "years_experience": 6,
+  "role_keywords": [
+   "frontend consultant",
+   "react consultant",
+   "frontend developer",
+   "component engineer",
+   "design system specialist",
+   "typescrip developer",
+   "typescript engineer",
+   "react architect",
+   "frontend architect",
+   "frontend specialist",
+   "frontend lead",
+   "frontend engineer",
+   "frontend consultant",
+   "frontend contractor",
+   "frontend contractor",
+   "frontend contractor",
+   "frontend contractor",
+   "frontend contractor",
+   "frontend contractor"
+  ],
+  "skill_weights": [
+   {
+    "term": "typescript",
+    "weight": 5
+   },
+   {
+    "term": "react",
+    "weight": 5
+   },
+   {
+    "term": "next.js",
+    "weight": 5
+   },
+   {
+    "term": "vite",
+    "weight": 5
+   },
+   {
+    "term": "playwright",
+    "weight": 5
+   },
+   {
+    "term": "tailwind",
+    "weight": 5
+   },
+   {
+    "term": "storybook",
+    "weight": 4
+   },
+   {
+    "term": "graphql",
+    "weight": 4
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "consultant",
+    "weight": 3
+   },
+   {
+    "term": "design system",
+    "weight": 3
+   },
+   {
+    "term": "component",
+    "weight": 3
+   },
+   {
+    "term": "typescript",
+    "weight": 3
+   },
+   {
+    "term": "react",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "design system",
+    "weight": 3
+   },
+   {
+    "term": "component",
+    "weight": 3
+   },
+   {
+    "term": "typescript",
+    "weight": 3
+   },
+   {
+    "term": "react",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "design system",
+    "weight": 3
+   },
+   {
+    "term": "component",
+    "weight": 3
+   },
+   {
+    "term": "typescript",
+    "weight": 3
+   },
+   {
+    "term": "react",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "design system",
+    "weight": 3
+   },
+   {
+    "term": "component",
+    "weight": 3
+   },
+   {
+    "term": "typescript",
+    "weight": 3
+   },
+   {
+    "term": "react",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "design system",
+    "weight": 3
+   },
+   {
+    "term": "component",
+    "weight": 3
+   },
+   {
+    "term": "typescript",
+    "weight": 3
+   },
+   {
+    "term": "react",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "design system",
+    "weight": 3
+   },
+   {
+    "term": "component",
+    "weight": 3
+   },
+   {
+    "term": "typescript",
+    "weight": 3
+   },
+   {
+    "term": "react",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "design system",
+    "weight": 3
+   },
+   {
+    "term": "component",
+    "weight": 3
+   },
+   {
+    "term": "typescript",
+    "weight": 3
+   },
+   {
+    "term": "react",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "backend",
+    "weight": 1
+   },
+   {
+    "term": "java",
+    "weight": 1
+   },
+   {
+    "term": "python",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   },
+   {
+    "term": "database",
+    "weight": 1
+   },
+   {
+    "term": "sql",
+    "weight": 1
+   },
+   {
+    "term": "api",
+    "weight": 1
+   },
+   {
+    "term": "server",
+    "weight": 1
+   },
+   {
+    "term": "cloud",
+    "weight": 1
+   },
+   {
+    "term": "devops",
+    "weight": 1
+   },
+   {
+    "term": "docker",
+    "weight": 1
+   },
+   {
+    "term": "kubernetes",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "frontend",
+   "component",
+   "design system",
+   "typescrip",
+   "react"
+  ],
+  "domain_half_b": [
+   "design system",
+   "component",
+   "typescrip",
+   "react",
+   "frontend"
+  ],
+  "domain_title_terms": [
+   "frontend consultant",
+   "react consultant",
+   "frontend developer",
+   "design system specialist",
+   "typescript developer",
+   "typescript engineer",
+   "react architect",
+   "frontend architect",
+   "frontend specialist",
+   "frontend lead",
+   "frontend engineer",
+   "frontend contractor"
+  ],
+  "title_hints": [
+   "frontend",
+   "react",
+   "typescript",
+   "design system",
+   "component",
+   "typescrip",
+   "frontend developer",
+   "react developer",
+   "typescript developer",
+   "design system engineer",
+   "component engineer",
+   "frontend consultant",
+   "react consultant",
+   "typescript consultant",
+   "design system specialist",
+   "component specialist",
+   "frontend architect",
+   "react architect",
+   "typescript architect",
+   "design system architect",
+   "component architect",
+   "frontend engineer",
+   "react engineer",
+   "typescript engineer",
+   "design system engineer",
+   "component engineer",
+   "frontend contractor",
+   "react contractor",
+   "typescript contractor",
+   "design system contractor",
+   "component contractor"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 3,
+  "notes": "The candidate has a strong focus on frontend development with React and TypeScript, particularly in the energy and retail sectors. The domain_bonus is 3 for matching both frontend and design system aspects. No penalty terms for seniority, as the candidate has 6 years of experience and avoids junior roles."
+ },
+ "iris-messy": {
+  "candidate_name": "Iris Bergstrom",
+  "field_summary": "Frontend development, with a focus on React, TypeScript, and component-based architecture. Specializes in design systems, performance optimization, and tooling for frontend workflows.",
+  "years_experience": 5,
+  "role_keywords": [
+   "frontend consultant",
+   "react consultant",
+   "frontend developer",
+   "typescript developer",
+   "component architect",
+   "design system specialist",
+   "performance engineer",
+   "tooling engineer",
+   "form builder developer",
+   "UI architect"
+  ],
+  "skill_weights": [
+   {
+    "term": "typescript",
+    "weight": 5
+   },
+   {
+    "term": "react",
+    "weight": 5
+   },
+   {
+    "term": "next.js",
+    "weight": 5
+   },
+   {
+    "term": "vite",
+    "weight": 5
+   },
+   {
+    "term": "playwright",
+    "weight": 5
+   },
+   {
+    "term": "tailwind",
+    "weight": 4
+   },
+   {
+    "term": "storybook",
+    "weight": 4
+   },
+   {
+    "term": "graphql",
+    "weight": 4
+   },
+   {
+    "term": "design system",
+    "weight": 4
+   },
+   {
+    "term": "performance optimization",
+    "weight": 4
+   },
+   {
+    "term": "component architecture",
+    "weight": 4
+   },
+   {
+    "term": "tooling",
+    "weight": 3
+   },
+   {
+    "term": "form builder",
+    "weight": 3
+   },
+   {
+    "term": "user interface",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "react consultant",
+    "weight": 3
+   },
+   {
+    "term": "typescript developer",
+    "weight": 3
+   },
+   {
+    "term": "component engineer",
+    "weight": 3
+   },
+   {
+    "term": "tooling engineer",
+    "weight": 3
+   },
+   {
+    "term": "ui architect",
+    "weight": 3
+   },
+   {
+    "term": "typescript",
+    "weight": 5
+   },
+   {
+    "term": "react",
+    "weight": 5
+   },
+   {
+    "term": "next.js",
+    "weight": 5
+   },
+   {
+    "term": "vite",
+    "weight": 5
+   },
+   {
+    "term": "playwright",
+    "weight": 5
+   },
+   {
+    "term": "tailwind",
+    "weight": 4
+   },
+   {
+    "term": "storybook",
+    "weight": 4
+   },
+   {
+    "term": "graphql",
+    "weight": 4
+   },
+   {
+    "term": "design system",
+    "weight": 4
+   },
+   {
+    "term": "performance optimization",
+    "weight": 4
+   },
+   {
+    "term": "component architecture",
+    "weight": 4
+   },
+   {
+    "term": "tooling",
+    "weight": 3
+   },
+   {
+    "term": "form builder",
+    "weight": 3
+   },
+   {
+    "term": "user interface",
+    "weight": 3
+   },
+   {
+    "term": "frontend",
+    "weight": 3
+   },
+   {
+    "term": "react consultant",
+    "weight": 3
+   },
+   {
+    "term": "typescript developer",
+    "weight": 3
+   },
+   {
+    "term": "component engineer",
+    "weight": 3
+   },
+   {
+    "term": "tooling engineer",
+    "weight": 3
+   },
+   {
+    "term": "ui architect",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "backend",
+    "weight": 1
+   },
+   {
+    "term": "database",
+    "weight": 1
+   },
+   {
+    "term": "sql",
+    "weight": 1
+   },
+   {
+    "term": "server",
+    "weight": 1
+   },
+   {
+    "term": "api",
+    "weight": 1
+   },
+   {
+    "term": "java",
+    "weight": 1
+   },
+   {
+    "term": "python",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   },
+   {
+    "term": "node",
+    "weight": 1
+   },
+   {
+    "term": "php",
+    "weight": 1
+   },
+   {
+    "term": "ruby",
+    "weight": 1
+   },
+   {
+    "term": "java",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "frontend",
+   "react",
+   "typescript",
+   "component"
+  ],
+  "domain_half_b": [
+   "design system",
+   "tooling",
+   "form builder",
+   "performance"
+  ],
+  "domain_title_terms": [
+   "frontend consultant",
+   "react consultant",
+   "typescript developer",
+   "component architect",
+   "design system specialist",
+   "tooling engineer",
+   "form builder developer",
+   "performance engineer",
+   "ui architect",
+   "frontend developer"
+  ],
+  "title_hints": [
+   "frontend",
+   "react",
+   "typescript",
+   "component",
+   "design system",
+   "tooling",
+   "form builder",
+   "performance",
+   "ui",
+   "typescript developer",
+   "react consultant",
+   "frontend architect",
+   "tooling engineer",
+   "form builder",
+   "performance engineer",
+   "component engineer",
+   "ui architect",
+   "typescript developer",
+   "react developer",
+   "frontend specialist",
+   "design system",
+   "tooling",
+   "form builder",
+   "performance",
+   "ui",
+   "component",
+   "typescript",
+   "react",
+   "frontend",
+   "tooling",
+   "form builder",
+   "performance",
+   "ui",
+   "component",
+   "typescript",
+   "react",
+   "frontend",
+   "tooling",
+   "form builder",
+   "performance"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 3,
+  "notes": "The field is strongly frontend-focused, with a clear emphasis on React, TypeScript, and component-based architecture. The domain_bonus is 3 due to the natural split between frontend tools (React, TypeScript, Vite, Playwright) and design/system/tooling (Design System, Form Builder, Tooling). No adjacent fields borrow these terms in the same way."
+ },
+ "jonas-plain": {
+  "candidate_name": "Jonas Beck",
+  "field_summary": "Data Engineering",
+  "years_experience": 6,
+  "role_keywords": [
+   "data engineer",
+   "data pipeline engineer",
+   "data warehouse engineer",
+   "data platform engineer",
+   "data integration engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline builder",
+   "data pipeline analyst",
+   "data pipeline optimizer",
+   "data pipeline designer",
+   "data pipeline maintainer",
+   "data pipeline strategist",
+   "data pipeline automation",
+   "data pipeline governance",
+   "data pipeline performance",
+   "data pipeline scalability",
+   "data pipeline reliability",
+   "data pipeline security",
+   "data pipeline compliance",
+   "data pipeline monitoring",
+   "data pipeline troubleshooting",
+   "data pipeline documentation",
+   "data pipeline deployment",
+   "data pipeline testing",
+   "data pipeline validation",
+   "data pipeline maintenance",
+   "data pipeline evolution",
+   "data pipeline innovation",
+   "data pipeline transformation",
+   "data pipeline optimization",
+   "data pipeline architecture",
+   "data pipeline design",
+   "data pipeline implementation",
+   "data pipeline execution",
+   "data pipeline management",
+   "data pipeline governance",
+   "data pipeline strategy",
+   "data pipeline planning"
+  ],
+  "skill_weights": [
+   {
+    "term": "data engineer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline",
+    "weight": 5
+   },
+   {
+    "term": "data warehouse",
+    "weight": 5
+   },
+   {
+    "term": "data integration",
+    "weight": 5
+   },
+   {
+    "term": "data platform",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline engineer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline specialist",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline builder",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline analyst",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline optimizer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline designer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline maintainer",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline strategist",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline automation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline governance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline performance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline scalability",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline reliability",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline security",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline compliance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline monitoring",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline troubleshooting",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline documentation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline deployment",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline testing",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline validation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline maintenance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline evolution",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline innovation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline transformation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline optimization",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline architecture",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline design",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline implementation",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline execution",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline management",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline governance",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline strategy",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline planning",
+    "weight": 5
+   },
+   {
+    "term": "python",
+    "weight": 4
+   },
+   {
+    "term": "airflow",
+    "weight": 4
+   },
+   {
+    "term": "dbt",
+    "weight": 4
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "java",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "node",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   },
+   {
+    "term": "react.js",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   },
+   {
+    "term": "vue",
+    "weight": 1
+   },
+   {
+    "term": "typescript",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline",
+   "warehouse",
+   "integration",
+   "platform"
+  ],
+  "domain_half_b": [
+   "engineer",
+   "developer",
+   "architect",
+   "specialist",
+   "builder"
+  ],
+  "domain_title_terms": [
+   "data engineer",
+   "data pipeline engineer",
+   "data warehouse engineer",
+   "data integration engineer",
+   "data platform engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline builder",
+   "data pipeline analyst",
+   "data pipeline optimizer",
+   "data pipeline designer"
+  ],
+  "title_hints": [
+   "data",
+   "engineer",
+   "pipeline",
+   "warehouse",
+   "integration",
+   "platform",
+   "data pipeline",
+   "data warehouse",
+   "data integration",
+   "data platform",
+   "data pipeline engineer",
+   "data pipeline developer",
+   "data pipeline architect",
+   "data pipeline specialist",
+   "data pipeline builder",
+   "data pipeline analyst",
+   "data pipeline optimizer",
+   "data pipeline designer",
+   "data pipeline maintainer",
+   "data pipeline strategist",
+   "data pipeline automation",
+   "data pipeline governance",
+   "data pipeline performance",
+   "data pipeline scalability",
+   "data pipeline reliability",
+   "data pipeline security",
+   "data pipeline compliance",
+   "data pipeline monitoring",
+   "data pipeline troubleshooting",
+   "data pipeline documentation",
+   "data pipeline deployment",
+   "data pipeline testing",
+   "data pipeline validation",
+   "data pipeline maintenance",
+   "data pipeline evolution",
+   "data pipeline innovation",
+   "data pipeline transformation",
+   "data pipeline optimization",
+   "data pipeline architecture",
+   "data pipeline design"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 5,
+  "notes": "The candidate has a strong focus on data engineering, with a clear emphasis on data pipelines, warehouses, and integration. The field is highly domain-specific, with terms like 'data engineer' and 'data pipeline' being strong indicators. The candidate's experience is centered around data platforms and integration, with a focus on tools like Snowflake, Airflow, and dbt. There is no natural split into frontend and backend, so domain_bonus is 5."
+ },
+ "jonas-messy": {
+  "candidate_name": "Jonas Beck",
+  "field_summary": "Data Engineering, with a focus on cloud data platforms, ETL pipelines, and data warehousing",
+  "years_experience": 6,
+  "role_keywords": [
+   "data engineer",
+   "data pipeline engineer",
+   "data warehouse engineer",
+   "cloud data engineer",
+   "big data engineer",
+   "data integration engineer",
+   "data platform engineer",
+   "data pipeline developer",
+   "data warehouse developer",
+   "data pipeline architect",
+   "data engineering lead",
+   "data engineering specialist",
+   "data pipeline architect",
+   "data pipeline developer",
+   "data integration specialist"
+  ],
+  "skill_weights": [
+   {
+    "term": "python",
+    "weight": 5
+   },
+   {
+    "term": "airflow",
+    "weight": 5
+   },
+   {
+    "term": "dbt",
+    "weight": 5
+   },
+   {
+    "term": "snowflake",
+    "weight": 5
+   },
+   {
+    "term": "spark",
+    "weight": 5
+   },
+   {
+    "term": "kafka",
+    "weight": 5
+   },
+   {
+    "term": "terraform",
+    "weight": 4
+   },
+   {
+    "term": "sql",
+    "weight": 5
+   },
+   {
+    "term": "postgres",
+    "weight": 3
+   },
+   {
+    "term": "iceberg",
+    "weight": 4
+   },
+   {
+    "term": "etl",
+    "weight": 3
+   },
+   {
+    "term": "data pipeline",
+    "weight": 4
+   },
+   {
+    "term": "data warehouse",
+    "weight": 5
+   },
+   {
+    "term": "data integration",
+    "weight": 4
+   },
+   {
+    "term": "cloud data",
+    "weight": 4
+   },
+   {
+    "term": "data modeling",
+    "weight": 3
+   },
+   {
+    "term": "data architecture",
+    "weight": 3
+   },
+   {
+    "term": "data pipeline",
+    "weight": 4
+   },
+   {
+    "term": "data ingestion",
+    "weight": 4
+   },
+   {
+    "term": "data transformation",
+    "weight": 4
+   },
+   {
+    "term": "data governance",
+    "weight": 3
+   },
+   {
+    "term": "data quality",
+    "weight": 3
+   },
+   {
+    "term": "data lineage",
+    "weight": 3
+   },
+   {
+    "term": "data catalog",
+    "weight": 3
+   },
+   {
+    "term": "data observability",
+    "weight": 3
+   },
+   {
+    "term": "data monitoring",
+    "weight": 3
+   },
+   {
+    "term": "data automation",
+    "weight": 3
+   },
+   {
+    "term": "data orchestration",
+    "weight": 3
+   },
+   {
+    "term": "data platform",
+    "weight": 4
+   },
+   {
+    "term": "data engineering",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline",
+    "weight": 4
+   },
+   {
+    "term": "data warehouse",
+    "weight": 5
+   },
+   {
+    "term": "data integration",
+    "weight": 4
+   },
+   {
+    "term": "data modeling",
+    "weight": 3
+   },
+   {
+    "term": "data architecture",
+    "weight": 3
+   },
+   {
+    "term": "data pipeline",
+    "weight": 4
+   },
+   {
+    "term": "data ingestion",
+    "weight": 4
+   },
+   {
+    "term": "data transformation",
+    "weight": 4
+   },
+   {
+    "term": "data governance",
+    "weight": 3
+   },
+   {
+    "term": "data quality",
+    "weight": 3
+   },
+   {
+    "term": "data lineage",
+    "weight": 3
+   },
+   {
+    "term": "data catalog",
+    "weight": 3
+   },
+   {
+    "term": "data observability",
+    "weight": 3
+   },
+   {
+    "term": "data monitoring",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "web developer",
+    "weight": 1
+   },
+   {
+    "term": "software engineer",
+    "weight": 1
+   },
+   {
+    "term": "full stack",
+    "weight": 1
+   },
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "backend",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "node",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline",
+   "warehouse",
+   "integration",
+   "modeling",
+   "architecture"
+  ],
+  "domain_half_b": [
+   "engineering",
+   "platform",
+   "automation",
+   "orchestration",
+   "observability"
+  ],
+  "domain_title_terms": [
+   "data engineer",
+   "data pipeline engineer",
+   "data warehouse engineer",
+   "cloud data engineer",
+   "big data engineer",
+   "data integration engineer",
+   "data platform engineer",
+   "data pipeline developer",
+   "data warehouse developer",
+   "data pipeline architect",
+   "data engineering lead",
+   "data engineering specialist"
+  ],
+  "title_hints": [
+   "data",
+   "engineer",
+   "pipeline",
+   "warehouse",
+   "integration",
+   "platform",
+   "cloud",
+   "big data",
+   "data pipeline",
+   "data warehouse",
+   "data integration",
+   "data modeling",
+   "data architecture",
+   "data orchestration",
+   "data automation",
+   "data observability",
+   "data governance",
+   "data quality",
+   "data lineage",
+   "data catalog",
+   "data monitoring",
+   "data transformation",
+   "data ingestion",
+   "data platform",
+   "data engineering",
+   "data pipeline developer",
+   "data warehouse developer",
+   "data integration specialist",
+   "data pipeline architect",
+   "data engineering lead",
+   "data engineering specialist"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "No natural split between domain_half_a and domain_half_b. Candidate is focused on data engineering and data platform work, with no frontend/backend distinction. All skills and titles are tightly focused on data engineering and data warehousing, with no overlap into software development or web development."
+ },
+ "kwame-plain": {
+  "candidate_name": "Kwame Mensah",
+  "field_summary": "Data Engineering with a focus on data modeling, pipeline development, and analytics in the financial and educational sectors.",
+  "years_experience": 10,
+  "role_keywords": [
+   "data engineer",
+   "data analyst",
+   "data modeler",
+   "bigquery engineer",
+   "data pipeline developer",
+   "business intelligence analyst",
+   "data science",
+   "data modeling",
+   "data pipeline",
+   "data warehouse",
+   "data integration",
+   "data visualization",
+   "looker analyst",
+   "sql developer",
+   "dbt engineer",
+   "airflow developer",
+   "python data engineer",
+   "data reconciliation",
+   "agent float forecasting",
+   "mobile money analytics",
+   "financial data analyst",
+   "educational data analyst",
+   "data modeling",
+   "data transformation",
+   "data governance",
+   "data quality",
+   "data architecture",
+   "data pipeline automation",
+   "data pipeline optimization",
+   "data pipeline design",
+   "data pipeline implementation",
+   "data pipeline maintenance",
+   "data pipeline monitoring",
+   "data pipeline troubleshooting",
+   "data pipeline performance",
+   "data pipeline scalability",
+   "data pipeline security",
+   "data pipeline compliance",
+   "data pipeline governance"
+  ],
+  "skill_weights": [
+   {
+    "term": "data engineer",
+    "weight": 5
+   },
+   {
+    "term": "data analyst",
+    "weight": 4
+   },
+   {
+    "term": "data modeler",
+    "weight": 4
+   },
+   {
+    "term": "bigquery",
+    "weight": 5
+   },
+   {
+    "term": "dbt",
+    "weight": 5
+   },
+   {
+    "term": "airflow",
+    "weight": 5
+   },
+   {
+    "term": "sql",
+    "weight": 5
+   },
+   {
+    "term": "looker",
+    "weight": 4
+   },
+   {
+    "term": "python",
+    "weight": 5
+   },
+   {
+    "term": "pandas",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline",
+    "weight": 5
+   },
+   {
+    "term": "data modeling",
+    "weight": 5
+   },
+   {
+    "term": "data reconciliation",
+    "weight": 5
+   },
+   {
+    "term": "agent float forecasting",
+    "weight": 5
+   },
+   {
+    "term": "mobile money analytics",
+    "weight": 5
+   },
+   {
+    "term": "financial data analyst",
+    "weight": 4
+   },
+   {
+    "term": "data integration",
+    "weight": 4
+   },
+   {
+    "term": "data visualization",
+    "weight": 4
+   },
+   {
+    "term": "data governance",
+    "weight": 4
+   },
+   {
+    "term": "data quality",
+    "weight": 4
+   },
+   {
+    "term": "data architecture",
+    "weight": 4
+   },
+   {
+    "term": "data transformation",
+    "weight": 4
+   },
+   {
+    "term": "data warehouse",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline automation",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline optimization",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline design",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline implementation",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline maintenance",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline monitoring",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline troubleshooting",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline performance",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline scalability",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline security",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline compliance",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline governance",
+    "weight": 4
+   },
+   {
+    "term": "data science",
+    "weight": 4
+   },
+   {
+    "term": "data integration",
+    "weight": 4
+   },
+   {
+    "term": "data transformation",
+    "weight": 4
+   },
+   {
+    "term": "data modeling",
+    "weight": 5
+   },
+   {
+    "term": "data governance",
+    "weight": 4
+   },
+   {
+    "term": "data quality",
+    "weight": 4
+   },
+   {
+    "term": "data architecture",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline automation",
+    "weight": 4
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "web developer",
+    "weight": 1
+   },
+   {
+    "term": "software engineer",
+    "weight": 1
+   },
+   {
+    "term": "full stack",
+    "weight": 1
+   },
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "backend",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "node.js",
+    "weight": 1
+   },
+   {
+    "term": "react.js",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "data",
+   "pipeline",
+   "modeling",
+   "reconciliation",
+   "forecasting",
+   "analytics"
+  ],
+  "domain_half_b": [
+   "engineer",
+   "integration",
+   "transformation",
+   "architecture",
+   "governance",
+   "quality"
+  ],
+  "domain_title_terms": [
+   "data engineer",
+   "data analyst",
+   "data modeler",
+   "bigquery engineer",
+   "data pipeline developer",
+   "business intelligence analyst",
+   "data science",
+   "data modeling",
+   "data integration",
+   "data visualization",
+   "looker analyst",
+   "sql developer"
+  ],
+  "title_hints": [
+   "data",
+   "engineer",
+   "pipeline",
+   "modeling",
+   "reconciliation",
+   "forecasting",
+   "analytics",
+   "bigquery",
+   "dbt",
+   "airflow",
+   "sql",
+   "looker",
+   "python",
+   "data integration",
+   "data transformation",
+   "data governance",
+   "data quality",
+   "data architecture",
+   "data pipeline",
+   "data pipeline automation",
+   "data pipeline optimization",
+   "data pipeline design",
+   "data pipeline implementation",
+   "data pipeline maintenance",
+   "data pipeline monitoring",
+   "data pipeline troubleshooting",
+   "data pipeline performance",
+   "data pipeline scalability",
+   "data pipeline security",
+   "data pipeline compliance",
+   "data pipeline governance",
+   "data science",
+   "financial data analyst",
+   "mobile money analytics",
+   "agent float forecasting",
+   "data modeling",
+   "data warehouse"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "The candidate has a strong background in data engineering, particularly in financial data and analytics. The field has no natural split into frontend and backend, so domain_bonus is 0. The candidate's skills are highly specific to data engineering and analytics, and the title_hints reflect the exact terms that appear in job titles relevant to their field."
+ },
+ "kwame-messy": {
+  "candidate_name": "Kwame Mensah",
+  "field_summary": "Data Engineering with a strong foundation in mathematics and data analysis, transitioning from education to data engineering through coding club and spreadsheet automation projects.",
+  "years_experience": 10,
+  "role_keywords": [
+   "data engineer",
+   "data analyst",
+   "data pipeline developer",
+   "bigquery engineer",
+   "dbt developer",
+   "looker analyst",
+   "sql developer",
+   "python data engineer",
+   "cloud data engineer",
+   "data modeling",
+   "data pipeline",
+   "data automation",
+   "data transformation",
+   "data integration",
+   "data warehouse",
+   "data science",
+   "data visualization",
+   "data infrastructure",
+   "data platform",
+   "data pipeline architect"
+  ],
+  "skill_weights": [
+   {
+    "term": "data engineer",
+    "weight": 5
+   },
+   {
+    "term": "python",
+    "weight": 5
+   },
+   {
+    "term": "bigquery",
+    "weight": 5
+   },
+   {
+    "term": "dbt",
+    "weight": 5
+   },
+   {
+    "term": "airflow",
+    "weight": 5
+   },
+   {
+    "term": "sql",
+    "weight": 5
+   },
+   {
+    "term": "looker",
+    "weight": 5
+   },
+   {
+    "term": "data modeling",
+    "weight": 5
+   },
+   {
+    "term": "data pipeline",
+    "weight": 5
+   },
+   {
+    "term": "data transformation",
+    "weight": 5
+   },
+   {
+    "term": "data integration",
+    "weight": 5
+   },
+   {
+    "term": "data warehouse",
+    "weight": 5
+   },
+   {
+    "term": "data automation",
+    "weight": 5
+   },
+   {
+    "term": "data infrastructure",
+    "weight": 4
+   },
+   {
+    "term": "data platform",
+    "weight": 4
+   },
+   {
+    "term": "data science",
+    "weight": 4
+   },
+   {
+    "term": "data visualization",
+    "weight": 4
+   },
+   {
+    "term": "data analyst",
+    "weight": 4
+   },
+   {
+    "term": "sql developer",
+    "weight": 4
+   },
+   {
+    "term": "python data engineer",
+    "weight": 4
+   },
+   {
+    "term": "cloud data engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 4
+   },
+   {
+    "term": "data modeling",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 4
+   },
+   {
+    "term": "data warehouse engineer",
+    "weight": 4
+   },
+   {
+    "term": "data integration engineer",
+    "weight": 4
+   },
+   {
+    "term": "data transformation engineer",
+    "weight": 4
+   },
+   {
+    "term": "data automation engineer",
+    "weight": 4
+   },
+   {
+    "term": "data infrastructure engineer",
+    "weight": 4
+   },
+   {
+    "term": "data platform engineer",
+    "weight": 4
+   },
+   {
+    "term": "data science engineer",
+    "weight": 4
+   },
+   {
+    "term": "data visualization engineer",
+    "weight": 4
+   },
+   {
+    "term": "data analyst engineer",
+    "weight": 4
+   },
+   {
+    "term": "sql developer",
+    "weight": 4
+   },
+   {
+    "term": "python data engineer",
+    "weight": 4
+   },
+   {
+    "term": "cloud data engineer",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline developer",
+    "weight": 4
+   },
+   {
+    "term": "data modeling",
+    "weight": 4
+   },
+   {
+    "term": "data pipeline architect",
+    "weight": 4
+   },
+   {
+    "term": "data warehouse engineer",
+    "weight": 4
+   },
+   {
+    "term": "data integration engineer",
+    "weight": 4
+   },
+   {
+    "term": "data transformation engineer",
+    "weight": 4
+   },
+   {
+    "term": "data automation engineer",
+    "weight": 4
+   },
+   {
+    "term": "data infrastructure engineer",
+    "weight": 4
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "mathematics teacher",
+    "weight": 1
+   },
+   {
+    "term": "coding club",
+    "weight": 1
+   },
+   {
+    "term": "spreadsheet",
+    "weight": 1
+   },
+   {
+    "term": "education",
+    "weight": 1
+   },
+   {
+    "term": "school",
+    "weight": 1
+   },
+   {
+    "term": "student",
+    "weight": 1
+   },
+   {
+    "term": "teaching",
+    "weight": 1
+   },
+   {
+    "term": "grading",
+    "weight": 1
+   },
+   {
+    "term": "core mathematics",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [],
+  "domain_half_b": [],
+  "domain_title_terms": [
+   "data engineer",
+   "data analyst",
+   "data pipeline",
+   "bigquery",
+   "dbt",
+   "airflow",
+   "sql",
+   "looker",
+   "data modeling",
+   "data integration",
+   "data transformation",
+   "data warehouse"
+  ],
+  "title_hints": [
+   "data engineer",
+   "data analyst",
+   "data pipeline",
+   "bigquery",
+   "dbt",
+   "airflow",
+   "sql",
+   "looker",
+   "data modeling",
+   "data integration",
+   "data transformation",
+   "data warehouse",
+   "data science",
+   "data visualization",
+   "data infrastructure",
+   "data platform",
+   "data automation",
+   "data infrastructure",
+   "data pipeline developer",
+   "data modeling engineer",
+   "data integration engineer",
+   "data transformation engineer",
+   "data warehouse engineer",
+   "data automation engineer",
+   "data science engineer",
+   "data visualization engineer",
+   "data platform engineer",
+   "data pipeline architect",
+   "data warehouse architect",
+   "data integration architect",
+   "data transformation architect",
+   "data automation architect",
+   "data science architect",
+   "data visualization architect",
+   "data infrastructure architect",
+   "data platform architect",
+   "data pipeline developer",
+   "data modeling developer",
+   "data integration developer",
+   "data transformation developer"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "The candidate has a strong background in data engineering with a focus on BigQuery, dbt, and Airflow. Their mathematical background and experience with data modeling and automation make them a strong fit for data engineering roles. The transition from education to data engineering is well-supported by their projects and certifications. No natural split into frontend and backend, so domain_bonus is 0."
+ },
+ "lena-plain": {
+  "candidate_name": "Lena Kowalczyk",
+  "field_summary": "Software Engineering",
+  "years_experience": 1,
+  "role_keywords": [
+   "software engineer",
+   "java developer",
+   "kotlin developer",
+   "spring boot developer",
+   "backend developer",
+   "api developer",
+   "system engineer",
+   "full stack developer",
+   "cloud engineer",
+   "distributed systems engineer",
+   "microservices developer",
+   "real-time systems engineer",
+   "data pipeline developer",
+   "kafka developer",
+   "docker engineer",
+   "test engineer",
+   "unit test engineer",
+   "software systems engineer",
+   "enterprise software engineer",
+   "distributed systems engineer",
+   "cloud infrastructure engineer",
+   "java backend developer",
+   "kotlin backend developer",
+   "spring boot backend developer",
+   "api system engineer",
+   "real-time processing engineer",
+   "batch processing engineer",
+   "test automation engineer",
+   "unit test automation engineer",
+   "software architecture engineer",
+   "cloud architecture engineer",
+   "skill_weights"
+  ],
+  "skill_weights": [
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "kotlin",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "docker",
+    "weight": 5
+   },
+   {
+    "term": "junit",
+    "weight": 5
+   },
+   {
+    "term": "kafka",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "java",
+    "weight": 5
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "backend",
+   "api",
+   "system",
+   "microservices",
+   "real-time",
+   "batch",
+   "distributed"
+  ],
+  "domain_half_b": [
+   "developer",
+   "engineer",
+   "system",
+   "pipeline",
+   "processing",
+   "architecture",
+   "cloud"
+  ],
+  "domain_title_terms": [
+   "software engineer",
+   "java developer",
+   "kotlin developer",
+   "spring boot developer",
+   "backend developer",
+   "api developer",
+   "system engineer",
+   "full stack developer",
+   "cloud engineer",
+   "distributed systems engineer",
+   "microservices developer",
+   "real-time systems engineer"
+  ],
+  "title_hints": [
+   "java",
+   "kotlin",
+   "spring boot",
+   "postgresql",
+   "docker",
+   "junit",
+   "kafka",
+   "api",
+   "system",
+   "microservices",
+   "real-time",
+   "batch",
+   "distributed",
+   "cloud",
+   "backend",
+   "developer",
+   "engineer",
+   "pipeline",
+   "processing",
+   "architecture",
+   "unit test",
+   "test automation",
+   "software systems",
+   "enterprise software",
+   "cloud infrastructure",
+   "distributed systems",
+   "real-time processing",
+   "batch processing",
+   "test automation engineer",
+   "unit test automation engineer",
+   "software architecture engineer",
+   "cloud architecture engineer",
+   "java backend developer",
+   "kotlin backend developer",
+   "spring boot backend developer",
+   "api system engineer",
+   "real-time processing engineer",
+   "batch processing engineer",
+   "test automation engineer",
+   "unit test automation engineer"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "No natural split between domain halves. Candidate has 1 year of experience. No seniority levels to exclude beyond the stated preferences. No off-domain technologies identified."
+ },
+ "lena-messy": {
+  "candidate_name": "Lena Kowalczyk",
+  "field_summary": "Software Engineering",
+  "years_experience": 2,
+  "role_keywords": [
+   "software engineer",
+   "java developer",
+   "kotlin developer",
+   "backend developer",
+   "systems engineer",
+   "full-stack developer",
+   "api developer",
+   "cloud engineer",
+   "distributed systems engineer",
+   "microservices developer",
+   "real-time systems engineer",
+   "data pipeline developer",
+   "kafka developer",
+   "docker engineer",
+   "java backend developer",
+   "kotlin backend developer",
+   "java systems engineer",
+   "java api developer",
+   "java microservices developer",
+   "java distributed systems engineer"
+  ],
+  "skill_weights": [
+   {
+    "term": "java",
+    "weight": 5
+   },
+   {
+    "term": "spring boot",
+    "weight": 5
+   },
+   {
+    "term": "kotlin",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "docker",
+    "weight": 5
+   },
+   {
+    "term": "junit",
+    "weight": 3
+   },
+   {
+    "term": "kafka",
+    "weight": 5
+   },
+   {
+    "term": "java developer",
+    "weight": 5
+   },
+   {
+    "term": "kotlin developer",
+    "weight": 5
+   },
+   {
+    "term": "java backend",
+    "weight": 5
+   },
+   {
+    "term": "java systems",
+    "weight": 5
+   },
+   {
+    "term": "java api",
+    "weight": 5
+   },
+   {
+    "term": "java microservices",
+    "weight": 5
+   },
+   {
+    "term": "java distributed systems",
+    "weight": 5
+   },
+   {
+    "term": "kafka streams",
+    "weight": 4
+   },
+   {
+    "term": "batch processing",
+    "weight": 3
+   },
+   {
+    "term": "real-time systems",
+    "weight": 4
+   },
+   {
+    "term": "cloud infrastructure",
+    "weight": 3
+   },
+   {
+    "term": "api development",
+    "weight": 4
+   },
+   {
+    "term": "systems architecture",
+    "weight": 3
+   },
+   {
+    "term": "service ownership",
+    "weight": 3
+   },
+   {
+    "term": "service scalability",
+    "weight": 3
+   },
+   {
+    "term": "service reliability",
+    "weight": 3
+   },
+   {
+    "term": "service performance",
+    "weight": 3
+   },
+   {
+    "term": "service monitoring",
+    "weight": 3
+   },
+   {
+    "term": "service maintenance",
+    "weight": 3
+   },
+   {
+    "term": "service optimization",
+    "weight": 3
+   },
+   {
+    "term": "service integration",
+    "weight": 3
+   },
+   {
+    "term": "service deployment",
+    "weight": 3
+   },
+   {
+    "term": "service testing",
+    "weight": 3
+   },
+   {
+    "term": "service documentation",
+    "weight": 3
+   },
+   {
+    "term": "service governance",
+    "weight": 3
+   },
+   {
+    "term": "service security",
+    "weight": 3
+   },
+   {
+    "term": "service compliance",
+    "weight": 3
+   },
+   {
+    "term": "service scalability",
+    "weight": 3
+   },
+   {
+    "term": "service reliability",
+    "weight": 3
+   },
+   {
+    "term": "service performance",
+    "weight": 3
+   },
+   {
+    "term": "service monitoring",
+    "weight": 3
+   },
+   {
+    "term": "service maintenance",
+    "weight": 3
+   },
+   {
+    "term": "service optimization",
+    "weight": 3
+   },
+   {
+    "term": "service integration",
+    "weight": 3
+   },
+   {
+    "term": "service deployment",
+    "weight": 3
+   },
+   {
+    "term": "service testing",
+    "weight": 3
+   },
+   {
+    "term": "service documentation",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "intern",
+    "weight": 1
+   },
+   {
+    "term": "fresher",
+    "weight": 1
+   },
+   {
+    "term": "junior",
+    "weight": 1
+   },
+   {
+    "term": "entry-level",
+    "weight": 1
+   },
+   {
+    "term": "trainee",
+    "weight": 1
+   },
+   {
+    "term": "student",
+    "weight": 1
+   },
+   {
+    "term": "co-op",
+    "weight": 1
+   },
+   {
+    "term": "part-time",
+    "weight": 1
+   },
+   {
+    "term": "remote",
+    "weight": 1
+   },
+   {
+    "term": "freelance",
+    "weight": 1
+   },
+   {
+    "term": "contract",
+    "weight": 1
+   },
+   {
+    "term": "temporary",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "java",
+   "kotlin",
+   "spring boot",
+   "kafka",
+   "docker"
+  ],
+  "domain_half_b": [
+   "postgresql",
+   "api",
+   "microservices",
+   "distributed systems",
+   "real-time"
+  ],
+  "domain_title_terms": [
+   "java developer",
+   "kotlin developer",
+   "java backend",
+   "java systems",
+   "java api",
+   "java microservices",
+   "java distributed systems",
+   "kafka developer",
+   "docker engineer",
+   "cloud engineer",
+   "real-time systems engineer",
+   "microservices developer"
+  ],
+  "title_hints": [
+   "java",
+   "kotlin",
+   "spring boot",
+   "postgresql",
+   "docker",
+   "kafka",
+   "api",
+   "microservices",
+   "distributed systems",
+   "real-time",
+   "systems engineer",
+   "java developer",
+   "kotlin developer",
+   "java backend",
+   "java systems",
+   "java api",
+   "java microservices",
+   "java distributed systems",
+   "kafka developer",
+   "docker engineer",
+   "cloud engineer",
+   "real-time systems engineer",
+   "microservices developer",
+   "service ownership",
+   "service scalability",
+   "service reliability",
+   "service performance",
+   "service monitoring",
+   "service maintenance",
+   "service optimization",
+   "service integration",
+   "service deployment",
+   "service testing",
+   "service documentation",
+   "service governance",
+   "service security",
+   "service compliance"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 0,
+  "notes": "No domain bonus, as the field does not naturally split into two distinct halves. All terms are domain-specific and have high discriminative power. The candidate has 2 years of experience and is not a fresher, intern, or junior. Avoid terms like 'intern', 'fresher', 'junior', etc., which are not relevant to her seniority."
+ },
+ "mateo-plain": {
+  "candidate_name": "Mateo Rivas",
+  "field_summary": "Mateo Rivas is a Backend Engineer with expertise in Python, FastAPI, PostgreSQL, Redis, RabbitMQ, Docker, and AWS. His work involves building and maintaining backend systems, event-driven architectures, and data pipelines. He has experience in both remote and on-site roles, and his focus is on backend infrastructure, data processing, and system integration.",
+  "years_experience": 4,
+  "role_keywords": [
+   "backend engineer",
+   "systems engineer",
+   "data engineer",
+   "api developer",
+   "event-driven developer",
+   "distributed systems engineer",
+   "cloud infrastructure engineer",
+   "message queue specialist",
+   "database engineer",
+   "system integration specialist"
+  ],
+  "skill_weights": [
+   {
+    "term": "python",
+    "weight": 5
+   },
+   {
+    "term": "fastapi",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "redis",
+    "weight": 5
+   },
+   {
+    "term": "rabbitmq",
+    "weight": 5
+   },
+   {
+    "term": "docker",
+    "weight": 5
+   },
+   {
+    "term": "aws",
+    "weight": 5
+   },
+   {
+    "term": "pytest",
+    "weight": 3
+   },
+   {
+    "term": "backend engineer",
+    "weight": 5
+   },
+   {
+    "term": "systems engineer",
+    "weight": 4
+   },
+   {
+    "term": "data engineer",
+    "weight": 4
+   },
+   {
+    "term": "api developer",
+    "weight": 4
+   },
+   {
+    "term": "event-driven developer",
+    "weight": 4
+   },
+   {
+    "term": "distributed systems engineer",
+    "weight": 4
+   },
+   {
+    "term": "cloud infrastructure engineer",
+    "weight": 4
+   },
+   {
+    "term": "message queue specialist",
+    "weight": 4
+   },
+   {
+    "term": "database engineer",
+    "weight": 4
+   },
+   {
+    "term": "system integration specialist",
+    "weight": 4
+   },
+   {
+    "term": "event log",
+    "weight": 3
+   },
+   {
+    "term": "reconciliation",
+    "weight": 3
+   },
+   {
+    "term": "disbursements",
+    "weight": 3
+   },
+   {
+    "term": "roasting-schedule",
+    "weight": 3
+   },
+   {
+    "term": "api",
+    "weight": 3
+   },
+   {
+    "term": "worker",
+    "weight": 3
+   },
+   {
+    "term": "event-driven",
+    "weight": 3
+   },
+   {
+    "term": "message queue",
+    "weight": 3
+   },
+   {
+    "term": "distributed systems",
+    "weight": 3
+   },
+   {
+    "term": "cloud infrastructure",
+    "weight": 3
+   },
+   {
+    "term": "system integration",
+    "weight": 3
+   },
+   {
+    "term": "data pipeline",
+    "weight": 3
+   },
+   {
+    "term": "event log",
+    "weight": 3
+   },
+   {
+    "term": "reconciliation",
+    "weight": 3
+   },
+   {
+    "term": "disbursements",
+    "weight": 3
+   },
+   {
+    "term": "roasting-schedule",
+    "weight": 3
+   },
+   {
+    "term": "api",
+    "weight": 3
+   },
+   {
+    "term": "worker",
+    "weight": 3
+   },
+   {
+    "term": "event-driven",
+    "weight": 3
+   },
+   {
+    "term": "message queue",
+    "weight": 3
+   },
+   {
+    "term": "distributed systems",
+    "weight": 3
+   },
+   {
+    "term": "cloud infrastructure",
+    "weight": 3
+   },
+   {
+    "term": "system integration",
+    "weight": 3
+   },
+   {
+    "term": "data pipeline",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "ui",
+    "weight": 1
+   },
+   {
+    "term": "ux",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   },
+   {
+    "term": "vue",
+    "weight": 1
+   },
+   {
+    "term": "frontend engineer",
+    "weight": 1
+   },
+   {
+    "term": "ui engineer",
+    "weight": 1
+   },
+   {
+    "term": "ux engineer",
+    "weight": 1
+   },
+   {
+    "term": "mobile developer",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "backend",
+   "api",
+   "event-driven",
+   "message queue",
+   "distributed systems",
+   "system integration"
+  ],
+  "domain_half_b": [
+   "data pipeline",
+   "database",
+   "cloud infrastructure",
+   "event log",
+   "reconciliation",
+   "disbursements"
+  ],
+  "domain_title_terms": [
+   "backend engineer",
+   "systems engineer",
+   "data engineer",
+   "api developer",
+   "event-driven developer",
+   "distributed systems engineer",
+   "cloud infrastructure engineer",
+   "message queue specialist",
+   "database engineer",
+   "system integration specialist"
+  ],
+  "title_hints": [
+   "backend",
+   "engineer",
+   "api",
+   "event-driven",
+   "message queue",
+   "distributed systems",
+   "cloud infrastructure",
+   "system integration",
+   "data pipeline",
+   "database",
+   "event log",
+   "reconciliation",
+   "disbursements",
+   "roasting-schedule",
+   "worker",
+   "worker",
+   "api developer",
+   "systems engineer",
+   "data engineer",
+   "message queue",
+   "event-driven",
+   "distributed systems",
+   "cloud infrastructure",
+   "system integration"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 4,
+  "notes": "Mateo Rivas is a Backend Engineer with a strong focus on event-driven systems, message queues, and data pipelines. His field is highly specialized in backend infrastructure and system integration, with no natural split into frontend and backend. The domain_bonus reflects the value of combining backend and system integration skills. Avoid terms like 'frontend', 'ui', 'ux', 'mobile', and 'javascript' as they are off-domain for his field."
+ },
+ "mateo-messy": {
+  "candidate_name": "Mateo Rivas",
+  "field_summary": "Mateo Rivas is a Backend Engineer with a focus on distributed systems, event-driven architecture, and cloud infrastructure. His expertise lies in Python, FastAPI, PostgreSQL, Redis, RabbitMQ, Docker, and AWS. He has experience with payment systems, API development, and event-driven workflows.",
+  "years_experience": 4,
+  "role_keywords": [
+   "Backend Engineer",
+   "Systems Engineer",
+   "API Developer",
+   "Event-Driven Developer",
+   "Distributed Systems Engineer",
+   "Cloud Infrastructure Engineer",
+   "Payment Systems Engineer",
+   "Data Pipeline Developer",
+   "Microservices Developer",
+   "Event Log Developer",
+   "Reconciliation Systems Engineer",
+   "Message Queue Developer",
+   "Infrastructure Automation Engineer",
+   "Cloud Developer",
+   "DevOps Engineer",
+   "System Architect",
+   "Payment Gateway Developer",
+   "Event Processing Developer",
+   "Real-time Systems Engineer"
+  ],
+  "skill_weights": [
+   {
+    "term": "python",
+    "weight": 5
+   },
+   {
+    "term": "fastapi",
+    "weight": 5
+   },
+   {
+    "term": "postgresql",
+    "weight": 5
+   },
+   {
+    "term": "redis",
+    "weight": 5
+   },
+   {
+    "term": "rabbitmq",
+    "weight": 5
+   },
+   {
+    "term": "docker",
+    "weight": 5
+   },
+   {
+    "term": "aws",
+    "weight": 5
+   },
+   {
+    "term": "pytest",
+    "weight": 3
+   },
+   {
+    "term": "backend",
+    "weight": 4
+   },
+   {
+    "term": "api",
+    "weight": 4
+   },
+   {
+    "term": "event-driven",
+    "weight": 4
+   },
+   {
+    "term": "distributed systems",
+    "weight": 4
+   },
+   {
+    "term": "cloud infrastructure",
+    "weight": 4
+   },
+   {
+    "term": "payment systems",
+    "weight": 4
+   },
+   {
+    "term": "reconciliation",
+    "weight": 4
+   },
+   {
+    "term": "message queue",
+    "weight": 4
+   },
+   {
+    "term": "event log",
+    "weight": 4
+   },
+   {
+    "term": "microservices",
+    "weight": 3
+   },
+   {
+    "term": "system architecture",
+    "weight": 3
+   },
+   {
+    "term": "real-time systems",
+    "weight": 3
+   },
+   {
+    "term": "infrastructure automation",
+    "weight": 3
+   },
+   {
+    "term": "cloud developer",
+    "weight": 3
+   },
+   {
+    "term": "devops",
+    "weight": 3
+   },
+   {
+    "term": "payment gateway",
+    "weight": 3
+   },
+   {
+    "term": "event processing",
+    "weight": 3
+   },
+   {
+    "term": "data pipeline",
+    "weight": 3
+   },
+   {
+    "term": "system design",
+    "weight": 3
+   },
+   {
+    "term": "cloud architecture",
+    "weight": 3
+   },
+   {
+    "term": "event sourcing",
+    "weight": 3
+   },
+   {
+    "term": "message broker",
+    "weight": 3
+   },
+   {
+    "term": "distributed architecture",
+    "weight": 3
+   },
+   {
+    "term": "cloud systems",
+    "weight": 3
+   },
+   {
+    "term": "cloud infrastructure",
+    "weight": 3
+   },
+   {
+    "term": "cloud deployment",
+    "weight": 3
+   },
+   {
+    "term": "cloud operations",
+    "weight": 3
+   },
+   {
+    "term": "cloud integration",
+    "weight": 3
+   },
+   {
+    "term": "cloud security",
+    "weight": 3
+   },
+   {
+    "term": "cloud monitoring",
+    "weight": 3
+   },
+   {
+    "term": "cloud scalability",
+    "weight": 3
+   },
+   {
+    "term": "cloud reliability",
+    "weight": 3
+   },
+   {
+    "term": "cloud performance",
+    "weight": 3
+   },
+   {
+    "term": "cloud cost optimization",
+    "weight": 3
+   },
+   {
+    "term": "cloud automation",
+    "weight": 3
+   },
+   {
+    "term": "cloud orchestration",
+    "weight": 3
+   }
+  ],
+  "penalty_terms": [
+   {
+    "term": "frontend",
+    "weight": 1
+   },
+   {
+    "term": "mobile",
+    "weight": 1
+   },
+   {
+    "term": "ui",
+    "weight": 1
+   },
+   {
+    "term": "ux",
+    "weight": 1
+   },
+   {
+    "term": "design",
+    "weight": 1
+   },
+   {
+    "term": "javascript",
+    "weight": 1
+   },
+   {
+    "term": "react",
+    "weight": 1
+   },
+   {
+    "term": "angular",
+    "weight": 1
+   },
+   {
+    "term": "vue",
+    "weight": 1
+   },
+   {
+    "term": "frontend developer",
+    "weight": 1
+   },
+   {
+    "term": "mobile developer",
+    "weight": 1
+   },
+   {
+    "term": "ui developer",
+    "weight": 1
+   }
+  ],
+  "domain_half_a": [
+   "backend",
+   "api",
+   "event-driven",
+   "message queue",
+   "distributed systems",
+   "cloud infrastructure"
+  ],
+  "domain_half_b": [
+   "payment systems",
+   "reconciliation",
+   "event log",
+   "data pipeline",
+   "microservices",
+   "real-time"
+  ],
+  "domain_title_terms": [
+   "Backend Engineer",
+   "Systems Engineer",
+   "API Developer",
+   "Event-Driven Developer",
+   "Distributed Systems Engineer",
+   "Cloud Infrastructure Engineer",
+   "Payment Systems Engineer",
+   "Data Pipeline Developer",
+   "Microservices Developer",
+   "Event Log Developer",
+   "Message Queue Developer",
+   "Infrastructure Automation Engineer"
+  ],
+  "title_hints": [
+   "backend",
+   "api",
+   "event-driven",
+   "distributed systems",
+   "cloud infrastructure",
+   "payment systems",
+   "reconciliation",
+   "event log",
+   "message queue",
+   "data pipeline",
+   "microservices",
+   "real-time",
+   "systems",
+   "event processing",
+   "message broker",
+   "cloud developer",
+   "cloud systems",
+   "cloud operations",
+   "cloud integration",
+   "cloud security",
+   "cloud monitoring",
+   "cloud scalability",
+   "cloud reliability",
+   "cloud performance",
+   "cloud cost optimization",
+   "cloud automation",
+   "cloud orchestration"
+  ],
+  "title_exclude": [],
+  "domain_bonus": 4,
+  "notes": "Mateo Rivas has a strong focus on backend systems, event-driven architecture, and cloud infrastructure. His field is highly specialized in payment systems, reconciliation, and distributed systems. The domain_bonus is high due to the clear split between backend systems and event-driven processing. Avoid frontend, mobile, and UI/UX terms as they are off-domain."
+ }
+}
