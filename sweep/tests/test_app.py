@@ -3402,6 +3402,55 @@ class TestArrivalsFeed(unittest.TestCase):
         self.assertEqual(p["latest"], [])
 
 
+class TestFinishedSweepNavigation(unittest.TestCase):
+    """After forty minutes of waiting, the last thing the screen should ask
+    for is another click. It takes you to the results itself — but only from
+    the two states where that is what you want."""
+
+    def _body(self, done=(), alive=True, interrupted=False):
+        app, _, _ = TestRunningScreen()._app(done=done, alive=alive)
+        return app.test_client().get("/running").get_data(as_text=True)
+
+    def test_a_finished_sweep_opens_the_results_itself(self):
+        body = self._body(alive=True)
+        self.assertIn("location = '/results'", body)
+        # Gated on BOTH: on finished, and on this page having been opened
+        # while the sweep was still going.
+        self.assertRegex(body, r"if \(p\.finished &amp;&amp; waiting\)")
+
+    def test_it_does_not_fire_for_a_sweep_that_stopped_early(self):
+        # p.interrupted is the "ran out of credit" state, and its panel — the
+        # one offering another key — is on THIS screen. Whisking someone away
+        # from it is how a stopped sweep looks like a finished one.
+        body = self._body()
+        self.assertNotIn("p.interrupted) location", body)
+        self.assertIn("if (p.finished || p.interrupted) es.close()", body)
+
+    def test_a_page_opened_after_the_fact_stays_put(self):
+        # The tracker still offers Running once a sweep has launched, so
+        # coming back to look at it must not bounce straight out again.
+        # `waiting` is decided server-side, from the state at render.
+        RUNNING = TestRunningScreen()
+        app, _, proc = RUNNING._app(alive=False)
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn("waiting: false", body)
+        live = self._body(alive=True)
+        self.assertIn("waiting: true", live)
+
+    def test_the_link_stays_for_a_browser_that_cannot_navigate_itself(self):
+        # No JavaScript, and the after-the-fact visit above: both need a way
+        # to the results that is not a script.
+        body = self._body()
+        self.assertIn('href="/results"', body)
+        self.assertIn("See the results", body)
+
+    def test_the_screen_only_promises_the_jump_when_it_will_happen(self):
+        # "Opening them now" beside a page that is not going to open
+        # anything is the same class of lie as a fabricated figure.
+        body = self._body()
+        self.assertRegex(body, r'x-show="waiting"[^>]*>Opening them now')
+
+
 class TestResultsScreen(unittest.TestCase):
     def _app(self, rows=None, start_rescore=None):
         app = app_module.create_app(

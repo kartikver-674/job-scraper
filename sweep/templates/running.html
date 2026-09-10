@@ -11,12 +11,15 @@
    value for the whole ~40-minute sweep. Same p.spend the body reads. #}
 {# Single-quoted for the reason in configure.html: |tojson leaves " raw. #}
 {% block meter_scope %} x-data='{ p: {{ progress|tojson }}, cap: {{ cap_usd|tojson }}, drift: 0,
+       waiting: {{ (not progress.finished and not progress.interrupted)|tojson }},
        hms(s) { var m = Math.floor(s / 60); return (m ? m + "m " : "") + (s % 60) + "s" },
        ago(s) { return s > 59 ? Math.floor(s / 60) + "m ago"
                               : (s > 4 ? s + "s ago" : "just now") } }'
      x-init="const es = new EventSource('{{ url_for('events') }}');
              es.onmessage = e => { p = JSON.parse(e.data); drift = 0;
-                                   if (p.finished || p.interrupted) es.close(); };
+                                   if (p.finished || p.interrupted) es.close();
+                                   if (p.finished &amp;&amp; waiting)
+                                     setTimeout(() =&gt; { location = '{{ url_for('results') }}' }, 1200); };
              setInterval(() => { if (!p.finished &amp;&amp; !p.interrupted) drift++ }, 1000)"{% endblock %}
 {# cap is carried in the single-quoted x-data above, never interpolated into
    these double-quoted attributes: {{ cap|tojson }} inside one of them is the
@@ -196,6 +199,15 @@
     <span class="muted">Everything already fetched is kept.</span>
   </form>
 
-  <a class="primary" x-show="p.finished" href="{{ url_for('results') }}">See the results</a>
+  {# The screen takes you there itself when a sweep you WAITED for finishes
+     — after forty minutes, the last thing it should ask for is another
+     click. The link stays for the two cases the script does not cover: no
+     JavaScript, and a page opened after the fact, where being bounced
+     straight out of the running screen you deliberately came back to would
+     be the surprise instead. #}
+  <div class="actions" x-show="p.finished" x-cloak>
+    <a class="primary" href="{{ url_for('results') }}">See the results</a>
+    <span class="meta sending" x-show="waiting" x-cloak>Opening them now…</span>
+  </div>
 </div>
 {% endblock %}
