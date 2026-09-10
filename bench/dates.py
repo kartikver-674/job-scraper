@@ -1,14 +1,55 @@
-"""Stop asking the model for years of experience; ask for dates and count.
+"""What years_experience means for Sweep, and the arithmetic that derives it.
 
-The benchmark's clearest result is that both local models read a résumé well
-and cannot do arithmetic over it. qwen3:8b scored 0.156 on years_experience
-and gave chen four different answers for the same facts in four layouts —
-4, 7, 8, 7 — which is not an extraction failure, because it got chen's
-employers right every time. NuExtract returned null on 28 of 32, which for
-a verbatim extractor is correct: the page never says "11 years".
+THE DEFINITION
+--------------
+years_experience is the number of whole completed years the person has been
+paid to do THE KIND OF WORK THIS RÉSUMÉ IS TARGETING.
 
-So the field is computed here. The model is asked only for the date ranges
-it demonstrably can find, and Python sums them.
+It is not total time in the workforce, and it is not time in one specific
+job title. It is relevant experience, and that is not a matter of taste —
+it is what Sweep's two consumers of the number actually do with it:
+
+  SEARCH["experience_years"]        becomes LinkedIn's f_E seniority band
+                                   (scraper.py:_linkedin_experience_code)
+  SETTINGS["max_experience_years"]  = years + 3, and drops any posting whose
+                                   stated floor exceeds it (scraper.py:576,
+                                   merge_jobs.py:74)
+
+Both compare the number against what a POSTING DEMANDS. A posting asking
+for "5+ years of machine learning" means five years of machine learning.
+So for someone who spent eight years designing bridges and four building
+models, the number that answers Sweep's question is four. Answer twelve and
+Sweep filters for director-level ML roles she will not get, and keeps
+postings demanding fifteen years.
+
+Six clauses, each with a case in the corpus that fails without it:
+
+  1. Completed years, floored — never rounded.        ada: 5y7m is 5, not 6
+  2. Paid professional work only. Internships,
+     traineeships and study do not count.             bhaskar: 0.  lena: 1
+  3. In the targeted line of work. An unrelated
+     prior career does not count.                     hana: 4.  kwame: 3
+  4. Calendar time, so concurrent roles count
+     once rather than being added.                    mateo: 4.  iris: 5
+  5. Time worked, so gaps are not counted — the
+     answer is not last date minus first date.        jonas: 6, not 8
+  6. Part-time is counted, not prorated. Sweep is
+     asking how senior a role fits, and two years
+     of part-time work is two years of standing.      mateo's 16h/week row
+
+Clause 3 is the only one that needs anything from the model beyond dates:
+one boolean per employment row. Everything else is arithmetic, and the
+benchmark's clearest result is that the models cannot do arithmetic.
+
+WHY THE MODEL IS NOT ASKED FOR THE NUMBER
+-----------------------------------------
+qwen3:8b scored 0.156 on years_experience and gave one person four
+different answers for four renderings of the same facts — 4, 7, 8, 7 —
+while getting her employers right every time. NuExtract returned null on
+28 of 32, which for a verbatim extractor is correct: the page never says
+"11 years". So the model is asked only for what it demonstrably can find
+(which rows exist, what they say, and whether each is in the same line of
+work), and Python counts.
 
     python -m bench.dates qwen3:8b
     python -m bench.dates --demo
@@ -44,8 +85,13 @@ SCHEMA = {
                     # parsing into the model, which is the thing that failed.
                     "start": {"type": "string"},
                     "end": {"type": "string"},
+                    # Clause 3, and the only judgement asked of the model.
+                    # A boolean is the right shape for it: the model is
+                    # good at deciding whether two roles are the same kind
+                    # of work and bad at turning that into a total.
+                    "relevant": {"type": "boolean"},
                 },
-                "required": ["company", "title", "start", "end"],
+                "required": ["company", "title", "start", "end", "relevant"],
             },
         },
     },
@@ -57,6 +103,12 @@ PROMPT = """List every EMPLOYMENT entry in this résumé.
 - One entry per row of work history, including internships.
 - Do NOT include education, certifications, publications or projects.
 - Copy the dates exactly as written. If a role is current, end is "present".
+- relevant: true if the role is the same kind of work as the person's
+  current or most recent role; false if it belongs to a different career
+  they have since left. Judge the work itself, not the job title — a
+  part-time or contract role in the same field is relevant. Most résumés
+  are one career throughout, so relevant is true for every row unless the
+  person has clearly changed field.
 
 Résumé:
 {text}"""
@@ -100,18 +152,46 @@ def months_between(start, end):
     return max(0, (end[0] - start[0]) * 12 + (end[1] - start[1]))
 
 
-def years_from(employment, today=(2026, 9)):
-    """Professional years: overlapping rows merged, non-professional dropped.
+def is_professional(row):
+    """Clause 2: paid work, not an internship, traineeship or placement."""
+    title = (row.get("title") or "").lower()
+    return not any(word in title for word in NOT_PROFESSIONAL)
 
-    Merged because a row can overlap another — hana worked a machine
-    learning internship for six months while still employed as a structural
-    engineer, and adding those spans counts that half-year twice.
+
+def is_relevant(row):
+    """Clause 3. Absent means relevant — most résumés are one career, and a
+    model that omits the field should not have its subject's history
+    erased."""
+    return row.get("relevant") is not False
+
+
+def countable(rows, ignore_relevance=False):
+    """The rows the definition actually counts."""
+    return [r for r in rows or ()
+            if is_professional(r) and (ignore_relevance or is_relevant(r))]
+
+
+def readable(row, today=(2026, 9)):
+    """Are both ends of this row's date range parseable?"""
+    return bool(parse_month(row.get("start"), today)
+                and parse_month(row.get("end"), today))
+
+
+def years_from(employment, today=(2026, 9), ignore_relevance=False):
+    """The definition at the top of this file, computed.
+
+    Overlaps are merged rather than added (clause 4) — mateo held two real
+    jobs at once and hana interned in ML for six months while still
+    employed as a structural engineer, and summing counts that time twice.
+    Only merged spans are added, so gaps between them are excluded for
+    free (clause 5).
+
+    `ignore_relevance` computes the total-career figure instead, which is
+    not the definition but is what makes a career change detectable: the
+    two numbers differ only when there is one.
     """
     spans = []
-    for row in employment or ():
-        title = (row.get("title") or "").lower()
-        if any(word in title for word in NOT_PROFESSIONAL):
-            continue
+    for row in countable(employment, ignore_relevance):
         start = parse_month(row.get("start"), today)
         end = parse_month(row.get("end"), today)
         if start and end and months_between(start, end) > 0:
@@ -138,6 +218,12 @@ def ask(model, text, timeout=600, url=OLLAMA):
     body = json.dumps({
         "model": model, "prompt": prompt, "format": SCHEMA, "stream": False,
         "keep_alive": KEEP_ALIVE,
+        # bench/run.py has always sent this and this file never did, which
+        # made every document here reason at length before extracting a
+        # date — three minutes a document against ten seconds there, for
+        # the same 52 documents. Copying a row out of a table is not a
+        # reasoning task.
+        "think": False,
         "options": {"temperature": 0, "num_ctx": ctx_for(prompt)},
     }).encode()
     request = urllib.request.Request(url, body,
@@ -238,6 +324,49 @@ def demo():
     # Unreadable dates are dropped rather than counted as zero-length.
     assert years_from([{"title": "Engineer", "start": "?", "end": "?"}]) == 0
 
+    # THE check: every answer key in the corpus is what this arithmetic
+    # produces from that person's own rows. Before the definition was
+    # written down these two could disagree and nothing noticed — which is
+    # how hana came to be "correctly" reported as 12 with full confidence.
+    for slug, person in PEOPLE.items():
+        rows = truth(slug)["employment_rows"]
+        got = years_from(rows, today=(2026, 9))
+        assert got == person["years_experience"], (
+            slug, got, person["years_experience"])
+
+    # And each clause earns its keep: remove it and a specific person breaks.
+    assert years_from(truth("mateo")["employment_rows"]) == 4
+    assert sum(months_between(parse_month(r["start"]), parse_month(r["end"]))
+               for r in truth("mateo")["employment_rows"]) // 12 == 6, \
+        "clause 4: adding concurrent roles gives mateo two extra years"
+    jonas = truth("jonas")["employment_rows"]
+    assert years_from(jonas) == 6
+    assert months_between(parse_month(jonas[-1]["start"]),
+                          parse_month(jonas[0]["end"])) // 12 == 8, \
+        "clause 5: first-to-last gives jonas two years he did not work"
+    assert years_from(truth("kwame")["employment_rows"]) == 3
+    assert years_from(truth("kwame")["employment_rows"],
+                      ignore_relevance=True) == 11, \
+        "clause 3: kwame's teaching years are the tempting wrong answer"
+    assert years_from(truth("lena")["employment_rows"]) == 1
+    assert years_from([dict(r, title="Engineer")
+                       for r in truth("lena")["employment_rows"]]) == 2, \
+        "clause 2: lena's internship is the difference between 1 and 2"
+    assert years_from(truth("iris")["employment_rows"]) == 5
+
+    assert is_professional({"title": "Backend Engineer"})
+    assert not is_professional({"title": "Software Engineering Intern"})
+    assert is_relevant({"title": "x"}) and is_relevant({"relevant": True})
+    assert not is_relevant({"relevant": False})
+    assert readable({"start": "Jan 2020", "end": "present"})
+    assert not readable({"start": "sometime", "end": "present"})
+    # bhaskar has a row and nothing countable in it, which is not the same
+    # as having no history: the difference decides escalate versus zero.
+    assert countable(truth("bhaskar")["employment_rows"]) == []
+    assert len(countable(truth("kwame")["employment_rows"])) == 1
+    assert len(countable(truth("kwame")["employment_rows"],
+                         ignore_relevance=True)) == 2
+
     def fake(model, text):
         # Matched on the FULL name. Matching the first name picked chen for
         # gopal's résumé, because gopal lives in CHENnai — and gopal was
@@ -245,19 +374,20 @@ def demo():
         slug = next(s for s in PEOPLE if PEOPLE[s]["name"] in text)
         return {"employment": [
             {"company": j["company"], "title": j["title"],
-             "start": j["start"], "end": j["end"] or "present"}
+             "start": j["start"], "end": j["end"] or "present",
+             "relevant": j.get("relevant", True)}
             for j in PEOPLE[slug]["employment"]]}
 
     import tempfile
     cache = run("fake:dates", os.path.join(tempfile.mkdtemp(), "d.json"), fake)
-    assert len(cache) == 32
-    # Given perfect date extraction the arithmetic must be right on every
-    # person the dates can settle.
+    assert len(cache) == 52
+    # Given perfect extraction the arithmetic must now be right on EVERY
+    # person, hana included. She used to be the exception because the
+    # question was undefined, not because the arithmetic could not reach her.
     for slug in PEOPLE:
         got = years_from(cache[f"{slug}-plain"]["employment"])
         want = truth(slug)["years_experience"]
-        if slug != "hana":
-            assert got == want, (slug, got, want)
+        assert got == want, (slug, got, want)
     print("dates demo ok")
 
 

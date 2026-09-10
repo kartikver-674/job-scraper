@@ -15,8 +15,13 @@ is evidence:
               should appear in the document it read. One that does not was
               invented, and an invented value can be dropped.
   arithmetic  years of experience is computed from the extracted dates
-              (bench/dates.py), so the model's own answer is checkable
-              against a figure that does not depend on it.
+              and the definition in bench/dates.py, so the model's own
+              answer is checkable against a figure that does not depend
+              on it. The model contributes one judgement the arithmetic
+              cannot make — whether a role belongs to the career the
+              résumé is targeting — and even that is checked: flags that
+              wipe out the entire history escalate rather than returning
+              zero years.
 
 Escalation is reserved for evidence of a PROBLEM, not suspicion of
 difficulty: dates that cannot be read, or a model confabulating most of an
@@ -120,49 +125,67 @@ def check_grounding(parsed, text):
 
 
 def check_years(parsed, employment, text):
-    """years_experience against the arithmetic, which does not need a model.
+    """years_experience against the definition in bench/dates.py.
 
-    The model's own answer is not trusted when the dates can be read: it
-    scored 0.156 on this benchmark and gave one person four answers for
-    four renderings of the same facts.
+    The model's own answer is never used. It scored 0.156 on this
+    benchmark and gave one person four answers for four renderings of the
+    same facts, so it is checked, not consulted: the number is derived from
+    the rows, and the model's figure only decides whether a correction gets
+    logged as one.
     """
     rows = (employment or {}).get("employment") or []
+    stated = parsed.get("years_experience")
     if not rows:
         # No employment rows at all is a real answer for a fresher, but
         # only if the model also said zero. A number with nothing behind it
         # has nothing to check it against.
-        stated = parsed.get("years_experience")
         if stated in (0, None):
             return [], []
         return [], [f"years_experience: model said {stated} with no "
                     f"employment rows extracted to support it"]
 
-    unreadable = [r for r in rows
-                  if not (dating.parse_month(r.get("start"))
-                          and dating.parse_month(r.get("end")))]
-    if len(unreadable) == len(rows):
-        return [], [f"years_experience: none of the {len(rows)} employment "
-                    f"date ranges could be read"]
+    counted = dating.countable(rows)
+    if not counted:
+        # Nothing countable is the right answer for a fresher whose only
+        # row is an internship. It is NOT a right answer when the rows were
+        # all marked as another career: then the flags say the person has
+        # left the field entirely, which is either wrong or a profile no
+        # job search can be built from.
+        if any(not dating.is_relevant(r) for r in rows):
+            return [], [
+                f"years_experience: all {len(rows)} employment rows were "
+                f"marked as a different career, leaving no relevant "
+                f"experience to count"]
+        if stated in (0, None):
+            return [], []
+        return [{"field": "years_experience", "action": "computed",
+                 "from": stated, "to": 0,
+                 "why": f"all {len(rows)} rows are internships or "
+                        f"traineeships, which do not count"}], []
+
+    unreadable = [r for r in counted if not dating.readable(r)]
+    if len(unreadable) == len(counted):
+        return [], [f"years_experience: none of the {len(counted)} "
+                    f"countable employment date ranges could be read"]
 
     computed = dating.years_from(rows)
-    stated = parsed.get("years_experience")
-    corrections, escalations = [], []
+    total = dating.years_from(rows, ignore_relevance=True)
+    why = "summed from the extracted date ranges"
     if unreadable:
         # Some rows counted, some did not, so the total is a floor rather
         # than a figure. Worth saying, not worth a model call.
-        corrections.append({
-            "field": "years_experience", "action": "computed",
-            "from": stated, "to": computed,
-            "why": f"summed from dates; {len(unreadable)} of {len(rows)} "
-                   f"rows had unreadable dates and were skipped",
-        })
-    elif stated != computed:
-        corrections.append({
-            "field": "years_experience", "action": "computed",
-            "from": stated, "to": computed,
-            "why": "summed from the extracted date ranges",
-        })
-    return corrections, escalations
+        why += (f"; {len(unreadable)} of {len(counted)} rows had unreadable "
+                f"dates and were skipped")
+    if total != computed:
+        # The career-change case, and the one worth reading the log for:
+        # this is where the answer stops being the obvious one. hana and
+        # kwame both look like twelve-year veterans until clause 3 applies.
+        why += (f"; a career change was detected, so {total - computed} "
+                f"years in a previous field were excluded")
+    if unreadable or stated != computed:
+        return [{"field": "years_experience", "action": "computed",
+                 "from": stated, "to": computed, "why": why}], []
+    return [], []
 
 
 def route(parsed, employment, text):
@@ -258,6 +281,38 @@ def report(model):
             for reason in decision["reasons"]:
                 print(f"        {reason}")
 
+    # years_experience is the field the definition was written for, and the
+    # one the model cannot do alone. Reported per person because a single
+    # average hides the thing worth seeing: whether the four renderings of
+    # one person agree with each other.
+    kept = {}
+    for bucket in ("accept", "corrected"):
+        for key, decision in tally[bucket]:
+            kept.setdefault(key.rsplit("-", 1)[0], []).append(
+                decision["result"].get("years_experience"))
+    if kept:
+        print("\n  years_experience of what was kept locally:")
+        wrong = []
+        for slug, got in sorted(kept.items()):
+            want = truth(slug)["years_experience"]
+            hits = sum(1 for g in got if g == want)
+            flag = "" if hits == len(got) else "   <- WRONG, and kept"
+            if hits != len(got):
+                wrong.append(slug)
+            print(f"    {slug:<9} truth {want:>2}   got {str(got):<16}"
+                  f" {hits}/{len(got)}{flag}")
+        # The number that matters more than the fallback rate. A parse that
+        # is wrong AND passes every check costs more than one that escalates,
+        # because nothing downstream will ever question it.
+        total_kept = sum(len(v) for v in kept.values())
+        bad = sum(1 for slug, got in kept.items()
+                  for g in got if g != truth(slug)["years_experience"])
+        print(f"\n    kept and correct:  {total_kept - bad}/{total_kept}")
+        if wrong:
+            print(f"    kept and WRONG:    {bad}/{total_kept}"
+                  f"  ({', '.join(sorted(wrong))}) — these are worse than an"
+                  f" escalation, because nothing downstream questions them")
+
     if scored_before and scored_after:
         before = aggregate(scored_before, SWEEP_FIELDS)["macro_f1"]
         after = aggregate(scored_after, SWEEP_FIELDS)["macro_f1"]
@@ -317,8 +372,47 @@ def demo():
                              "start": "?", "end": "?"}]}
     out = route(good, murky, text)
     assert out["decision"] == "escalate"
-    assert "none of the 1 employment date ranges" in out["reasons"][0], \
-        out["reasons"]
+    assert "none of the 1 countable employment date ranges" in \
+        out["reasons"][0], out["reasons"]
+
+    # The career change, which is the case the definition exists for. The
+    # correction has to SAY it excluded a previous field, because "12 became
+    # 3" with no reason is exactly the silent answer that got hana wrong.
+    changed = {"employment": [
+        {"company": "Volta Insight", "title": "Data Engineer",
+         "start": "Aug 2023", "end": "present", "relevant": True},
+        {"company": "Achimota Senior High School",
+         "title": "Mathematics Teacher", "start": "Sep 2014",
+         "end": "Jul 2023", "relevant": False}]}
+    out = route(dict(good, years_experience=11), changed, text)
+    assert out["decision"] == "corrected"
+    assert out["result"]["years_experience"] == 3, out["result"]
+    assert "career change was detected" in out["corrections"][0]["why"]
+    assert "8 years in a previous field" in out["corrections"][0]["why"], \
+        out["corrections"][0]["why"]
+
+    # One career throughout means no career-change note, so the log stays
+    # readable: the note appears only where the answer is not the obvious one.
+    out = route(dict(good, years_experience=3), employment, text)
+    assert "career change" not in out["corrections"][0]["why"]
+
+    # Flags that wipe out the whole history are not an answer of zero.
+    out = route(good, {"employment": [dict(r, relevant=False)
+                                      for r in changed["employment"]]}, text)
+    assert out["decision"] == "escalate"
+    assert "no relevant experience" in out["reasons"][0], out["reasons"]
+
+    # An internship-only history is a fresher, and zero is the right answer
+    # rather than a reason to pay for a second opinion.
+    intern = {"employment": [{"company": "Zenith Softworks", "start": "May 2025",
+                              "title": "Software Engineering Intern",
+                              "end": "Jul 2025", "relevant": True}]}
+    out = route(dict(good, years_experience=1), intern, text)
+    assert out["decision"] == "corrected"
+    assert out["result"]["years_experience"] == 0
+    assert "internships" in out["corrections"][0]["why"]
+    assert route(dict(good, years_experience=0), intern, text
+                 )["decision"] == "accept"
 
     # A fresher: no rows, and the model agreed there were none.
     assert route(dict(good, years_experience=0, companies=[], titles=[]),

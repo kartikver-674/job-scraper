@@ -1,4 +1,4 @@
-"""Ground truth for the parser benchmark: eight people, stated as facts.
+"""Ground truth for the parser benchmark: thirteen people, stated as facts.
 
 The résumé PDFs are DERIVED from these dicts (see bench/render.py), which is
 the point. Hand-written PDFs plus hand-written answers drift the moment
@@ -16,6 +16,19 @@ Each person is chosen for a structural difficulty the plan named:
   farida     dates everywhere — certifications, courses, publications, all dated
   gopal      tabular — skills and history that only make sense as a grid
   hana       long — three pages, and a career change midway
+  iris       freelance — concurrent client engagements, no employer
+  jonas      gaps — two breaks, so first-to-last overstates the total
+  kwame      an unrelated prior career with nothing on the page announcing it
+  lena       an internship converted to a full-time role at one employer
+  mateo      two concurrent professional roles, both of which count
+
+The last five exist because years_experience turned out to be undefined
+rather than merely hard: see bench/dates.py for the definition they pin
+down, and `relevant` below for the only field that definition adds.
+
+`relevant` marks a row as being in the line of work the résumé targets.
+It defaults to True and is stated only where it is False, which is the
+whole of the career-change case.
 
 The fields go beyond what Sweep's RESPONSE_SCHEMA asks for (it wants
 weights and keywords, not education or certifications). That is deliberate:
@@ -345,7 +358,7 @@ PEOPLE = {
              ]},
             {"company": "Kansai Bridge & Structure",
              "title": "Structural Engineer", "location": "Kobe, Japan",
-             "start": "2014-04", "end": "2021-12",
+             "start": "2014-04", "end": "2021-12", "relevant": False,
              "bullets": [
                  "Load assessment for 60 prefectural road bridges under the "
                  "2016 revision of the Specifications for Highway Bridges.",
@@ -397,6 +410,224 @@ PEOPLE = {
              "venue": "workshop paper", "date": "2024-11"},
         ],
     },
+    # -------------------------------------------------------------- iris
+    "iris": {
+        "difficulty": "freelance — concurrent client engagements, no employer",
+        "name": "Iris Bergstrom",
+        "email": "iris@bergstrom.example.com",
+        "phone": "+46 70 123 4567",
+        "location": "Stockholm, Sweden",
+        "headline": "Independent Frontend Consultant",
+        # Summing the three engagements gives six years. They overlap, so
+        # the calendar says five. A parser that adds is wrong by a year.
+        "years_experience": 5,
+        "titles": ["Frontend Consultant", "React Consultant"],
+        "skills": ["typescript", "react", "next.js", "vite", "playwright",
+                   "tailwind", "storybook", "graphql"],
+        "employment": [
+            {"company": "Nordkraft Energi", "title": "Frontend Consultant",
+             "location": "Stockholm, Sweden (contract)", "start": "2024-09",
+             "end": None,
+             "bullets": [
+                 "Rebuilt the grid-outage dashboard in Next.js; 11k daily users.",
+                 "Two days a week, alongside the Vasa engagement until Nov 2024.",
+             ]},
+            {"company": "Vasa Retail Group", "title": "Frontend Consultant",
+             "location": "Gothenburg, Sweden (contract)", "start": "2023-02",
+             "end": "2024-11",
+             "bullets": [
+                 "Design-system rollout across four storefront teams.",
+                 "Cut the checkout bundle from 890kB to 240kB.",
+             ]},
+            {"company": "Tellus Health", "title": "React Consultant",
+             "location": "Remote (contract)", "start": "2021-03",
+             "end": "2023-06",
+             "bullets": [
+                 "Patient-intake flow rewritten from AngularJS to React.",
+                 "Wrote the Playwright suite the in-house team still runs.",
+             ]},
+        ],
+        "education": [
+            {"institution": "KTH Royal Institute of Technology",
+             "degree": "BSc Media Technology", "start": "2016-08",
+             "end": "2019-06"},
+        ],
+        "projects": [
+            {"name": "Formsmith", "stack": ["typescript", "react"],
+             "blurb": "Schema-driven form builder. Used on two client projects."},
+        ],
+        "certifications": [],
+    },
+    # ------------------------------------------------------------- jonas
+    "jonas": {
+        "difficulty": "gaps — two breaks, so first-to-last overstates by two years",
+        "name": "Jonas Beck",
+        "email": "jonas.beck@example.com",
+        "phone": "+49 151 2345 6789",
+        "location": "Berlin, Germany",
+        "headline": "Data Engineer",
+        # 2018-06 to now is eight years. Six were worked. The gaps are
+        # visible only as a discontinuity between two date ranges, which
+        # is precisely what a parser has to notice.
+        "years_experience": 6,
+        "titles": ["Data Engineer", "Junior Data Engineer"],
+        "skills": ["python", "airflow", "dbt", "snowflake", "spark",
+                   "kafka", "terraform", "sql"],
+        "employment": [
+            {"company": "Lumen Freight", "title": "Data Engineer",
+             "location": "Berlin, Germany", "start": "2024-05", "end": None,
+             "bullets": [
+                 "Owns the freight-margin models; 140 dbt models in production.",
+                 "Moved ingestion off cron onto Airflow with backfill guards.",
+             ]},
+            {"company": "Hafen Analytics", "title": "Data Engineer",
+             "location": "Hamburg, Germany", "start": "2020-11",
+             "end": "2023-02",
+             "bullets": [
+                 "Built the Snowflake warehouse from three legacy Postgres copies.",
+                 "Wrote the Kafka to Iceberg sink that replaced nightly dumps.",
+             ]},
+            {"company": "Brotkorb GmbH", "title": "Junior Data Engineer",
+             "location": "Leipzig, Germany", "start": "2018-06",
+             "end": "2020-03",
+             "bullets": ["Reporting pipelines for 60 bakery locations."],
+            },
+        ],
+        "education": [
+            {"institution": "Technische Universitat Berlin",
+             "degree": "BSc Informatik", "start": "2015-10", "end": "2018-04"},
+        ],
+        "projects": [],
+        "certifications": [
+            {"name": "SnowPro Core", "issuer": "Snowflake", "date": "2021-05"},
+        ],
+    },
+    # ------------------------------------------------------------- kwame
+    "kwame": {
+        "difficulty": "unrelated prior career, unsignposted — nine years teaching",
+        "name": "Kwame Mensah",
+        "email": "kwame.mensah@example.com",
+        "phone": "+233 24 123 4567",
+        "location": "Accra, Ghana",
+        # No "formerly" anywhere. hana's headline announces her change;
+        # kwame's does not, so the only evidence is the role itself.
+        "headline": "Data Engineer",
+        "years_experience": 3,
+        "titles": ["Data Engineer", "Mathematics Teacher"],
+        "skills": ["python", "pandas", "bigquery", "dbt", "airflow",
+                   "sql", "looker"],
+        "employment": [
+            {"company": "Volta Insight", "title": "Data Engineer",
+             "location": "Accra, Ghana", "start": "2023-08", "end": None,
+             "bullets": [
+                 "Built the mobile-money reconciliation pipeline in BigQuery.",
+                 "Models the agent-float forecast the treasury team runs on.",
+             ]},
+            # A school IS this person's employer. The instruct prompt used to
+            # say "never a school", which is right for a place someone only
+            # studied at and wrong here.
+            {"company": "Achimota Senior High School",
+             "title": "Mathematics Teacher", "location": "Accra, Ghana",
+             "start": "2014-09", "end": "2023-07", "relevant": False,
+             "bullets": [
+                 "Taught core and elective mathematics to 180 students a year.",
+                 "Ran the coding club that became the reason for the switch.",
+                 "Wrote the spreadsheet the department still uses for grading.",
+             ]},
+        ],
+        "education": [
+            {"institution": "University of Ghana",
+             "degree": "BSc Mathematics", "start": "2010-08", "end": "2014-06"},
+        ],
+        "projects": [
+            {"name": "Trotro Times", "stack": ["python", "sql"],
+             "blurb": "Scraped minibus route timings into an open dataset."},
+        ],
+        "certifications": [
+            {"name": "Professional Data Engineer", "issuer": "Google Cloud",
+             "date": "2024-02"},
+        ],
+    },
+    # -------------------------------------------------------------- lena
+    "lena": {
+        "difficulty": "internship converted at the same employer — one company, two rows",
+        "name": "Lena Kowalczyk",
+        "email": "lena.kowalczyk@example.com",
+        "phone": "+48 501 234 567",
+        "location": "Krakow, Poland",
+        "headline": "Software Engineer",
+        # Counting the internship gives two years. It does not count, so
+        # the answer is one. chen tests one employer with two titles;
+        # lena tests one employer where only the second title counts.
+        "years_experience": 1,
+        "titles": ["Software Engineer", "Software Engineering Intern"],
+        "skills": ["java", "spring boot", "kotlin", "postgresql", "docker",
+                   "junit", "kafka"],
+        "employment": [
+            {"company": "Orlen Digital", "title": "Software Engineer",
+             "location": "Krakow, Poland", "start": "2025-01", "end": None,
+             "bullets": [
+                 "Owns the fuel-card authorisation service; 2M calls a day.",
+                 "Migrated the batch settlement job to Kafka Streams.",
+             ]},
+            {"company": "Orlen Digital",
+             "title": "Software Engineering Intern",
+             "location": "Krakow, Poland", "start": "2024-01", "end": "2024-12",
+             "bullets": [
+                 "Twelve months on the loyalty API before converting.",
+                 "Wrote the JUnit suite for the points-expiry rules.",
+             ]},
+        ],
+        "education": [
+            {"institution": "AGH University of Science and Technology",
+             "degree": "MSc Computer Science", "start": "2019-10",
+             "end": "2024-06"},
+        ],
+        "projects": [],
+        "certifications": [],
+    },
+    # ------------------------------------------------------------- mateo
+    "mateo": {
+        "difficulty": "two concurrent professional roles, both relevant",
+        "name": "Mateo Rivas",
+        "email": "mateo.rivas@example.com",
+        "phone": "+57 310 234 5678",
+        "location": "Bogota, Colombia",
+        "headline": "Backend Engineer",
+        # Both roles count and both are real. Added they are six years;
+        # the second sits entirely inside the first, so the calendar
+        # says four. Nothing here is an internship or a career change,
+        # which makes it the cleanest test of the overlap rule.
+        "years_experience": 4,
+        "titles": ["Backend Engineer", "Part-time Backend Engineer"],
+        "skills": ["python", "fastapi", "postgresql", "redis", "rabbitmq",
+                   "docker", "aws", "pytest"],
+        "employment": [
+            {"company": "Andes Pagos", "title": "Backend Engineer",
+             "location": "Bogota, Colombia", "start": "2022-03", "end": None,
+             "bullets": [
+                 "Owns the payout ledger; 400k disbursements a month.",
+                 "Replaced the nightly reconciliation with an event log.",
+             ]},
+            {"company": "Cafeto Labs", "title": "Part-time Backend Engineer",
+             "location": "Remote (16h/week)", "start": "2023-05",
+             "end": "2025-04",
+             "bullets": [
+                 "Two days a week alongside the Andes role, by agreement.",
+                 "Built the roasting-schedule API and its RabbitMQ workers.",
+             ]},
+        ],
+        "education": [
+            {"institution": "Universidad Nacional de Colombia",
+             "degree": "BSc Ingenieria de Sistemas", "start": "2017-01",
+             "end": "2021-11"},
+        ],
+        "projects": [],
+        "certifications": [
+            {"name": "AWS Certified Developer Associate", "issuer": "AWS",
+             "date": "2023-01"},
+        ],
+    },
 }
 
 
@@ -428,12 +659,17 @@ def truth(slug):
         "projects": [x["name"] for x in p["projects"]],
         "certifications": [c["name"] for c in p["certifications"]],
         "date_ranges": [(j["start"], j["end"]) for j in p["employment"]],
+        "employment_rows": [
+            {"company": j["company"], "title": j["title"], "start": j["start"],
+             "end": j["end"] or "present", "relevant": j.get("relevant", True)}
+            for j in p["employment"]],
     }
 
 
 def demo():
     assert set(PEOPLE) == {"ada", "bhaskar", "chen", "dmitri", "esi",
-                           "farida", "gopal", "hana"}
+                           "farida", "gopal", "hana", "iris", "jonas",
+                           "kwame", "lena", "mateo"}
     for slug, p in PEOPLE.items():
         t = truth(slug)
         assert t["name"] and t["skills"], slug
@@ -449,6 +685,17 @@ def demo():
     assert len(companies(PEOPLE["chen"])) == 3, "one employer, two titles"
     # The fresher carries a DOB and no career start.
     assert PEOPLE["bhaskar"]["dob"] and truth("bhaskar")["years_experience"] == 0
+    # Only a career change makes a row irrelevant, and only two people
+    # have one. If this count grows, the definition moved.
+    changed = {slug for slug, p in PEOPLE.items()
+               if any(j.get("relevant") is False for j in p["employment"])}
+    assert changed == {"hana", "kwame"}, changed
+    # Every irrelevant row is also the longer half of the history, which is
+    # what makes the wrong answer tempting rather than obviously wrong.
+    for slug in changed:
+        rows = PEOPLE[slug]["employment"]
+        assert sum(1 for j in rows if j.get("relevant") is False) < len(rows)
+
     # The date trap: more dated non-jobs than jobs.
     f = PEOPLE["farida"]
     assert len(f["certifications"]) + len(f["publications"]) > len(f["employment"])

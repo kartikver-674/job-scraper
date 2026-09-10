@@ -58,16 +58,21 @@ SCHEMA = {
 PROMPT = """Extract structured data from this résumé.
 
 Rules:
-- companies: EMPLOYERS only. Never a university, school or certifying body.
+- companies: EMPLOYERS only — places that PAID this person to work. A
+  university or school is an employer if they worked there and is not one
+  if they only studied there.
 - institutions: schools and universities only.
 - education: the degree names only, not the institution.
 - titles: job titles held, exactly as written. Keep seniority words.
 - skills: technologies and tools, lowercase, as written on the page.
 - projects: project names only.
 - certifications: certification names only, not the issuer.
-- years_experience: whole years of PROFESSIONAL work. Internships and study
-  do not count. A date of birth is not a career start. If the person is a
-  student with no professional role, answer 0.
+- years_experience: whole completed years being PAID TO DO THE KIND OF WORK
+  THIS RÉSUMÉ IS TARGETING. Internships, traineeships and study do not
+  count. Years spent in a different career the person has since left do not
+  count. Roles held at the same time count once, not twice. Gaps between
+  roles do not count. A date of birth is not a career start. If the person
+  is a student with no professional role, answer 0.
 
 Résumé:
 {text}"""
