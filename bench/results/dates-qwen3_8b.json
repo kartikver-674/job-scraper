@@ -1,585 +1,1129 @@
 {
  "ada-plain": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Fettle Health",
     "title": "Senior Backend Engineer",
     "start": "Apr 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Northwind Logistics",
     "title": "Backend Engineer",
     "start": "Jan 2021",
-    "end": "Mar 2023"
+    "end": "Mar 2023",
+    "relevant": true
    }
   ]
  },
  "ada-twocol": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Fettle Health",
     "title": "Senior Backend Engineer",
     "start": "Apr 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Northwind Logistics",
     "title": "Backend Engineer",
     "start": "Jan 2021",
-    "end": "Mar 2023"
+    "end": "Mar 2023",
+    "relevant": true
    }
   ]
  },
  "ada-tables": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Fettle Health",
     "title": "Senior Backend Engineer",
     "start": "Apr 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Northwind Logistics",
     "title": "Backend Engineer",
     "start": "Jan 2021",
-    "end": "Mar 2023"
+    "end": "Mar 2023",
+    "relevant": true
    }
   ]
  },
  "ada-messy": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Fettle Health",
     "title": "Senior Backend Engineer",
     "start": "04/2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Northwind Logistics",
     "title": "Backend Engineer",
     "start": "01/2021",
-    "end": "03/2023"
+    "end": "03/2023",
+    "relevant": true
    }
   ]
  },
  "bhaskar-plain": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Zenith Softworks",
     "title": "Software Engineering Intern",
     "start": "May 2025",
-    "end": "Jul 2025"
+    "end": "Jul 2025",
+    "relevant": true
    }
   ]
  },
  "bhaskar-twocol": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Zenith Softworks",
     "title": "Software Engineering Intern",
     "start": "May 2025",
-    "end": "Jul 2025"
+    "end": "Jul 2025",
+    "relevant": true
    }
   ]
  },
  "bhaskar-tables": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Zenith Softworks",
     "title": "Software Engineering Intern",
     "start": "May 2025",
-    "end": "Jul 2025"
+    "end": "Jul 2025",
+    "relevant": true
    }
   ]
  },
  "bhaskar-messy": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Zenith Softworks",
     "title": "Software Engineering Intern",
     "start": "05/2025",
-    "end": "07/2025"
+    "end": "07/2025",
+    "relevant": true
    }
   ]
  },
  "chen-plain": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Meridian Pay Singapore",
     "title": "Staff Platform Engineer",
     "start": "Jun 2022",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Meridian Pay Singapore",
     "title": "Senior Platform Engineer",
     "start": "Feb 2020",
-    "end": "May 2022"
+    "end": "May 2022",
+    "relevant": true
    },
    {
     "company": "Halcyon Media Taipei, Taiwan",
     "title": "Site Reliability Engineer",
     "start": "Sep 2017",
-    "end": "Jan 2020"
+    "end": "Jan 2020",
+    "relevant": true
    },
    {
     "company": "Baystone Bank Taipei, Taiwan",
     "title": "Infrastructure Engineer",
     "start": "Mar 2015",
-    "end": "Aug 2017"
+    "end": "Aug 2017",
+    "relevant": true
    }
   ]
  },
  "chen-twocol": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Meridian Pay",
     "title": "Staff Platform Engineer",
     "start": "Jun 2022",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Meridian Pay",
     "title": "Senior Platform Engineer",
     "start": "Feb 2020",
-    "end": "May 2022"
+    "end": "May 2022",
+    "relevant": true
    },
    {
     "company": "Halcyon Media",
     "title": "Site Reliability Engineer",
     "start": "Sep 2017",
-    "end": "Jan 2020"
+    "end": "Jan 2020",
+    "relevant": true
    },
    {
     "company": "Baystone Bank",
     "title": "Infrastructure Engineer",
     "start": "Mar 2015",
-    "end": "Aug 2017"
+    "end": "Aug 2017",
+    "relevant": true
    }
   ]
  },
  "chen-tables": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Meridian Pay",
     "title": "Staff Platform Engineer",
     "start": "Jun 2022",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Meridian Pay",
     "title": "Senior Platform Engineer",
     "start": "Feb 2020",
-    "end": "May 2022"
+    "end": "May 2022",
+    "relevant": true
    },
    {
     "company": "Halcyon Media",
     "title": "Site Reliability Engineer",
     "start": "Sep 2017",
-    "end": "Jan 2020"
+    "end": "Jan 2020",
+    "relevant": true
    },
    {
     "company": "Baystone Bank",
     "title": "Infrastructure Engineer",
     "start": "Mar 2015",
-    "end": "Aug 2017"
+    "end": "Aug 2017",
+    "relevant": true
    }
   ]
  },
  "chen-messy": {
+  "target_field": "software engineering",
   "employment": [
    {
-    "company": "Meridian Pay Singapore",
+    "company": "Meridian PaySingapore",
     "title": "Staff Platform Engineer",
     "start": "06/2022",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
-    "company": "Meridian Pay Singapore",
+    "company": "Meridian PaySingapore",
     "title": "Senior Platform Engineer",
     "start": "02/2020",
-    "end": "05/2022"
+    "end": "05/2022",
+    "relevant": true
    },
    {
-    "company": "Halcyon Media Taipei, Taiwan",
+    "company": "Halcyon MediaTaipei, Taiwan",
     "title": "Site Reliability Engineer",
     "start": "09/2017",
-    "end": "01/2020"
+    "end": "01/2020",
+    "relevant": true
    },
    {
-    "company": "Baystone Bank Taipei, Taiwan",
+    "company": "Baystone BankTaipei, Taiwan",
     "title": "Infrastructure Engineer",
     "start": "03/2015",
-    "end": "08/2017"
+    "end": "08/2017",
+    "relevant": true
    }
   ]
  },
  "dmitri-plain": {
+  "target_field": "software engineering",
   "employment": [
    {
-    "company": "Kestrel Systems",
-    "title": "Verification Engineer",
+    "company": "Verification Engineer",
+    "title": "Kestrel Systems",
     "start": "Oct 2021",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
-    "company": "Aragats Robotics",
-    "title": "Systems Engineer",
+    "company": "Systems Engineer",
+    "title": "Aragats Robotics",
     "start": "Feb 2019",
-    "end": "Sep 2021"
+    "end": "Sep 2021",
+    "relevant": true
    }
   ]
  },
  "dmitri-twocol": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Kestrel Systems",
     "title": "Verification Engineer",
     "start": "Oct 2021",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Aragats Robotics",
     "title": "Systems Engineer",
     "start": "Feb 2019",
-    "end": "Sep 2021"
+    "end": "Sep 2021",
+    "relevant": true
    }
   ]
  },
  "dmitri-tables": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Kestrel Systems",
     "title": "Verification Engineer",
     "start": "Oct 2021",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Aragats Robotics",
     "title": "Systems Engineer",
     "start": "Feb 2019",
-    "end": "Sep 2021"
+    "end": "Sep 2021",
+    "relevant": true
    }
   ]
  },
  "dmitri-messy": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Kestrel Systems",
     "title": "Verification Engineer",
     "start": "10/2021",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Aragats Robotics",
     "title": "Systems Engineer",
     "start": "02/2019",
-    "end": "09/2021"
+    "end": "09/2021",
+    "relevant": true
    }
   ]
  },
  "esi-plain": {
+  "target_field": "full stack development",
   "employment": [
    {
     "company": "Kola Digital",
     "title": "Full Stack Developer",
     "start": "Feb 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    }
   ]
  },
  "esi-twocol": {
+  "target_field": "full stack development",
   "employment": [
    {
     "company": "Kola Digital",
     "title": "Full Stack Developer",
     "start": "Feb 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    }
   ]
  },
  "esi-tables": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Kola Digital",
     "title": "Full Stack Developer",
     "start": "Feb 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    }
   ]
  },
  "esi-messy": {
+  "target_field": "full stack development",
   "employment": [
    {
     "company": "Kola Digital",
     "title": "Full Stack Developer",
     "start": "02/2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    }
   ]
  },
  "farida-plain": {
+  "target_field": "data engineering",
   "employment": [
    {
     "company": "Atlas Retail Group",
     "title": "Data Engineer",
     "start": "Jan 2022",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Marchica Analytics",
     "title": "Analytics Engineer",
     "start": "Mar 2020",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": true
    }
   ]
  },
  "farida-twocol": {
+  "target_field": "data engineering",
   "employment": [
    {
     "company": "Atlas Retail Group",
     "title": "Data Engineer",
     "start": "Jan 2022",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Marchica Analytics",
     "title": "Analytics Engineer",
     "start": "Mar 2020",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": true
    }
   ]
  },
  "farida-tables": {
+  "target_field": "data engineering",
   "employment": [
    {
     "company": "Atlas Retail Group",
     "title": "Data Engineer",
     "start": "Jan 2022",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Marchica Analytics",
     "title": "Analytics Engineer",
     "start": "Mar 2020",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": true
    }
   ]
  },
  "farida-messy": {
+  "target_field": "data engineering",
   "employment": [
    {
     "company": "Atlas Retail Group",
     "title": "Data Engineer",
     "start": "01/2022",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Marchica Analytics",
     "title": "Analytics Engineer",
     "start": "03/2020",
-    "end": "12/2021"
+    "end": "12/2021",
+    "relevant": true
    }
   ]
  },
  "gopal-plain": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Tessellate Systems",
     "title": "QA Automation Lead",
     "start": "Jul 2021",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Vaigai Infotech",
     "title": "SDET",
     "start": "Apr 2018",
-    "end": "Jun 2021"
+    "end": "Jun 2021",
+    "relevant": true
    },
    {
     "company": "Kaveri Software",
     "title": "Test Engineer",
     "start": "Aug 2016",
-    "end": "Mar 2018"
+    "end": "Mar 2018",
+    "relevant": true
    }
   ]
  },
  "gopal-twocol": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Tessellate Systems",
     "title": "QA Automation Lead",
     "start": "Jul 2021",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Vaigai Infotech",
     "title": "SDET",
     "start": "Apr 2018",
-    "end": "Jun 2021"
+    "end": "Jun 2021",
+    "relevant": true
    },
    {
     "company": "Kaveri Software",
     "title": "Test Engineer",
     "start": "Aug 2016",
-    "end": "Mar 2018"
+    "end": "Mar 2018",
+    "relevant": true
    }
   ]
  },
  "gopal-tables": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Tessellate Systems",
     "title": "QA Automation Lead",
     "start": "Jul 2021",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Vaigai Infotech",
     "title": "SDET",
     "start": "Apr 2018",
-    "end": "Jun 2021"
+    "end": "Jun 2021",
+    "relevant": true
    },
    {
     "company": "Kaveri Software",
     "title": "Test Engineer",
     "start": "Aug 2016",
-    "end": "Mar 2018"
+    "end": "Mar 2018",
+    "relevant": true
    }
   ]
  },
  "gopal-messy": {
+  "target_field": "software engineering",
   "employment": [
    {
     "company": "Tessellate Systems",
     "title": "QA Automation Lead",
     "start": "07/2021",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Vaigai Infotech",
     "title": "SDET",
     "start": "04/2018",
-    "end": "06/2021"
+    "end": "06/2021",
+    "relevant": true
    },
    {
     "company": "Kaveri Software",
     "title": "Test Engineer",
     "start": "08/2016",
-    "end": "03/2018"
+    "end": "03/2018",
+    "relevant": true
    }
   ]
  },
  "hana-plain": {
+  "target_field": "machine learning engineering",
   "employment": [
    {
     "company": "Sakura Vision",
     "title": "Machine Learning Engineer",
     "start": "Apr 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Rinku Robotics",
     "title": "Computer Vision Engineer",
     "start": "Jan 2022",
-    "end": "Mar 2023"
+    "end": "Mar 2023",
+    "relevant": true
    },
    {
     "company": "Naniwa Data Lab",
     "title": "Machine Learning Intern",
     "start": "Jul 2021",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": true
    },
    {
     "company": "Kansai Bridge & Structure",
     "title": "Structural Engineer",
     "start": "Apr 2014",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": false
    }
   ]
  },
  "hana-twocol": {
+  "target_field": "machine learning engineering",
   "employment": [
    {
     "company": "Sakura Vision",
     "title": "Machine Learning Engineer",
     "start": "Apr 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Rinku Robotics",
     "title": "Computer Vision Engineer",
     "start": "Jan 2022",
-    "end": "Mar 2023"
+    "end": "Mar 2023",
+    "relevant": true
    },
    {
     "company": "Naniwa Data Lab",
     "title": "Machine Learning Intern",
     "start": "Jul 2021",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": true
    },
    {
     "company": "Kansai Bridge & Structure",
     "title": "Structural Engineer",
     "start": "Apr 2014",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": false
    }
   ]
  },
  "hana-tables": {
+  "target_field": "machine learning engineering",
   "employment": [
    {
     "company": "Sakura Vision",
     "title": "Machine Learning Engineer",
     "start": "Apr 2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Rinku Robotics",
     "title": "Computer Vision Engineer",
     "start": "Jan 2022",
-    "end": "Mar 2023"
+    "end": "Mar 2023",
+    "relevant": true
    },
    {
     "company": "Naniwa Data Lab",
     "title": "Machine Learning Intern",
     "start": "Jul 2021",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": true
    },
    {
     "company": "Kansai Bridge & Structure",
     "title": "Structural Engineer",
     "start": "Apr 2014",
-    "end": "Dec 2021"
+    "end": "Dec 2021",
+    "relevant": false
    }
   ]
  },
  "hana-messy": {
+  "target_field": "machine learning engineering",
   "employment": [
    {
     "company": "Sakura Vision",
     "title": "Machine Learning Engineer",
     "start": "04/2023",
-    "end": "Present"
+    "end": "Present",
+    "relevant": true
    },
    {
     "company": "Rinku Robotics",
     "title": "Computer Vision Engineer",
     "start": "01/2022",
-    "end": "03/2023"
+    "end": "03/2023",
+    "relevant": true
    },
    {
     "company": "Naniwa Data Lab",
     "title": "Machine Learning Intern",
     "start": "07/2021",
-    "end": "12/2021"
+    "end": "12/2021",
+    "relevant": true
    },
    {
     "company": "Kansai Bridge & Structure",
     "title": "Structural Engineer",
     "start": "04/2014",
-    "end": "12/2021"
+    "end": "12/2021",
+    "relevant": false
+   }
+  ]
+ },
+ "iris-plain": {
+  "target_field": "frontend consulting",
+  "employment": [
+   {
+    "company": "Nordkraft Energi",
+    "title": "Frontend Consultant",
+    "start": "Sep 2024",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Vasa Retail Group",
+    "title": "Frontend Consultant",
+    "start": "Feb 2023",
+    "end": "Nov 2024",
+    "relevant": true
+   },
+   {
+    "company": "Tellus Health",
+    "title": "React Consultant",
+    "start": "Mar 2021",
+    "end": "Jun 2023",
+    "relevant": true
+   }
+  ]
+ },
+ "iris-twocol": {
+  "target_field": "frontend engineering",
+  "employment": [
+   {
+    "company": "Nordkraft Energi",
+    "title": "Frontend Consultant",
+    "start": "Sep 2024",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Vasa Retail Group",
+    "title": "Frontend Consultant",
+    "start": "Feb 2023",
+    "end": "Nov 2024",
+    "relevant": true
+   },
+   {
+    "company": "Tellus Health",
+    "title": "React Consultant",
+    "start": "Mar 2021",
+    "end": "Jun 2023",
+    "relevant": true
+   }
+  ]
+ },
+ "iris-tables": {
+  "target_field": "frontend consulting",
+  "employment": [
+   {
+    "company": "Nordkraft Energi",
+    "title": "Frontend Consultant",
+    "start": "Sep 2024",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Vasa Retail Group",
+    "title": "Frontend Consultant",
+    "start": "Feb 2023",
+    "end": "Nov 2024",
+    "relevant": true
+   },
+   {
+    "company": "Tellus Health Remote",
+    "title": "React Consultant",
+    "start": "Mar 2021",
+    "end": "Jun 2023",
+    "relevant": true
+   }
+  ]
+ },
+ "iris-messy": {
+  "target_field": "frontend engineering",
+  "employment": [
+   {
+    "company": "Nordkraft Energi",
+    "title": "Frontend Consultant",
+    "start": "09/2024",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Vasa Retail Group",
+    "title": "Frontend Consultant",
+    "start": "02/2023",
+    "end": "11/2024",
+    "relevant": true
+   },
+   {
+    "company": "Tellus Health",
+    "title": "React Consultant",
+    "start": "03/2021",
+    "end": "06/2023",
+    "relevant": true
+   }
+  ]
+ },
+ "jonas-plain": {
+  "target_field": "data engineering",
+  "employment": [
+   {
+    "company": "Lumen Freight",
+    "title": "Data Engineer",
+    "start": "May 2024",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Hafen Analytics",
+    "title": "Data Engineer",
+    "start": "Nov 2020",
+    "end": "Feb 2023",
+    "relevant": true
+   },
+   {
+    "company": "Brotkorb GmbH",
+    "title": "Junior Data Engineer",
+    "start": "Jun 2018",
+    "end": "Mar 2020",
+    "relevant": true
+   }
+  ]
+ },
+ "jonas-twocol": {
+  "target_field": "data engineering",
+  "employment": [
+   {
+    "company": "Lumen Freight",
+    "title": "Data Engineer",
+    "start": "May 2024",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Hafen Analytics",
+    "title": "Data Engineer",
+    "start": "Nov 2020",
+    "end": "Feb 2023",
+    "relevant": true
+   },
+   {
+    "company": "Brotkorb GmbH",
+    "title": "Junior Data Engineer",
+    "start": "Jun 2018",
+    "end": "Mar 2020",
+    "relevant": true
+   }
+  ]
+ },
+ "jonas-tables": {
+  "target_field": "data engineering",
+  "employment": [
+   {
+    "company": "Lumen Freight",
+    "title": "Data Engineer",
+    "start": "May 2024",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Hafen Analytics",
+    "title": "Data Engineer",
+    "start": "Nov 2020",
+    "end": "Feb 2023",
+    "relevant": true
+   },
+   {
+    "company": "Brotkorb GmbH",
+    "title": "Junior Data Engineer",
+    "start": "Jun 2018",
+    "end": "Mar 2020",
+    "relevant": true
+   }
+  ]
+ },
+ "jonas-messy": {
+  "target_field": "data engineering",
+  "employment": [
+   {
+    "company": "Lumen Freight",
+    "title": "Data Engineer",
+    "start": "05/2024",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Hafen Analytics",
+    "title": "Data Engineer",
+    "start": "11/2020",
+    "end": "02/2023",
+    "relevant": true
+   },
+   {
+    "company": "Brotkorb GmbH",
+    "title": "Junior Data Engineer",
+    "start": "06/2018",
+    "end": "03/2020",
+    "relevant": true
+   }
+  ]
+ },
+ "kwame-plain": {
+  "target_field": "data engineering",
+  "employment": [
+   {
+    "company": "Volta Insight",
+    "title": "Data Engineer",
+    "start": "Aug 2023",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Achimota Senior High School",
+    "title": "Mathematics Teacher",
+    "start": "Sep 2014",
+    "end": "Jul 2023",
+    "relevant": false
+   }
+  ]
+ },
+ "kwame-twocol": {
+  "target_field": "data engineering",
+  "employment": [
+   {
+    "company": "Volta Insight",
+    "title": "Data Engineer",
+    "start": "Aug 2023",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Achimota Senior High School",
+    "title": "Mathematics Teacher",
+    "start": "Sep 2014",
+    "end": "Jul 2023",
+    "relevant": false
+   }
+  ]
+ },
+ "kwame-tables": {
+  "target_field": "data engineering",
+  "employment": [
+   {
+    "company": "Volta Insight",
+    "title": "Data Engineer",
+    "start": "Aug 2023",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Achimota Senior High School",
+    "title": "Mathematics Teacher",
+    "start": "Sep 2014",
+    "end": "Jul 2023",
+    "relevant": false
+   }
+  ]
+ },
+ "kwame-messy": {
+  "target_field": "data engineering",
+  "employment": [
+   {
+    "company": "Volta Insight",
+    "title": "Data Engineer",
+    "start": "08/2023",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Achimota Senior High School",
+    "title": "Mathematics Teacher",
+    "start": "09/2014",
+    "end": "07/2023",
+    "relevant": false
+   }
+  ]
+ },
+ "lena-plain": {
+  "target_field": "software engineering",
+  "employment": [
+   {
+    "company": "Orlen Digital",
+    "title": "Software Engineer",
+    "start": "Jan 2025",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Orlen Digital",
+    "title": "Software Engineering Intern",
+    "start": "Jan 2024",
+    "end": "Dec 2024",
+    "relevant": true
+   }
+  ]
+ },
+ "lena-twocol": {
+  "target_field": "software engineering",
+  "employment": [
+   {
+    "company": "Orlen Digital",
+    "title": "Software Engineer",
+    "start": "Jan 2025",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Orlen Digital",
+    "title": "Software Engineering Intern",
+    "start": "Jan 2024",
+    "end": "Dec 2024",
+    "relevant": true
+   }
+  ]
+ },
+ "lena-tables": {
+  "target_field": "software engineering",
+  "employment": [
+   {
+    "company": "Orlen Digital",
+    "title": "Software Engineer",
+    "start": "Jan 2025",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Orlen Digital",
+    "title": "Software Engineering Intern",
+    "start": "Jan 2024",
+    "end": "Dec 2024",
+    "relevant": true
+   }
+  ]
+ },
+ "lena-messy": {
+  "target_field": "software engineering",
+  "employment": [
+   {
+    "company": "Orlen Digital",
+    "title": "Software Engineer",
+    "start": "01/2025",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Orlen Digital",
+    "title": "Software Engineering Intern",
+    "start": "01/2024",
+    "end": "12/2024",
+    "relevant": true
+   }
+  ]
+ },
+ "mateo-plain": {
+  "target_field": "software engineering",
+  "employment": [
+   {
+    "company": "Andes Pagos",
+    "title": "Backend Engineer",
+    "start": "Mar 2022",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Cafeto Labs",
+    "title": "Part-time Backend Engineer",
+    "start": "May 2023",
+    "end": "Apr 2025",
+    "relevant": true
+   }
+  ]
+ },
+ "mateo-twocol": {
+  "target_field": "software engineering",
+  "employment": [
+   {
+    "company": "Andes Pagos",
+    "title": "Backend Engineer",
+    "start": "Mar 2022",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Cafeto Labs",
+    "title": "Part-time Backend Engineer",
+    "start": "May 2023",
+    "end": "Apr 2025",
+    "relevant": true
+   }
+  ]
+ },
+ "mateo-tables": {
+  "target_field": "software engineering",
+  "employment": [
+   {
+    "company": "Andes Pagos",
+    "title": "Backend Engineer",
+    "start": "Mar 2022",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Cafeto Labs",
+    "title": "Backend Engineer",
+    "start": "May 2023",
+    "end": "Apr 2025",
+    "relevant": true
+   }
+  ]
+ },
+ "mateo-messy": {
+  "target_field": "software engineering",
+  "employment": [
+   {
+    "company": "Andes Pagos",
+    "title": "Backend Engineer",
+    "start": "03/2022",
+    "end": "Present",
+    "relevant": true
+   },
+   {
+    "company": "Cafeto Labs",
+    "title": "Part-time Backend Engineer",
+    "start": "05/2023",
+    "end": "04/2025",
+    "relevant": true
    }
   ]
  }

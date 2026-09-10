@@ -1,0 +1,1976 @@
+{
+ "ada-plain": {
+  "parsed": {
+   "name": "Ada Okonkwo",
+   "years_experience": 4,
+   "titles": [
+    "Senior Backend Engineer",
+    "Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "django",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "celery",
+    "graphql"
+   ],
+   "companies": [
+    "Fettle Health",
+    "Northwind Logistics"
+   ],
+   "education": [
+    "BSc Computer Science"
+   ],
+   "institutions": [
+    "University of Leeds"
+   ],
+   "projects": [],
+   "certifications": []
+  },
+  "seconds": 8.542526245117188
+ },
+ "ada-twocol": {
+  "parsed": {
+   "name": "Ada Okonkwo",
+   "years_experience": 3,
+   "titles": [
+    "Senior Backend Engineer",
+    "Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "django",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "celery",
+    "graphql"
+   ],
+   "companies": [
+    "Fettle Health",
+    "Northwind Logistics"
+   ],
+   "education": [
+    "BSc Computer Science"
+   ],
+   "institutions": [
+    "University of Leeds"
+   ],
+   "projects": [],
+   "certifications": []
+  },
+  "seconds": 7.2700560092926025
+ },
+ "ada-tables": {
+  "parsed": {
+   "name": "Ada Okonkwo",
+   "years_experience": 4,
+   "titles": [
+    "Senior Backend Engineer",
+    "Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "django",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "celery",
+    "graphql"
+   ],
+   "companies": [
+    "Fettle Health",
+    "Northwind Logistics"
+   ],
+   "education": [
+    "BSc Computer Science"
+   ],
+   "institutions": [
+    "University of Leeds"
+   ],
+   "projects": [],
+   "certifications": []
+  },
+  "seconds": 7.40604305267334
+ },
+ "ada-messy": {
+  "parsed": {
+   "name": "Ada Okonkwo",
+   "years_experience": 3,
+   "titles": [
+    "Senior Backend Engineer",
+    "Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "django",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "celery",
+    "graphql"
+   ],
+   "companies": [
+    "Fettle Health",
+    "Northwind Logistics"
+   ],
+   "education": [
+    "BSc Computer Science"
+   ],
+   "institutions": [
+    "University of Leeds"
+   ],
+   "projects": [],
+   "certifications": []
+  },
+  "seconds": 8.117690086364746
+ },
+ "bhaskar-plain": {
+  "parsed": {
+   "name": "Bhaskar Nair",
+   "years_experience": 0,
+   "titles": [],
+   "skills": [
+    "java",
+    "spring boot",
+    "mysql",
+    "git",
+    "html",
+    "css"
+   ],
+   "companies": [
+    "Zenith Softworks"
+   ],
+   "education": [
+    "B.Tech Computer Science"
+   ],
+   "institutions": [
+    "Cochin University of Science and Technology"
+   ],
+   "projects": [
+    "Campus Swap"
+   ],
+   "certifications": []
+  },
+  "seconds": 7.028195142745972
+ },
+ "bhaskar-twocol": {
+  "parsed": {
+   "name": "Bhaskar Nair",
+   "years_experience": 0,
+   "titles": [
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "mysql",
+    "git",
+    "html",
+    "css"
+   ],
+   "companies": [
+    "Zenith Softworks"
+   ],
+   "education": [
+    "B.Tech Computer Science"
+   ],
+   "institutions": [
+    "Cochin University of Science and Technology"
+   ],
+   "projects": [
+    "Campus Swap spring boot, mysql"
+   ],
+   "certifications": []
+  },
+  "seconds": 7.0922582149505615
+ },
+ "bhaskar-tables": {
+  "parsed": {
+   "name": "Bhaskar Nair",
+   "years_experience": 0,
+   "titles": [
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "mysql",
+    "git",
+    "html",
+    "css"
+   ],
+   "companies": [
+    "Zenith Softworks"
+   ],
+   "education": [
+    "B.Tech Computer Science"
+   ],
+   "institutions": [
+    "Cochin University of Science and Technology"
+   ],
+   "projects": [
+    "Campus Swap"
+   ],
+   "certifications": []
+  },
+  "seconds": 7.041545867919922
+ },
+ "bhaskar-messy": {
+  "parsed": {
+   "name": "Bhaskar Nair",
+   "years_experience": 0,
+   "titles": [
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "mysql",
+    "git",
+    "html",
+    "css"
+   ],
+   "companies": [
+    "Zenith Softworks"
+   ],
+   "education": [
+    "B.Tech Computer Science"
+   ],
+   "institutions": [
+    "Cochin University of Science and Technology"
+   ],
+   "projects": [
+    "Campus Swap spring boot, mysql"
+   ],
+   "certifications": []
+  },
+  "seconds": 7.914290904998779
+ },
+ "chen-plain": {
+  "parsed": {
+   "name": "Chen Wei-Lin",
+   "years_experience": 7,
+   "titles": [
+    "Staff Platform Engineer",
+    "Senior Platform Engineer",
+    "Site Reliability Engineer",
+    "Infrastructure Engineer"
+   ],
+   "skills": [
+    "go",
+    "terraform",
+    "kubernetes",
+    "aws",
+    "prometheus",
+    "envoy",
+    "kafka",
+    "postgresql",
+    "bazel"
+   ],
+   "companies": [
+    "Meridian Pay Singapore",
+    "Meridian Pay Singapore",
+    "Halcyon Media Taipei, Taiwan",
+    "Baystone Bank Taipei, Taiwan"
+   ],
+   "education": [
+    "MSc Computer Science",
+    "BSc Information Engineering"
+   ],
+   "institutions": [
+    "National Taiwan University",
+    "National Taiwan University"
+   ],
+   "projects": [],
+   "certifications": [
+    "Certified Kubernetes Administrator",
+    "AWS Solutions Architect \u2013 Professional"
+   ]
+  },
+  "seconds": 11.841776132583618
+ },
+ "chen-twocol": {
+  "parsed": {
+   "name": "Chen Wei-Lin",
+   "years_experience": 6,
+   "titles": [
+    "Staff Platform Engineer",
+    "Senior Platform Engineer",
+    "Site Reliability Engineer",
+    "Infrastructure Engineer"
+   ],
+   "skills": [
+    "go",
+    "terraform",
+    "kubernetes",
+    "aws",
+    "prometheus",
+    "envoy",
+    "kafka",
+    "postgresql",
+    "bazel"
+   ],
+   "companies": [
+    "Meridian Pay",
+    "Halcyon Media",
+    "Baystone Bank"
+   ],
+   "education": [
+    "MSc Computer Science",
+    "BSc Information Engineering"
+   ],
+   "institutions": [
+    "National Taiwan University"
+   ],
+   "projects": [],
+   "certifications": [
+    "Certified Kubernetes Administrator",
+    "AWS Solutions Architect \u2013 Professional"
+   ]
+  },
+  "seconds": 10.544859170913696
+ },
+ "chen-tables": {
+  "parsed": {
+   "name": "Chen Wei-Lin",
+   "years_experience": 7,
+   "titles": [
+    "Staff Platform Engineer",
+    "Senior Platform Engineer",
+    "Site Reliability Engineer",
+    "Infrastructure Engineer"
+   ],
+   "skills": [
+    "go",
+    "terraform",
+    "kubernetes",
+    "aws",
+    "prometheus",
+    "envoy",
+    "kafka",
+    "postgresql",
+    "bazel"
+   ],
+   "companies": [
+    "Meridian Pay",
+    "Halcyon Media",
+    "Baystone Bank"
+   ],
+   "education": [
+    "MSc Computer Science",
+    "BSc Information Engineering"
+   ],
+   "institutions": [
+    "National Taiwan University"
+   ],
+   "projects": [],
+   "certifications": [
+    "Certified Kubernetes Administrator",
+    "AWS Solutions Architect \u2013 Professional"
+   ]
+  },
+  "seconds": 10.22638726234436
+ },
+ "chen-messy": {
+  "parsed": {
+   "name": "Chen Wei-Lin",
+   "years_experience": 6,
+   "titles": [
+    "Staff Platform Engineer",
+    "Senior Platform Engineer",
+    "Site Reliability Engineer",
+    "Infrastructure Engineer"
+   ],
+   "skills": [
+    "go",
+    "terraform",
+    "kubernetes",
+    "aws",
+    "prometheus",
+    "envoy",
+    "kafka",
+    "postgresql",
+    "bazel"
+   ],
+   "companies": [
+    "Meridian PaySingapore",
+    "Halcyon MediaTaipei, Taiwan",
+    "Baystone BankTaipei, Taiwan"
+   ],
+   "education": [
+    "MSc Computer Science",
+    "BSc Information Engineering"
+   ],
+   "institutions": [
+    "National Taiwan University"
+   ],
+   "projects": [],
+   "certifications": [
+    "Certified Kubernetes Administrator",
+    "AWS Solutions Architect \u2013 Professional"
+   ]
+  },
+  "seconds": 11.372783899307251
+ },
+ "dmitri-plain": {
+  "parsed": {
+   "name": "Dmitri Sarkisyan",
+   "years_experience": 5,
+   "titles": [
+    "Verification Engineer",
+    "Systems Engineer"
+   ],
+   "skills": [
+    "ocaml",
+    "coq",
+    "tla+",
+    "lean 4",
+    "zig",
+    "seL4",
+    "isabelle",
+    "rust",
+    "spark ada",
+    "frama-c"
+   ],
+   "companies": [
+    "Kestrel Systems",
+    "Aragats Robotics"
+   ],
+   "education": [
+    "MSc Mathematics"
+   ],
+   "institutions": [
+    "Yerevan State University"
+   ],
+   "projects": [
+    "seL4 capability audit"
+   ],
+   "certifications": []
+  },
+  "seconds": 8.976266860961914
+ },
+ "dmitri-twocol": {
+  "parsed": {
+   "name": "Dmitri Sarkisyan",
+   "years_experience": 5,
+   "titles": [
+    "Verification Engineer",
+    "Systems Engineer"
+   ],
+   "skills": [
+    "ocaml",
+    "coq",
+    "tla+",
+    "lean 4",
+    "zig",
+    "seL4",
+    "isabelle",
+    "rust",
+    "spark ada",
+    "frama-c"
+   ],
+   "companies": [
+    "Kestrel Systems",
+    "Aragats Robotics"
+   ],
+   "education": [
+    "MSc Mathematics"
+   ],
+   "institutions": [
+    "Yerevan State University"
+   ],
+   "projects": [
+    "seL4 capability audit seL4, isabelle",
+    "Mechanised audit of capability derivation"
+   ],
+   "certifications": []
+  },
+  "seconds": 9.74022388458252
+ },
+ "dmitri-tables": {
+  "parsed": {
+   "name": "Dmitri Sarkisyan",
+   "years_experience": 5,
+   "titles": [
+    "Verification Engineer",
+    "Systems Engineer"
+   ],
+   "skills": [
+    "ocaml",
+    "coq",
+    "tla+",
+    "lean 4",
+    "zig",
+    "seL4",
+    "isabelle",
+    "rust",
+    "spark ada",
+    "frama-c"
+   ],
+   "companies": [
+    "Kestrel Systems",
+    "Aragats Robotics"
+   ],
+   "education": [
+    "MSc Mathematics"
+   ],
+   "institutions": [
+    "Yerevan State University"
+   ],
+   "projects": [
+    "seL4 capability audit"
+   ],
+   "certifications": []
+  },
+  "seconds": 9.162610292434692
+ },
+ "dmitri-messy": {
+  "parsed": {
+   "name": "Dmitri Sarkisyan",
+   "years_experience": 5,
+   "titles": [
+    "Verification Engineer",
+    "Systems Engineer"
+   ],
+   "skills": [
+    "ocaml",
+    "coq",
+    "tla+",
+    "lean 4",
+    "zig",
+    "seL4",
+    "isabelle",
+    "rust",
+    "spark ada",
+    "frama-c"
+   ],
+   "companies": [
+    "Kestrel Systems",
+    "Aragats Robotics"
+   ],
+   "education": [
+    "MSc Mathematics"
+   ],
+   "institutions": [
+    "Yerevan State University"
+   ],
+   "projects": [
+    "seL4 capability audit seL4, isabelle",
+    "Mechanised audit of capability derivation"
+   ],
+   "certifications": []
+  },
+  "seconds": 10.066229820251465
+ },
+ "esi-plain": {
+  "parsed": {
+   "name": "Esi Boateng",
+   "years_experience": 2,
+   "titles": [
+    "Full Stack Developer"
+   ],
+   "skills": [
+    "react",
+    "typescript",
+    "node.js",
+    "prisma",
+    "postgresql",
+    "tailwind css",
+    "trpc",
+    "vitest"
+   ],
+   "companies": [
+    "Kola Digital"
+   ],
+   "education": [
+    "BSc Computer Engineering"
+   ],
+   "institutions": [
+    "Kwame Nkrumah University of Science and Technology"
+   ],
+   "projects": [
+    "Tro Tracker",
+    "Live minibus positions for Accra commuters",
+    "Chophouse",
+    "Menu and order API used by nine restaurants",
+    "Adinkra UI",
+    "Component library on Ghanaian symbol motifs",
+    "Sika Split",
+    "Group expense settling with mobile money",
+    "Kente Weave",
+    "Pattern generator; 4k monthly visitors",
+    "Farm Gate",
+    "Price board for produce markets",
+    "Clinic Queue",
+    "SMS queue tickets for a district clinic",
+    "Exam Drill",
+    "WASSCE practice with spaced repetition",
+    "Solar Ledger",
+    "Pay-as-you-go metering for home solar",
+    "Trotro Fare API",
+    "Open fare data, 1.2m requests served",
+    "Bantaba",
+    "Threaded discussion for student unions",
+    "Papaye Bot"
+   ],
+   "certifications": []
+  },
+  "seconds": 17.71781611442566
+ },
+ "esi-twocol": {
+  "parsed": {
+   "name": "Esi Boateng",
+   "years_experience": 1,
+   "titles": [
+    "Full-Stack Developer"
+   ],
+   "skills": [
+    "react",
+    "typescript",
+    "node.js",
+    "prisma",
+    "postgresql",
+    "tailwind css",
+    "trpc",
+    "vitest"
+   ],
+   "companies": [
+    "Kola Digital"
+   ],
+   "education": [
+    "BSc Computer Engineering"
+   ],
+   "institutions": [
+    "Kwame Nkrumah University of Science and Technology"
+   ],
+   "projects": [
+    "Tro Tracker",
+    "Live minibus positions for Accra commuters.",
+    "Chophouse",
+    "Menu and order API used by nine restaurants.",
+    "Adinkra UI",
+    "Component library on Ghanaian symbol motifs.",
+    "Sika Split",
+    "Group expense settling with mobile money.",
+    "Kente Weave",
+    "Pattern generator; 4k monthly visitors.",
+    "Farm Gate",
+    "Price board for produce markets.",
+    "Clinic Queue",
+    "SMS queue tickets for a district clinic.",
+    "Exam Drill",
+    "WASSCE practice with spaced repetition.",
+    "Solar Ledger",
+    "Pay-as-you-go metering for home solar.",
+    "Trotro Fare API",
+    "Open fare data, 1.2m requests served.",
+    "Bantaba",
+    "Threaded discussion for student unions.",
+    "Papaye Bot"
+   ],
+   "certifications": []
+  },
+  "seconds": 17.43011999130249
+ },
+ "esi-tables": {
+  "parsed": {
+   "name": "Esi Boateng",
+   "years_experience": 2,
+   "titles": [
+    "Full Stack Developer"
+   ],
+   "skills": [
+    "react",
+    "typescript",
+    "node.js",
+    "prisma",
+    "postgresql",
+    "tailwind css",
+    "trpc",
+    "vitest"
+   ],
+   "companies": [
+    "Kola Digital"
+   ],
+   "education": [
+    "BSc Computer Engineering"
+   ],
+   "institutions": [
+    "Kwame Nkrumah University of Science and Technology"
+   ],
+   "projects": [
+    "Tro Tracker",
+    "Chophouse",
+    "Adinkra UI",
+    "Sika Split",
+    "Kente Weave",
+    "Farm Gate",
+    "Clinic Queue",
+    "Exam Drill",
+    "Solar Ledger",
+    "Trotro Fare API",
+    "Bantaba",
+    "Papaye Bot"
+   ],
+   "certifications": []
+  },
+  "seconds": 12.037527084350586
+ },
+ "esi-messy": {
+  "parsed": {
+   "name": "Esi Boateng",
+   "years_experience": 2,
+   "titles": [
+    "Full Stack Developer"
+   ],
+   "skills": [
+    "react",
+    "typescript",
+    "node.js",
+    "prisma",
+    "postgresql",
+    "tailwind css",
+    "trpc",
+    "vitest"
+   ],
+   "companies": [
+    "Kola Digital"
+   ],
+   "education": [
+    "BSc Computer Engineering"
+   ],
+   "institutions": [
+    "Kwame Nkrumah University of Science and Technology"
+   ],
+   "projects": [
+    "Tro Tracker",
+    "Live minibus positions for Accra commuters",
+    "Chophouse",
+    "Adinkra UI",
+    "Sika Split",
+    "Kente Weave",
+    "Farm Gate",
+    "Clinic Queue",
+    "Exam Drill",
+    "Solar Ledger",
+    "Trotro Fare API",
+    "Bantaba",
+    "Papaye Bot"
+   ],
+   "certifications": []
+  },
+  "seconds": 12.633253812789917
+ },
+ "farida-plain": {
+  "parsed": {
+   "name": "Farida Haddad",
+   "years_experience": 3,
+   "titles": [
+    "Data Engineer",
+    "Analytics Engineer"
+   ],
+   "skills": [
+    "python",
+    "spark",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "sql",
+    "kafka",
+    "great expectations"
+   ],
+   "companies": [
+    "Atlas Retail Group",
+    "Marchica Analytics"
+   ],
+   "education": [
+    "MSc Statistics"
+   ],
+   "institutions": [
+    "Universit\u00e9 Hassan II"
+   ],
+   "projects": [],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake",
+    "dbt Analytics Engineering \u2014 dbt Labs",
+    "Databricks Spark Developer \u2014 Databricks",
+    "Airflow Fundamentals \u2014 Astronomer",
+    "Deep Learning Specialisation \u2014 Coursera"
+   ]
+  },
+  "seconds": 11.196316242218018
+ },
+ "farida-twocol": {
+  "parsed": {
+   "name": "Farida Haddad",
+   "years_experience": 3,
+   "titles": [
+    "Data Engineer",
+    "Analytics Engineer"
+   ],
+   "skills": [
+    "python",
+    "spark",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "sql",
+    "kafka",
+    "great expectations"
+   ],
+   "companies": [
+    "Atlas Retail Group",
+    "Marchica Analytics"
+   ],
+   "education": [
+    "MSc Statistics"
+   ],
+   "institutions": [
+    "Universit\u00e9 Hassan II"
+   ],
+   "projects": [],
+   "certifications": [
+    "SnowPro Core",
+    "dbt Analytics Engineering",
+    "Databricks Spark Developer",
+    "Airflow Fundamentals",
+    "Deep Learning Specialisation"
+   ]
+  },
+  "seconds": 10.317037105560303
+ },
+ "farida-tables": {
+  "parsed": {
+   "name": "Farida Haddad",
+   "years_experience": 3,
+   "titles": [
+    "Data Engineer",
+    "Analytics Engineer"
+   ],
+   "skills": [
+    "python",
+    "spark",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "sql",
+    "kafka",
+    "great expectations"
+   ],
+   "companies": [
+    "Atlas Retail Group",
+    "Marchica Analytics"
+   ],
+   "education": [
+    "MSc Statistics"
+   ],
+   "institutions": [
+    "Universit\u00e9 Hassan II"
+   ],
+   "projects": [],
+   "certifications": [
+    "SnowPro Core",
+    "dbt Analytics Engineering",
+    "Databricks Spark Developer",
+    "Airflow Fundamentals",
+    "Deep Learning Specialisation"
+   ]
+  },
+  "seconds": 9.703677892684937
+ },
+ "farida-messy": {
+  "parsed": {
+   "name": "Farida Haddad",
+   "years_experience": 4,
+   "titles": [
+    "Data Engineer",
+    "Analytics Engineer"
+   ],
+   "skills": [
+    "python",
+    "spark",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "sql",
+    "kafka",
+    "great expectations"
+   ],
+   "companies": [
+    "Atlas Retail Group",
+    "Marchica Analytics"
+   ],
+   "education": [
+    "MSc Statistics"
+   ],
+   "institutions": [
+    "Universit\u00e9 Hassan II"
+   ],
+   "projects": [],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake",
+    "dbt Analytics Engineering \u2014 dbt Labs",
+    "Databricks Spark Developer \u2014 Databricks",
+    "Airflow Fundamentals \u2014 Astronomer",
+    "Deep Learning Specialisation \u2014 Coursera"
+   ]
+  },
+  "seconds": 10.899271249771118
+ },
+ "gopal-plain": {
+  "parsed": {
+   "name": "Gopal Krishnan",
+   "years_experience": 7,
+   "titles": [
+    "QA Automation Lead",
+    "SDET",
+    "Test Engineer"
+   ],
+   "skills": [
+    "selenium",
+    "playwright",
+    "pytest",
+    "java",
+    "testng",
+    "appium",
+    "jenkins",
+    "rest assured",
+    "jmeter"
+   ],
+   "companies": [
+    "Tessellate Systems",
+    "Vaigai Infotech",
+    "Kaveri Software"
+   ],
+   "education": [
+    "BE Information Technology"
+   ],
+   "institutions": [
+    "Anna University"
+   ],
+   "projects": [],
+   "certifications": [
+    "ISTQB Advanced Test Automation Engineer"
+   ]
+  },
+  "seconds": 9.525053977966309
+ },
+ "gopal-twocol": {
+  "parsed": {
+   "name": "Gopal Krishnan",
+   "years_experience": 6,
+   "titles": [
+    "QA Automation Lead",
+    "SDET",
+    "Test Engineer"
+   ],
+   "skills": [
+    "selenium",
+    "playwright",
+    "pytest",
+    "java",
+    "testng",
+    "appium",
+    "jenkins",
+    "rest assured",
+    "jmeter"
+   ],
+   "companies": [
+    "Tessellate Systems",
+    "Vaigai Infotech",
+    "Kaveri Software"
+   ],
+   "education": [
+    "BE Information Technology"
+   ],
+   "institutions": [
+    "Anna University"
+   ],
+   "projects": [],
+   "certifications": [
+    "ISTQB Advanced Test Automation Engineer"
+   ]
+  },
+  "seconds": 9.329625844955444
+ },
+ "gopal-tables": {
+  "parsed": {
+   "name": "Gopal Krishnan",
+   "years_experience": 6,
+   "titles": [
+    "QA Automation Lead",
+    "SDET",
+    "Test Engineer"
+   ],
+   "skills": [
+    "selenium",
+    "playwright",
+    "pytest",
+    "java",
+    "testng",
+    "appium",
+    "jenkins",
+    "rest assured",
+    "jmeter"
+   ],
+   "companies": [
+    "Tessellate Systems",
+    "Vaigai Infotech",
+    "Kaveri Software"
+   ],
+   "education": [
+    "BE Information Technology"
+   ],
+   "institutions": [
+    "Anna University"
+   ],
+   "projects": [],
+   "certifications": [
+    "ISTQB Advanced Test Automation Engineer"
+   ]
+  },
+  "seconds": 9.793636083602905
+ },
+ "gopal-messy": {
+  "parsed": {
+   "name": "Gopal Krishnan",
+   "years_experience": 6,
+   "titles": [
+    "QA Automation Lead",
+    "SDET",
+    "Test Engineer"
+   ],
+   "skills": [
+    "selenium",
+    "playwright",
+    "pytest",
+    "java",
+    "testng",
+    "appium",
+    "jenkins",
+    "rest assured",
+    "jmeter"
+   ],
+   "companies": [
+    "Tessellate Systems",
+    "Vaigai Infotech",
+    "Kaveri Software"
+   ],
+   "education": [
+    "BE Information Technology"
+   ],
+   "institutions": [
+    "Anna University"
+   ],
+   "projects": [],
+   "certifications": [
+    "ISTQB Advanced Test Automation Engineer"
+   ]
+  },
+  "seconds": 9.39940595626831
+ },
+ "hana-plain": {
+  "parsed": {
+   "name": "Hana Fujimoto",
+   "years_experience": 8,
+   "titles": [
+    "Machine Learning Engineer",
+    "Computer Vision Engineer",
+    "Machine Learning Intern",
+    "Structural Engineer"
+   ],
+   "skills": [
+    "python",
+    "pytorch",
+    "onnx",
+    "opencv",
+    "cuda",
+    "numpy",
+    "ray",
+    "mlflow",
+    "polars"
+   ],
+   "companies": [
+    "Sakura Vision",
+    "Rinku Robotics",
+    "Naniwa Data Lab",
+    "Kansai Bridge & Structure"
+   ],
+   "education": [
+    "MEng Civil Engineering",
+    "Certificate in Applied Statistics",
+    "BEng Civil Engineering"
+   ],
+   "institutions": [
+    "Kyoto University",
+    "Osaka Institute of Technology"
+   ],
+   "projects": [
+    "Bridge crack segmentation",
+    "Open dataset and baseline"
+   ],
+   "certifications": [
+    "Professional Engineer, Civil (Japan)",
+    "Deep Learning Specialisation",
+    "JDLA Deep Learning for Engineers"
+   ]
+  },
+  "seconds": 15.491239070892334
+ },
+ "hana-twocol": {
+  "parsed": {
+   "name": "Hana Fujimoto",
+   "years_experience": 2,
+   "titles": [
+    "Machine Learning Engineer",
+    "Computer Vision Engineer",
+    "Machine Learning Intern",
+    "Structural Engineer"
+   ],
+   "skills": [
+    "python",
+    "pytorch",
+    "onnx",
+    "opencv",
+    "cuda",
+    "numpy",
+    "ray",
+    "mlflow",
+    "polars"
+   ],
+   "companies": [
+    "Sakura Vision",
+    "Rinku Robotics",
+    "Naniwa Data Lab",
+    "Kansai Bridge & Structure"
+   ],
+   "education": [
+    "MEng Civil Engineering",
+    "Certificate in Applied Statistics",
+    "BEng Civil Engineering"
+   ],
+   "institutions": [
+    "Kyoto University",
+    "Osaka Institute of Technology"
+   ],
+   "projects": [
+    "Bridge crack segmentation pytorch, opencv",
+    "Open dataset and baseline"
+   ],
+   "certifications": [
+    "Professional Engineer, Civil (Japan)",
+    "Deep Learning Specialisation",
+    "JDLA Deep Learning for Engineers"
+   ]
+  },
+  "seconds": 15.72122311592102
+ },
+ "hana-tables": {
+  "parsed": {
+   "name": "Hana Fujimoto",
+   "years_experience": 8,
+   "titles": [
+    "Machine Learning Engineer",
+    "Computer Vision Engineer",
+    "Machine Learning Intern",
+    "Structural Engineer"
+   ],
+   "skills": [
+    "python",
+    "pytorch",
+    "onnx",
+    "opencv",
+    "cuda",
+    "numpy",
+    "ray",
+    "mlflow",
+    "polars"
+   ],
+   "companies": [
+    "Sakura Vision",
+    "Rinku Robotics",
+    "Naniwa Data Lab",
+    "Kansai Bridge & Structure"
+   ],
+   "education": [
+    "MEng Civil Engineering",
+    "Certificate in Applied Statistics",
+    "BEng Civil Engineering"
+   ],
+   "institutions": [
+    "Kyoto University",
+    "Osaka Institute of Technology"
+   ],
+   "projects": [
+    "Bridge crack segmentation pytorch, opencv",
+    "Open dataset and baseline"
+   ],
+   "certifications": [
+    "Professional Engineer, Civil (Japan)",
+    "Deep Learning Specialisation",
+    "JDLA Deep Learning for Engineers"
+   ]
+  },
+  "seconds": 15.877268075942993
+ },
+ "hana-messy": {
+  "parsed": {
+   "name": "Hana Fujimoto",
+   "years_experience": 3,
+   "titles": [
+    "Machine Learning Engineer",
+    "Computer Vision Engineer",
+    "Machine Learning Intern",
+    "Structural Engineer"
+   ],
+   "skills": [
+    "python",
+    "pytorch",
+    "onnx",
+    "opencv",
+    "cuda",
+    "numpy",
+    "ray",
+    "mlflow",
+    "polars"
+   ],
+   "companies": [
+    "Sakura Vision",
+    "Rinku Robotics",
+    "Naniwa Data Lab",
+    "Kansai Bridge & Structure"
+   ],
+   "education": [
+    "MEng Civil Engineering",
+    "Certificate in Applied Statistics",
+    "BEng Civil Engineering"
+   ],
+   "institutions": [
+    "Kyoto University",
+    "Osaka Institute of Technology"
+   ],
+   "projects": [
+    "Bridge crack segmentation pytorch, opencv",
+    "Open dataset and baseline"
+   ],
+   "certifications": [
+    "Professional Engineer, Civil (Japan)",
+    "Deep Learning Specialisation",
+    "JDLA Deep Learning for Engineers"
+   ]
+  },
+  "seconds": 15.366517066955566
+ },
+ "iris-plain": {
+  "parsed": {
+   "name": "Iris Bergstrom",
+   "years_experience": 5,
+   "titles": [
+    "Frontend Consultant Nordkraft Energi",
+    "Frontend Consultant Vasa Retail Group",
+    "React Consultant Tellus Health"
+   ],
+   "skills": [
+    "typescript",
+    "react",
+    "next.js",
+    "vite",
+    "playwright",
+    "tailwind",
+    "storybook",
+    "graphql"
+   ],
+   "companies": [
+    "Nordkraft Energi",
+    "Vasa Retail Group",
+    "Tellus Health"
+   ],
+   "education": [
+    "BSc Media Technology"
+   ],
+   "institutions": [
+    "KTH Royal Institute of Technology"
+   ],
+   "projects": [
+    "Formsmith"
+   ],
+   "certifications": []
+  },
+  "seconds": 9.785053968429565
+ },
+ "iris-twocol": {
+  "parsed": {
+   "name": "Iris Bergstrom",
+   "years_experience": 5,
+   "titles": [
+    "Frontend Consultant",
+    "Frontend Consultant",
+    "React Consultant"
+   ],
+   "skills": [
+    "typescript",
+    "react",
+    "next.js",
+    "vite",
+    "playwright",
+    "tailwind",
+    "storybook",
+    "graphql"
+   ],
+   "companies": [
+    "Nordkraft Energi",
+    "Vasa Retail Group",
+    "Tellus Health"
+   ],
+   "education": [
+    "BSc Media Technology"
+   ],
+   "institutions": [
+    "KTH Royal Institute of Technology"
+   ],
+   "projects": [
+    "Formsmith typescript, react"
+   ],
+   "certifications": []
+  },
+  "seconds": 9.426971197128296
+ },
+ "iris-tables": {
+  "parsed": {
+   "name": "Iris Bergstrom",
+   "years_experience": 5,
+   "titles": [
+    "Frontend Consultant",
+    "Frontend Consultant",
+    "React Consultant"
+   ],
+   "skills": [
+    "typescript",
+    "react",
+    "next.js",
+    "vite",
+    "playwright",
+    "tailwind",
+    "storybook",
+    "graphql"
+   ],
+   "companies": [
+    "Nordkraft Energi",
+    "Vasa Retail Group",
+    "Tellus Health Remote"
+   ],
+   "education": [
+    "BSc Media Technology"
+   ],
+   "institutions": [
+    "KTH Royal Institute of Technology"
+   ],
+   "projects": [
+    "Formsmith"
+   ],
+   "certifications": []
+  },
+  "seconds": 9.829065799713135
+ },
+ "iris-messy": {
+  "parsed": {
+   "name": "Iris Bergstrom",
+   "years_experience": 5,
+   "titles": [
+    "Frontend Consultant",
+    "Frontend Consultant",
+    "React Consultant"
+   ],
+   "skills": [
+    "typescript",
+    "react",
+    "next.js",
+    "vite",
+    "playwright",
+    "tailwind",
+    "storybook",
+    "graphql"
+   ],
+   "companies": [
+    "Nordkraft Energi",
+    "Vasa Retail Group",
+    "Tellus Health"
+   ],
+   "education": [
+    "BSc Media Technology"
+   ],
+   "institutions": [
+    "KTH Royal Institute of Technology"
+   ],
+   "projects": [
+    "Formsmith typescript, react"
+   ],
+   "certifications": []
+  },
+  "seconds": 10.447433948516846
+ },
+ "jonas-plain": {
+  "parsed": {
+   "name": "Jonas Beck",
+   "years_experience": 6,
+   "titles": [
+    "Data Engineer Lumen Freight",
+    "Data Engineer Hafen Analytics",
+    "Junior Data Engineer Brotkorb GmbH"
+   ],
+   "skills": [
+    "python",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "spark",
+    "kafka",
+    "terraform",
+    "sql"
+   ],
+   "companies": [
+    "Lumen Freight",
+    "Hafen Analytics",
+    "Brotkorb GmbH"
+   ],
+   "education": [
+    "BSc Informatik"
+   ],
+   "institutions": [
+    "Technische Universitat Berlin"
+   ],
+   "projects": [],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake"
+   ]
+  },
+  "seconds": 9.566807746887207
+ },
+ "jonas-twocol": {
+  "parsed": {
+   "name": "Jonas Beck",
+   "years_experience": 5,
+   "titles": [
+    "Data Engineer",
+    "Data Engineer",
+    "Junior Data Engineer"
+   ],
+   "skills": [
+    "python",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "spark",
+    "kafka",
+    "terraform",
+    "sql"
+   ],
+   "companies": [
+    "Lumen Freight",
+    "Hafen Analytics",
+    "Brotkorb GmbH"
+   ],
+   "education": [
+    "BSc Informatik"
+   ],
+   "institutions": [
+    "Technische Universitat Berlin"
+   ],
+   "projects": [],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake"
+   ]
+  },
+  "seconds": 9.228832006454468
+ },
+ "jonas-tables": {
+  "parsed": {
+   "name": "Jonas Beck",
+   "years_experience": 5,
+   "titles": [
+    "Data Engineer",
+    "Data Engineer",
+    "Junior Data Engineer"
+   ],
+   "skills": [
+    "python",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "spark",
+    "kafka",
+    "terraform",
+    "sql"
+   ],
+   "companies": [
+    "Lumen Freight",
+    "Hafen Analytics",
+    "Brotkorb GmbH"
+   ],
+   "education": [
+    "BSc Informatik"
+   ],
+   "institutions": [
+    "Technische Universitat Berlin"
+   ],
+   "projects": [],
+   "certifications": [
+    "SnowPro Core"
+   ]
+  },
+  "seconds": 9.251664161682129
+ },
+ "jonas-messy": {
+  "parsed": {
+   "name": "Jonas Beck",
+   "years_experience": 5,
+   "titles": [
+    "Data Engineer",
+    "Data Engineer",
+    "Junior Data Engineer"
+   ],
+   "skills": [
+    "python",
+    "airflow",
+    "dbt",
+    "snowflake",
+    "spark",
+    "kafka",
+    "terraform",
+    "sql"
+   ],
+   "companies": [
+    "Lumen Freight",
+    "Hafen Analytics",
+    "Brotkorb GmbH"
+   ],
+   "education": [
+    "BSc Informatik"
+   ],
+   "institutions": [
+    "Technische Universitat Berlin"
+   ],
+   "projects": [],
+   "certifications": [
+    "SnowPro Core \u2014 Snowflake"
+   ]
+  },
+  "seconds": 9.271510124206543
+ },
+ "kwame-plain": {
+  "parsed": {
+   "name": "Kwame Mensah",
+   "years_experience": 1,
+   "titles": [
+    "Data Engineer",
+    "Mathematics Teacher"
+   ],
+   "skills": [
+    "python",
+    "pandas",
+    "bigquery",
+    "dbt",
+    "airflow",
+    "sql",
+    "looker"
+   ],
+   "companies": [
+    "Volta Insight"
+   ],
+   "education": [
+    "BSc Mathematics"
+   ],
+   "institutions": [
+    "University of Ghana",
+    "Achimota Senior High School"
+   ],
+   "projects": [
+    "Trotro Times"
+   ],
+   "certifications": [
+    "Professional Data Engineer \u2014 Google Cloud"
+   ]
+  },
+  "seconds": 8.882569074630737
+ },
+ "kwame-twocol": {
+  "parsed": {
+   "name": "Kwame Mensah",
+   "years_experience": 1,
+   "titles": [
+    "Data Engineer",
+    "Mathematics Teacher"
+   ],
+   "skills": [
+    "python",
+    "pandas",
+    "bigquery",
+    "dbt",
+    "airflow",
+    "sql",
+    "looker"
+   ],
+   "companies": [
+    "Volta Insight"
+   ],
+   "education": [
+    "BSc Mathematics"
+   ],
+   "institutions": [
+    "University of Ghana"
+   ],
+   "projects": [
+    "Trotro Times"
+   ],
+   "certifications": [
+    "Professional Data Engineer \u2014 Google Cloud"
+   ]
+  },
+  "seconds": 8.347224235534668
+ },
+ "kwame-tables": {
+  "parsed": {
+   "name": "Kwame Mensah",
+   "years_experience": 1,
+   "titles": [
+    "Data Engineer"
+   ],
+   "skills": [
+    "python",
+    "pandas",
+    "bigquery",
+    "dbt",
+    "airflow",
+    "sql",
+    "looker"
+   ],
+   "companies": [
+    "Volta Insight"
+   ],
+   "education": [
+    "BSc Mathematics"
+   ],
+   "institutions": [
+    "University of Ghana",
+    "Achimota Senior High School"
+   ],
+   "projects": [
+    "Trotro Times"
+   ],
+   "certifications": [
+    "Professional Data Engineer \u2014 Google Cloud"
+   ]
+  },
+  "seconds": 8.662967920303345
+ },
+ "kwame-messy": {
+  "parsed": {
+   "name": "Kwame Mensah",
+   "years_experience": 1,
+   "titles": [
+    "Data Engineer"
+   ],
+   "skills": [
+    "python",
+    "pandas",
+    "bigquery",
+    "dbt",
+    "airflow",
+    "sql",
+    "looker"
+   ],
+   "companies": [
+    "Volta Insight"
+   ],
+   "education": [
+    "BSc Mathematics"
+   ],
+   "institutions": [
+    "University of Ghana",
+    "Achimota Senior High School"
+   ],
+   "projects": [
+    "Trotro Times"
+   ],
+   "certifications": [
+    "Professional Data Engineer \u2014 Google Cloud"
+   ]
+  },
+  "seconds": 8.814990043640137
+ },
+ "lena-plain": {
+  "parsed": {
+   "name": "Lena Kowalczyk",
+   "years_experience": 1,
+   "titles": [
+    "Software Engineer",
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "kotlin",
+    "postgresql",
+    "docker",
+    "junit",
+    "kafka"
+   ],
+   "companies": [
+    "Orlen Digital Krakow, Poland"
+   ],
+   "education": [
+    "MSc Computer Science"
+   ],
+   "institutions": [
+    "AGH University of Science and Technology"
+   ],
+   "projects": [],
+   "certifications": []
+  },
+  "seconds": 7.631885766983032
+ },
+ "lena-twocol": {
+  "parsed": {
+   "name": "Lena Kowalczyk",
+   "years_experience": 1,
+   "titles": [
+    "Software Engineer",
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "kotlin",
+    "postgresql",
+    "docker",
+    "junit",
+    "kafka"
+   ],
+   "companies": [
+    "Orlen Digital"
+   ],
+   "education": [
+    "MSc Computer Science"
+   ],
+   "institutions": [
+    "AGH University of Science and Technology"
+   ],
+   "projects": [],
+   "certifications": []
+  },
+  "seconds": 7.3326499462127686
+ },
+ "lena-tables": {
+  "parsed": {
+   "name": "Lena Kowalczyk",
+   "years_experience": 1,
+   "titles": [
+    "Software Engineer",
+    "Software Engineering Intern"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "kotlin",
+    "postgresql",
+    "docker",
+    "junit",
+    "kafka"
+   ],
+   "companies": [
+    "Orlen Digital"
+   ],
+   "education": [
+    "MSc Computer Science"
+   ],
+   "institutions": [
+    "AGH University of Science and Technology"
+   ],
+   "projects": [],
+   "certifications": []
+  },
+  "seconds": 7.353947162628174
+ },
+ "lena-messy": {
+  "parsed": {
+   "name": "Lena Kowalczyk",
+   "years_experience": 1,
+   "titles": [
+    "Software Engineer"
+   ],
+   "skills": [
+    "java",
+    "spring boot",
+    "kotlin",
+    "postgresql",
+    "docker",
+    "junit",
+    "kafka"
+   ],
+   "companies": [
+    "Orlen Digital"
+   ],
+   "education": [
+    "MSc Computer Science"
+   ],
+   "institutions": [
+    "AGH University of Science and Technology"
+   ],
+   "projects": [],
+   "certifications": []
+  },
+  "seconds": 7.649315118789673
+ },
+ "mateo-plain": {
+  "parsed": {
+   "name": "Mateo Rivas",
+   "years_experience": 3,
+   "titles": [
+    "Backend Engineer",
+    "Backend Engineer Andes Pagos",
+    "Part-time Backend Engineer Cafeto Labs"
+   ],
+   "skills": [
+    "python",
+    "fastapi",
+    "postgresql",
+    "redis",
+    "rabbitmq",
+    "docker",
+    "aws",
+    "pytest"
+   ],
+   "companies": [
+    "Andes Pagos",
+    "Cafeto Labs"
+   ],
+   "education": [
+    "BSc Ingenieria de Sistemas"
+   ],
+   "institutions": [
+    "Universidad Nacional de Colombia"
+   ],
+   "projects": [],
+   "certifications": [
+    "AWS Certified Developer Associate"
+   ]
+  },
+  "seconds": 9.179396152496338
+ },
+ "mateo-twocol": {
+  "parsed": {
+   "name": "Mateo Rivas",
+   "years_experience": 3,
+   "titles": [
+    "Backend Engineer",
+    "Backend Engineer",
+    "Part-time Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "fastapi",
+    "postgresql",
+    "redis",
+    "rabbitmq",
+    "docker",
+    "aws",
+    "pytest"
+   ],
+   "companies": [
+    "Andes Pagos",
+    "Cafeto Labs"
+   ],
+   "education": [
+    "BSc Ingenieria de Sistemas"
+   ],
+   "institutions": [
+    "Universidad Nacional de Colombia"
+   ],
+   "projects": [],
+   "certifications": [
+    "AWS Certified Developer Associate"
+   ]
+  },
+  "seconds": 8.486292123794556
+ },
+ "mateo-tables": {
+  "parsed": {
+   "name": "Mateo Rivas",
+   "years_experience": 3,
+   "titles": [
+    "Backend Engineer",
+    "Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "fastapi",
+    "postgresql",
+    "redis",
+    "rabbitmq",
+    "docker",
+    "aws",
+    "pytest"
+   ],
+   "companies": [
+    "Andes Pagos",
+    "Cafeto Labs"
+   ],
+   "education": [
+    "BSc Ingenieria de Sistemas"
+   ],
+   "institutions": [
+    "Universidad Nacional de Colombia"
+   ],
+   "projects": [],
+   "certifications": [
+    "AWS Certified Developer Associate"
+   ]
+  },
+  "seconds": 8.285499095916748
+ },
+ "mateo-messy": {
+  "parsed": {
+   "name": "Mateo Rivas",
+   "years_experience": 4,
+   "titles": [
+    "Backend Engineer",
+    "Part-time Backend Engineer"
+   ],
+   "skills": [
+    "python",
+    "fastapi",
+    "postgresql",
+    "redis",
+    "rabbitmq",
+    "docker",
+    "aws",
+    "pytest"
+   ],
+   "companies": [
+    "Andes Pagos",
+    "Cafeto Labs"
+   ],
+   "education": [
+    "BSc Ingenieria de Sistemas"
+   ],
+   "institutions": [
+    "Universidad Nacional de Colombia"
+   ],
+   "projects": [
+    "roasting-schedule API",
+    "RabbitMQ workers"
+   ],
+   "certifications": [
+    "AWS Certified Developer Associate"
+   ]
+  },
+  "seconds": 9.698994159698486
+ }
+}
