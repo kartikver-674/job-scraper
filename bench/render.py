@@ -24,7 +24,7 @@ import os
 import subprocess
 import sys
 
-from bench.people import PEOPLE
+from bench.people import PEOPLE, truth
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "resumes")
@@ -246,18 +246,23 @@ def demo():
             doc = to_html(person, layout)
             assert doc.startswith("<!doctype html>")
             assert doc.count("<body>") == 1 and doc.endswith("</body></html>")
-            # Every fact the answer key claims must be ON the page, or the
+            # Every fact the ANSWER KEY claims must be on the page, or the
             # benchmark is asking for something the document never said.
-            assert person["name"] in doc, (slug, layout)
-            for skill in person["skills"]:
-                assert html.escape(skill) in doc, (slug, layout, skill)
-            for job in person["employment"]:
-                assert html.escape(job["company"]) in doc, (slug, layout)
-                assert html.escape(job["title"]) in doc, (slug, layout)
-            for cert in person["certifications"]:
-                assert html.escape(cert["name"]) in doc, (slug, layout)
-            for proj in person["projects"]:
-                assert html.escape(proj["name"]) in doc, (slug, layout)
+            #
+            # Driven off truth() rather than off the source dict, which is
+            # the version that would have caught the titles bug: titles
+            # used to be a hand-written list that render() never rendered,
+            # so it could say anything at all and the loop below — checking
+            # the employment rows instead — passed regardless. bhaskar's
+            # claimed two titles that appear nowhere on his page, and the
+            # model was marked wrong for reading the page correctly.
+            key = truth(slug)
+            for field in ("name", "email", "location", "titles", "skills",
+                          "companies", "education", "institutions",
+                          "projects", "certifications"):
+                value = key[field]
+                for item in ([value] if isinstance(value, str) else value):
+                    assert html.escape(item) in doc, (slug, layout, field, item)
 
     # Escaping, not string-building: a name with an ampersand must not
     # become markup.

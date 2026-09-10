@@ -288,7 +288,11 @@ def compare(results_dir=None):
     results_dir = results_dir or RESULTS
     rows = []
     for name in sorted(os.listdir(results_dir)):
-        if not name.endswith(".json"):
+        # dates-*.json is the employment-row cache, a different shape
+        # with no "parsed" key. Scoring it as a fields cache reported
+        # "nothing scored (30 failures)", which reads as a model failing
+        # rather than a file being the wrong kind.
+        if not name.endswith(".json") or name.startswith("dates-"):
             continue
         with open(os.path.join(results_dir, name), encoding="utf-8") as fh:
             cache = json.load(fh)

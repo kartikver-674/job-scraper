@@ -47,7 +47,6 @@ PEOPLE = {
         "location": "Manchester, UK",
         "headline": "Backend Engineer",
         "years_experience": 5,
-        "titles": ["Backend Engineer", "Senior Backend Engineer"],
         "skills": ["python", "django", "postgresql", "redis", "docker",
                    "kubernetes", "celery", "graphql"],
         "employment": [
@@ -84,7 +83,6 @@ PEOPLE = {
         # and reported 23 years of experience.
         "dob": "2004-03-11",
         "years_experience": 0,
-        "titles": ["Software Engineer", "Graduate Trainee"],
         "skills": ["java", "spring boot", "mysql", "git", "html", "css"],
         "employment": [
             {"company": "Zenith Softworks", "title": "Software Engineering Intern",
@@ -111,8 +109,6 @@ PEOPLE = {
         "location": "Singapore",
         "headline": "Staff Platform Engineer",
         "years_experience": 11,
-        "titles": ["Staff Platform Engineer", "Site Reliability Engineer",
-                   "Infrastructure Engineer"],
         "skills": ["go", "terraform", "kubernetes", "aws", "prometheus",
                    "envoy", "kafka", "postgresql", "bazel"],
         "employment": [
@@ -159,7 +155,6 @@ PEOPLE = {
         "location": "Yerevan, Armenia",
         "headline": "Systems Engineer, formal methods",
         "years_experience": 7,
-        "titles": ["Systems Engineer", "Verification Engineer"],
         # A closed vocabulary built from scraped job ads has never seen most
         # of these, which is the ceiling on any dictionary parser.
         "skills": ["ocaml", "coq", "tla+", "lean 4", "zig", "seL4", "isabelle",
@@ -194,7 +189,6 @@ PEOPLE = {
         "location": "Accra, Ghana",
         "headline": "Full-Stack Developer",
         "years_experience": 3,
-        "titles": ["Full Stack Developer", "React Developer"],
         "skills": ["react", "typescript", "node.js", "prisma", "postgresql",
                    "tailwind css", "trpc", "vitest"],
         "employment": [
@@ -244,7 +238,6 @@ PEOPLE = {
         "location": "Casablanca, Morocco",
         "headline": "Data Engineer",
         "years_experience": 6,
-        "titles": ["Data Engineer", "Analytics Engineer"],
         "skills": ["python", "spark", "airflow", "dbt", "snowflake", "sql",
                    "kafka", "great expectations"],
         "employment": [
@@ -289,7 +282,6 @@ PEOPLE = {
         "location": "Chennai, India",
         "headline": "QA Automation Lead",
         "years_experience": 9,
-        "titles": ["QA Automation Lead", "SDET", "Test Engineer"],
         "skills": ["selenium", "playwright", "pytest", "java", "testng",
                    "appium", "jenkins", "rest assured", "jmeter"],
         "employment": [
@@ -325,7 +317,6 @@ PEOPLE = {
         # four of ML. "Years of experience" has two defensible answers and a
         # parser should give the one matching the headline.
         "years_experience": 4,
-        "titles": ["Machine Learning Engineer", "Computer Vision Engineer"],
         "skills": ["python", "pytorch", "onnx", "opencv", "cuda", "numpy",
                    "ray", "mlflow", "polars"],
         "employment": [
@@ -421,7 +412,6 @@ PEOPLE = {
         # Summing the three engagements gives six years. They overlap, so
         # the calendar says five. A parser that adds is wrong by a year.
         "years_experience": 5,
-        "titles": ["Frontend Consultant", "React Consultant"],
         "skills": ["typescript", "react", "next.js", "vite", "playwright",
                    "tailwind", "storybook", "graphql"],
         "employment": [
@@ -470,7 +460,6 @@ PEOPLE = {
         # visible only as a discontinuity between two date ranges, which
         # is precisely what a parser has to notice.
         "years_experience": 6,
-        "titles": ["Data Engineer", "Junior Data Engineer"],
         "skills": ["python", "airflow", "dbt", "snowflake", "spark",
                    "kafka", "terraform", "sql"],
         "employment": [
@@ -513,7 +502,6 @@ PEOPLE = {
         # kwame's does not, so the only evidence is the role itself.
         "headline": "Data Engineer",
         "years_experience": 3,
-        "titles": ["Data Engineer", "Mathematics Teacher"],
         "skills": ["python", "pandas", "bigquery", "dbt", "airflow",
                    "sql", "looker"],
         "employment": [
@@ -560,7 +548,6 @@ PEOPLE = {
         # the answer is one. chen tests one employer with two titles;
         # lena tests one employer where only the second title counts.
         "years_experience": 1,
-        "titles": ["Software Engineer", "Software Engineering Intern"],
         "skills": ["java", "spring boot", "kotlin", "postgresql", "docker",
                    "junit", "kafka"],
         "employment": [
@@ -599,7 +586,6 @@ PEOPLE = {
         # says four. Nothing here is an internship or a career change,
         # which makes it the cleanest test of the overlap rule.
         "years_experience": 4,
-        "titles": ["Backend Engineer", "Part-time Backend Engineer"],
         "skills": ["python", "fastapi", "postgresql", "redis", "rabbitmq",
                    "docker", "aws", "pytest"],
         "employment": [
@@ -642,6 +628,32 @@ def companies(person):
     return out
 
 
+def titles(person):
+    """Job titles HELD, in résumé order, deduplicated.
+
+    Derived rather than stated. These used to be a hand-written list per
+    person and it had drifted from the documents: bhaskar's said "Software
+    Engineer" and "Graduate Trainee", neither of which appears anywhere on
+    his page — he is a fresher whose one role is an internship. The model
+    answered "Software Engineering Intern", which is the only title on the
+    page, and was scored zero for it. chen's list was missing the "Senior
+    Platform Engineer" row and hana's was missing two, so both were
+    penalised for reading their documents correctly.
+
+    That is the same defect as years_experience: a field nobody had
+    defined, with an answer key nobody had derived. The whole point of
+    generating the PDFs from these dicts is that the document cannot
+    disagree with the truth, and a hand-written key opts out of it.
+    """
+    seen, out = set(), []
+    for job in person["employment"]:
+        key = job["title"].strip().lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(job["title"])
+    return out
+
+
 def truth(slug):
     """The answer key for one person, as a parser would be asked for it."""
     p = PEOPLE[slug]
@@ -650,7 +662,7 @@ def truth(slug):
         "email": p["email"],
         "location": p["location"],
         "years_experience": p["years_experience"],
-        "titles": p["titles"],
+        "titles": titles(p),
         "skills": sorted(p["skills"]),
         "companies": companies(p),
         "employment_count": len(p["employment"]),
@@ -679,6 +691,13 @@ def demo():
         # Every difficulty is labelled, so a result table can say WHICH
         # structure a parser failed on rather than just that it failed.
         assert p["difficulty"], slug
+
+    # bhaskar's only title is the internship, which is what his page says.
+    assert truth("bhaskar")["titles"] == ["Software Engineering Intern"]
+    # chen's promotion is two titles at one employer, and both are held.
+    assert truth("chen")["titles"] == [
+        "Staff Platform Engineer", "Senior Platform Engineer",
+        "Site Reliability Engineer", "Infrastructure Engineer"]
 
     # The promotion case: four rows, three employers.
     assert len(PEOPLE["chen"]["employment"]) == 4
