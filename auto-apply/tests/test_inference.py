@@ -793,13 +793,51 @@ class TestProductionEntryPoint(unittest.TestCase):
         with mock.patch.dict(os.environ,
                              {inference.KEEP_ALIVE_ENV: "10m"}):
             self.assertEqual(inference.keep_alive(), "10m")
-            sent = {}
-            with mock.patch.object(inference, "_post",
-                                   lambda url, body, t, h=None: sent.update(body)
-                                   or (200, {"response": "{}"})):
-                inference.LocalOllama("http://x/api/generate").generate(
-                    "m", "p", SCHEMA, 10)
-            self.assertEqual(sent["keep_alive"], "10m")
+            self.assertEqual(self.sent_keep_alive(), "10m")
+
+    def sent_keep_alive(self):
+        """What actually reaches the runtime in the request body."""
+        sent = {}
+        with mock.patch.object(
+                inference, "_post",
+                lambda url, body, t, h=None: sent.update(body)
+                or (200, {"response": "{}"})):
+            inference.LocalOllama("http://x/api/generate").generate(
+                "m", "p", SCHEMA, 10)
+        return sent["keep_alive"]
+
+    def test_a_numeric_keep_alive_is_sent_as_a_number_not_a_string(self):
+        """The regression this test exists for, found by measurement.
+
+        Ollama parses a STRING keep_alive with Go's ParseDuration, which
+        requires a unit — so "-1" comes back as
+        `time: missing unit in duration "-1"`, a 400, which the transport
+        correctly reports as model_unavailable. `-1` is the documented way
+        to pin a model resident, so before this the setting looked
+        configured and failed every single request.
+        """
+        for given, want in (("-1", -1), ("0", 0), ("600", 600),
+                            ("  -1  ", -1), ("1.5", 1.5)):
+            with self.subTest(given), mock.patch.dict(
+                    os.environ, {inference.KEEP_ALIVE_ENV: given}):
+                got = inference.keep_alive()
+                self.assertEqual(got, want)
+                self.assertNotIsInstance(got, str)
+                self.assertEqual(self.sent_keep_alive(), want)
+
+    def test_a_duration_keep_alive_stays_the_string_ollama_expects(self):
+        for given in ("30s", "10m", "1h", "2h45m"):
+            with self.subTest(given), mock.patch.dict(
+                    os.environ, {inference.KEEP_ALIVE_ENV: given}):
+                self.assertEqual(inference.keep_alive(), given)
+                self.assertIsInstance(inference.keep_alive(), str)
+
+    def test_every_documented_keep_alive_value_is_json_serialisable(self):
+        # Whatever coercion does, the result has to survive the trip.
+        for given in ("30s", "10m", "-1", "0", "600", "1.5", "nonsense"):
+            with self.subTest(given), mock.patch.dict(
+                    os.environ, {inference.KEEP_ALIVE_ENV: given}):
+                json.dumps({"keep_alive": inference.keep_alive()})
 
 
 class TestConcurrentRequests(unittest.TestCase):

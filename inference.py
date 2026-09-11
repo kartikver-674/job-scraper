@@ -186,11 +186,30 @@ def _base(value, default):
 def keep_alive():
     """How long to keep the model resident, from SWEEP_MODEL_KEEP_ALIVE.
 
-    Passed through to the runtime verbatim — Ollama's own grammar ("30s",
-    "10m", "-1" for forever, "0" to unload at once) rather than a number
-    this would have to translate.
+    Ollama's own grammar, passed through: a duration STRING ("30s",
+    "10m") or a NUMBER of seconds, where -1 means forever and 0 means
+    unload immediately.
+
+    The two are not interchangeable, and that is the whole reason this
+    function is not one line. Ollama parses a string with Go's
+    ParseDuration, which requires a unit — so the string "-1" comes back
+    as `time: missing unit in duration "-1"`, a 400, which our transport
+    correctly reports as model_unavailable. The setting would look
+    configured and fail every single request. Measured, not guessed: it
+    is what `SWEEP_MODEL_KEEP_ALIVE=-1` did before this coercion.
+
+    So anything that is a bare number is sent as a number, and anything
+    else is sent as the duration string it appears to be.
     """
-    return (os.environ.get(KEEP_ALIVE_ENV) or "").strip() or DEFAULT_KEEP_ALIVE
+    value = (os.environ.get(KEEP_ALIVE_ENV) or "").strip() or DEFAULT_KEEP_ALIVE
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        return value
 
 
 def model_name(model=None):
@@ -476,9 +495,16 @@ def demo():
 
     # Keep-alive is configurable and defaults to the measured value.
     assert keep_alive() == DEFAULT_KEEP_ALIVE == KEEP_ALIVE == "30s"
-    for given, want in (("10m", "10m"), ("  -1  ", "-1"), ("", "30s")):
+    # Durations stay strings; bare numbers become numbers, because Ollama
+    # rejects "-1" as a duration and accepts -1 as a count of seconds.
+    for given, want in (("10m", "10m"), ("30s", "30s"), ("1h", "1h"),
+                        ("  -1  ", -1), ("0", 0), ("600", 600),
+                        ("1.5", 1.5), ("", "30s")):
         os.environ[KEEP_ALIVE_ENV] = given
-        assert keep_alive() == want, (given, keep_alive())
+        got = keep_alive()
+        assert got == want and type(got) is type(want), (given, got, want)
+        # Whatever it is, it has to survive the trip to the runtime.
+        json.dumps({"keep_alive": got})
     del os.environ[KEEP_ALIVE_ENV]
 
     # A busy service is its own thing: retryable, and it must NOT open

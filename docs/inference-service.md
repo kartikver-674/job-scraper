@@ -244,13 +244,13 @@ Nothing is persisted. No database, no cache, no spool file, no audit trail.
 
 ## Known issues and things deliberately not done
 
-- **`SWEEP_MODEL_KEEP_ALIVE` is configurable but untuned.** It still defaults to
-  `30s`, the value measured for a model sharing a laptop with the sweep it
-  serves. That is the wrong default once the model has its own box: Sweep makes
-  two calls per profile with ~40s of corpus work between them, so a 30s window
-  reloads 5.2 GB mid-profile. This is the single largest lever on end-to-end
-  latency (observed 12s–260s per profile depending purely on residency) and it
-  wants its own measurement before being moved.
+- **`SWEEP_MODEL_KEEP_ALIVE` is configurable and still defaults to `30s`.**
+  It has now been measured — see
+  [docs/inference-hosting.md §8](inference-hosting.md#8-the-keep-alive-measurement).
+  The short version: `30s` is *correct* for a single profile, because the two
+  model calls are back to back and nothing expires between them. Raising it
+  matters only between one user's profile and the next, and on Oracle for the
+  idle-reclamation floor. The default is deliberately unchanged.
 - **One shared token, no per-user auth, no rate limiting.** `principal()` returns
   the token as the identity today and a user id later; a limiter keyed on its
   return value drops in at the marked line in `generate()` without the contract

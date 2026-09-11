@@ -86,10 +86,14 @@ change is needed** to run on this hardware.
    [may reclaim an Always Free instance](https://docs.oracle.com/en-us/iaas/Content/FreeTier/resourceref.htm)
    if, over 7 days, CPU **and** network **and** memory utilisation are all below
    20%. At 10 profiles/day our CPU sits near 2%. The escape is the memory
-   criterion — and we already have the knob for it. Setting
-   `SWEEP_MODEL_KEEP_ALIVE=-1` pins the 5.2 GB model resident, which is 43% of
-   12 GB, above the threshold. It also removes a 5.2 GB reload between our two
-   calls, which on ARM disk is not free. *One setting buys both.*
+   criterion, and `SWEEP_MODEL_KEEP_ALIVE=-1` pins the model resident at 5.27 GB
+   — 44% of 12 GB, above the threshold.
+
+   An earlier draft of this document also claimed `-1` removes a reload
+   *between a profile's two calls*. **It does not, and §8 is the measurement
+   that says so.** The two calls are back to back; the corpus work that would
+   have separated them runs after both. Reclamation is the whole reason for
+   `-1`, not latency.
 2. **Oracle changing its mind.** They halved the allowance in June 2026 with no
    blog post and no email until instances started being terminated. Assume they
    may do it again. At 12 GB there is exactly one halving of headroom left before
@@ -260,10 +264,12 @@ service) and Caddy's own.
 # required
 SWEEP_INFERENCE_TOKEN=<openssl rand -hex 32>
 
-# the one deliberate tuning decision — see §2, risk 1
-SWEEP_MODEL_KEEP_ALIVE=-1        # pin the model resident: kills the reload
-                                 # between our two calls AND keeps memory
-                                 # above Oracle's 20% reclamation floor
+# the one deliberate tuning decision — see §8 for the measurement
+SWEEP_MODEL_KEEP_ALIVE=-1        # pin the model resident. This is for
+                                 # Oracle's 20% memory reclamation floor,
+                                 # NOT for latency: it does nothing for a
+                                 # single profile and saves ~2.9s between
+                                 # two users' profiles
 
 # defaults are already correct for this host; listed to be explicit
 SWEEP_INFERENCE_HOST=127.0.0.1   # Caddy is the only thing that reaches us
@@ -290,9 +296,10 @@ Starting it is unchanged from the laptop: `python -m inference_service`.
 
 | | |
 | --- | --- |
-| Warm (model resident, `KEEP_ALIVE=-1`) | **~100–240 s per profile** (2 calls) |
-| Cold (first request after a restart) | + ~30–60 s to load 5.2 GB from disk |
-| Cold, if `KEEP_ALIVE` were left at 30 s | + that reload **between the two calls of a single profile** — the reason for the setting |
+| Warm (model resident) | **~100–240 s per profile** (2 calls) |
+| Cold (first request after a restart) | + the model load. Measured at 5.2 s on this laptop's SSD; budget more on ARM |
+| Between a profile's two calls | **No reload at any keep-alive setting** — they are back to back. See §8 |
+| Between two users' profiles | A reload at `30s`, none at `-1`. Measured cost 2.9 s locally |
 | `/healthz` | milliseconds, always — it takes no model slot |
 | HTTP hop overhead | 0.50 ms median (measured, 200 calls) — noise |
 
@@ -327,3 +334,128 @@ The order to try things, if the first choice disappoints:
 2. Modal T4, scale-to-zero, ₹0 against credits — when latency matters
 3. Cerebras/Groq with a **re-run benchmark** — when a bigger model is worth measuring
 4. RunPod / a rented GPU at ~$1.50–$5/month — when "₹0" stops being the constraint
+
+---
+
+## 8. The keep-alive measurement
+
+Run 12 September 2026 on the hardened service (gunicorn, restarted per setting
+so the environment is genuinely in force), against real `qwen3:8b`, using
+`ada-plain` — Sweep's actual two-call sequence. Residency was read from Ollama's
+`/api/ps`, which is read-only and so cannot itself load a model.
+
+### What it found first: `-1` did not work at all
+
+`SWEEP_MODEL_KEEP_ALIVE=-1` — the value §7 recommends — **failed every request
+with a 503** before this measurement. Ollama parses a *string* `keep_alive` with
+Go's `ParseDuration`, which requires a unit:
+
+```
+$ curl ... -d '{"keep_alive":"-1", ...}'
+{"error":"time: missing unit in duration \"-1\""}   [HTTP 400]
+$ curl ... -d '{"keep_alive":-1, ...}'              [HTTP 200]
+```
+
+`inference.keep_alive()` always returned a string, so the setting looked
+configured and broke the service. Fixed: bare numbers are now sent as numbers,
+durations stay strings, with regression tests for both. **The recommendation in
+§7 would have taken the service down on its first request.**
+
+### Within one profile — the question that was actually asked
+
+Three warm repetitions per setting, both calls back to back as Sweep makes them:
+
+| Setting | call 1 | call 2 | **total** | resident between the calls? |
+| --- | --- | --- | --- | --- |
+| `30s` | 6.44 – 6.56 s | 5.36 – 5.51 s | **11.89 – 11.95 s** | yes |
+| `300s` | 6.52 – 6.80 s | 5.37 – 5.51 s | **11.95 – 12.31 s** | yes |
+| `-1` | 6.49 – 6.72 s | 5.37 – 5.46 s | **11.90 – 12.18 s** | yes |
+
+**`-1` buys nothing within a profile. Nothing at all.** All nine warm runs land
+in 11.89–12.31 s, a spread of ±1.8% with no ordering by setting — that is
+run-to-run noise, not an effect.
+
+The reason is structural: the two calls are issued back to back in
+`local_extract.read()`, milliseconds apart. `30s` covers that gap with 29.9 s to
+spare. The corpus work that would have separated them runs *after* both calls, in
+`local_profile.generate()`.
+
+### Cold, and after an idle gap
+
+| | call 1 | call 2 | total | between calls |
+| --- | --- | --- | --- | --- |
+| `30s`, first profile after unload | 12.34 s | 7.83 s | 20.17 s | resident |
+| `300s`, first profile after unload | 9.60 s | 7.74 s | 17.34 s | resident |
+| `-1`, first profile after unload | 9.74 s | 7.90 s | 17.64 s | resident |
+| `30s`, **45 s gap between the two calls** | 11.97 s | **10.55 s** | 22.52 s | **UNLOADED** |
+| `300s`, 45 s gap | 11.59 s | 7.70 s | 19.29 s | resident |
+| `-1`, 45 s gap | 12.06 s | 7.68 s | 19.74 s | resident |
+| `-1`, first profile after an **Ollama restart** | 11.69 s | 7.70 s | 19.39 s | resident |
+
+The 45 s gap is the only row where the settings differ, and it is the honest
+measure of what keep-alive is for. At `30s` the model is gone and call 2 pays
+**10.55 s against 7.69 s** — a reload penalty of **2.86 s** on this laptop's SSD.
+Cold call 1 runs 9.6–12.3 s against a 6.5 s warm baseline, so the model load
+itself is **~3–5.2 s** here. On slower ARM disk, expect proportionally more:
+this is 5.27 GB being read.
+
+`expires_at` confirms each setting reached the runtime — `+30s`, `+5m`, and for
+`-1` the year **2318**, which is Ollama's way of saying never.
+
+### Idle cost of pinning it
+
+Sampled for 60 s with the model resident and no work in flight:
+
+| | RSS | CPU |
+| --- | --- | --- |
+| Model pinned (`-1`) | **5 638 – 5 728 MB** | **0.2 – 0.5%** |
+| Model unloaded | 44.8 MB | 0.0% |
+
+**CPU cost of keeping it resident is nil.** A parked model is parked; it does not
+spin.
+
+RAM is the entire cost, and it is real: **~5.3 GB** under our service (`/api/ps`
+reported 5.27 GB at the `num_ctx=2048` our `ctx_for` picks for these documents;
+the 5.6–5.7 GB above was a bare load at Ollama's default 4096, and the difference
+is KV cache). On a 12 GB Oracle box that is **44% of RAM held permanently**,
+leaving ~6.6 GB for the OS, gunicorn (~60 MB) and Caddy (~20 MB). Comfortable,
+but it means the box is a single-purpose box — there is no room for a second
+memory-hungry thing, and a long résumé that pushes `ctx_for` to 8192 will want
+more KV.
+
+*Measured on Apple Silicon, where unified memory reports `size_vram == size`. On
+Oracle's CPU-only ARM the same bytes are ordinary system RAM; the 44% figure
+holds.*
+
+### A reload that keep-alive cannot prevent
+
+`ctx_for` sizes `num_ctx` from the prompt, and the employment template is 300
+characters longer than the fields one. For résumé text of **3 840–4 130
+characters** the two calls request *different* context sizes (2 048 vs 4 096),
+and Ollama must reload the model between them whatever keep-alive says. A second
+window sits at 12 030–12 320 characters.
+
+**No benchmark document hits either window** — 52 of 52 ask for 2 048 on both
+calls, and the longest (hana, 3 013 chars) sits 827 characters below the first
+window. So this is latent, not active. It is written down because a longer real
+résumé than any in the benchmark would land there, and the symptom would be one
+profile mysteriously slower than its neighbours.
+
+### Recommendation
+
+**Leave the default at `30s`. Do not change production.**
+
+- Within a profile it is measurably identical to `-1`, and it is the value the
+  benchmark was run against.
+- On a laptop it is *right*: the model unloads promptly instead of holding 5.3 GB
+  against the sweep it is serving.
+
+**On Oracle specifically, set `-1` — for reclamation, not for speed.** Pinning
+holds memory utilisation at 44%, above the 20% floor below which Oracle reclaims
+an idle Always Free instance. The latency gain is a secondary 2.9 s between one
+user's profile and the next. State the reason that way in the deployment, because
+someone will otherwise "optimise" it back to `30s` and lose the instance.
+
+`300s` is the awkward middle: it gets the between-profile latency without the
+reclamation protection, since an overnight gap still unloads. Pick it only if
+holding 5.3 GB permanently is a problem on the host — which on 12 GB it is not.
