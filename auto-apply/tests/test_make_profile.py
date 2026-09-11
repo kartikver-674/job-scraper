@@ -1980,3 +1980,196 @@ class TestNoGeminiSdkRequired(unittest.TestCase):
         head = re.split(r"^def create_app", source, maxsplit=1,
                         flags=re.MULTILINE)[0]
         self.assertNotIn("import tailor", head)
+
+
+class TestKeywordBudgetReach(unittest.TestCase):
+    """The valuable search must be one the user's budget actually runs.
+
+    WHY THIS FIXTURE IS FROZEN
+    --------------------------
+    Keyword order is decided by corpus lift, and the corpus GROWS with
+    every sweep — including the tool's own output. A Salesforce
+    developer's 'salesforce developer' keyword sat at rank 2 on one
+    week's corpus and rank 6 on a later one, purely from drift. Nothing
+    in the code changed and no test noticed, but scraper.py stops the
+    sweep the moment spend crosses max_spend_usd, so rank 6 was past
+    what the budget ran: that live sweep bought ZERO Salesforce rows
+    from the paid sources it paid for, and the same happened to a React
+    Native developer at rank 10.
+
+    So this guards the property that actually matters — the high-value
+    keyword lands inside the prefix the user can afford — against both
+    corpus drift and any future change to the ordering. The corpus
+    snapshot is frozen and read from tests/fixtures, never from
+    output/, so the assertion measures the ORDERING and not whatever
+    has been scraped since.
+
+    The prefix is COMPUTED from the spend cap, not written down as a
+    rank: a cheaper plan or another location multiplies the searches a
+    keyword costs, and the guard has to move with it.
+    """
+
+    # Measured, not assumed: five live runs at a $0.15 cap spent $0.88
+    # over ~45 LinkedIn searches. Deliberately a test-local constant —
+    # production does not need to know the price of a search, and this
+    # number is an observation about one actor's billing, not a rule.
+    COST_PER_SEARCH = 0.0196
+
+    # The envelope those runs used, and the one the fixture reproduces.
+    CAP = 0.15
+    LOCATIONS = 2
+
+    @classmethod
+    def setUpClass(cls):
+        import gzip
+
+        here = os.path.dirname(os.path.abspath(__file__))
+        fixtures = os.path.join(here, "fixtures")
+        with gzip.open(os.path.join(
+                fixtures, "budget_reach_corpus.json.gz"), "rb") as fh:
+            snapshot = json.load(fh)
+        cls.rows = [(t, s, frozenset(k), c) for t, s, k, c in snapshot["rows"]]
+        with open(os.path.join(fixtures, "budget_reach_people.json"),
+                  encoding="utf-8") as fh:
+            cls.people = json.load(fh)["people"]
+
+        if make_profile.cfg.REPO_ROOT not in sys.path:
+            sys.path.insert(0, make_profile.cfg.REPO_ROOT)
+        import local_search
+
+        cls.local_search = local_search
+        # Built from the fixture rows, so nothing here reads output/.
+        cls.market = local_search.Market(rows=cls.rows)
+        # Deriving over 20k rows takes a second or two; every test here
+        # asks the same question of the same frozen input, so it is done
+        # once. test_the_ordering_is_deterministic bypasses the cache.
+        cls._cache = {}
+
+    def affordable_keywords(self, cap=None, locations=None):
+        """How many keywords a spend cap actually runs.
+
+        build_search_plan is keyword-major, so one keyword costs one
+        search per location, and scraper.py checks the cap BEFORE each
+        search — the crossing search still runs, hence the +1.
+        """
+        cap = self.CAP if cap is None else cap
+        locations = self.LOCATIONS if locations is None else locations
+        searches = int(cap / self.COST_PER_SEARCH) + 1
+        return max(1, searches // max(1, locations))
+
+    def keywords_for(self, who, cached=True):
+        """The production ordering, on the frozen corpus."""
+        if cached and who in self._cache:
+            return self._cache[who]
+        person = self.people[who]
+        employment = [{"title": t, "start": "Jan 2024", "end": "present",
+                       "relevant": True}
+                      for t in person["held_titles"]]
+        fields = self.local_search.fields_for(
+            {"skills": person["skills"], "employment": employment},
+            self.market)
+        if cached:
+            self._cache[who] = fields["role_keywords"]
+        return fields["role_keywords"]
+
+    def test_the_fixture_is_isolated_from_whatever_has_been_scraped(self):
+        # If this ever reads output/, the guard silently becomes a
+        # measurement of today's corpus and stops being a regression test.
+        self.assertGreater(len(self.rows), 10000)
+        self.assertEqual(len(self.market), len(self.rows))
+        self.assertEqual(sorted(self.people),
+                         ["kanav_reactnative", "kavya", "lovish"])
+
+    def test_the_affordable_prefix_is_computed_from_the_cap(self):
+        # Not an absolute rank: halve the cap and the guard tightens;
+        # add a location and each keyword costs more.
+        self.assertEqual(self.affordable_keywords(0.15, 2), 4)
+        self.assertEqual(self.affordable_keywords(0.075, 2), 2)
+        self.assertEqual(self.affordable_keywords(0.15, 1), 8)
+        self.assertEqual(self.affordable_keywords(0.15, 4), 2)
+        self.assertGreaterEqual(self.affordable_keywords(0.001, 2), 1)
+
+    def test_the_target_keyword_lands_inside_the_affordable_prefix(self):
+        """The regression this whole fixture exists for.
+
+        Each of these three bought zero of their own specialist roles
+        from paid sources in a live sweep, because the keyword that
+        would have found them ranked past the cutoff.
+        """
+        prefix = self.affordable_keywords()
+        for who, person in sorted(self.people.items()):
+            with self.subTest(who):
+                keywords = self.keywords_for(who)
+                target = person["target"]
+                inside = [i + 1 for i, k in enumerate(keywords[:prefix])
+                          if target in k.lower()]
+                anywhere = [i + 1 for i, k in enumerate(keywords)
+                            if target in k.lower()]
+                self.assertTrue(
+                    anywhere,
+                    f"{who}: no {target!r} keyword was generated at all — "
+                    f"this is a retrieval failure, not an ordering one: "
+                    f"{keywords}")
+                self.assertTrue(
+                    inside,
+                    f"{who}: {target!r} is generated at rank(s) {anywhere} "
+                    f"but the ${self.CAP} cap only runs the first {prefix} "
+                    f"keywords, so none of them would execute. "
+                    f"Prefix: {keywords[:prefix]}")
+
+    def test_it_holds_at_a_tighter_budget_too(self):
+        # A user on a smaller cap is the one who can least afford to
+        # spend it all on adjacent roles.
+        prefix = self.affordable_keywords(0.075, 2)   # two keywords
+        for who, person in sorted(self.people.items()):
+            with self.subTest(who):
+                keywords = self.keywords_for(who)
+                self.assertTrue(
+                    any(person["target"] in k.lower()
+                        for k in keywords[:prefix]),
+                    f"{who}: nothing matching {person['target']!r} in the "
+                    f"first {prefix}: {keywords[:prefix]}")
+
+    def test_the_prefix_is_not_spent_on_one_role_repeated(self):
+        # The other half of the failure: a budget spent on four spellings
+        # of the same search buys one search's worth of jobs.
+        prefix = self.affordable_keywords()
+        for who in sorted(self.people):
+            with self.subTest(who):
+                keywords = self.keywords_for(who)[:prefix]
+                self.assertEqual(len(keywords), len(set(keywords)))
+                # No keyword may be a substring of another in the prefix.
+                for i, a in enumerate(keywords):
+                    for j, b in enumerate(keywords):
+                        if i != j:
+                            self.assertNotIn(
+                                a, b, f"{who}: {a!r} is contained in {b!r}, "
+                                      f"so the budget buys it twice")
+
+    def test_the_ordering_is_deterministic(self):
+        # A guard that only sometimes holds is worse than none. One
+        # résumé is enough for a property of the algorithm, and deriving
+        # over 20k rows is the slow part of this class.
+        who = "lovish"
+        self.assertEqual(self.keywords_for(who, cached=False),
+                         self.keywords_for(who))
+
+    def test_the_guard_fails_when_the_budget_ordering_is_removed(self):
+        """Proof the fixture discriminates.
+
+        Without this, a fixture that passes tells you nothing — it might
+        pass because the corpus happens to be kind. Bypassing the final
+        reorder must put the target back outside the prefix for the two
+        résumés it was failing for.
+        """
+        prefix = self.affordable_keywords()
+        failed = []
+        with _patched(self.local_search, "budget_order",
+                      lambda keywords, *a, **kw: list(keywords)):
+            for who, person in sorted(self.people.items()):
+                keywords = self.keywords_for(who, cached=False)
+                if not any(person["target"] in k.lower()
+                           for k in keywords[:prefix]):
+                    failed.append(who)
+        self.assertIn("lovish", failed)
+        self.assertIn("kanav_reactnative", failed)
