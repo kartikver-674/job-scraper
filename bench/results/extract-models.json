@@ -1,0 +1,252 @@
+{
+ "qwen3:8b::kanav_reactnative": {
+  "skills": [
+   "javascript (es6+)",
+   "c++",
+   "react native",
+   "react.js",
+   "node.js",
+   "express",
+   "mongodb",
+   "rest apis",
+   "firebase authentication",
+   "git",
+   "github",
+   "app center",
+   "xcode",
+   "android studio",
+   "docker",
+   "google play console",
+   "claude code",
+   "github copilot"
+  ],
+  "titles": [
+   "Software Developer",
+   "Solutions Developer"
+  ],
+  "companies": [
+   "dealermatix technologies",
+   "tata technologies"
+  ],
+  "seconds": 16.3
+ },
+ "qwen3:8b::lovish": {
+  "skills": [
+   "apex",
+   "java",
+   "dart",
+   "javascript",
+   "c#",
+   "sql",
+   "python",
+   "flutter",
+   "lightning web components",
+   "aura",
+   "react",
+   "node.js",
+   "rest apis",
+   ".net worker services",
+   "batch apex",
+   "queueable apex",
+   "schedulable apex",
+   "soql",
+   "sosl",
+   "visualforce",
+   "mysql",
+   "postgresql",
+   "git",
+   "docker",
+   "vs code",
+   "eclipse",
+   "android studio",
+   "postman",
+   "flutter",
+   "firebase",
+   "node.js",
+   "react"
+  ],
+  "titles": [
+   "Software Engineer",
+   "Full-Stack Flutter Developer"
+  ],
+  "companies": [
+   "dealermatix",
+   "rowx"
+  ],
+  "seconds": 15.4
+ },
+ "qwen3:8b::kavya": {
+  "skills": [
+   "business analysis",
+   "requirements gathering & elicitation",
+   "gap analysis",
+   "stakeholder management",
+   "as-is/to-be mapping",
+   "brd",
+   "frd",
+   "user stories",
+   "acceptance criteria",
+   "uat",
+   "cr management",
+   "impact analysis",
+   "agile",
+   "scrum",
+   "sprint planning",
+   "backlog management",
+   "monthly release rollouts",
+   "sdlc",
+   "salesforce",
+   "sales cloud",
+   "service cloud",
+   "experience cloud",
+   "sfa",
+   "flows",
+   "approval processes",
+   "validation rules",
+   "profiles",
+   "permission sets",
+   "reports & dashboards",
+   "lightning app builder",
+   "soql",
+   "salesforce inspector",
+   "rest api integrations",
+   "dms",
+   "custom metadata types",
+   "apex code comprehension",
+   "data & analytics",
+   "power bi",
+   "ibm cognos",
+   "spss modeller",
+   "sql",
+   "data visualization",
+   "predictive modelling",
+   "ms excel"
+  ],
+  "titles": [
+   "Salesforce Functional Consultant (BA)"
+  ],
+  "companies": [
+   "dealermatix technologies pvt. ltd."
+  ],
+  "seconds": 18.6
+ },
+ "qwen3:14b::kanav_reactnative": {
+  "skills": [
+   "javascript",
+   "es6",
+   "c++",
+   "react native",
+   "react.js",
+   "node.js",
+   "express",
+   "mongodb",
+   "rest apis",
+   "firebase authentication",
+   "git",
+   "github",
+   "app center",
+   "xcode",
+   "android studio",
+   "docker",
+   "google play console",
+   "claude code",
+   "github copilot"
+  ],
+  "titles": [
+   "Software Developer",
+   "Solutions Developer"
+  ],
+  "companies": [
+   "Dealermatix Technologies",
+   "Tata Technologies"
+  ],
+  "seconds": 28.4
+ },
+ "qwen3:14b::lovish": {
+  "skills": [
+   "apex",
+   "java",
+   "dart",
+   "javascript",
+   "c#",
+   "sql",
+   "python",
+   "flutter",
+   "lightning web components",
+   "aura",
+   "react",
+   "node.js",
+   "rest apis",
+   ".net worker services",
+   "batch apex",
+   "queueable apex",
+   "schedulable apex",
+   "soql",
+   "sosl",
+   "visualforce",
+   "mysql",
+   "postgresql",
+   "git",
+   "docker",
+   "vs code",
+   "eclipse",
+   "android studio",
+   "postman",
+   "firebase"
+  ],
+  "titles": [
+   "Software Engineer",
+   "Full-Stack Flutter Developer",
+   "Project Intern"
+  ],
+  "companies": [
+   "Dealermatix",
+   "RowX"
+  ],
+  "seconds": 27.7
+ },
+ "qwen3:14b::kavya": {
+  "skills": [
+   "requirements gathering",
+   "gap analysis",
+   "agile",
+   "scrum",
+   "sprint planning",
+   "backlog management",
+   "monthly release rollouts",
+   "sdlc",
+   "sales cloud",
+   "service cloud",
+   "experience cloud",
+   "sfa",
+   "flows",
+   "approval processes",
+   "validation rules",
+   "profiles",
+   "permission sets",
+   "reports & dashboards",
+   "lightning app builder",
+   "soql",
+   "salesforce inspector",
+   "rest api integrations",
+   "dms",
+   "custom metadata types",
+   "apex code comprehension",
+   "power bi",
+   "ibm cognos",
+   "spss modeller",
+   "sql",
+   "data visualization",
+   "predictive modelling",
+   "ms excel"
+  ],
+  "titles": [
+   "Business Analyst",
+   "Salesforce Functional Consultant (BA)"
+  ],
+  "companies": [
+   "Dealermatix Technologies Pvt. Ltd."
+  ],
+  "seconds": 31.0
+ }
+}
