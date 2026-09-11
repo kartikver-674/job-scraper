@@ -228,6 +228,9 @@ answer becomes a GPU.
 
 ### Now: one Oracle Always Free ARM instance, everything on it
 
+The step-by-step provisioning runbook for exactly this is
+[oracle-deployment.md](oracle-deployment.md).
+
 ```
                     ┌──────────── the internet ────────────┐
                     │                                      │

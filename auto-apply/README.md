@@ -80,6 +80,8 @@ python -m unittest discover -s auto-apply/tests -t auto-apply -p "test_inference
 
 Runtime requirements, every environment variable, the health check and the full
 list of failure modes: [docs/inference-service.md](../docs/inference-service.md).
+Where to host it and what it costs: [docs/inference-hosting.md](../docs/inference-hosting.md).
+How to provision that host: [docs/oracle-deployment.md](../docs/oracle-deployment.md).
 
 ## Phase 2 — LinkedIn Easy Apply autofill (userscript)
 
