@@ -1047,6 +1047,124 @@ def explain(ranked, limit=None):
 
 
 # --------------------------------------------------------------------------
+# Budget reach: the user only ever buys the PREFIX
+# --------------------------------------------------------------------------
+#
+# scraper.build_search_plan is keyword-major, so keyword k occupies
+# searches [k*L, k*L+L) for L locations, and scraper.py stops the whole
+# sweep the moment spend crosses max_spend_usd. Measured over five live
+# runs: $0.88 for ~45 LinkedIn searches, and a $0.15 cap reached nine —
+# four keywords at two locations.
+#
+# So a keyword list longer than the budget is not a longer search, it is a
+# TRUNCATED one. The first integrated live run generated the right
+# specialist keyword for two people and placed it at position 6 and
+# position 10; neither ever ran, and both bought zero specialist rows from
+# the sources they paid for. Ordering by rank optimises the whole list;
+# the user only ever buys the prefix.
+#
+# This reorders what rank() produced. It selects nothing, drops nothing,
+# and changes no score — every candidate and every tier is what it was.
+
+# How much a title's own evidence is trusted against the market's. The
+# pseudo-count is MIN_ROWS, the same "a title nothing much is posted under
+# is not worth a search" bar the orphan pass already applies, so a title
+# at that bar is trusted half as much as the market and one far above it
+# nearly fully. Without this a 21-listing title out-bid a 217-listing one
+# on the same skills, because with a handful of rows three mobile
+# postings read as 14%.
+SHARE_PRIOR = MIN_ROWS
+
+
+def wanted_skills(keyword, rows, own, vocab, total, alpha=SHARE_PRIOR):
+    """{skill: shrunk share of this keyword's listings naming it}.
+
+    A fact about the listings the keyword buys, so it is comparable
+    across people and cannot flatter one profession.
+    """
+    needle = keyword.strip().lower()
+    matched = [r for r in rows if needle in r[0]]
+    if not matched:
+        return {}, 0, 0
+    out = {}
+    for skill in own:
+        n = sum(1 for r in matched if skill in r[2])
+        if n:
+            base = vocab.get(skill, 0) / total if total else 0.0
+            out[skill] = (n + alpha * base) / (len(matched) + alpha)
+    return out, len(matched), len({r[3] for r in matched if r[3]})
+
+
+def _marginal(share, idfs, covered):
+    """Evidence this keyword adds that nothing already bought covers.
+
+    Diminishing returns, so a second near-identical variant of one role
+    is worth little and stops consuming a slot the budget can afford.
+    """
+    gain = 0.0
+    for skill, value in share.items():
+        extra = value - covered.get(skill, 0.0)
+        if extra > 0:
+            gain += idfs[skill] * extra
+    return gain
+
+
+def budget_order(keywords, held, rows, own, vocab, total):
+    """Reorder so the affordable prefix carries the most evidence.
+
+    Greedy marginal coverage, over candidates the market actually posts.
+    Coverage alone picks narrow titles — for one résumé it covered twice
+    the skills and bought FIVE listings against 44 — so eligibility uses
+    the orphan pass's own bars (MIN_ROWS, ORPHAN_MIN_COMPANIES) and a thin
+    candidate waits behind every candidate the market supports.
+
+    One held title leads when the market supports it. It is the strongest
+    prior there is, but putting EVERY held title first spent two of a
+    small cap's four searches on "software developer" and "solutions
+    developer" for a mobile specialist.
+
+    Deterministic: ties break by listing count then alphabetically.
+    """
+    info = {}
+    for keyword in keywords:
+        share, listings, companies = wanted_skills(keyword, rows, own,
+                                                   vocab, total)
+        info[keyword] = {
+            "share": share, "listings": listings, "companies": companies,
+            "idf": {s: idf(s, vocab, total) for s in share},
+        }
+    eligible = [k for k in keywords
+                if info[k]["listings"] >= MIN_ROWS
+                and info[k]["companies"] >= ORPHAN_MIN_COMPANIES]
+    remaining = list(eligible) if len(eligible) >= 2 else list(keywords)
+    thin = [k for k in keywords if k not in remaining]
+    held_set = {h.strip().lower() for h in held or ()}
+    order, covered = [], {}
+
+    def take(keyword):
+        order.append(keyword)
+        remaining.remove(keyword)
+        for skill, value in info[keyword]["share"].items():
+            covered[skill] = max(covered.get(skill, 0.0), value)
+
+    leading = [k for k in remaining if k.strip().lower() in held_set]
+    if leading:
+        take(max(leading, key=lambda k: (
+            _marginal(info[k]["share"], info[k]["idf"], covered),
+            info[k]["listings"], k)))
+
+    while remaining:
+        best = max(remaining, key=lambda k: (
+            _marginal(info[k]["share"], info[k]["idf"], covered),
+            info[k]["listings"], k))
+        if _marginal(info[best]["share"], info[best]["idf"], covered) <= 0:
+            order.extend(remaining)
+            break
+        take(best)
+    return order + thin
+
+
+# --------------------------------------------------------------------------
 # The whole derivation, for one person
 # --------------------------------------------------------------------------
 
@@ -1078,6 +1196,14 @@ def fields_for(person, market, want=12):
 
     anchored = select_detail(own, base, rows, idx, total, seniority, vocab)
     order = rank(held, anchored, corpus)
+
+    # Last step, and only an order: the tiers, the reasons and the
+    # candidate set are exactly what rank() produced. What changes is
+    # which of them the user's budget actually reaches.
+    reasons = {k: (t, w) for k, t, w in order}
+    reordered = budget_order([k for k, _t, _w in order], held, rows, own,
+                             vocab, total)
+    order = [(k, reasons[k][0], reasons[k][1]) for k in reordered]
 
     return {
         "skills": sorted(own),
@@ -1337,6 +1463,50 @@ def demo():
     assert fields["title_hints"], "the free-source gate must not be empty"
     # Held titles rank ahead of anything the corpus offered.
     assert fields["ranking"][0][1] == 1
+
+    # --- budget reach ------------------------------------------------------
+    # The failure this exists for: the right specialist keyword generated
+    # and ranked beyond what the budget buys. rank() puts every held title
+    # first, so a generalist's two generic titles take the prefix.
+    held2 = ["software developer", "solutions developer"]
+    cands = ["software developer", "solutions developer",
+             "react native developer", "salesforce developer"]
+    market2 = Market(rows=rows + [
+        ("software developer", 3, frozenset({"javascript"}), f"gen{i}")
+        for i in range(200)] + [
+        ("solutions developer", 3, frozenset({"javascript"}), f"sol{i % 9}")
+        for i in range(40)], seniority=("senior",))
+    mixed2 = {"react native", "redux", "javascript", "apex", "soql", "lwc"}
+    got = budget_order(cands, held2, market2.rows, mixed2,
+                       market2.vocab, market2.total)
+    # One held title leads; the second no longer takes a slot ahead of
+    # the searches that buy evidence nothing else does.
+    assert got[0] in held2, got
+    assert sum(1 for k in got[:3] if k in held2) == 1, got
+    assert "salesforce developer" in got[:3], got
+    assert set(got) == set(cands), "reordering must not drop a candidate"
+
+    # A title the market barely posts waits behind every one it does,
+    # however pure its skill mix — a search returning nothing costs the
+    # same as one returning ten.
+    thin_market = Market(rows=market2.rows + [
+        ("niche apex architect", 30, frozenset({"apex"}), "solo")] * 4,
+        seniority=("senior",))
+    got = budget_order(cands + ["niche apex architect"], held2,
+                       thin_market.rows, mixed2, thin_market.vocab,
+                       thin_market.total)
+    assert got[-1] == "niche apex architect", got
+
+    # Shares are shrunk toward the market, so a tiny title cannot out-bid
+    # a large one on the same skills by small-sample noise.
+    big, _l, _c = wanted_skills("react native developer", market.rows,
+                                mixed, market.vocab, market.total)
+    assert big["react native"] < 1.0, "an unshrunk share would be 1.0"
+
+    # fields_for still returns every keyword, and the held title leads
+    # when the market supports it.
+    fields2 = fields_for(person, market)
+    assert set(fields2["role_keywords"]) == set(fields["role_keywords"])
 
     # buys() reports what a keyword set costs and how relevant it is.
     got = buys(["salesforce developer"], market.rows, sf)
