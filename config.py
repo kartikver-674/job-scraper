@@ -227,7 +227,8 @@ ATS_BOARDS = {
     # probed 2026-07-26. ONE greenhouse key only: a second one silently replaces
     # this whole dict rather than adding to it.
     "greenhouse": {
-        "phonepe": "PhonePe", "groww": "Groww", "postman": "Postman",
+        # phonepe removed 2026-09-11: its greenhouse AND lever boards both 404.
+        "groww": "Groww", "postman": "Postman",
         "druva": "Druva", "slice": "Slice",
         "gitlab": "GitLab",           # 30/187 India — an all-remote company
         "databricks": "Databricks",   # 76/800
@@ -243,7 +244,6 @@ ATS_BOARDS = {
         # surfaced — i.e. we were paying to see these roles through LinkedIn and
         # can now fetch them free and direct. Probed 2026-07-27.
         "roku": "Roku",               # 40/234
-        "clickhouse": "ClickHouse",   # 10/171
         "flix": "Flix",               #  9/154
         "sumup": "SumUp",             #  2/369
         "ubiquiti": "Ubiquiti",       #  0/159 — no India entity, so its geo-locked
@@ -319,6 +319,9 @@ ATS_BOARDS = {
         "linear": "Linear", "ramp": "Ramp", "openai": "OpenAI",
         "notion": "Notion",           #  5/127
         "teero": "Teero",             #  0/5   — harvest_ats.py, 2026-07-27
+        # Moved here from greenhouse 2026-09-11: that board now 404s and the
+        # company has re-platformed onto Ashby. Same employer, live board.
+        "clickhouse": "ClickHouse",   # was greenhouse, 184 jobs on ashby
         # --- Adzuna Phase 1 harvest, 2026-09-11 -------------------------------
         # Employer names came from the Adzuna API (docs/superpowers/specs/
         # 2026-09-11-adzuna-phase1-results.md); the boards themselves were
