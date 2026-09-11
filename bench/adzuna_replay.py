@@ -113,6 +113,42 @@ def distribution(values):
             "mean": round(sum(s) / len(s), 1)}
 
 
+def cached_search(cache_dir, keyword, location, country, where, depth, age):
+    """One Adzuna search, through an on-disk response cache.
+
+    The cache is the difference between "re-analysing costs another 56 calls"
+    and "re-analysing is free". A measurement you cannot re-interrogate without
+    paying again gets interrogated once and believed too readily.
+    """
+    if not cache_dir:
+        return adzuna.search(keyword, location, results=depth, max_days_old=age)
+    os.makedirs(cache_dir, exist_ok=True)
+    slug = re.sub(r"[^a-z0-9]+", "-",
+                  f"{country}-{where or 'all'}-{keyword}".lower()).strip("-")
+    path = os.path.join(cache_dir, f"{slug}-d{depth}-a{age}.json")
+    if os.path.exists(path):
+        return json.load(open(path))
+    rows = adzuna.search(keyword, location, results=depth, max_days_old=age)
+    with open(path, "w") as fh:
+        json.dump(rows, fh)
+    return rows
+
+
+def rollup(per_combo, field):
+    """Aggregate the per-combo record by keyword or by location, so a systematic
+    failure in one city or one query family is visible rather than averaged away."""
+    acc = collections.defaultdict(lambda: collections.Counter())
+    for c in per_combo:
+        if "rows" not in c:
+            continue
+        a = acc[c[field]]
+        a["combos"] += 1
+        for k in ("rows", "scored", "hard_dropped", "useful", "matched_linkedin",
+                  "title_mismatch", "location_mismatch"):
+            a[k] += c.get(k, 0)
+    return {k: dict(v) for k, v in sorted(acc.items())}
+
+
 def title_matches(keyword, title):
     """Does the returned title contain the query's content words at all?
 
@@ -127,10 +163,24 @@ def title_matches(keyword, title):
     return (not want) or any(w in low for w in want)
 
 
+# The aggregator's place vocabulary is not ours. Measured: where=Bengaluru
+# returns 166 rows that all say "Bangalore" -- the QUERY was honoured, the NAME
+# differs. Without these aliases the mismatch count reads as a 100% failure for
+# that city when nothing failed at all.
+PLACE_ALIASES = {
+    "Bengaluru": ("bengaluru", "bangalore"),
+    "Gurgaon": ("gurgaon", "gurugram"),
+    "Mumbai": ("mumbai", "bombay"),
+    "Delhi": ("delhi", "new delhi", "ncr"),
+    "Chennai": ("chennai", "madras"),
+}
+
+
 def location_matches(location, text):
     if location in ("India", "Remote"):
         return True     # whole-country query; nothing to mismatch against
-    return location.lower() in (text or "").lower()
+    low = (text or "").lower()
+    return any(a in low for a in PLACE_ALIASES.get(location, (location.lower(),)))
 
 
 # --------------------------------------------------------------------------
@@ -153,6 +203,9 @@ def main():
     ap.add_argument("--no-recovery", action="store_true",
                     help="partial combo set: suppress recovery ratios")
     ap.add_argument("--out", default=None, help="write the full result JSON here")
+    ap.add_argument("--cache", default=None,
+                    help="directory of raw API responses. Read when present, "
+                         "written when not — so re-analysis costs no quota.")
     args = ap.parse_args()
 
     if config.PROFILE != args.profile:
@@ -186,6 +239,14 @@ def main():
                      lambda s: bool(s) and not s.split(":")[0] in PAID)
     free_companies = {company_key(r.get("company")) for r in free.values()}
     free_companies.discard("")
+    # --- and everything we have ever paid to discover, across every profile --
+    # Needed so "new to Sweep" cannot quietly include an employer some OTHER
+    # profile's paid sweep already surfaced. Bucket 2 and bucket 3 are disjoint
+    # only if this set is repo-wide rather than this profile's LinkedIn alone.
+    paid = rows_from("output/**/jobs_*.json",
+                     lambda s: s.split(":")[0] in PAID)
+    paid_companies = {company_key(r.get("company")) for r in paid.values()}
+    paid_companies.discard("")
     li_companies = {company_key(r.get("company")) for r in li.values()}
     li_companies.discard("")
 
@@ -194,6 +255,8 @@ def main():
     print(f"linkedin rows  {len(li)} distinct (postings dated {oldest} .. {li_dates[-1] if li_dates else '?'})")
     print(f"free inventory {len(free)} distinct rows / {len(free_companies)} companies "
           f"(every non-paid source, all profiles)")
+    print(f"paid inventory {len(paid)} distinct rows / {len(paid_companies)} companies "
+          f"(every Apify source, all profiles)")
     print(f"adzuna depth   {depth} results, max_days_old={age}\n")
 
     # --- replay -------------------------------------------------------------
@@ -211,8 +274,8 @@ def main():
         reused = qkey in cache
         if not reused:
             try:
-                cache[qkey] = adzuna.search(keyword, location, results=depth,
-                                            max_days_old=age)
+                cache[qkey] = cached_search(args.cache, keyword, location,
+                                            country, where, depth, age)
             except adzuna.QuotaExhausted as exc:
                 print(f"\n  ! {exc} -- stopping after {i - 1} of {len(plan)} combos")
                 quota_hit = True
@@ -267,7 +330,13 @@ def main():
     adz_companies = {company_key(r["Company"]) for r in adz.values()}
     adz_companies.discard("")
     adz_only_companies = adz_companies - li_companies
-    adz_new_companies = adz_companies - li_companies - free_companies
+    # Three MUTUALLY EXCLUSIVE, EXHAUSTIVE buckets. Free wins the tie because
+    # an employer we can already fetch for free is already-known however else it
+    # also appears -- counting it anywhere else would inflate discovery value.
+    b1_free = adz_companies & free_companies
+    b2_paid_only = (adz_companies & paid_companies) - free_companies
+    b3_new = adz_companies - free_companies - paid_companies
+    assert len(b1_free) + len(b2_paid_only) + len(b3_new) == len(adz_companies)
 
     completeness = {f: round(100 * sum(1 for r in adz.values()
                                        if str(r.get(f) or "").strip()) / max(1, len(adz)), 1)
@@ -312,12 +381,19 @@ def main():
             "new_useful": len(adz_useful - set(li)),
         },
         "companies": {
-            "linkedin": len(li_companies), "adzuna": len(adz_companies),
-            "shared": len(adz_companies & li_companies),
-            "adzuna_not_on_linkedin": len(adz_only_companies),
-            "adzuna_new_to_sweep": len(adz_new_companies),
-            "adzuna_already_in_free_sources": len(adz_only_companies & free_companies),
+            "linkedin_this_profile": len(li_companies),
+            "adzuna": len(adz_companies),
+            "shared_with_this_profile_linkedin": len(adz_companies & li_companies),
+            "adzuna_not_on_this_profile_linkedin": len(adz_only_companies),
+            "bucket_1_already_in_free_inventory": len(b1_free),
+            "bucket_2_paid_discovered_only": len(b2_paid_only),
+            "bucket_3_new_to_sweep": len(b3_new),
+            "repo_free_companies": len(free_companies),
+            "repo_paid_companies": len(paid_companies),
         },
+        "bucket_3_useful_rows": len([r for r in adz.values()
+                                     if r["score"] >= USEFUL
+                                     and company_key(r["Company"]) in b3_new]),
         "field_completeness_pct": completeness,
         "description_chars_adzuna": desc_len,
         "matched_skills_per_row": {"adzuna": adz_skills, "linkedin": li_skills},
@@ -333,8 +409,26 @@ def main():
             "title": sum(c.get("title_mismatch", 0) for c in per_combo),
             "location": sum(c.get("location_mismatch", 0) for c in per_combo),
         },
+        "per_location": rollup(per_combo, "location"),
+        "per_keyword": rollup(per_combo, "keyword"),
         "per_combo": per_combo,
-        "adzuna_only_company_sample": sorted(adz_new_companies)[:40],
+        "bucket_3_sample": sorted(b3_new)[:60],
+        "rows": {"|".join(map(str, k)): {
+            "title": r["Title"], "company": r["Company"],
+            "location": r["Location"], "score": r["score"],
+            "matched_skills": r.get("matched_skills", ""),
+            "desc_chars": len(r.get("Description") or ""),
+            "date": r.get("Posted Date", ""), "salary": r.get("Salary", ""),
+            "on_linkedin": k in li,
+            "linkedin_score": (li[k].get("score") if k in li else None),
+        } for k, r in adz.items()},
+        "linkedin_rows": {"|".join(map(str, k)): {
+            "title": r.get("title", ""), "company": r.get("company", ""),
+            "score": r.get("score", 0),
+            "matched_skills": r.get("matched_skills", ""),
+            "in_adzuna": k in adz,
+        } for k, r in li.items()},
+        "bucket_2_sample": sorted(b2_paid_only)[:40],
     }
 
     print("\n" + "=" * 70)
@@ -351,9 +445,11 @@ def main():
     else:
         print("recovery            NOT COMPUTED (partial combo set or quota stop)")
     print(f"new useful rows    {result['overlap']['new_useful']}")
-    print(f"companies          adzuna {len(adz_companies)}, "
-          f"not on linkedin {len(adz_only_companies)}, "
-          f"new to Sweep entirely {len(adz_new_companies)}")
+    print(f"companies          adzuna {len(adz_companies)} distinct")
+    print(f"  bucket 1 already free   {len(b1_free)}")
+    print(f"  bucket 2 paid-only      {len(b2_paid_only)}")
+    print(f"  bucket 3 NEW to Sweep   {len(b3_new)}"
+          f"  ({result['bucket_3_useful_rows']} useful rows from them)")
     print(f"field completeness {completeness}")
     print(f"description chars  adzuna median {desc_len.get('median')}")
     print(f"matched skills/row adzuna median {adz_skills.get('median')}, "
