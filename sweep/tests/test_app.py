@@ -485,16 +485,19 @@ class TestFixesThatHadNoTest(Isolated):
 
     def test_the_results_table_has_real_header_cells(self):
         body = self._results_app().test_client().get("/results").get_data(as_text=True)
-        # All eight, not just one: pinning a single cell let the other seven
+        # All nine, not just one: pinning a single cell let the others
         # revert to <td> silently.
         for col in ("Source", "Score", "Role", "Location", "Pay",
                      "Experience", "Matched skills"):
             self.assertIn(f'<th scope="col">{col}</th>', body)
-        # One header row per non-empty bucket, so a whole multiple of eight —
-        # and never a plain <td> standing in for a header cell.
+        # One header row per non-empty bucket, so a whole multiple of nine —
+        # and never a plain <td> standing in for a header cell. Applied and
+        # Apply are headed too, by a visually-hidden label rather than a
+        # visible word: a checkbox column with a word over it reads as a
+        # question, and a blank <th> is a header cell that says nothing.
         count = body.count('<th scope="col">')
-        self.assertGreaterEqual(count, 8)
-        self.assertEqual(count % 8, 0)
+        self.assertGreaterEqual(count, 9)
+        self.assertEqual(count % 9, 0)
 
     def test_the_depth_control_says_which_sites_it_moves(self):
         # "Raising this raises the cost" is false for naukri, the priciest
@@ -507,7 +510,7 @@ class TestFixesThatHadNoTest(Isolated):
             fetch_plan=lambda profile: RAW_PLAN)
         app.config.update(TESTING=True)
         body = app.test_client().get("/configure").get_data(as_text=True)
-        self.assertIn("It does not change Naukri", body)
+        self.assertIn("Naukri does not change", body)
 
     def test_the_single_sweep_note_shows_even_with_everything_filtered_out(self):
         # It used to hide on `total`, i.e. exactly when the user most needs to
@@ -1182,6 +1185,107 @@ class TestSkillWeightEditing(Isolated):
         # The term rides along so the POST does not depend on the server
         # reproducing this sort order.
         self.assertIn('name="term"', body)
+
+
+class TestExperienceEditing(Isolated):
+    """The years/months the parse read, corrected before anything is spent.
+
+    Two consumers read this number and both DROP rows when it is wrong —
+    SEARCH["experience_years"] picks LinkedIn's seniority band and
+    SETTINGS["max_experience_years"] is years + 3 — so a parse that read
+    the dates wrong deletes reachable roles before scoring ever runs. It
+    was static text on this screen until now.
+    """
+
+    READ = dict(DERIVED, years_experience=1, experience_months=22)
+
+    def _app(self, derived=None):
+        derived = self.READ if derived is None else derived
+        app = app_module.create_app(
+            state={"resume_text": "a résumé", "cap_usd": 8.41,
+                   "derived": derived},
+            extract=lambda p: "x", derive=lambda t, p: derived,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            profile_exists=lambda n: False)
+        app.config.update(TESTING=True)
+        app.written = []
+        app.write_profile = lambda n, src: app.written.append(src)
+        return app
+
+    def _years(self, source):
+        return (int(re.search(r'"experience_years": (\d+)', source).group(1)),
+                int(re.search(r'"max_experience_years": (\d+)', source).group(1)))
+
+    def test_the_months_are_shown_not_just_the_floored_years(self):
+        # 1y10m displayed as "1 year" reads as a misparse of the résumé.
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        self.assertRegex(body, r'name="experience_years"[^>]*value="1"')
+        self.assertRegex(body, r'name="experience_months"[^>]*value="10"')
+
+    def test_the_field_is_a_stepper_not_static_text(self):
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        # Real number inputs, so both are still typable with no JS.
+        self.assertRegex(body, r'name="experience_years"[^>]*min="0"[^>]*max="60"')
+        self.assertRegex(body, r'name="experience_months"[^>]*min="0"[^>]*max="11"')
+        # And explicit minus/plus either side, which is what a pill is.
+        self.assertIn('@click="n = Math.min(60, n + 1)"', body)
+        self.assertIn('@click="n = Math.min(11, n + 1)"', body)
+
+    def test_an_edited_year_reaches_the_profile(self):
+        app = self._app()
+        r = app.test_client().post("/review", data={
+            "name": "tmp_years", "experience_years": "5",
+            "experience_months": "3"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self._years(app.written[-1]), (5, 8))
+
+    def test_months_alone_do_not_move_the_seniority_band(self):
+        # A posting's stated floor is always in years, so the months are
+        # carried for the display and nothing else. Rounding them up here
+        # would search one band too senior on a 1y11m résumé.
+        app = self._app()
+        app.test_client().post("/review", data={
+            "name": "tmp_years", "experience_years": "1",
+            "experience_months": "11"})
+        self.assertEqual(self._years(app.written[-1]), (1, 4))
+
+    def test_an_edited_year_survives_the_next_configure_change(self):
+        # /estimate re-renders the profile from state["derived"], which is
+        # how an edited weight used to be silently reverted.
+        app = self._app()
+        client = app.test_client()
+        client.post("/review", data={"name": "tmp_years",
+                                     "experience_years": "7",
+                                     "experience_months": "0"})
+        client.post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(self._years(app.written[-1]), (7, 10))
+
+    def test_a_twelfth_month_is_refused(self):
+        # Twelve months is a year, and accepting it would let the two boxes
+        # disagree about the same number.
+        app = self._app()
+        r = app.test_client().post("/review", data={
+            "name": "tmp_years", "experience_years": "1",
+            "experience_months": "12"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Months of experience", r.get_data(as_text=True))
+        self.assertEqual(app.written, [])
+
+    def test_a_form_without_the_field_leaves_the_number_alone(self):
+        # The results screen's re-rank panel posts weights and no experience.
+        # Defaulting a missing field to zero there would rewrite the profile
+        # as a fresher on every re-rank.
+        kept = app_module.with_experience(self.READ, None, None)
+        self.assertEqual(kept["years_experience"], 1)
+        self.assertEqual(kept["experience_months"], 22)
+
+    def test_a_resume_the_engine_read_no_months_from_still_renders(self):
+        # The Gemini engine answers with years and no months at all.
+        body = self._app(DERIVED).test_client().get("/review").get_data(
+            as_text=True)
+        self.assertRegex(body, r'name="experience_years"[^>]*value="2"')
+        self.assertRegex(body, r'name="experience_months"[^>]*value="0"')
 
 
 EMPTY_PLAN = {"profile": "kanav", "sites": {}, "max_results": {},
@@ -2666,6 +2770,36 @@ class TestConfigureScreen(Isolated):
         body = self._app().test_client().get("/configure").get_data(as_text=True)
         self.assertIn('name="skip_terms"', body)
         self.assertIn('name="max_results"', body)
+
+    def test_the_depth_control_is_a_stepper_that_reprices(self):
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        # Still a real number input, so the depth is typable with no JS and
+        # the server's own 1-200 bound is on the control.
+        self.assertRegex(body, r'name="max_results"[^>]*min="1"[^>]*max="200"')
+        # Minus and plus either side, which is what a stepper is.
+        self.assertIn('@click="bump(-5)"', body)
+        self.assertIn('@click="bump(5)"', body)
+        # And the one thing that makes it correct on THIS screen: a value set
+        # by script fires no event, so without this dispatch the live estimate
+        # above would go on pricing the depth the user just moved away from.
+        self.assertIn("dispatchEvent(new Event('change', { bubbles: true }))",
+                      body)
+        # No step attribute: with step=5 the browser's own validation refuses
+        # to submit a typed 17.
+        depth = re.search(r'<input[^>]*name="max_results"[^>]*>', body).group(0)
+        self.assertNotIn("step=", depth)
+
+    def test_the_depth_control_says_what_it_does_and_what_raising_it_costs(self):
+        # Collapsed, so the assertions are about the copy and not about where
+        # the template happens to wrap a line.
+        body = re.sub(r"\s+", " ", self._app().test_client().get(
+            "/configure").get_data(as_text=True))
+        # What it is, in the unit the rest of the flow already uses.
+        self.assertIn("one search is one title in one location", body)
+        # What raising it does to the bill, and that the extra depth buys the
+        # weakest matches — the half a cost figure alone does not say.
+        self.assertIn("twice the price", body)
+        self.assertIn("matched least well", body)
 
     def test_configure_screen_explains_why_remote_stays_on_linkedin_india(self):
         # The user is choosing where their money goes — the reason has to be
@@ -4359,6 +4493,113 @@ class TestMotion(Isolated):
                       self.css())
 
 
+class TestAppliedTracking(Isolated):
+    """Which listings you have already applied to.
+
+    A ledger of its own rather than a column in jobs_combined.csv, because
+    merge_jobs.py and rescore_from_apify.py both truncate that file in
+    place — a tick stored there would be erased by the next merge with
+    nothing on screen to say so.
+    """
+
+    def _app(self, rows=None, output_dir=None):
+        # The output dir is injectable here so one case can point two apps at
+        # the same ledger — which is what a rewritten shortlist and a reload
+        # amount to.
+        app = app_module.create_app(
+            state={"profile": "kanav", "cap_usd": 8.41, "derived": DERIVED},
+            extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None), fetch_plan=lambda p: RAW_PLAN,
+            read_rows=lambda profile: [dict(r) for r in
+                                        (ROWS if rows is None else rows)],
+            read_spend=lambda: None,
+            env_path=os.path.join(tempfile.mkdtemp(), ".env"),
+            output_dir=output_dir or tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app
+
+    def _key(self, row=None):
+        return app_module.scraper._seen_key(row or ROWS[0])
+
+    def test_a_tick_survives_a_reload(self):
+        # The whole feature in one line: it has to still be there tomorrow.
+        app = self._app()
+        client = app.test_client()
+        client.post("/applied", data={"key": self._key(), "on": "1"})
+        body = client.get("/results").get_data(as_text=True)
+        self.assertIn(f'data-key="{self._key()}"', body)
+        self.assertIn('x-data="{ done: true }"', body)
+
+    def test_a_tick_can_be_taken_back(self):
+        app = self._app()
+        client = app.test_client()
+        client.post("/applied", data={"key": self._key(), "on": "1"})
+        client.post("/applied", data={"key": self._key(), "on": "0"})
+        self.assertNotIn('x-data="{ done: true }"',
+                         client.get("/results").get_data(as_text=True))
+
+    def test_a_tick_outlives_the_shortlist_being_rewritten(self):
+        # The reason for a separate ledger. A merge or a re-score truncates
+        # jobs_combined.csv and writes it again; the row comes back with the
+        # same identity, and the tick has to come back with it.
+        shared = tempfile.mkdtemp()
+        first = self._app(output_dir=shared)
+        first.test_client().post("/applied",
+                                  data={"key": self._key(), "on": "1"})
+        # A second app over the SAME output dir, reading rows that were built
+        # again from scratch — a merge, a re-score, and a reload.
+        again = self._app(output_dir=shared)
+        self.assertIn('x-data="{ done: true }"',
+                      again.test_client().get("/results").get_data(as_text=True))
+
+    def test_a_key_not_in_this_shortlist_is_refused(self):
+        # The key comes from the browser and the ledger outlives the output
+        # files, so a junk key written there would never be cleaned up.
+        app = self._app()
+        r = app.test_client().post("/applied",
+                                    data={"key": "ct|nobody|nothing", "on": "1"})
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("no longer in this shortlist", r.get_json()["error"])
+
+    def test_a_tab_or_newline_in_a_key_cannot_forge_a_ledger_row(self):
+        # Straight at logic, because no route will hand it one — the point is
+        # that the writer is safe whatever reaches it.
+        from sweep import logic
+        path = os.path.join(tempfile.mkdtemp(), "kanav", "applied.tsv")
+        logic.set_applied(path, "ct|a\tb\nct|forged|row", True)
+        self.assertEqual(logic.read_applied(path), {"ct|a b ct|forged|row"})
+        self.assertEqual(len(open(path, encoding="utf-8").read().splitlines()), 1)
+
+    def test_the_ticked_row_is_dimmed_and_the_dim_follows_the_tick(self):
+        app = self._app()
+        client = app.test_client()
+        client.post("/applied", data={"key": self._key(), "on": "1"})
+        body = client.get("/results").get_data(as_text=True)
+        # Bound, never also written into the static class: Alpine removes only
+        # what it added, so a server-rendered "applied" would stick through an
+        # untick and leave the row dimmed for the rest of the session.
+        self.assertIn(""":class="done && 'applied'\"""", body)
+        self.assertNotIn('class="applied', body)
+
+    def test_a_row_with_no_identity_gets_no_checkbox(self):
+        # One blank key would tick every other unkeyable row along with it.
+        rows = [{"title": "", "company": "", "apply_url": "", "score": "10",
+                 "source_site": "himalayas"}]
+        body = self._app(rows).test_client().get("/results").get_data(
+            as_text=True)
+        self.assertIn('<td class="did">', body)
+        self.assertNotIn("data-key=", body)
+
+    def test_ticking_does_not_reload_the_page(self):
+        # A 1,600-row page loses the row you were looking at if it reloads,
+        # which is the row you just ticked.
+        body = self._app().test_client().get("/results").get_data(as_text=True)
+        self.assertIn("fetch('/applied'", body)
+        # And the checkbox rolls itself back if the write is refused, rather
+        # than showing a tick the ledger does not have.
+        self.assertIn("if (!r.ok) { done = !done }", body)
+
+
 class TestExports(Isolated):
     """The shortlist as a file. It re-reads what is already on disk, so it
     costs nothing — but it has to describe the same rows the screen does."""
@@ -4393,6 +4634,31 @@ class TestExports(Isolated):
                           r.headers["Content-Disposition"], fmt)
             self.assertTrue(r.headers["Content-Disposition"].endswith(
                 f'.{fmt}"'), fmt)
+
+    def test_the_applied_tick_reaches_every_format(self):
+        # The whole point of the column: a tracker you can carry off the
+        # screen. All three formats build from exports.COLUMNS, so this
+        # checks the one place they share plus each one's own writer.
+        app = self._app()
+        client = app.test_client()
+        key = app_module.scraper._seen_key(ROWS[0])
+        self.assertEqual(client.post("/applied", data={"key": key, "on": "1"}
+                                      ).status_code, 204)
+
+        rows = json.loads(client.get("/export.json").get_data())
+        ticked = [r for r in rows if r["Role"] == ROWS[0]["title"]]
+        self.assertEqual([r["Applied"] for r in ticked], ["Yes"])
+        self.assertTrue(any(r["Applied"] == "" for r in rows),
+                        "an unticked row must export blank, not 'No'")
+
+        text = client.get("/export.csv").get_data().decode("utf-8-sig")
+        self.assertTrue(text.splitlines()[0].startswith("Applied,"))
+        self.assertIn("Yes,", text)
+
+        sheet = self._sheet(client.get("/export.xlsx").data)
+        self.assertEqual(sheet["A1"].value, "Applied")
+        self.assertIn("Yes", [sheet.cell(row=r, column=1).value
+                              for r in range(2, sheet.max_row + 1)])
 
     def test_an_unknown_format_is_a_404_not_a_csv(self):
         # The extension in the path IS the format. Falling back to CSV would
@@ -4431,17 +4697,18 @@ class TestExports(Isolated):
 
     def test_the_sheet_is_laid_out_to_be_worked_in(self):
         sheet = self._sheet(self._app().test_client().get("/export.xlsx").data)
-        self.assertEqual(sheet["A1"].value, "Reachable")
-        self.assertTrue(sheet["A1"].font.bold)
+        self.assertEqual(sheet["A1"].value, "Applied")
+        self.assertEqual(sheet["B1"].value, "Reachable")
+        self.assertTrue(sheet["B1"].font.bold)
         # Freeze and filter are the two things that make 400 rows usable.
         self.assertEqual(sheet.freeze_panes, "A2")
-        self.assertTrue(sheet.auto_filter.ref.startswith("A1:O"))
+        self.assertTrue(sheet.auto_filter.ref.startswith("A1:P"))
         # A column of text digits will not sort or chart.
-        self.assertIsInstance(sheet["B2"].value, int)
+        self.assertIsInstance(sheet["C2"].value, int)
 
     def test_the_role_links_to_the_posting(self):
         sheet = self._sheet(self._app().test_client().get("/export.xlsx").data)
-        self.assertTrue(sheet["C2"].hyperlink.target.startswith("https://"))
+        self.assertTrue(sheet["D2"].hyperlink.target.startswith("https://"))
 
     def test_a_row_with_no_usable_link_is_not_hyperlinked(self):
         # Same allowlist the results table applies to the row click: a
@@ -4459,7 +4726,7 @@ class TestExports(Isolated):
         rows = [dict(ROWS[0], title="=HYPERLINK(\"http://x\",\"click\")")]
         app = self._app(rows)
         sheet = self._sheet(app.test_client().get("/export.xlsx").data)
-        self.assertTrue(sheet["C2"].value.startswith("'="))
+        self.assertTrue(sheet["D2"].value.startswith("'="))
         body = app.test_client().get("/export.csv").get_data()
         self.assertIn("'=HYPERLINK", body.decode("utf-8-sig"))
 
@@ -5440,7 +5707,10 @@ class TestResultsScreen(Isolated):
     def test_the_row_carries_the_apply_link(self):
         app = self._app(rows=[dict(ROWS[0], apply_url="https://board.example/job")])
         body = app.test_client().get("/results").get_data(as_text=True)
-        self.assertIn('<tr class="rowlink" data-href="https://board.example/job">',
+        # Matched on the attributes rather than the whole opening tag: the row
+        # also carries the applied scope now, and pinning the exact tag made
+        # this a test of attribute order.
+        self.assertIn('class="rowlink" data-href="https://board.example/job">',
                       body)
         # And the anchor stays: it is the keyboard and screen-reader path, and
         # the row is a mouse convenience on top of it. Matched on target

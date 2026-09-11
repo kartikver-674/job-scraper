@@ -28,10 +28,55 @@
             <p class="inset">{{ derived.field_summary }}</p>
           </div>
           {% if derived.years_experience is not none %}
+            {# Editable, because the dates are the one part of the parse only
+               the person reading this can check — and until now this panel
+               stated a number it would then go and spend money on.
+
+               Two steppers rather than one, so neither unit has to be
+               converted in someone's head. The sweep searches on the whole
+               years alone: both consumers compare the number against a
+               posting's stated floor, and a floor is always in years. The
+               months are carried for this display, which is what makes a
+               1y10m résumé stop reading as a misparse. #}
+            {% set months = derived.get('experience_months') %}
+            {% set whole = months // 12 if months is not none
+                           else derived.years_experience %}
+            {% set extra = months % 12 if months is not none else 0 %}
             <div class="read-out">
               <span class="label">Years of experience</span>
-              <p class="inset">{{ derived.years_experience }}
-                year{{ '' if derived.years_experience == 1 else 's' }}</p>
+              <div class="row">
+                {# Same markup as the weight stepper, deliberately: without
+                   Alpine the buttons do nothing and both numbers can still
+                   be typed, so the field never becomes read-only. #}
+                <label class="narrow"><span class="label">Years</span>
+                  <div class="stepper" x-data='{ n: {{ whole|tojson }} }'>
+                    <button type="button" @click="n = Math.max(0, n - 1)"
+                            aria-label="One year less">&minus;</button>
+                    <input type="number" name="experience_years" min="0" max="60"
+                           value="{{ whole }}" x-model.number="n"
+                           aria-label="Years of experience">
+                    <button type="button" @click="n = Math.min(60, n + 1)"
+                            aria-label="One year more">+</button>
+                  </div>
+                </label>
+                <label class="narrow"><span class="label">Months</span>
+                  {# Capped at 11, not 12: a twelfth month is a year, and the
+                     two boxes would then disagree about the same number. #}
+                  <div class="stepper" x-data='{ n: {{ extra|tojson }} }'>
+                    <button type="button" @click="n = Math.max(0, n - 1)"
+                            aria-label="One month less">&minus;</button>
+                    <input type="number" name="experience_months" min="0" max="11"
+                           value="{{ extra }}" x-model.number="n"
+                           aria-label="Months of experience">
+                    <button type="button" @click="n = Math.min(11, n + 1)"
+                            aria-label="One month more">+</button>
+                  </div>
+                </label>
+              </div>
+              <p class="muted">Read from the dates on your résumé. Correct it
+                here if it read them wrong — the whole years set which
+                seniority band the sweep searches, and drop any posting
+                demanding more than three years above it.</p>
             </div>
           {% endif %}
         </div>

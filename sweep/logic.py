@@ -8,6 +8,7 @@ way. Reviewing it through a three-row hand-written fixture is how it shipped
 filing 1046 jobs abroad under "you can work here now".
 """
 
+import datetime
 import os
 import re
 import sys
@@ -521,6 +522,105 @@ def reweighted(derived, terms, weights, dropped, add_raw="", add_weight=""):
                               for term, weight in added.items()
                               if term not in known]
     return kept
+
+
+def with_experience(derived, years_raw, months_raw):
+    """`derived` with the experience the user corrected on the review screen.
+
+    Raises _FormError. Separate from reweighted() because the results
+    screen's re-rank panel posts weights without this field, and a missing
+    field there must leave the number alone rather than reset it to zero.
+
+    Only the whole years reach the profile — render() writes them into
+    SEARCH["experience_years"] (LinkedIn's seniority band) and
+    SETTINGS["max_experience_years"], and both compare against a posting's
+    stated floor, which is always in years. The months are stored for the
+    display that showed them.
+    """
+    if years_raw is None and months_raw is None:
+        return derived
+    # 60 rather than no ceiling: this is a career length, and an unbounded
+    # one reaches config as max_experience_years and silently stops
+    # filtering anything.
+    years = _parse_int(years_raw or 0, 0, 60, "Years of experience")
+    months = _parse_int(months_raw or 0, 0, 11, "Months of experience")
+    return dict(derived, years_experience=years,
+                experience_months=years * 12 + months)
+
+
+# ---------------------------------------------------------------------------
+# The applied ledger
+# ---------------------------------------------------------------------------
+#
+# A file of its own, not a column in jobs_combined.csv, because merge_jobs.py
+# and rescore_from_apify.py both TRUNCATE that file in place — a tick stored
+# there would be wiped by the next merge, silently, with nothing on screen to
+# say it had been. Nor app.state, which is gone on restart.
+#
+# Same shape and same reasoning as the engine's seen.tsv (scraper.py:1180): a
+# few hundred lines a year, keyed on scraper._seen_key, which is the identity
+# dedupe already uses — so a tick survives a re-score, a merge, and a fresh
+# sweep that re-fetches the same posting under a new row.
+#
+# Rewritten rather than appended, because unticking has to remove a line.
+APPLIED_FILE = "applied.tsv"
+
+# The key arrives from the browser, and a tab or a newline in it would forge
+# extra columns or extra rows in the ledger. Scrubbed rather than rejected:
+# the same treatment record_seen gives every field it writes.
+_TSV_BREAK = re.compile(r"[\t\r\n]+")
+
+
+def _tsv(value):
+    return _TSV_BREAK.sub(" ", str(value if value is not None else "")).strip()
+
+
+def applied_path(output_dir, profile):
+    return os.path.join(output_dir, profile, APPLIED_FILE)
+
+
+def read_applied(path):
+    """The keys ticked as applied. A missing ledger is an empty set, never an
+    error — no one has ticked anything yet is the normal first state."""
+    if not os.path.exists(path):
+        return set()
+    keys = set()
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) >= 2 and parts[1]:
+                keys.add(parts[1])
+    return keys
+
+
+def set_applied(path, key, on, title="", company="", today=None):
+    """Tick or untick one job. Returns the keys applied afterwards.
+
+    The title and company ride along so the ledger is readable on its own —
+    a file of bare hashes tells whoever opens it nothing, and this one
+    outlives the output files it refers to.
+    """
+    key = _tsv(key)
+    if not key:
+        return read_applied(path)
+    kept = []
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.rstrip("\n")
+                parts = line.split("\t")
+                if len(parts) >= 2 and parts[1] == key:
+                    continue          # dropped, then re-added below if on
+                if line.strip():
+                    kept.append(line)
+    if on:
+        stamp = today or datetime.date.today().isoformat()
+        kept.append("\t".join(_tsv(v) for v in (stamp, key, title, company)))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        for line in kept:
+            fh.write(line + "\n")
+    return read_applied(path)
 
 
 def paid_sites():

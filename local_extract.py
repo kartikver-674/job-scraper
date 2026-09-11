@@ -403,8 +403,8 @@ def readable(row, now=None):
                 and parse_month(row.get("end"), now))
 
 
-def years_from(rows, now=None, ignore_relevance=False):
-    """The definition at the top of this file, computed.
+def months_from(rows, now=None, ignore_relevance=False):
+    """The definition at the top of this file, computed — in months.
 
     Overlaps are merged rather than added (clause 4) — mateo held two real
     jobs at once and hana interned in ML for six months while still
@@ -433,10 +433,14 @@ def years_from(rows, now=None, ignore_relevance=False):
             merged[-1] = (last_start, max(last_end, end))
         else:
             merged.append((start, end))
-    # Completed years, not nearest: ada has five years and seven months of
-    # continuous work and every résumé in the world calls that five. round()
-    # made it six and disagreed with the answer key on the control case.
-    return sum(months_between(s, e) for s, e in merged) // 12
+    return sum(months_between(s, e) for s, e in merged)
+
+
+def years_from(rows, now=None, ignore_relevance=False):
+    """Completed years, not nearest: ada has five years and seven months of
+    continuous work and every résumé in the world calls that five. round()
+    made it six and disagreed with the answer key on the control case."""
+    return months_from(rows, now, ignore_relevance) // 12
 
 
 # --------------------------------------------------------------------------
@@ -630,8 +634,13 @@ def read(model=None, text="", timeout=600, url=None, now=None):
     decision = route(fields, rows, text, now)
     checked = decision["result"]
     if checked is not None:
-        checked["years_experience"] = years_from(
-            (rows or {}).get("employment") or [], now)
+        months = months_from((rows or {}).get("employment") or [], now)
+        checked["years_experience"] = months // 12
+        # The remainder, for display only. Both consumers of the number
+        # compare it against a posting's stated floor, so they keep the
+        # whole years; a review screen reading "1 year" for 1y10m is what
+        # made someone distrust the whole parse.
+        checked["experience_months"] = months
     return checked, rows, decision
 
 
@@ -645,6 +654,7 @@ def demo():
            {"title": "Senior Backend Engineer", "start": "Apr 2023",
             "end": "Present", "relevant": True}]
     assert years_from(ada, now) == 5, years_from(ada, now)
+    assert months_from(ada, now) == 67, months_from(ada, now)  # 5y7m
 
     # Clause 2: an internship alone is zero.
     assert years_from([{"title": "Software Intern", "start": "Jun 2025",

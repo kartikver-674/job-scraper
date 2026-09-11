@@ -221,9 +221,15 @@ main {
 .split > * { min-width: 0; }
 
 .grid2 { display: grid; gap: var(--s4); }
+/* The row of figures above the search grid, and only there (running.html).
+   It used to cap each tile at 18rem and pack them left, so three tiles ended
+   short of the panel they sit above and the column read as ragged. auto-fit
+   collapses the tracks nothing occupies and a 1fr max lets the survivors take
+   the width back, so three tiles span the row and still drop to two, then
+   one, as it narrows. */
 .tiles {
-  display: grid; gap: var(--s4); justify-content: start;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 18rem));
+  display: grid; gap: var(--s4);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
 /* ---- Panels ------------------------------------------------------------- */
@@ -393,6 +399,17 @@ tbody tr:hover td, table tr:hover td { background: rgba(26, 44, 51, 0.5); }
    affordance, so this only has to say it is clickable. */
 tr.rowlink { cursor: pointer; }
 
+/* Applied. Dimmed rather than hidden or moved: the row stays exactly where
+   it was so the list does not reflow under the click that ticked it, and it
+   stays readable because "where did I apply" is a question asked later. The
+   tick itself keeps full contrast — it is the control, not the content. */
+tr.applied > td { opacity: .45; }
+tr.applied > td.did { opacity: 1; }
+.did { width: 1.75rem; }
+.tick { display: inline-flex; cursor: pointer; }
+.tick input { width: 1rem; height: 1rem; margin: 0; cursor: pointer;
+              accent-color: var(--paid); }
+
 /* Already opened, in this browser. Faded enough to sort itself out of the
    ones you have not read yet, and no further: these rows are still live
    listings, still clickable, and the disabled treatment elsewhere in this
@@ -485,6 +502,10 @@ select:focus-visible, summary:focus-visible,
 .row > label { flex: 1 1 11rem; min-width: 0; }
 .row > label:only-child { flex: 0 1 12rem; }
 .row > .actions { flex: none; }
+/* A stepper is a number, not a text field: it sizes to its own three
+   buttons rather than to the 11rem basis a form field gets, so a pair of
+   them sits together instead of spanning the panel with a gap between. */
+.row > label.narrow { flex: 0 0 auto; }
 
 /* Fixed-size tiles that reflow to the width available, rather than eight
    columns stretched across whatever the panel happens to be. */
