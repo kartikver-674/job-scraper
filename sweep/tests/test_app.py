@@ -507,7 +507,7 @@ class TestFixesThatHadNoTest(Isolated):
             fetch_plan=lambda profile: RAW_PLAN)
         app.config.update(TESTING=True)
         body = app.test_client().get("/configure").get_data(as_text=True)
-        self.assertIn("It does not change Naukri", body)
+        self.assertIn("Naukri does not change", body)
 
     def test_the_single_sweep_note_shows_even_with_everything_filtered_out(self):
         # It used to hide on `total`, i.e. exactly when the user most needs to
@@ -2767,6 +2767,36 @@ class TestConfigureScreen(Isolated):
         body = self._app().test_client().get("/configure").get_data(as_text=True)
         self.assertIn('name="skip_terms"', body)
         self.assertIn('name="max_results"', body)
+
+    def test_the_depth_control_is_a_stepper_that_reprices(self):
+        body = self._app().test_client().get("/configure").get_data(as_text=True)
+        # Still a real number input, so the depth is typable with no JS and
+        # the server's own 1-200 bound is on the control.
+        self.assertRegex(body, r'name="max_results"[^>]*min="1"[^>]*max="200"')
+        # Minus and plus either side, which is what a stepper is.
+        self.assertIn('@click="bump(-5)"', body)
+        self.assertIn('@click="bump(5)"', body)
+        # And the one thing that makes it correct on THIS screen: a value set
+        # by script fires no event, so without this dispatch the live estimate
+        # above would go on pricing the depth the user just moved away from.
+        self.assertIn("dispatchEvent(new Event('change', { bubbles: true }))",
+                      body)
+        # No step attribute: with step=5 the browser's own validation refuses
+        # to submit a typed 17.
+        depth = re.search(r'<input[^>]*name="max_results"[^>]*>', body).group(0)
+        self.assertNotIn("step=", depth)
+
+    def test_the_depth_control_says_what_it_does_and_what_raising_it_costs(self):
+        # Collapsed, so the assertions are about the copy and not about where
+        # the template happens to wrap a line.
+        body = re.sub(r"\s+", " ", self._app().test_client().get(
+            "/configure").get_data(as_text=True))
+        # What it is, in the unit the rest of the flow already uses.
+        self.assertIn("one search is one title in one location", body)
+        # What raising it does to the bill, and that the extra depth buys the
+        # weakest matches — the half a cost figure alone does not say.
+        self.assertIn("twice the price", body)
+        self.assertIn("matched least well", body)
 
     def test_configure_screen_explains_why_remote_stays_on_linkedin_india(self):
         # The user is choosing where their money goes — the reason has to be

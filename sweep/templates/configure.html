@@ -209,19 +209,56 @@
             </select>
           </label>
           <label><span class="label">Results per search{{ costs() }}</span>
-            <input type="number" name="max_results" placeholder="15" min="1" max="200">
+            {# The stepper fires the form's change handler ITSELF. A value set
+               by script raises no event, and the cost above is recomputed on
+               change — so a depth moved by these buttons would otherwise leave
+               the estimate pricing the PREVIOUS depth, on the one screen whose
+               whole job is saying what a sweep will cost before it runs.
+
+               Not stepUp()/stepDown(): those honour the step attribute, and a
+               step of 5 would make every typed value that is not 5n invalid to
+               the browser's own validation, silently refusing to submit a
+               perfectly good 17. So the buttons do the arithmetic and the
+               input keeps step=1, which is what the server accepts.
+
+               The empty box means "inherit config's own depth", so the first
+               click starts from the placeholder rather than from zero — and
+               reads it off the placeholder rather than repeating the number. #}
+            <div class="stepper" x-data="{
+                   bump(by) {
+                     const box = $refs.depth;
+                     const now = parseInt(box.value || box.placeholder, 10);
+                     box.value = Math.min(200, Math.max(1, now + by));
+                     box.dispatchEvent(new Event('change', { bubbles: true }));
+                   } }">
+              <button type="button" @click="bump(-5)"
+                      aria-label="Five fewer results per search">&minus;</button>
+              <input type="number" name="max_results" x-ref="depth"
+                     placeholder="15" min="1" max="200"
+                     aria-label="Results per search">
+              <button type="button" @click="bump(5)"
+                      aria-label="Five more results per search">+</button>
+            </div>
           </label>
         </div>
         <p class="muted">A wider window buys more listings at the same price.</p>
+        <p class="muted">Results per search is how deep each single search
+          digs: one search is one title in one location, and this is how many
+          listings it brings back from that one pairing. Leave it empty to use
+          the profile's own depth.</p>
         {% if free_only %}
-          <p class="muted">Depth is a paid-board setting: it is how many results
-            each metered search pulls. With none of them on, it changes nothing
-            in this sweep and costs nothing either way.</p>
+          <p class="muted">Depth only moves the metered searches, and this
+            sweep has none on, so it changes nothing here and costs nothing
+            either way.</p>
         {% else %}
-          <p class="muted">Raising the depth raises the cost of the LinkedIn and
-            Indeed searches, which bill per result, and the estimate above
-            moves with it. It does not change Naukri, which charges a
-            per-run minimum at its own fixed depth.</p>
+          <p class="muted">Raising it costs proportionally more: LinkedIn and
+            Indeed bill per result, so 30 is twice the price of 15 for the
+            same searches, and the estimate above moves as you click.
+            Naukri does not change — it charges a per-run minimum at its own
+            fixed depth. Each board returns its best matches first, so the
+            listings the extra depth buys are the ones that matched least
+            well; raise it to go deeper on searches that already work, not to
+            rescue ones that do not.</p>
         {% endif %}
       </div>
 
