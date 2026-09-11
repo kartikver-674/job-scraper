@@ -202,10 +202,59 @@ def gated(text, vocab, pairs=None):
     return kept
 
 
-# The neutral point of the 1-5 weight scale RULE 1 uses. A scanned term
-# has no model opinion attached, and reweight_from_corpus runs after
-# this and moves it against the market like any other.
+# The neutral point of the 1-5 weight scale RULE 1 uses, and the floor
+# centrality() builds up from.
 NEUTRAL_WEIGHT = 3
+
+
+def centrality(term, text, vocab, pairs=None):
+    """(1-5, why) — how central this skill is to THIS person.
+
+    A flat 3 for every term was measured to cost real ranking. The
+    corpus already says how much a term narrows the MARKET, through
+    separation(); what it cannot say is how much of this PERSON the term
+    is, and that is what the blend's other half wants. Gemini supplies
+    it as a judgement. The résumé supplies it as structure.
+
+    Three independent kinds of evidence, strongest first:
+
+      listed in a dedicated skills section — the author declaring it,
+        which is the strongest claim available and counts double
+      named more than once — returned to rather than mentioned
+      used in experience or projects — done, not just known
+
+    Summed onto a floor of 1, which reaches 5 exactly when all three
+    hold. No constant here is fitted to any benchmark: the 1-5 range is
+    RULE 1's own scale, the floor is its bottom, and the doubling is the
+    ordering above and nothing more.
+
+    reweight_from_corpus still runs afterwards and blends this against
+    the market exactly as it always has. This only decides what it
+    starts from.
+    """
+    skills_text, other_text = sections(text)
+    low = str(text).lower()
+    listed = bool(occurrences(term, skills_text, vocab))
+    used = bool(occurrences(term, other_text, vocab))
+    repeated = len(re.findall(re.escape(str(term).lower()), low)) > 1
+    # The same inheritance gated() applies, for the same reason and by
+    # the same derived pairs: someone who lists "Lightning Web
+    # Components" under skills and writes "LWC" in a bullet has listed
+    # it. Without this the abbreviation scores 2 while its own
+    # expansion scores 5, which is one skill held at two values.
+    if not listed:
+        pairs = pairs if pairs is not None else abbreviations(vocab)
+        for other in sorted(pairs.get(term, ())):
+            if occurrences(other, skills_text, vocab):
+                listed = True
+                break
+
+    score = 1 + (2 if listed else 0) + (1 if repeated else 0) + (1 if used else 0)
+    why = ", ".join(
+        [w for w in ("listed under skills" if listed else "",
+                     "named more than once" if repeated else "",
+                     "used in experience or projects" if used else "") if w])
+    return max(1, min(5, score)), (why or "present in the résumé")
 
 # How many scanned terms the user-facing prose names before it stops
 # counting. Enough to show what KIND of thing was added without the
@@ -239,7 +288,8 @@ def widen(data, resume_text, output_dir=None, log=print, vocab=None):
 
     data = dict(data)
     data["skill_weights"] = weights + [
-        {"term": term, "weight": NEUTRAL_WEIGHT} for term, _why in added]
+        {"term": term, "weight": centrality(term, resume_text, vocab)[0]}
+        for term, _why in added]
     # The reasons are kept, and kept OUT of the prose. notes is read by a
     # person on Sweep's review screen and printed into the profile's
     # docstring under "HOW THE MODEL READ THIS RÉSUMÉ"; a résumé like
@@ -310,9 +360,46 @@ def demo():
     assert "React Native" in skills_text and "field sales" not in skills_text
     assert "field sales" in other
 
+    # centrality(): structural evidence, strongest first, on a floor of 1.
+    doc = ("Technical Skills\nMobile: React Native, Apex\n"
+           "Experience\n- Shipped React Native to production.\n"
+           "- More React Native work.\n")
+    listed_used_repeated, why = centrality("react native", doc, vocab)
+    assert listed_used_repeated == 5, (listed_used_repeated, why)
+    assert "listed under skills" in why and "more than once" in why
+    # Listed and nothing else is mid-scale, not top.
+    listed_only, why = centrality("apex", doc, vocab)
+    assert listed_only == 3, (listed_only, why)
+    assert why == "listed under skills"
+    # Prose only is the floor plus its one signal.
+    prose, why = centrality("soql", "Experience\n- Tuned soql once.\n", vocab)
+    assert prose == 2, (prose, why)
+    # Never outside RULE 1's scale.
+    assert 1 <= centrality("cobol", doc, vocab)[0] <= 5
+    # An abbreviation inherits its expansion's listing, as the gate does.
+    abbr = ("Technical Skills\nFrontend: Lightning Web Components\n"
+            "Experience\n- Built with LWC.\n")
+    assert centrality("lwc", abbr, vocab, pairs={})[0] == 1
+    assert centrality("lwc", abbr, vocab,
+                      pairs=abbreviations(vocab))[0] == 3
+
+    # KNOWN DEFECT, recorded rather than fixed because the scan is
+    # frozen. occurrences() rejects a term followed by ".", which is
+    # right for "react" inside "react.js" and wrong for a term at the
+    # end of a sentence: "Built with LWC." does not match, so the use
+    # in prose is invisible and lwc above scores 3 rather than 4. The
+    # fix is to reject "." only when a letter follows it, and it
+    # belongs with the scan, not here.
+    assert occurrences("lwc", "Built with LWC.", vocab) is None
+    assert occurrences("lwc", "Built with LWC today", vocab) == "boundary"
+
     # widen(): adds, never replaces, and says why in the notes.
     data = {"skill_weights": [{"term": "apex", "weight": 5}], "notes": "x"}
     out = widen(data, text, vocab=vocab)
+    # A scanned term enters at its centrality, not at a flat 3.
+    scanned = {e["term"]: e["weight"] for e in out["skill_weights"]}
+    assert scanned["react native"] == centrality("react native", text,
+                                                 vocab)[0]
     terms = {e["term"] for e in out["skill_weights"]}
     assert "react native" in terms and "apex" in terms
     assert "field sales" not in terms
