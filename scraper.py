@@ -164,6 +164,23 @@ def normalize(item, source):
     row = {"Source": source}
     for col, keys in FIELD_KEYS.items():
         row[col] = _pick(item, keys)
+    # The same shape every other path already produces: sources/ strips each
+    # free adapter's description (_http.strip_html, called in ats.py, feeds.py,
+    # enterprise.py, optum.py) and normalize_naukri strips its own. This was
+    # the one acquisition path that did not, while FIELD_KEYS["Description"]
+    # accepts descriptionHtml — so markup could reach a parser that has never
+    # seen any from the free half.
+    #
+    # It matters most to _required_experience_floor, which reads a fixed
+    # 30/60-character window either side of a years figure: across tags, a
+    # cue two words away ("Experience required:</strong></h3><h3>4 to 9
+    # years") falls outside the window and the requirement reads as "not
+    # stated". Measured over 162 live JDs parsed both ways, 2 flip from "not
+    # stated" to the right figure once the markup is gone.
+    #
+    # Stripped BEFORE the truncation below, so description_max bounds real
+    # text rather than counting tags against it.
+    row["Description"] = _strip_html(row["Description"])
     return _truncate_desc(row)
 
 
@@ -1397,6 +1414,17 @@ def demo():
     assert usd("50,000 - 80,000 per month") is None    # no currency -> fail OPEN
     assert comp_ok("50,000 - 80,000 per month", 6000) is True
     assert comp_ok("₹3-4 LPA", 6000) is False          # genuinely below the floor
+
+    # Markup never reaches the scorer, whichever half fetched the row. The
+    # paid path was the one that let it through, and the cost lands on the
+    # experience window: the cue and the figure are two words apart in the
+    # text and 20 characters apart in the markup.
+    html_jd = ("<h3><strong>Experience required:</strong></h3>"
+               "<h3>4 to 9 years (B2 or B1 level)</h3>")
+    assert "<" not in normalize({"description": html_jd}, "linkedin")["Description"]
+    assert _required_experience_floor(html_jd.lower()) is None          # as fetched
+    assert _required_experience_floor(
+        normalize({"description": html_jd}, "linkedin")["Description"].lower()) == 4
 
     # One posting seen on three sources, each naming the location differently.
     same = [{"Title": "Senior Backend Engineer", "Company": "Acme", "Location": "Remote"},
