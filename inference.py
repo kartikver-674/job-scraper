@@ -76,9 +76,21 @@ MODEL_ENV = "OLLAMA_MODEL"
 DEFAULT_HOST = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen3:8b"
 
-# Unload as soon as a request finishes. Left resident, an 8B model is more
-# than a laptop has to spare while a sweep is also running.
-KEEP_ALIVE = "30s"
+# How long the runtime keeps the model resident after a request. Unloading
+# promptly is right when the model shares a laptop with the sweep it is
+# serving; it is the WRONG default once the model lives on its own box,
+# because a 30s window plus 40s of corpus work between Sweep's two calls
+# means reloading 5GB in the middle of one profile.
+#
+# Configurable so that can be changed where it is true without touching
+# the code. DELIBERATELY NOT TUNED HERE: the default is the measured one,
+# and moving it is a separate decision with its own numbers.
+KEEP_ALIVE_ENV = "SWEEP_MODEL_KEEP_ALIVE"
+DEFAULT_KEEP_ALIVE = "30s"
+
+# bench/ reads this as a constant in two places. It is the DEFAULT, not
+# the value in force; keep_alive() below is the source of truth.
+KEEP_ALIVE = DEFAULT_KEEP_ALIVE
 
 # How much longer the HTTP hop waits than the model deadline it is passing
 # on, so a slow model comes back as the service's own 504 with a category
@@ -146,6 +158,16 @@ def _base(value, default):
     if "://" not in value:
         value = "http://" + value
     return value.rstrip("/")
+
+
+def keep_alive():
+    """How long to keep the model resident, from SWEEP_MODEL_KEEP_ALIVE.
+
+    Passed through to the runtime verbatim — Ollama's own grammar ("30s",
+    "10m", "-1" for forever, "0" to unload at once) rather than a number
+    this would have to translate.
+    """
+    return (os.environ.get(KEEP_ALIVE_ENV) or "").strip() or DEFAULT_KEEP_ALIVE
 
 
 def model_name(model=None):
@@ -236,7 +258,7 @@ class LocalOllama:
                 "prompt": prompt,
                 "format": schema,
                 "stream": False,
-                "keep_alive": KEEP_ALIVE,
+                "keep_alive": keep_alive(),
                 "think": False,
                 "options": {"temperature": 0, "num_ctx": ctx_for(prompt)},
             }, timeout)
@@ -278,7 +300,13 @@ class LocalOllama:
 # The service's own error categories, and which of the two exception
 # classes each one is. Anything unrecognised is a service problem, not a
 # model problem — an unknown category means the contract moved.
-MODEL_CATEGORIES = ("model_unavailable", "model_timeout", "bad_model_output")
+# "model_busy" is here rather than with the service failures on purpose.
+# A saturated service is not a misconfigured one: the model exists, this
+# caller just cannot have it right now, and that is the same thing to a
+# caller as a laptop with no model on it — make_profile's local-first
+# engine should spend its one Gemini call rather than fail the upload.
+MODEL_CATEGORIES = ("model_unavailable", "model_timeout", "bad_model_output",
+                    "model_busy")
 
 
 class RemoteService:
@@ -404,6 +432,20 @@ def demo():
     model_down = _from_error(http_error(503, {"error": {
         "category": "model_unavailable", "message": "no runtime"}}), "qwen3:8b")
     assert isinstance(model_down, ModelUnavailable), model_down
+
+    # Keep-alive is configurable and defaults to the measured value.
+    assert keep_alive() == DEFAULT_KEEP_ALIVE == KEEP_ALIVE == "30s"
+    for given, want in (("10m", "10m"), ("  -1  ", "-1"), ("", "30s")):
+        os.environ[KEEP_ALIVE_ENV] = given
+        assert keep_alive() == want, (given, keep_alive())
+    del os.environ[KEEP_ALIVE_ENV]
+
+    # A busy service routes like a model that is not there, not like a
+    # broken one — see MODEL_CATEGORIES.
+    busy = _from_error(http_error(503, {"error": {
+        "category": "model_busy", "message": "no slot"}}), "qwen3:8b")
+    assert isinstance(busy, ModelUnavailable), busy
+
 
     for category in ("unauthorized", "payload_too_large", "bad_request"):
         err = _from_error(http_error(400, {"error": {

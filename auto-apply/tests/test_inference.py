@@ -14,6 +14,7 @@ measure, and measuring it is the entire point of the exercise.
 
 import contextlib
 import json
+import logging
 import os
 import sys
 import threading
@@ -89,13 +90,61 @@ def serving(app):
 
 
 @contextlib.contextmanager
-def service(runtime=None, token=TOKEN):
+def service(runtime=None, token=TOKEN, slots=None):
     """The real Flask service over a real socket, with a fake runtime."""
     runtime = runtime if runtime is not None else FakeRuntime()
     app = inference_service.create_app(runtime, accepted={token} if token
-                                       else set())
+                                       else set(), slots=slots)
     with serving(app) as url:
         yield url, runtime
+
+
+class CountingRuntime(FakeRuntime):
+    """Records the HIGHEST number of generations ever running at once."""
+
+    def __init__(self, delay=0.3, **kw):
+        super().__init__(delay=delay, **kw)
+        self._lock = threading.Lock()
+        self.running = 0
+        self.peak = 0
+
+    def generate(self, model, prompt, schema, timeout):
+        with self._lock:
+            self.running += 1
+            self.peak = max(self.peak, self.running)
+        try:
+            return super().generate(model, prompt, schema, timeout)
+        finally:
+            with self._lock:
+                self.running -= 1
+
+
+@contextlib.contextmanager
+def captured_logs(level=logging.DEBUG):
+    """Every record this service emits, as a list, whatever the handler."""
+    records = []
+
+    class Sink(logging.Handler):
+        def emit(self, record):
+            records.append(record)
+
+    sink = Sink(level)
+    names = ("inference", "inference_service", "werkzeug", "flask.app", "")
+    loggers = [logging.getLogger(n) for n in names]
+    saved = [(lg, lg.level, lg.disabled) for lg in loggers]
+    logging.disable(logging.NOTSET)
+    for lg in loggers:
+        lg.addHandler(sink)
+        lg.setLevel(level)
+        lg.disabled = False
+    try:
+        yield records
+    finally:
+        for lg in loggers:
+            lg.removeHandler(sink)
+        for lg, was_level, was_disabled in saved:
+            lg.setLevel(was_level)
+            lg.disabled = was_disabled
 
 
 @contextlib.contextmanager
@@ -577,6 +626,525 @@ class TestBackendSelection(unittest.TestCase):
                 self.assertNotIn(marker, source,
                                  f"{module.__name__} has grown its own copy "
                                  f"of the extraction contract")
+
+
+class TestProductionEntryPoint(unittest.TestCase):
+    """`python -m inference_service` is the production command.
+
+    There is no development server to forget to replace: main() validates
+    the configuration and then BECOMES gunicorn.
+    """
+
+    def gunicorn_conf(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "gunicorn_conf", inference_service.GUNICORN_CONF)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_main_execs_gunicorn_with_the_config_and_the_factory(self):
+        called = {}
+
+        def fake_execv(path, argv):
+            called["path"], called["argv"] = path, argv
+
+        with mock.patch.dict(os.environ, {inference.TOKEN_ENV: TOKEN}), \
+             mock.patch("os.execv", fake_execv):
+            inference_service.main([])
+        self.assertEqual(called["path"], sys.executable)
+        self.assertEqual(called["argv"][:4],
+                         [sys.executable, "-m", "gunicorn", "-c"])
+        self.assertEqual(called["argv"][4], inference_service.GUNICORN_CONF)
+        self.assertEqual(called["argv"][5], "inference_service:create_app()")
+
+    def test_extra_arguments_are_passed_through_to_gunicorn(self):
+        called = {}
+        with mock.patch.dict(os.environ, {inference.TOKEN_ENV: TOKEN}), \
+             mock.patch("os.execv", lambda p, a: called.update(argv=a)):
+            inference_service.main(["--log-level", "debug"])
+        self.assertEqual(called["argv"][-2:], ["--log-level", "debug"])
+
+    def test_a_missing_token_stops_it_before_it_execs_anything(self):
+        execed = []
+        with mock.patch.dict(os.environ, {inference.TOKEN_ENV: ""}), \
+             mock.patch("os.execv", lambda p, a: execed.append(a)):
+            with self.assertRaises(SystemExit) as caught:
+                inference_service.main([])
+        self.assertIn("shared secret", str(caught.exception))
+        self.assertEqual(execed, [], "it execed gunicorn with no token set")
+
+    def test_a_missing_gunicorn_says_so_rather_than_tracebacking(self):
+        with mock.patch.dict(os.environ, {inference.TOKEN_ENV: TOKEN}), \
+             mock.patch("os.execv", mock.Mock(side_effect=OSError("nope"))):
+            with self.assertRaises(SystemExit) as caught:
+                inference_service.main([])
+        self.assertIn("pip install gunicorn", str(caught.exception))
+
+    def test_the_factory_gunicorn_is_pointed_at_actually_builds_the_app(self):
+        # "inference_service:create_app()" is only a string until gunicorn
+        # calls it. If the factory needed arguments, the worker would fail
+        # to boot and this suite would never notice.
+        with mock.patch.dict(os.environ, {inference.TOKEN_ENV: TOKEN}):
+            app = inference_service.create_app()
+        self.assertTrue(app.config["MODEL_SLOT"])
+        self.assertEqual(app.config["MAX_CONTENT_LENGTH"],
+                         inference_service.MAX_BODY_BYTES)
+
+    def test_the_factory_refuses_to_boot_a_worker_with_no_token(self):
+        with mock.patch.dict(os.environ, {inference.TOKEN_ENV: ""}):
+            with self.assertRaises(inference_service.Misconfigured):
+                inference_service.create_app()
+
+    def test_the_worker_timeouts_can_never_fire_before_the_app_deadline(self):
+        """The invariant that would break silently if MAX_TIMEOUT moved.
+
+        gunicorn KILLS a worker that exceeds `timeout`. Its default is 30s
+        against extractions measured at 92s — on the defaults this service
+        would kill itself on its ordinary workload, and the caller would
+        see a dropped socket instead of a `model_timeout` category.
+        """
+        conf = self.gunicorn_conf()
+        self.assertGreater(conf.timeout, inference_service.MAX_TIMEOUT)
+        self.assertGreater(conf.graceful_timeout,
+                           inference_service.MAX_TIMEOUT)
+
+    def test_the_config_pins_one_worker_process(self):
+        # The model slot is a threading.Semaphore, so it is per-process.
+        # Two worker processes would mean two concurrent generations
+        # against one Ollama — the exact thing the semaphore prevents.
+        conf = self.gunicorn_conf()
+        self.assertEqual(conf.workers, 1)
+        self.assertEqual(conf.worker_class, "gthread")
+        self.assertGreater(conf.threads, 1,
+                           "one thread would block /healthz behind a "
+                           "90-second generation")
+
+    def test_the_config_binds_where_the_environment_says(self):
+        with mock.patch.dict(os.environ, {
+                inference_service.HOST_BIND_ENV: "0.0.0.0",
+                inference_service.PORT_ENV: "9001"}):
+            self.assertEqual(self.gunicorn_conf().bind, "0.0.0.0:9001")
+
+    def test_gunicorns_own_access_log_is_off(self):
+        # The app logs every request itself, with a request id and
+        # without the prompt. A second copy is redundant at best.
+        self.assertIsNone(self.gunicorn_conf().accesslog)
+
+    def test_the_app_log_is_adopted_by_gunicorns_handlers(self):
+        """Without this the access line is silently dropped in production.
+
+        gunicorn configures its own handlers and leaves everyone else's
+        logger bare, so "inference" falls back to lastResort, which is
+        WARNING-only — a service that looks healthy and logs nothing.
+        """
+        parent = logging.getLogger("gunicorn.error")
+        sink = logging.Handler()
+        parent.addHandler(sink)
+        parent.setLevel(logging.INFO)
+        saved = list(inference_service.log.handlers)
+        try:
+            self.assertTrue(inference_service.adopt_gunicorn_logging())
+            self.assertIn(sink, inference_service.log.handlers)
+            self.assertEqual(inference_service.log.level, logging.INFO)
+        finally:
+            parent.removeHandler(sink)
+            inference_service.log.handlers = saved
+
+    def test_deployment_settings_come_from_the_environment(self):
+        self.assertEqual(inference_service.bind(),
+                         (inference_service.DEFAULT_BIND,
+                          inference_service.DEFAULT_PORT))
+        with mock.patch.dict(os.environ, {
+                inference_service.HOST_BIND_ENV: "0.0.0.0",
+                inference_service.PORT_ENV: "9001",
+                inference_service.WORKERS_ENV: "2",
+                inference_service.QUEUE_WAIT_ENV: "5.5"}):
+            self.assertEqual(inference_service.bind(), ("0.0.0.0", 9001))
+            self.assertEqual(inference_service.workers(), 2)
+            self.assertEqual(inference_service.queue_wait(), 5.5)
+
+    def test_a_mistyped_setting_is_a_startup_failure_not_a_default(self):
+        # Somebody set it because they meant something by it.
+        for name, value in ((inference_service.WORKERS_ENV, "two"),
+                            (inference_service.WORKERS_ENV, "0"),
+                            (inference_service.PORT_ENV, "-1"),
+                            (inference_service.QUEUE_WAIT_ENV, "soon")):
+            with self.subTest(f"{name}={value}"), \
+                 mock.patch.dict(os.environ, {name: value}):
+                with self.assertRaises(inference_service.Misconfigured):
+                    inference_service.bind()
+                    inference_service.workers()
+                    inference_service.queue_wait()
+
+    def test_binding_beyond_loopback_is_said_out_loud_at_startup(self):
+        with mock.patch.dict(os.environ, {
+                inference_service.HOST_BIND_ENV: "0.0.0.0"}):
+            report = " ".join(inference_service.startup_report())
+        self.assertIn("beyond loopback", report)
+        self.assertIn("bearer token is the only thing", report)
+
+    def test_keep_alive_is_configurable_and_still_defaults_to_measured(self):
+        self.assertEqual(inference.keep_alive(), "30s")
+        self.assertEqual(inference.DEFAULT_KEEP_ALIVE, "30s")
+        with mock.patch.dict(os.environ,
+                             {inference.KEEP_ALIVE_ENV: "10m"}):
+            self.assertEqual(inference.keep_alive(), "10m")
+            sent = {}
+            with mock.patch.object(inference, "_post",
+                                   lambda url, body, t, h=None: sent.update(body)
+                                   or (200, {"response": "{}"})):
+                inference.LocalOllama("http://x/api/generate").generate(
+                    "m", "p", SCHEMA, 10)
+            self.assertEqual(sent["keep_alive"], "10m")
+
+
+class TestConcurrentRequests(unittest.TestCase):
+    """Accept concurrently, run the model one at a time."""
+
+    def post(self, url, body=None, token=TOKEN, timeout=30):
+        """Returns (status, parsed body, headers)."""
+        request = urllib.request.Request(
+            url + "/v1/generate",
+            json.dumps(body or {"model": "m", "prompt": "p",
+                                "schema": SCHEMA}).encode(),
+            {"Content-Type": "application/json",
+             "Authorization": f"Bearer {token}"})
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as reply:
+                return reply.status, json.loads(reply.read()), reply.headers
+        except urllib.error.HTTPError as exc:
+            with exc:
+                return exc.code, json.loads(exc.read()), exc.headers
+
+    def test_eight_concurrent_requests_never_load_two_models(self):
+        runtime = CountingRuntime(delay=0.25)
+        results = []
+        with service(runtime, slots=1) as (url, _r):
+            threads = [threading.Thread(
+                target=lambda: results.append(self.post(url)[0]))
+                for _ in range(8)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=60)
+        self.assertEqual(results, [200] * 8)
+        self.assertEqual(len(runtime.calls), 8)
+        self.assertEqual(runtime.peak, 1,
+                         f"{runtime.peak} generations ran at once — the "
+                         f"runtime was asked to load a second model")
+
+    def test_the_slot_count_is_configurable_and_is_the_ceiling(self):
+        runtime = CountingRuntime(delay=0.3)
+        with service(runtime, slots=3) as (url, _r):
+            threads = [threading.Thread(target=lambda: self.post(url))
+                       for _ in range(9)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=60)
+        self.assertEqual(len(runtime.calls), 9)
+        self.assertLessEqual(runtime.peak, 3)
+
+    def test_a_request_that_cannot_get_a_slot_is_refused_explicitly(self):
+        # Not queued forever and not silently dropped: a category, a
+        # status and a Retry-After.
+        runtime = CountingRuntime(delay=2.0)
+        app = inference_service.create_app(runtime, accepted={TOKEN}, slots=1)
+        app.config["QUEUE_WAIT"] = 0.15
+        with serving(app) as url:
+            first = threading.Thread(target=lambda: self.post(url))
+            first.start()
+            time.sleep(0.3)
+            status, body, headers = self.post(url)
+            first.join(timeout=30)
+        self.assertEqual(status, 503)
+        self.assertEqual(body["error"]["category"], "model_busy")
+        self.assertIn("busy for", body["error"]["message"])
+        self.assertEqual(headers["Retry-After"], "0")
+        self.assertEqual(len(runtime.calls), 1,
+                         "the refused request still reached the model")
+
+    def test_a_busy_service_routes_like_an_absent_model_not_a_broken_one(self):
+        """make_profile's local-first engine should spend its Gemini call.
+
+        The model exists; this caller cannot have it right now. That is
+        the same thing to a caller as a laptop with no model on it, and
+        failing the user's upload over a queue is the wrong answer.
+        """
+        with raw_service(503, {"error": {"category": "model_busy",
+                                         "message": "all 1 slot(s) busy"}}
+                         ) as url:
+            with self.assertRaises(inference.ModelUnavailable):
+                client(url).generate("m", "p", SCHEMA, 10)
+
+    def test_healthz_answers_while_a_generation_holds_the_slot(self):
+        # The reason to accept concurrently at all. One thread would put
+        # the health probe behind a 90-second generation.
+        runtime = CountingRuntime(delay=1.5)
+        with service(runtime, slots=1) as (url, _r):
+            busy = threading.Thread(target=lambda: self.post(url))
+            busy.start()
+            time.sleep(0.3)
+            started = time.time()
+            with urllib.request.urlopen(url + "/healthz", timeout=10) as reply:
+                body = json.loads(reply.read())
+            elapsed = time.time() - started
+            busy.join(timeout=30)
+        self.assertLess(elapsed, 1.0, "/healthz queued behind the model")
+        self.assertEqual(body["model_slots"], 1)
+
+    def test_an_auth_failure_answers_while_the_model_is_busy(self):
+        runtime = CountingRuntime(delay=1.5)
+        with service(runtime, slots=1) as (url, _r):
+            busy = threading.Thread(target=lambda: self.post(url))
+            busy.start()
+            time.sleep(0.3)
+            started = time.time()
+            status, _body, _h = self.post(url, token="wrong")
+            elapsed = time.time() - started
+            busy.join(timeout=30)
+        self.assertEqual(status, 401)
+        self.assertLess(elapsed, 1.0,
+                        "an unauthenticated request waited for a model slot")
+
+    def test_the_slot_is_released_on_every_failure_path(self):
+        # A slot leaked on an error is a service that answers model_busy
+        # forever and needs a restart to recover.
+        for error in (inference.ModelUnavailable("no runtime"),
+                      inference.ModelTimeout("too slow"),
+                      inference.BadModelOutput("not json"),
+                      ZeroDivisionError("boom")):
+            with self.subTest(type(error).__name__):
+                logging.disable(logging.CRITICAL)
+                try:
+                    app = inference_service.create_app(
+                        FakeRuntime(raises=error), accepted={TOKEN}, slots=1)
+                    app.config["TESTING"] = True
+                    app.test_client().post(
+                        "/v1/generate",
+                        json={"model": "m", "prompt": "p", "schema": SCHEMA},
+                        headers={"Authorization": f"Bearer {TOKEN}"})
+                finally:
+                    logging.disable(logging.NOTSET)
+                self.assertTrue(app.config["MODEL_SLOT"].acquire(timeout=0),
+                                "the model slot leaked")
+                app.config["MODEL_SLOT"].release()
+
+    def test_the_semaphore_is_bounded_so_a_release_bug_is_loud(self):
+        app = inference_service.create_app(FakeRuntime(), accepted={TOKEN},
+                                           slots=1)
+        with self.assertRaises(ValueError):
+            app.config["MODEL_SLOT"].release()
+
+
+class TestGracefulModelUnavailable(unittest.TestCase):
+    """A runtime that is down, comes up, or goes away mid-life."""
+
+    def test_the_service_starts_with_no_runtime_and_says_so(self):
+        # A warning, not a refusal: the runtime is a separate process with
+        # its own restart, and refusing to start would turn "Ollama is slow
+        # to come up" into an outage that needs a human.
+        with mock.patch.dict(os.environ, {
+                inference.HOST_ENV: "http://127.0.0.1:11544",
+                inference.TOKEN_ENV: TOKEN}):
+            report = " ".join(inference_service.startup_report())
+            app = inference_service.create_app()
+        self.assertIn("no runtime answering", report)
+        self.assertIn("model_unavailable", report)
+        self.assertIsNotNone(app)
+
+    def test_a_dead_runtime_is_degraded_not_crashed(self):
+        with mock.patch.dict(os.environ,
+                             {inference.HOST_ENV: "http://127.0.0.1:11544"}):
+            with service() as (url, _runtime):
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(url + "/healthz", timeout=10)
+                with caught.exception as exc:
+                    self.assertEqual(exc.code, 503)
+                    body = json.loads(exc.read())
+        self.assertEqual(body["status"], "degraded")
+        self.assertFalse(body["runtime_reachable"])
+
+    def test_the_three_model_failures_stay_distinguishable(self):
+        """Model trouble, malformed request and internal error must never
+        collapse into one another — they route differently."""
+        cases = [
+            (FakeRuntime(raises=inference.ModelUnavailable("no runtime")),
+             None, 503, "model_unavailable"),
+            (FakeRuntime(raises=inference.ModelTimeout("too slow")),
+             None, 504, "model_timeout"),
+            (FakeRuntime(raises=inference.BadModelOutput("not json")),
+             None, 502, "bad_model_output"),
+            (FakeRuntime(), {"model": "m", "prompt": "p", "schema": SCHEMA,
+                             "stream": True}, 400, "bad_request"),
+            (FakeRuntime(raises=ZeroDivisionError("boom")), None, 500,
+             "internal_error"),
+        ]
+        logging.disable(logging.CRITICAL)
+        try:
+            for runtime, body, status, category in cases:
+                with self.subTest(category):
+                    app = inference_service.create_app(runtime,
+                                                       accepted={TOKEN})
+                    app.config["TESTING"] = True
+                    reply = app.test_client().post(
+                        "/v1/generate",
+                        json=body or {"model": "m", "prompt": "p",
+                                      "schema": SCHEMA},
+                        headers={"Authorization": f"Bearer {TOKEN}"})
+                    self.assertEqual(reply.status_code, status)
+                    self.assertEqual(reply.get_json()["error"]["category"],
+                                     category)
+        finally:
+            logging.disable(logging.NOTSET)
+
+    def test_a_runtime_that_comes_back_is_served_again(self):
+        # Nothing is cached, latched or circuit-broken: the next request
+        # after a recovery just works.
+        runtime = FakeRuntime(raises=inference.ModelUnavailable("down"))
+        with service(runtime) as (url, _r):
+            with self.assertRaises(inference.ModelUnavailable):
+                client(url).generate("m", "p", SCHEMA, 10)
+            runtime.raises = None
+            self.assertEqual(client(url).generate("m", "p", SCHEMA, 10),
+                             ANSWER)
+
+
+class TestNoSensitiveLogging(unittest.TestCase):
+    """The service must be un-incriminating to run.
+
+    Nothing is persisted, and the log carries request id, model, duration,
+    outcome and sizes — never the prompt, never the model's answer.
+    """
+
+    SECRET = "Ada Okonkwo ada.okonkwo@example.com +44 7700 900123 Fettle"
+
+    def body(self):
+        return {"model": "qwen3:8b",
+                "prompt": local_extract.FIELDS_PROMPT.format(text=self.SECRET),
+                "schema": local_extract.FIELDS_SCHEMA}
+
+    def assert_clean(self, records, also=()):
+        text = "\n".join(
+            f"{r.getMessage()} {r.exc_text or ''}" for r in records)
+        for needle in ("Okonkwo", "ada.okonkwo", "900123", "Fettle",
+                       "Extract structured data", *also):
+            self.assertNotIn(needle, text,
+                             f"{needle!r} reached the log:\n{text}")
+        return text
+
+    def run_once(self, runtime):
+        with captured_logs() as records:
+            app = inference_service.create_app(runtime, accepted={TOKEN})
+            app.config["TESTING"] = True
+            reply = app.test_client().post(
+                "/v1/generate", json=self.body(),
+                headers={"Authorization": f"Bearer {TOKEN}"})
+        return reply, records
+
+    def test_a_successful_request_logs_metadata_and_nothing_else(self):
+        answer = {"name": "Ada Okonkwo", "skills": ["python"],
+                  "companies": ["Fettle Health"]}
+        reply, records = self.run_once(FakeRuntime(answer))
+        self.assertEqual(reply.status_code, 200)
+        text = self.assert_clean(records)
+        # The metadata that must be there, so this cannot pass by logging
+        # nothing at all.
+        self.assertIn("request_id=", text)
+        self.assertIn("model=qwen3:8b", text)
+        self.assertIn("duration_ms=", text)
+        self.assertIn("outcome=ok", text)
+        self.assertIn("status=200", text)
+        # The size is fine — it reconstructs nothing.
+        self.assertIn("prompt_bytes=", text)
+
+    def test_no_failure_path_logs_the_prompt_or_the_answer(self):
+        cases = [
+            FakeRuntime(raises=inference.ModelUnavailable("no runtime")),
+            FakeRuntime(raises=inference.ModelTimeout("too slow")),
+            FakeRuntime(raises=inference.BadModelOutput("not json")),
+            FakeRuntime(raises=ZeroDivisionError(
+                f"failed on: {SECRET_IN_EXC}")),
+        ]
+        for runtime in cases:
+            with self.subTest(runtime.raises and type(runtime.raises).__name__):
+                _reply, records = self.run_once(runtime)
+                text = self.assert_clean(records)
+                self.assertIn("outcome=", text)
+
+    def test_an_unhandled_crash_logs_a_traceback_but_returns_nothing(self):
+        """The traceback is the operator's; the response is the caller's.
+
+        A crash MUST be logged in full or nobody can fix it — so this
+        asserts the separation rather than pretending the log is clean:
+        the request id is in both, the detail only in the log.
+        """
+        boom = ZeroDivisionError("internal detail")
+        reply, records = self.run_once(FakeRuntime(raises=boom))
+        self.assertEqual(reply.status_code, 500)
+        self.assertEqual(reply.get_json()["error"]["category"],
+                         "internal_error")
+        self.assertNotIn("internal detail", reply.get_data(as_text=True))
+        logged = "\n".join(r.getMessage() for r in records)
+        self.assertIn("ZeroDivisionError", logged)
+        # The frames survive so the WHERE is intact...
+        self.assertIn("inference_service.py", logged)
+        # ...but the message does not, because that is where a library
+        # puts the thing it choked on.
+        self.assertNotIn("internal detail", logged)
+        # ... and the prompt is in neither.
+        self.assert_clean(records)
+        self.assertNotIn("Okonkwo", reply.get_data(as_text=True))
+
+    def test_the_token_is_never_logged(self):
+        _reply, records = self.run_once(FakeRuntime())
+        self.assertNotIn(TOKEN,
+                         "\n".join(r.getMessage() for r in records))
+
+    def test_a_rejected_token_is_not_logged_either(self):
+        with captured_logs() as records:
+            app = inference_service.create_app(FakeRuntime(),
+                                               accepted={TOKEN})
+            app.config["TESTING"] = True
+            app.test_client().post(
+                "/v1/generate", json=self.body(),
+                headers={"Authorization": "Bearer hunter2-leaked-secret"})
+        text = self.assert_clean(records, also=("hunter2",))
+        self.assertIn("outcome=unauthorized", text)
+
+    def test_nothing_is_written_to_disk(self):
+        """Stateless means stateless: no cache, no spool, no audit file."""
+        import tempfile
+
+        before = set(os.listdir(tempfile.gettempdir()))
+        answer = {"name": "Ada Okonkwo", "skills": ["python"]}
+        with service(FakeRuntime(answer)) as (url, _r):
+            client(url).generate("qwen3:8b",
+                                 local_extract.FIELDS_PROMPT.format(
+                                     text=self.SECRET),
+                                 local_extract.FIELDS_SCHEMA, 10)
+        new = set(os.listdir(tempfile.gettempdir())) - before
+        for name in new:
+            self.assertNotIn("inference", name.lower())
+            self.assertNotIn("sweep", name.lower())
+
+    def test_the_service_source_never_reads_a_prompt_into_a_log_call(self):
+        # A grep, deliberately: the next person to add a log line should
+        # trip this rather than a reviewer.
+        with open(inference_service.__file__, encoding="utf-8") as fh:
+            source = fh.read()
+        for line in source.splitlines():
+            stripped = line.strip()
+            if stripped.startswith(("log.info", "log.warning", "log.debug",
+                                    "log.error", "log.exception")):
+                self.assertNotIn("prompt", stripped.replace("prompt_bytes", ""),
+                                 f"a log call names the prompt: {stripped}")
+                self.assertNotIn("result", stripped)
+
+
+SECRET_IN_EXC = "Ada Okonkwo ada.okonkwo@example.com"
 
 
 if __name__ == "__main__":

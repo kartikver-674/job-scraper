@@ -87,6 +87,7 @@ from inference import (  # noqa: F401
     RemoteServiceError,
     ctx_for,
     host,
+    keep_alive,
     model_name,
 )
 

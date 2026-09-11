@@ -28,6 +28,22 @@ The access log carries request id, model, duration, outcome and an error
 category, and the PROMPT SIZE IN BYTES rather than the prompt: enough to
 debug a slow call, not enough to reconstruct anyone's employment history.
 
+ONE MODEL, ONE AT A TIME
+------------------------
+The service accepts requests concurrently and runs generations ONE AT A
+TIME, behind a semaphore sized by SWEEP_INFERENCE_WORKERS (default 1).
+
+That is not timidity, it is the shape of the resource. A second
+concurrent generation against one Ollama does not halve the latency; it
+makes the runtime load a second copy of a 5GB model, or evict the first
+and reload it, and both requests then run slower than either would have
+alone. Threads that arrive while the slot is taken WAIT, for at most
+SWEEP_INFERENCE_QUEUE_WAIT seconds, and are then refused with a
+`model_busy` category and a Retry-After rather than piling up invisibly.
+
+Accepting concurrently but serialising the model is what keeps /healthz
+answering in milliseconds while a 90-second generation is in flight.
+
 WHAT IS NOT HERE YET, ON PURPOSE
 --------------------------------
 No per-user accounts, no rate limiting, no registration. The shape that
@@ -38,12 +54,20 @@ principal().
 
     SWEEP_INFERENCE_TOKEN=dev-token python -m inference_service
     SWEEP_INFERENCE_TOKEN=dev-token python -m inference_service --demo
+
+`python -m inference_service` IS the production command: it validates the
+configuration and then execs gunicorn with gunicorn.conf.py. There is no
+second, different way to start this for real — the development server is
+gone, because the one that gets tested should be the one that ships.
 """
 
 import json
 import logging
 import os
+import sys
+import threading
 import time
+import traceback
 import urllib.error
 import urllib.request
 import uuid
@@ -67,8 +91,33 @@ DEFAULT_TIMEOUT = 120
 # limit is the real one; the slack covers the model name and the schema.
 MAX_BODY_BYTES = inference.MAX_PROMPT_BYTES + 64 * 1024
 
+# Deployment settings. Four, and no more than four: everything about WHICH
+# model and WHERE the runtime is already comes from OLLAMA_HOST /
+# OLLAMA_MODEL / SWEEP_MODEL_KEEP_ALIVE, which this does not duplicate.
+HOST_BIND_ENV = "SWEEP_INFERENCE_HOST"
 PORT_ENV = "SWEEP_INFERENCE_PORT"
+WORKERS_ENV = "SWEEP_INFERENCE_WORKERS"
+QUEUE_WAIT_ENV = "SWEEP_INFERENCE_QUEUE_WAIT"
+
+# Loopback by default. Binding 0.0.0.0 is a decision with consequences and
+# has to be made out loud, in the environment, by someone who has read the
+# deployment notes.
+DEFAULT_BIND = "127.0.0.1"
 DEFAULT_PORT = 8811
+
+# One model, one generation at a time. See the docstring.
+DEFAULT_WORKERS = 1
+
+# How long a request waits for the model slot before being refused. Long
+# enough that the second of Sweep's two calls queues rather than fails,
+# short enough that a caller learns the service is saturated before its
+# own deadline runs out.
+DEFAULT_QUEUE_WAIT = 30
+
+# Where gunicorn's settings live. Read by main() and by the deployment
+# notes; a single file so the timeouts cannot drift from MAX_TIMEOUT.
+GUNICORN_CONF = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "gunicorn.conf.py")
 
 # Exactly these keys, and no others. A caller sending something we do not
 # understand has a different idea of the contract than we do, and silently
@@ -79,12 +128,67 @@ REQUIRED_KEYS = {"prompt", "schema"}
 log = logging.getLogger("inference")
 
 
+def adopt_gunicorn_logging():
+    """Send this module's log where gunicorn's own log goes.
+
+    Without this the access line — request id, model, duration, outcome —
+    is SILENTLY DROPPED in production. gunicorn configures its own
+    handlers and leaves everybody else's logger bare, so "inference"
+    propagates to a root with no handler and falls back to lastResort,
+    which is WARNING-only. The service would look healthy and log
+    nothing, which is the failure mode you discover during an incident.
+    """
+    parent = logging.getLogger("gunicorn.error")
+    if parent.handlers:
+        log.handlers = parent.handlers
+        log.setLevel(parent.level)
+    return bool(parent.handlers)
+
+
 class Refused(Exception):
     """A request we will not run, with the category the client gets back."""
 
     def __init__(self, status, category, message):
         self.status, self.category, self.message = status, category, message
         super().__init__(message)
+
+
+class Misconfigured(RuntimeError):
+    """The service cannot start as configured. Checked before it binds."""
+
+
+def _positive(name, default, cast=int):
+    """One positive number from the environment, or a startup failure.
+
+    A typo'd SWEEP_INFERENCE_WORKERS must not silently become the default:
+    somebody set it because they meant something by it.
+    """
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        value = cast(raw)
+    except ValueError:
+        raise Misconfigured(f"{name}={raw!r} is not a number") from None
+    if value <= 0:
+        raise Misconfigured(f"{name}={raw!r} must be positive")
+    return value
+
+
+def bind():
+    """(host, port) to listen on."""
+    return (os.environ.get(HOST_BIND_ENV) or "").strip() or DEFAULT_BIND, \
+        _positive(PORT_ENV, DEFAULT_PORT)
+
+
+def workers():
+    """How many generations may run at once. One, unless told otherwise."""
+    return _positive(WORKERS_ENV, DEFAULT_WORKERS)
+
+
+def queue_wait():
+    """How long a request waits for the model slot before a 503."""
+    return _positive(QUEUE_WAIT_ENV, DEFAULT_QUEUE_WAIT, float)
 
 
 def tokens():
@@ -97,6 +201,22 @@ def tokens():
     """
     raw = os.environ.get(inference.TOKEN_ENV) or ""
     return {t.strip() for t in raw.split(",") if t.strip()}
+
+
+def require_tokens():
+    """The configured tokens, or a startup failure naming what is missing.
+
+    Called before the socket is bound, by both start paths. An open model
+    endpoint is not a dev convenience, it is a dev incident, and the
+    moment this is hosted anywhere it stops being localhost.
+    """
+    configured = tokens()
+    if not configured:
+        raise Misconfigured(
+            f"set {inference.TOKEN_ENV} to a shared secret before starting "
+            f"— an open model endpoint is not a dev convenience, it is a "
+            f"dev incident")
+    return configured
 
 
 def principal(header, accepted):
@@ -173,12 +293,28 @@ def runtime_reachable(timeout=3):
         return False
 
 
-def create_app(runtime=None, accepted=None):
-    """The service. `runtime` and `accepted` are injected by the tests."""
+def create_app(runtime=None, accepted=None, slots=None):
+    """The service, and gunicorn's application factory.
+
+    `runtime`, `accepted` and `slots` are injected by the tests; in
+    production all three come from the environment, and the token check
+    happens HERE so a misconfigured worker fails to boot rather than
+    binding a socket that will refuse everything.
+    """
+    adopt_gunicorn_logging()
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = MAX_BODY_BYTES
     app.config["RUNTIME"] = runtime or RUNTIME()
     app.config["TOKENS"] = accepted
+    if accepted is None:
+        require_tokens()
+    # One permit per concurrent generation. Bounded so a release() bug
+    # cannot quietly widen it — the failure is loud, at the bug, rather
+    # than as an unexplained second model load a week later.
+    app.config["SLOTS"] = slots if slots is not None else workers()
+    app.config["MODEL_SLOT"] = threading.BoundedSemaphore(
+        app.config["SLOTS"])
+    app.config["QUEUE_WAIT"] = queue_wait()
 
     def accepted_tokens():
         configured = app.config["TOKENS"]
@@ -203,10 +339,10 @@ def create_app(runtime=None, accepted=None):
         # Operational metadata only. Note what is NOT here: the prompt, the
         # model's answer, and anything derived from either.
         log.info("request_id=%s path=%s status=%s model=%s prompt_bytes=%d "
-                 "duration_ms=%d outcome=%s",
+                 "waited_ms=%d duration_ms=%d outcome=%s",
                  getattr(g, "request_id", "-"), request.path,
                  response.status_code, getattr(g, "model", "-"),
-                 getattr(g, "prompt_bytes", 0),
+                 getattr(g, "prompt_bytes", 0), getattr(g, "waited_ms", 0),
                  int((time.time() - getattr(g, "started", time.time())) * 1000),
                  getattr(g, "category", "ok"))
         response.headers["X-Request-Id"] = getattr(g, "request_id", "-")
@@ -229,10 +365,29 @@ def create_app(runtime=None, accepted=None):
 
     @app.errorhandler(Exception)
     def _unhandled(exc):
-        # Never the exception text: it can carry the prompt, a file path or
-        # an upstream URL. The request id is how you find it in the log.
-        log.exception("request_id=%s unhandled %s",
-                      getattr(g, "request_id", "-"), type(exc).__name__)
+        """An error from code this service does not control.
+
+        The traceback is logged WITHOUT the exception's message, and that
+        is not squeamishness. The catch-all exists for failures inside the
+        runtime adapter, urllib and json — libraries that routinely put
+        the thing they choked on INTO the message. json.JSONDecodeError
+        quotes the document, a urllib error carries the URL, and a runtime
+        adapter can quote the request body. For a service whose every
+        request is somebody's résumé, the exception message is precisely
+        where the résumé leaks.
+        
+        The frames survive, so the WHERE is intact — file, line and the
+        source of each frame — and the request id joins it to the access
+        line.
+
+        ponytail: loses the exception message, which is sometimes the
+        useful half (a bare KeyError names its key there). Upgrade path is
+        a scrubber, or an operator-only flag that logs messages in full on
+        a machine with no real résumés on it.
+        """
+        where = "".join(traceback.format_tb(exc.__traceback__)).strip()
+        log.error("request_id=%s unhandled %s\n%s",
+                  getattr(g, "request_id", "-"), type(exc).__name__, where)
         return fail(500, "internal_error",
                     "the inference service failed to handle the request")
 
@@ -240,10 +395,15 @@ def create_app(runtime=None, accepted=None):
     def healthz():
         """Unauthenticated on purpose: it is a liveness probe and it says
         nothing a caller could not learn by connecting."""
+        # Answers in milliseconds while a 90-second generation is in
+        # flight: it takes no model slot and asks the runtime a question
+        # that does not touch the weights.
         up = runtime_reachable()
         return jsonify({"status": "ok" if up else "degraded",
                         "runtime_reachable": up,
-                        "model": inference.model_name()}), (200 if up else 503)
+                        "model": inference.model_name(),
+                        "model_slots": app.config["SLOTS"]}), (200 if up
+                                                               else 503)
 
     @app.post("/v1/generate")
     def generate():
@@ -266,6 +426,25 @@ def create_app(runtime=None, accepted=None):
             return fail(exc.status, exc.category, exc.message)
 
         g.model, g.prompt_bytes = model, size
+
+        # Wait for the model, do not race for it. A second concurrent
+        # generation makes the runtime load a second copy of a 5GB model
+        # or evict the first; both callers then finish later than either
+        # would have alone.
+        waited = time.time()
+        if not app.config["MODEL_SLOT"].acquire(
+                timeout=app.config["QUEUE_WAIT"]):
+            g.waited_ms = int((time.time() - waited) * 1000)
+            reply = fail(503, "model_busy",
+                         f"all {app.config['SLOTS']} model slot(s) were "
+                         f"busy for {app.config['QUEUE_WAIT']:g}s")
+            # Advisory, and honest: the queue is however long it is, and
+            # one generation is the shortest it can be.
+            reply[0].headers["Retry-After"] = str(
+                int(app.config["QUEUE_WAIT"]))
+            return reply
+        g.waited_ms = int((time.time() - waited) * 1000)
+
         started = time.time()
         try:
             result = app.config["RUNTIME"].generate(model, prompt, schema,
@@ -276,6 +455,11 @@ def create_app(runtime=None, accepted=None):
             return fail(502, "bad_model_output", str(exc))
         except inference.ModelUnavailable as exc:
             return fail(503, "model_unavailable", str(exc))
+        finally:
+            # Released on every path, including the unhandled-exception
+            # one: a slot leaked on an error is a service that answers
+            # `model_busy` forever and needs a restart to recover.
+            app.config["MODEL_SLOT"].release()
 
         g.category = "ok"
         return jsonify({"request_id": g.request_id, "model": model,
@@ -285,22 +469,64 @@ def create_app(runtime=None, accepted=None):
     return app
 
 
-def main(argv=None):
-    import sys
+def startup_report():
+    """What this process is about to be, as one log line per fact.
 
+    Checked and printed BEFORE the socket is bound, so a wrong model name
+    or an unreachable runtime is visible at start rather than at the
+    first request an hour later.
+    """
+    host, port = bind()
+    lines = [f"bind            {host}:{port}",
+             f"model slots     {workers()} "
+             f"(queue wait {queue_wait():g}s)",
+             f"runtime         {RUNTIME().describe()}",
+             f"model           {inference.model_name()} "
+             f"(keep_alive {inference.keep_alive()})",
+             f"max prompt      {inference.MAX_PROMPT_BYTES} bytes",
+             f"max timeout     {MAX_TIMEOUT}s"]
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        lines.append(f"NOTE            bound beyond loopback via "
+                     f"{HOST_BIND_ENV} — the bearer token is the only "
+                     f"thing in front of the model")
+    if not runtime_reachable():
+        # A warning, not a failure. The runtime is a separate process
+        # with its own restart; refusing to start would turn "Ollama is
+        # slow to come up" into an outage that needs a human.
+        lines.append(f"WARNING         no runtime answering at "
+                     f"{inference.host()} — /healthz will report degraded "
+                     f"and generations will fail with model_unavailable "
+                     f"until it is up")
+    return lines
+
+
+def main(argv=None):
+    """Validate, then become gunicorn.
+
+    There is no development server any more. `python -m inference_service`
+    execs the production one, so the thing that gets run in development is
+    the thing that ships — and gunicorn's own graceful shutdown, worker
+    timeouts and signal handling come free rather than being reimplemented
+    here badly.
+    """
     argv = sys.argv[1:] if argv is None else argv
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
-    if not tokens():
-        sys.exit(f"set {inference.TOKEN_ENV} to a shared secret before "
-                 f"starting — an open model endpoint is not a dev "
-                 f"convenience, it is a dev incident")
-    port = int(os.environ.get(PORT_ENV) or DEFAULT_PORT)
-    log.info("inference service on :%d -> %s (model %s)", port,
-             RUNTIME().describe(), inference.model_name())
-    # threaded so /healthz answers while a generation is in flight.
-    create_app().run(host="127.0.0.1", port=port, threaded=True,
-                     debug="--debug" in argv)
+    try:
+        require_tokens()
+        for line in startup_report():
+            log.info("%s", line)
+    except Misconfigured as exc:
+        sys.exit(str(exc))
+
+    command = [sys.executable, "-m", "gunicorn", "-c", GUNICORN_CONF,
+               "inference_service:create_app()", *argv]
+    log.info("exec %s", " ".join(command[1:]))
+    try:
+        os.execv(sys.executable, command)
+    except OSError as exc:
+        sys.exit(f"could not start gunicorn ({exc}) — install it with "
+                 f"`pip install gunicorn`")
 
 
 def demo():
@@ -320,8 +546,8 @@ def demo():
                 raise self.raises
             return answers
 
-    def client(runtime=None):
-        app = create_app(runtime or Fake(), accepted={"good"})
+    def client(runtime=None, slots=None):
+        app = create_app(runtime or Fake(), accepted={"good"}, slots=slots)
         app.config["TESTING"] = True
         return app.test_client()
 
@@ -420,8 +646,58 @@ def demo():
 
     # /healthz needs no token and reports what it found.
     health = client().get("/healthz").get_json()
-    assert set(health) == {"status", "runtime_reachable", "model"}
+    assert set(health) == {"status", "runtime_reachable", "model",
+                           "model_slots"}
     assert health["status"] in ("ok", "degraded")
+    assert health["model_slots"] == DEFAULT_WORKERS
+
+    # The model slot is released on every path, including the failing
+    # ones — a leaked slot is a service that answers model_busy forever.
+    for error in (inference.ModelUnavailable("x"), inference.ModelTimeout("x"),
+                  inference.BadModelOutput("x"), ZeroDivisionError("x")):
+        app = create_app(Fake(error), accepted={"good"}, slots=1)
+        app.config["TESTING"] = True
+        app.test_client().post("/v1/generate", json=body, headers=good)
+        assert app.config["MODEL_SLOT"].acquire(timeout=0), (
+            f"the model slot leaked on {type(error).__name__}")
+        app.config["MODEL_SLOT"].release()
+
+    # Deployment settings come from the environment, and a typo is a
+    # startup failure rather than a silent default.
+    assert bind() == (DEFAULT_BIND, DEFAULT_PORT)
+    assert workers() == DEFAULT_WORKERS and queue_wait() == DEFAULT_QUEUE_WAIT
+    for name, value in ((WORKERS_ENV, "two"), (WORKERS_ENV, "0"),
+                        (PORT_ENV, "-1"), (QUEUE_WAIT_ENV, "nope")):
+        os.environ[name] = value
+        try:
+            bind(), workers(), queue_wait()
+            raise AssertionError(f"{name}={value!r} must not be accepted")
+        except Misconfigured:
+            pass
+        finally:
+            del os.environ[name]
+    os.environ[HOST_BIND_ENV], os.environ[WORKERS_ENV] = "0.0.0.0", "3"
+    try:
+        assert bind() == ("0.0.0.0", DEFAULT_PORT) and workers() == 3
+        assert any("beyond loopback" in line for line in startup_report())
+    finally:
+        del os.environ[HOST_BIND_ENV], os.environ[WORKERS_ENV]
+
+    # An unconfigured token is a startup failure, at both start paths.
+    was = os.environ.get(inference.TOKEN_ENV)
+    os.environ[inference.TOKEN_ENV] = ""
+    try:
+        for start in (require_tokens, create_app):
+            try:
+                start()
+                raise AssertionError(f"{start.__name__} must refuse to start")
+            except Misconfigured as exc:
+                assert "shared secret" in str(exc), exc
+    finally:
+        if was is None:
+            del os.environ[inference.TOKEN_ENV]
+        else:
+            os.environ[inference.TOKEN_ENV] = was
 
     # principal() is the seam a rate limiter will key on.
     assert principal("Bearer good", {"good"}) == "good"

@@ -78,6 +78,9 @@ python -m bench.backends --people ada,hana,kwame     # both backends, same corpu
 python -m unittest discover -s auto-apply/tests -t auto-apply -p "test_inference.py"
 ```
 
+Runtime requirements, every environment variable, the health check and the full
+list of failure modes: [docs/inference-service.md](../docs/inference-service.md).
+
 ## Phase 2 — LinkedIn Easy Apply autofill (userscript)
 
 Auto-fills the LinkedIn Easy Apply modal from a résumé-grounded answer bank.
