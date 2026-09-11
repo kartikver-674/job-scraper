@@ -1436,6 +1436,64 @@ class TestResumeParsingScreen(Isolated):
         body = r.get_data(as_text=True)
         self.assertIn("The model call failed", body)
 
+    def test_a_missing_key_is_not_reported_as_a_model_failure(self):
+        # What a first run without a key actually looks like. The screen
+        # used to say "an exhausted API quota, a key that no longer works,
+        # or a scanned PDF" — none of which is true, and none of which
+        # mentions the local engine that needs no key at all.
+        def boom(resume_text, prefs):
+            raise app_module.NotConfigured(
+                "Sweep is set to read résumés with Gemini (engine "
+                "'gemini'), and GEMINI_API_KEY is not set. To run with no "
+                "API key at all, start Sweep with SWEEP_PROFILE_ENGINE="
+                "local — it reads the résumé with a model on this machine.")
+        r = self._app(derive=boom).test_client().post("/derive")
+        body = r.get_data(as_text=True)
+        # Nothing upstream was reached, so nothing upstream is at fault.
+        self.assertEqual(r.status_code, 500)
+        self.assertIn("SWEEP_PROFILE_ENGINE", body)
+        self.assertIn("GEMINI_API_KEY", body)
+        # And none of the three wrong causes.
+        for wrong in ("quota", "scanned PDF", "no longer works"):
+            self.assertNotIn(wrong, body)
+
+    def test_the_default_engine_with_no_key_names_the_local_engine(self):
+        """The exact failure a user hit, through the REAL injected derive.
+
+        The hint was there but suppressed when the engine was 'gemini',
+        which is the only case a first-time user without a key is ever in.
+        """
+        app = app_module.create_app(state={"resume_text": "x"},
+                                    extract=lambda p: "x")
+        app.config.update(TESTING=True)
+        with mock.patch.dict(os.environ, {}, clear=True):
+            r = app.test_client().post("/derive")
+        body = r.get_data(as_text=True)
+        self.assertEqual(r.status_code, 500)
+        self.assertIn("SWEEP_PROFILE_ENGINE", body)
+        self.assertIn("local", body)
+        # It must also say where the setting does NOT go: sweep never
+        # calls load_dotenv, so .env cannot carry it.
+        self.assertIn(".env", body)
+
+    def test_the_local_engine_needs_no_key_and_says_nothing_about_one(self):
+        seen = {}
+
+        def spy(client, models, resume_text, prefs, engine=None):
+            seen["engine"], seen["client"] = engine, client
+            return DERIVED
+
+        app = app_module.create_app(state={"resume_text": "x"},
+                                    extract=lambda p: "x")
+        app.config.update(TESTING=True)
+        with mock.patch.dict(os.environ,
+                             {"SWEEP_PROFILE_ENGINE": "local"}, clear=True), \
+             mock.patch.object(app_module.make_profile, "generate", spy):
+            r = app.test_client().post("/derive")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(seen["engine"], "local")
+        self.assertIsNone(seen["client"], "no key, so no client to build")
+
     def test_an_unknown_failure_does_not_blame_the_pdf_outright(self):
         # A quota, an expired key and a network failure all land here. Telling
         # someone their résumé is a scan sends them to re-export a file that

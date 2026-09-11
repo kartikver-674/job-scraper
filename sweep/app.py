@@ -156,6 +156,18 @@ _ENV_KEY_RE = re.compile(r"[A-Z][A-Z0-9_]*")
 _ENV_VALUE_RE = re.compile(r"[\x21-\x7E]+")
 
 
+class NotConfigured(RuntimeError):
+    """A setting is missing, and the message names the setting and the fix.
+
+    Composed here from this app's own vocabulary, so — unlike a client
+    library's error, which can carry the request URL — it is safe to show
+    on screen. It is separate from the model failures because it is not
+    one: nothing was asked of any model. Telling someone their PDF might
+    be a scan when they simply have no API key sends them to re-export a
+    file that was never the problem.
+    """
+
+
 def create_app(state=None, extract=None, resume_dir=None,
                max_upload_bytes=15 * 1024 * 1024, derive=None,
                check_token=None, env_path=None, fetch_plan=None,
@@ -193,11 +205,19 @@ def create_app(state=None, extract=None, resume_dir=None,
             # local engine exists so that a user without one can still
             # get a profile, so asking for it here would defeat it.
             if not api_key and engine != "local":
-                raise RuntimeError(
-                    "GEMINI_API_KEY is missing from .env."
-                    + ("" if engine == "gemini" else
-                       f" Set {make_profile.ENGINE_ENV}=local to run "
-                       f"without one."))
+                # The hint used to be suppressed when the engine was
+                # "gemini", which is exactly the person who needs it: the
+                # default engine plus no key is what a first run without
+                # a key looks like, and the screen said nothing about the
+                # local engine existing.
+                raise NotConfigured(
+                    f"Sweep is set to read résumés with Gemini "
+                    f"(engine {engine!r}), and GEMINI_API_KEY is not set. "
+                    f"To run with no API key at all, start Sweep with "
+                    f"{make_profile.ENGINE_ENV}=local — it reads the "
+                    f"résumé with a model on this machine. Note that .env "
+                    f"is not read for this setting; it has to be set in "
+                    f"the environment.")
             client = None
             # A key AND an engine that can use one. `tailor` pulls in
             # google.genai, so building a client for a leftover key would
@@ -971,6 +991,13 @@ def create_app(state=None, extract=None, resume_dir=None,
                 "review",
                 error=f"The model did not answer: {exc}. Your résumé is "
                       "fine — this is the model call, not the PDF.")), 502
+        except NotConfigured as exc:
+            # Safe to show in full: this app composed it. A 500, not a 502
+            # — nothing upstream was reached, and nothing upstream is at
+            # fault.
+            app.logger.warning("derive not configured: %s", exc)
+            return render_template("deriving.html", **shell(
+                "review", error=str(exc))), 500
         except Exception as exc:
             # The message is fixed, not str(exc): a client library's error can
             # carry the request URL, and this app's whole job is to be careful
