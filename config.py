@@ -191,6 +191,17 @@ ATS_BOARDS = {
         "hevodata": "Hevo Data", "zeta": "Zeta", "fampay": "FamPay",
         "cred": "CRED",
         "coderio": "Coderio",         #  0/22  — harvest_ats.py, 2026-07-27
+        # --- Adzuna Phase 1 harvest, 2026-09-11 -------------------------------
+        # Employer names came from the Adzuna API (docs/superpowers/specs/
+        # 2026-09-11-adzuna-phase1-results.md); the boards themselves were
+        # resolved by harvest_ats.py against the platforms already in
+        # sources/ats.py, and every one was re-probed live the day it was added.
+        # Counts are india/total at that probe. b2 = the employer was already
+        # known through a paid sweep, so this is one we can now stop paying to
+        # see; b3 = never seen through any source before.
+        "rws": "RWS",                         #  10/72   b2
+        "dozee": "Dozee",                     #  15/27   b3
+        "pocketfm": "Pocket FM",              #   2/5    b3
     },
     # Indian employers, plus global companies WITH an India presence — the
     # combination that makes SETTINGS["keep_restricted_if_hires_home"] pay off,
@@ -220,6 +231,30 @@ ATS_BOARDS = {
         "ubiquiti": "Ubiquiti",       #  0/159 — no India entity, so its geo-locked
         "justworks": "Justworks",     #  0/98    roles can never be rescued; kept
                                       #          only for worldwide-remote postings
+        # --- Adzuna Phase 1 harvest, 2026-09-11 -------------------------------
+        # Employer names came from the Adzuna API (docs/superpowers/specs/
+        # 2026-09-11-adzuna-phase1-results.md); the boards themselves were
+        # resolved by harvest_ats.py against the platforms already in
+        # sources/ats.py, and every one was re-probed live the day it was added.
+        # Counts are india/total at that probe. b2 = the employer was already
+        # known through a paid sweep, so this is one we can now stop paying to
+        # see; b3 = never seen through any source before.
+        "tide": "Tide",                       #  24/81   b2
+        "bitwarden": "Bitwarden",             #  22/46   b2
+        "nice": "NICE",                       #  22/180  b2
+        "towerresearchcapital": "Tower Research Capital",   #  12/86   b2
+        "dunnhumby": "dunnhumby",             #   2/35   b2
+        "elsevier": "Elsevier",               #   0/9    b2
+        "iris": "Iris Software",              #   0/2    b2
+        "wise": "Wise",                       #   0/18   b2
+        "capco": "Capco",                     # 162/697  b3 — the largest single
+                                              #          board in this table
+        "wppproduction": "WPP Production",    #  31/158  b3
+        "stratainformationgroup": "Strata Information Group",  #   2/11   b3
+        "indigo": "Indigo",                   #   0/2    b3
+        "mcafee": "McAfee, Inc.",             #   0/4    b3
+        "unisonconsulting": "Unison Consulting",            #   0/2    b3
+        "victrix": "Victrix Systems & Labs",  #   0/3    b3
     },
     # Probed 2026-07-26 and NOT resolvable, so nobody burns time re-trying:
     # razorpay, zerodha, dream11, sharechat, unacademy, swiggy, zomato, flipkart,
@@ -233,8 +268,58 @@ ATS_BOARDS = {
         "linear": "Linear", "ramp": "Ramp", "openai": "OpenAI",
         "notion": "Notion",           #  5/127
         "teero": "Teero",             #  0/5   — harvest_ats.py, 2026-07-27
+        # --- Adzuna Phase 1 harvest, 2026-09-11 -------------------------------
+        # Employer names came from the Adzuna API (docs/superpowers/specs/
+        # 2026-09-11-adzuna-phase1-results.md); the boards themselves were
+        # resolved by harvest_ats.py against the platforms already in
+        # sources/ats.py, and every one was re-probed live the day it was added.
+        # Counts are india/total at that probe. b2 = the employer was already
+        # known through a paid sweep, so this is one we can now stop paying to
+        # see; b3 = never seen through any source before.
+        "tekion": "Tekion",                   #  88/110  b3
+        "gradera": "Gradera",                 #   6/8    b3
+        "whisk": "Whisk Software Private Limited",          #   0/4    b3
     },
-    "smartrecruiters": {},   # e.g. {"BoschGroup": "Bosch"}
+    # smartrecruiters and breezy list NO DESCRIPTION (sources/ats.py maps no
+    # Description field for either), so their postings are scored on the TITLE
+    # ALONE. That is a known, accepted limitation of those adapters and not a
+    # new one — but it means a board here contributes less per posting than a
+    # greenhouse/lever/ashby board of the same size.
+    "smartrecruiters": {
+        # --- Adzuna Phase 1 harvest, 2026-09-11 -------------------------------
+        # Employer names came from the Adzuna API (docs/superpowers/specs/
+        # 2026-09-11-adzuna-phase1-results.md); the boards themselves were
+        # resolved by harvest_ats.py against the platforms already in
+        # sources/ats.py, and every one was re-probed live the day it was added.
+        # Counts are india/total at that probe. b2 = the employer was already
+        # known through a paid sweep, so this is one we can now stop paying to
+        # see; b3 = never seen through any source before.
+        "jitterbit": "Jitterbit",             #  10/25   b2
+        "renesaselectronics": "Renesas Electronics",        #  10/100  b2
+        "sia": "Sia",                         #   2/100  b2
+        "agileengine": "AgileEngine",         #   0/1    b2
+        "jadeglobal": "Jade Global",          #   0/6    b2
+        "version1": "Version 1",              #  24/100  b3
+        "informagroupplc": "Informa Group Plc.",            #  14/100  b3
+        "quantanite": "Quantanite",           #   8/9    b3
+        "blueoptima": "BlueOptima",           #   5/12   b3
+        "keywordsstudios": "Keywords Studios",              #   1/51   b3
+        "metromakro": "METRO/MAKRO",          #   1/100  b3
+        "nisum": "Nisum",                     #   0/1    b3
+        "technogen": "TechnoGen",             #   0/49   b3
+        "vichara": "Vichara Technologies",    #   0/8    b3
+    },
+    "breezy": {
+        # --- Adzuna Phase 1 harvest, 2026-09-11 -------------------------------
+        # Employer names came from the Adzuna API (docs/superpowers/specs/
+        # 2026-09-11-adzuna-phase1-results.md); the boards themselves were
+        # resolved by harvest_ats.py against the platforms already in
+        # sources/ats.py, and every one was re-probed live the day it was added.
+        # Counts are india/total at that probe. b2 = the employer was already
+        # known through a paid sweep, so this is one we can now stop paying to
+        # see; b3 = never seen through any source before.
+        "iqvia": "IQVIA",                     #   0/7    b2
+    },
 }
 
 # ---------------------------------------------------------------------------
