@@ -1569,8 +1569,9 @@ class TestEngineIsolation(unittest.TestCase):
         real = le._generate
         with self._gemini_armed() as tripped, \
              _patched(le, "_generate",
-                      lambda m, prompt, schema, timeout, url=None:
-                          real(m, prompt, schema, 3, dead)):
+                      lambda m, prompt, schema, timeout, url=None,
+                             backend=None:
+                          real(m, prompt, schema, 3, dead, backend)):
             with self.assertRaises(le.ModelUnavailable) as caught:
                 make_profile.generate(object(), ("m",), "résumé", {},
                                       engine="local", log=lambda *a: None)
@@ -1792,7 +1793,7 @@ class TestOllamaConfiguration(unittest.TestCase):
         """
         seen = {}
 
-        def capture(model, prompt, schema, timeout, url=None):
+        def capture(model, prompt, schema, timeout, url=None, backend=None):
             seen["url"], seen["model"] = url, model
             return {"name": "", "years_experience": 0, "titles": [],
                     "skills": [], "companies": [], "education": [],

@@ -67,54 +67,42 @@ the code that ships.
     python -m local_extract --demo
 """
 
-import json
 import os
 import re
 import time
-import urllib.error
-import urllib.request
 
-# Where the local model server is and which model to ask. Both come from
-# the environment, using Ollama's own variable name, because "install
-# Ollama" is what replaces "supply an API key" — and a user running it on
-# another port, in Docker, or on a second machine has to be able to say so.
-#
-# Resolved PER CALL, never bound as a default argument. Freezing these at
-# import time is what made them unreachable from a test: a test that
-# patched the constant made a real model call and asserted the wrong
-# failure, which is the sort of thing a hardcoded default hides.
-HOST_ENV = "OLLAMA_HOST"
-MODEL_ENV = "OLLAMA_MODEL"
-DEFAULT_HOST = "http://127.0.0.1:11434"
-DEFAULT_MODEL = "qwen3:8b"
+import inference
+# Re-exported, not re-implemented. Every one of these was a name in this
+# module before the transport moved to inference.py, and bench/, Sweep and
+# the test-suite all still read them from here — same objects, so an
+# `except local_extract.ModelUnavailable` still catches what it always did.
+from inference import (  # noqa: F401
+    DEFAULT_HOST,
+    DEFAULT_MODEL,
+    HOST_ENV,
+    KEEP_ALIVE,
+    MODEL_ENV,
+    InferenceError,
+    ModelUnavailable,
+    RemoteServiceError,
+    ctx_for,
+    host,
+    model_name,
+)
 
-# Unload as soon as a request finishes. Left resident, an 8B model is more
-# than a laptop has to spare while a sweep is also running.
-KEEP_ALIVE = "30s"
-
-
-def host():
-    """Base URL of the local model server, from OLLAMA_HOST.
-
-    Ollama's own variable is routinely written without a scheme
-    ("127.0.0.1:11434", "ollama:11434" inside compose), so a missing one
-    is supplied rather than producing a urllib error nobody can read.
-    """
-    value = (os.environ.get(HOST_ENV) or "").strip() or DEFAULT_HOST
-    if "://" not in value:
-        value = "http://" + value
-    return value.rstrip("/")
+# The default deadline for one model call, in seconds. Was a literal on
+# four signatures; named here because the service has to be told it too.
+TIMEOUT = 600
 
 
 def endpoint(path="/api/generate"):
-    """A full URL for one of the server's paths."""
+    """A full URL for one of the Ollama server's paths.
+
+    Only meaningful for the local-direct backend, and kept because bench/
+    reads it. Sweep itself no longer builds model URLs: it asks
+    inference.provider() for a backend and hands it a prompt.
+    """
     return host() + path
-
-
-def model_name(model=None):
-    """The model to ask: an explicit one, else OLLAMA_MODEL, else the
-    default. Passed through so a caller can always override."""
-    return (model or os.environ.get(MODEL_ENV) or "").strip() or DEFAULT_MODEL
 
 
 # The generate endpoint as a module-level name, for bench/, which reads it
@@ -126,74 +114,21 @@ OLLAMA = endpoint()
 # --------------------------------------------------------------------------
 # Transport
 # --------------------------------------------------------------------------
+#
+# There is none here any more. `_generate` picks a backend and hands it the
+# prompt and the schema; whether that reaches Ollama over a loopback socket
+# or an HTTP service three lines of config away is not this file's business.
+# What IS this file's business — the prompts, the schema, the router, the
+# arithmetic — is unchanged below, byte for byte.
 
-def ctx_for(prompt, reply_tokens=768, floor=2048, ceiling=8192):
-    """A context window sized to the document, not guessed at.
-
-    The KV cache scales with this number whether the tokens are used or
-    not, and the first version asked for 16,384 on an 8B model — roughly
-    5GB of weights plus another 5GB of cache — against a longest prompt of
-    919 tokens. The machine ran out of memory and restarted.
-
-    ~4 chars per token is rough, so `reply_tokens` of headroom covers both
-    the estimate being wrong and the JSON coming back. Rounded up to a
-    power of two because runtimes allocate in blocks anyway.
-    """
-    need = len(prompt) // 4 + reply_tokens
-    size = floor
-    while size < need and size < ceiling:
-        size *= 2
-    return min(size, ceiling)
-
-
-class ModelUnavailable(RuntimeError):
-    """Ollama is not running, or the model is not pulled.
-
-    Carries a short, actionable reason and never the exception text from
-    urllib, which can include the request URL.
-    """
-
-
-def _generate(model, prompt, schema, timeout, url=None):
+def _generate(model, prompt, schema, timeout, url=None, backend=None):
     """One schema-constrained generation. Returns the parsed JSON.
 
-    `think: False` is not optional. Without it the model reasons at length
-    before extracting, which measured 37.4s per document against 9.4s with
-    it — and scored WORSE, because copying a date out of a table is not a
-    reasoning task.
+    `url` overrides the backend's endpoint, which is how the tests and
+    bench/ point a call at a stub instead of the machine's real Ollama.
     """
-    body = json.dumps({
-        "model": model,
-        "prompt": prompt,
-        "format": schema,
-        "stream": False,
-        "keep_alive": KEEP_ALIVE,
-        "think": False,
-        "options": {"temperature": 0, "num_ctx": ctx_for(prompt)},
-    }).encode()
-    url = url or endpoint()
-    request = urllib.request.Request(url, body,
-                                     {"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = json.loads(response.read())
-    except urllib.error.HTTPError as exc:
-        if exc.code == 404:
-            raise ModelUnavailable(
-                f"the local model {model!r} is not installed — "
-                f"run `ollama pull {model}`") from None
-        raise ModelUnavailable(
-            f"the local model server answered {exc.code}") from None
-    except urllib.error.URLError:
-        raise ModelUnavailable(
-            "no local model server is reachable at "
-            f"{url.rsplit('/api/', 1)[0]} — is Ollama running?") from None
-    try:
-        return json.loads(payload["response"])
-    except (KeyError, json.JSONDecodeError):
-        raise ModelUnavailable(
-            f"{model} returned an answer that was not the JSON it was "
-            f"asked for") from None
+    return inference.provider(backend, **({"url": url} if url else {})
+                              ).generate(model, prompt, schema, timeout)
 
 
 # --------------------------------------------------------------------------
@@ -247,12 +182,13 @@ Résumé:
 {text}"""
 
 
-def extract(model=None, text="", timeout=600, url=None):
+def extract(model=None, text="", timeout=TIMEOUT, url=None,
+            backend=None):
     """The fields, from one local call. Returns (parsed, seconds)."""
     prompt = FIELDS_PROMPT.format(text=text)
     started = time.time()
     return _generate(model_name(model), prompt, FIELDS_SCHEMA, timeout,
-                     url), time.time() - started
+                     url, backend), time.time() - started
 
 
 # --------------------------------------------------------------------------
@@ -320,11 +256,12 @@ Résumé:
 {text}"""
 
 
-def employment(model=None, text="", timeout=600, url=None):
+def employment(model=None, text="", timeout=TIMEOUT, url=None,
+               backend=None):
     """The employment rows and the target field, from one local call."""
     prompt = EMPLOYMENT_PROMPT.format(text=text)
     return _generate(model_name(model), prompt, EMPLOYMENT_SCHEMA, timeout,
-                     url)
+                     url, backend)
 
 
 # --------------------------------------------------------------------------
@@ -623,14 +560,15 @@ def route(parsed, rows, text, now=None):
             "result": result, "corrections": corrections, "reasons": []}
 
 
-def read(model=None, text="", timeout=600, url=None, now=None):
+def read(model=None, text="", timeout=TIMEOUT, url=None, now=None,
+         backend=None):
     """Both calls and the verdict, for one résumé.
 
     Returns (checked_fields, employment_answer, decision). `checked_fields`
     is None when the decision is to escalate — the caller falls back.
     """
-    fields, _seconds = extract(model, text, timeout, url)
-    rows = employment(model, text, timeout, url)
+    fields, _seconds = extract(model, text, timeout, url, backend)
+    rows = employment(model, text, timeout, url, backend)
     decision = route(fields, rows, text, now)
     checked = decision["result"]
     if checked is not None:

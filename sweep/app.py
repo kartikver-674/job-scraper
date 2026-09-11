@@ -18,6 +18,12 @@ RESUME_DIR = os.path.join(REPO_ROOT, "auto-apply", "resume")
 # functions that reach Gemini, so this app starts without the SDK and the
 # local engine needs neither it nor a key.
 sys.path.insert(0, os.path.join(REPO_ROOT, "auto-apply"))
+# The repo root too, explicitly: `inference` lives there, and relying on
+# the cwd being the repo root is how `python -m sweep` from elsewhere
+# would fail at import rather than at the model call.
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+import inference  # noqa: E402
 import make_profile  # noqa: E402
 
 # Needed by snapshot() below (site free/paid classification) on every SSE
@@ -1016,6 +1022,16 @@ def create_app(state=None, extract=None, resume_dir=None,
                 "review",
                 error=f"The model did not answer: {exc}. Your résumé is "
                       "fine — this is the model call, not the PDF.")), 502
+        except inference.InferenceError as exc:
+            # Safe to show in full: inference.py composes these itself and
+            # they never carry urllib's text. They are also the only
+            # errors the catch-all below actively MISDIRECTS — "an
+            # exhausted API quota or a scanned PDF" is the wrong advice
+            # for "the model service is not running".
+            app.logger.warning("derive failed: %s", exc)
+            return render_template("deriving.html", **shell(
+                "review",
+                error=f"The local model could not be reached: {exc}")), 502
         except NotConfigured as exc:
             # Safe to show in full: this app composed it. A 500, not a 502
             # — nothing upstream was reached, and nothing upstream is at

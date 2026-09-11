@@ -54,6 +54,7 @@ import apply_config as cfg
 if cfg.REPO_ROOT not in sys.path:
     sys.path.insert(0, cfg.REPO_ROOT)
 
+import inference
 import local_extract
 import local_search
 
@@ -138,21 +139,28 @@ def _notes(decision, fields, years, field):
 
 
 def generate(resume_text, prefs, model=None, output_dir=None, log=print,
-             market=None, url=None):
+             market=None, url=None, backend=None):
     """One profile, from the résumé and the corpus. Raises Escalated.
 
     `prefs` is make_profile's dict: locations, exclude_levels, avoid,
     min_comp_usd and the optional overrides. Only `avoid` is read here —
     the rest are the user's, and render() applies them.
-    """
-    # Both resolved here so the log names what was actually asked, and
-    # so OLLAMA_HOST/OLLAMA_MODEL are read at call time rather than frozen
-    # at import.
-    model = local_extract.model_name(model)
-    url = url or local_extract.endpoint()
 
-    log(f"  reading the résumé with {model} at {url.rsplit('/api/', 1)[0]}")
-    checked, rows, decision = local_extract.read(model, resume_text, url=url)
+    `backend` is which side of the boundary the model call goes to —
+    local-direct or remote. It changes WHERE the model runs and nothing
+    else: the prompts, the schema, the router and the arithmetic below
+    are the same code either way, which is what makes the two comparable.
+    """
+    # All resolved here so the log names what was actually asked, and so
+    # OLLAMA_HOST/OLLAMA_MODEL/SWEEP_INFERENCE_* are read at call time
+    # rather than frozen at import.
+    model = local_extract.model_name(model)
+    engine = inference.provider(backend, **({"url": url} if url else {}))
+
+    log(f"  reading the résumé with {model} via {engine.name} "
+        f"at {engine.describe()}")
+    checked, rows, decision = local_extract.read(model, resume_text, url=url,
+                                                 backend=backend)
     if checked is None:
         raise Escalated(decision["reasons"])
     log(f"    grounding: {decision['decision']}"

@@ -40,6 +40,44 @@ python auto-apply/apply.py --send --limit 2
   duplicate drafts or re-send.
 - Tests: `python -m unittest discover -s auto-apply/tests -t auto-apply -v`
 
+## Local profile generation, and where the model runs
+
+`SWEEP_PROFILE_ENGINE` picks who reads the résumé — `gemini` (default),
+`local-first` (local, Gemini only when a deterministic check escalates), or
+`local` (local only, no API key). `SWEEP_INFERENCE_BACKEND` then picks *where
+the local model runs*, and changes nothing else about the pipeline:
+
+| `SWEEP_INFERENCE_BACKEND` | path |
+| --- | --- |
+| `local-direct` (default) | Sweep → Ollama → qwen3:8b, in the user's own process |
+| `remote` | Sweep → `inference_service.py` → Ollama → qwen3:8b |
+
+The service is a POC for moving the 5GB resident out of Sweep's process. It is
+stateless, never writes a résumé or a prompt down, and never falls back to
+local Ollama — a service that cannot answer fails loudly.
+
+```bash
+# shell 1 — the model service (refuses to start without a token)
+SWEEP_INFERENCE_TOKEN=dev-token python -m inference_service
+
+# shell 2 — Sweep, pointed at it
+export SWEEP_PROFILE_ENGINE=local
+export SWEEP_INFERENCE_BACKEND=remote
+export SWEEP_INFERENCE_TOKEN=dev-token
+python auto-apply/make_profile.py --engine local ...
+```
+
+`SWEEP_INFERENCE_URL` (default `http://127.0.0.1:8811`) and
+`SWEEP_INFERENCE_PORT` move it; `OLLAMA_HOST` / `OLLAMA_MODEL` are read by the
+*service*, which is the only component that knows Ollama exists.
+
+Equivalence between the two backends is measured, not assumed:
+
+```
+python -m bench.backends --people ada,hana,kwame     # both backends, same corpus
+python -m unittest discover -s auto-apply/tests -t auto-apply -p "test_inference.py"
+```
+
 ## Phase 2 — LinkedIn Easy Apply autofill (userscript)
 
 Auto-fills the LinkedIn Easy Apply modal from a résumé-grounded answer bank.
