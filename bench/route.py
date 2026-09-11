@@ -35,183 +35,33 @@ remove.
 
 import json
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "auto-apply"))
 
+import local_extract
+from local_extract import (  # noqa: F401  -- re-exported for the harness
+    CONFABULATION_SHARE,
+    GROUNDED_FIELDS,
+    SHORT,
+    _key,
+    check_grounding,
+    supported,
+)
 from bench import dates as dating
 from bench.people import PEOPLE, truth
 from bench.render import LAYOUTS
 from bench.run import RESUMES
 
-# A model confabulating ONE employer is a bad row to drop. Confabulating
-# most of them is a parse that cannot be trusted field by field, because
-# whatever went wrong was not about that one value.
-CONFABULATION_SHARE = 0.5
-
-# Fields whose every entry should be findable in the document. Not
-# education or certifications: a degree is routinely written "B.Tech
-# Computer Science" and returned as "Bachelor of Technology in Computer
-# Science", which is right and ungrounded, so checking it would drop
-# correct answers.
-GROUNDED_FIELDS = ("companies", "skills", "titles", "institutions")
-
-# Everything but letters, digits and the two characters that carry meaning
-# in a language name is removed — including the dot, so "Node.js" matches a
-# document that writes "node js". Keeping the dot was the first version and
-# it matched neither.
-_PUNCT = re.compile(r"[^a-z0-9+#]+")
-
-# Below this length, containment in the folded text is worthless: "go"
-# folded is "go", and so is the middle of "google".
-SHORT = 3
-
-
-def _key(text):
-    """Comparable form: lowercase, everything but [a-z0-9+#] removed.
-
-    Removed rather than replaced with spaces, so "Node.js" matches "node
-    js" and "C++" matches "c ++" — how a document spaces its punctuation is
-    not a difference worth paying Gemini over.
-    """
-    return _PUNCT.sub("", str(text).lower())
-
-
-def supported(value, text):
-    """Is this value actually in the document?
-
-    Two tiers, because folding the whole document into one string makes
-    short needles match anything: "go" would be found inside "google" and
-    "c" inside every word containing one. A short value is looked for as a
-    WORD in the original text instead; a longer one can use the folded form
-    and so survives line wraps and odd spacing.
-    """
-    needle = _key(value)
-    if not needle:
-        return False
-    if len(needle) < SHORT:
-        return re.search(r"(?<![a-z0-9])" + re.escape(str(value).lower().strip())
-                         + r"(?![a-z0-9])", str(text).lower()) is not None
-    return needle in _key(text)
-
-
-def check_grounding(parsed, text):
-    """(corrections, escalations) for the fields that must be in the text."""
-    corrections, escalations = [], []
-    for field in GROUNDED_FIELDS:
-        values = parsed.get(field) or []
-        if not values:
-            continue
-        unsupported = [v for v in values if not supported(v, text)]
-        if not unsupported:
-            continue
-        if len(unsupported) / len(values) > CONFABULATION_SHARE:
-            escalations.append(
-                f"{field}: {len(unsupported)} of {len(values)} not found in "
-                f"the document ({', '.join(map(str, unsupported[:3]))})")
-        else:
-            corrections.append({
-                "field": field, "action": "dropped",
-                "removed": unsupported,
-                "why": f"not present in the document",
-            })
-    name = parsed.get("name")
-    if name and not supported(name, text):
-        escalations.append(f"name: {name!r} is not in the document")
-    return corrections, escalations
-
 
 def check_years(parsed, employment, text):
-    """years_experience against the definition in bench/dates.py.
-
-    The model's own answer is never used. It scored 0.156 on this
-    benchmark and gave one person four answers for four renderings of the
-    same facts, so it is checked, not consulted: the number is derived from
-    the rows, and the model's figure only decides whether a correction gets
-    logged as one.
-    """
-    rows = (employment or {}).get("employment") or []
-    stated = parsed.get("years_experience")
-    if not rows:
-        # No employment rows at all is a real answer for a fresher, but
-        # only if the model also said zero. A number with nothing behind it
-        # has nothing to check it against.
-        if stated in (0, None):
-            return [], []
-        return [], [f"years_experience: model said {stated} with no "
-                    f"employment rows extracted to support it"]
-
-    counted = dating.countable(rows)
-    if not counted:
-        # Nothing countable is the right answer for a fresher whose only
-        # row is an internship. It is NOT a right answer when the rows were
-        # all marked as another career: then the flags say the person has
-        # left the field entirely, which is either wrong or a profile no
-        # job search can be built from.
-        if any(not dating.is_relevant(r) for r in rows):
-            return [], [
-                f"years_experience: all {len(rows)} employment rows were "
-                f"marked as a different career, leaving no relevant "
-                f"experience to count"]
-        if stated in (0, None):
-            return [], []
-        return [{"field": "years_experience", "action": "computed",
-                 "from": stated, "to": 0,
-                 "why": f"all {len(rows)} rows are internships or "
-                        f"traineeships, which do not count"}], []
-
-    unreadable = [r for r in counted if not dating.readable(r)]
-    if len(unreadable) == len(counted):
-        return [], [f"years_experience: none of the {len(counted)} "
-                    f"countable employment date ranges could be read"]
-
-    computed = dating.years_from(rows)
-    total = dating.years_from(rows, ignore_relevance=True)
-    why = "summed from the extracted date ranges"
-    if unreadable:
-        # Some rows counted, some did not, so the total is a floor rather
-        # than a figure. Worth saying, not worth a model call.
-        why += (f"; {len(unreadable)} of {len(counted)} rows had unreadable "
-                f"dates and were skipped")
-    if total != computed:
-        # The career-change case, and the one worth reading the log for:
-        # this is where the answer stops being the obvious one. hana and
-        # kwame both look like twelve-year veterans until clause 3 applies.
-        why += (f"; a career change was detected, so {total - computed} "
-                f"years in a previous field were excluded")
-    if unreadable or stated != computed:
-        return [{"field": "years_experience", "action": "computed",
-                 "from": stated, "to": computed, "why": why}], []
-    return [], []
+    return local_extract.check_years(parsed, employment, dating.TODAY)
 
 
 def route(parsed, employment, text):
-    """One decision for one résumé, with its reasons."""
-    if not parsed:
-        return {"decision": "escalate", "result": None, "corrections": [],
-                "reasons": ["the local model returned nothing usable"]}
-
-    grounding_fixes, grounding_stops = check_grounding(parsed, text)
-    year_fixes, year_stops = check_years(parsed, employment, text)
-    reasons = grounding_stops + year_stops
-    if reasons:
-        return {"decision": "escalate", "result": None,
-                "corrections": [], "reasons": reasons}
-
-    result = dict(parsed)
-    corrections = grounding_fixes + year_fixes
-    for fix in corrections:
-        if fix["action"] == "dropped":
-            removed = {_key(v) for v in fix["removed"]}
-            result[fix["field"]] = [v for v in result[fix["field"]]
-                                    if _key(v) not in removed]
-        elif fix["action"] == "computed":
-            result[fix["field"]] = fix["to"]
-    return {"decision": "corrected" if corrections else "accept",
-            "result": result, "corrections": corrections, "reasons": []}
+    return local_extract.route(parsed, employment, text, dating.TODAY)
 
 
 def load(model):

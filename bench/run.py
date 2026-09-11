@@ -30,53 +30,14 @@ from bench.render import LAYOUTS
 HERE = os.path.dirname(os.path.abspath(__file__))
 RESUMES = os.path.join(HERE, "resumes")
 RESULTS = os.path.join(HERE, "results")
-OLLAMA = "http://127.0.0.1:11434/api/generate"
-
-# The fields asked for. Sweep consumes four of these; the rest are here
-# because a parser that cannot find an employer is not production-worthy
-# whatever Sweep happens to read today.
-SCHEMA = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "years_experience": {"type": "integer"},
-        "titles": {"type": "array", "items": {"type": "string"}},
-        "skills": {"type": "array", "items": {"type": "string"}},
-        "companies": {"type": "array", "items": {"type": "string"}},
-        "education": {"type": "array", "items": {"type": "string"}},
-        "institutions": {"type": "array", "items": {"type": "string"}},
-        "projects": {"type": "array", "items": {"type": "string"}},
-        "certifications": {"type": "array", "items": {"type": "string"}},
-    },
-    "required": ["name", "years_experience", "titles", "skills", "companies",
-                 "education", "institutions", "projects", "certifications"],
-}
-
-# Every instruction here exists because of a failure the benchmark caught.
-# The employer line is the first one: qwen3 listed "University of Leeds" as
-# a company on the control document.
-PROMPT = """Extract structured data from this résumé.
-
-Rules:
-- companies: EMPLOYERS only — places that PAID this person to work. A
-  university or school is an employer if they worked there and is not one
-  if they only studied there.
-- institutions: schools and universities only.
-- education: the degree names only, not the institution.
-- titles: job titles held, exactly as written. Keep seniority words.
-- skills: technologies and tools, lowercase, as written on the page.
-- projects: project names only.
-- certifications: certification names only, not the issuer.
-- years_experience: whole completed years being PAID TO DO THE KIND OF WORK
-  THIS RÉSUMÉ IS TARGETING. Internships, traineeships and study do not
-  count. Years spent in a different career the person has since left do not
-  count. Roles held at the same time count once, not twice. Gaps between
-  roles do not count. A date of birth is not a career start. If the person
-  is a student with no professional role, answer 0.
-
-Résumé:
-{text}"""
-
+from local_extract import (  # noqa: F401  -- the production implementations
+    KEEP_ALIVE,
+    OLLAMA,
+    FIELDS_PROMPT as PROMPT,
+    FIELDS_SCHEMA as SCHEMA,
+    ctx_for,
+    extract as ask,
+)
 
 # NuExtract does not take instructions — the template IS the instruction,
 # and its field values are TYPE DESCRIPTORS rather than JSON Schema. Giving
@@ -155,32 +116,6 @@ def ask_nuextract(model, text, timeout=600, url=OLLAMA_CHAT):
 def asker_for(model):
     """The interface this model was built for."""
     return ask_nuextract if "nuextract" in model.lower() else ask
-
-
-def ask(model, text, timeout=600, url=OLLAMA):
-    """One schema-constrained generation. Returns (parsed, seconds)."""
-    prompt = PROMPT.format(text=text)
-    body = json.dumps({
-        "model": model,
-        "prompt": prompt,
-        "format": SCHEMA,
-        "stream": False,
-        "keep_alive": KEEP_ALIVE,
-        # Only ask_nuextract sent this, so every qwen3 fields call in every
-        # run so far reasoned at length before extracting — a 37.4s median
-        # against NuExtract's 6.3s, most of which was thinking rather than
-        # reading. Copying values out of a document is not a reasoning
-        # task, and the benchmark cannot compare two models when one is
-        # thinking and the other is not.
-        "think": False,
-        "options": {"temperature": 0, "num_ctx": ctx_for(prompt)},
-    }).encode()
-    started = time.time()
-    request = urllib.request.Request(url, body,
-                                     {"Content-Type": "application/json"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        payload = json.loads(response.read())
-    return json.loads(payload["response"]), time.time() - started
 
 
 def cache_name(model):

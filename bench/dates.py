@@ -62,193 +62,47 @@ import json
 import os
 import sys
 import urllib.error
-import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "auto-apply"))
 
+import local_extract
+from local_extract import (  # noqa: F401  -- re-exported for the harness
+    EMPLOYMENT_PROMPT as PROMPT,
+    EMPLOYMENT_SCHEMA as SCHEMA,
+    MONTHS,
+    NOT_PROFESSIONAL,
+    countable,
+    is_professional,
+    is_relevant,
+    months_between,
+)
 from bench.people import PEOPLE, truth
 from bench.render import LAYOUTS
-from bench.run import OLLAMA, KEEP_ALIVE, RESUMES, ctx_for
+from bench.run import RESUMES
 
-# Only what the model is good at: which rows exist and what they say.
-SCHEMA = {
-    "type": "object",
-    "properties": {
-        # First on purpose. JSON is generated in property order, so the
-        # model writes down what this résumé is targeting before it judges
-        # a single row against it. Asked the other way round — a bare
-        # per-row boolean — it kept kwame's nine years of teaching, because
-        # nothing on his page announces the change the way hana's headline
-        # does, and there was no written anchor to compare the row to.
-        "target_field": {"type": "string"},
-        "employment": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "company": {"type": "string"},
-                    "title": {"type": "string"},
-                    # Free text on purpose. Résumés write dates every way
-                    # there is and forcing a format here just moves the
-                    # parsing into the model, which is the thing that failed.
-                    "start": {"type": "string"},
-                    "end": {"type": "string"},
-                    # Clause 3, and the only judgement asked of the model.
-                    # A boolean is the right shape for it: the model is
-                    # good at deciding whether two roles are the same kind
-                    # of work and bad at turning that into a total.
-                    "relevant": {"type": "boolean"},
-                },
-                "required": ["company", "title", "start", "end", "relevant"],
-            },
-        },
-    },
-    "required": ["target_field", "employment"],
-}
-
-PROMPT = """List every EMPLOYMENT entry in this résumé.
-
-- One entry per row of work history, including internships.
-- Do NOT include education, certifications, publications or projects.
-- Copy the dates exactly as written. If a role is current, end is "present".
-- target_field: the BROAD profession this person is looking for work in
-  now, in two or three words, taken from their most recent role. For
-  example "software engineering", "data engineering", "school teaching".
-  Name the profession, not the specialism: someone whose last role was
-  Staff Platform Engineer is in "software engineering", not "platform
-  engineering".
-- relevant: true if the role is work in target_field, false if it is not.
-  Answer this for each row by comparing the row against target_field, not
-  by asking whether the résumé looks like a career change — a résumé does
-  not have to announce one. Adjacent specialisms within one profession are
-  the SAME field: site reliability, infrastructure, platform and backend
-  engineering are all software engineering, and a promotion, a sideways
-  move, a part-time or a contract role are all relevant. A different field
-  means a different profession — teaching, nursing, civil engineering —
-  and it is not relevant even if it is the longest role on the page.
-
-Résumé:
-{text}"""
-
-MONTHS = {m: i for i, m in enumerate(
-    ["jan", "feb", "mar", "apr", "may", "jun",
-     "jul", "aug", "sep", "oct", "nov", "dec"], start=1)}
-
-# Words that mark a row as not counting toward professional experience.
-# bhaskar's answer key is 0 and he has a three-month internship, which is
-# the case that makes this necessary rather than tidy.
-NOT_PROFESSIONAL = ("intern", "internship", "trainee", "student", "volunteer")
+# The answer key was computed against September 2026 and is fixed, so the
+# benchmark pins the clock. Production does NOT — local_extract reads the
+# real one, because a frozen "present" silently stops advancing and every
+# current role starts shrinking a month at a time.
+TODAY = (2026, 9)
 
 
-def parse_month(text, today=(2026, 9)):
-    """(year, month) from whatever a résumé wrote. None when unreadable."""
-    if not text:
-        return None
-    low = str(text).strip().lower()
-    if low in ("present", "current", "now", "ongoing", "till date", "to date"):
-        return today
-    year = month = None
-    for token in low.replace("/", " ").replace("-", " ").replace(",", " ").split():
-        if token[:3] in MONTHS and month is None:
-            month = MONTHS[token[:3]]
-        elif token.isdigit():
-            value = int(token)
-            if 1900 < value < 2100 and year is None:
-                year = value
-            elif 1 <= value <= 12 and month is None:
-                month = value
-    if year is None:
-        return None
-    return year, month or 1
+def parse_month(text, now=TODAY):
+    return local_extract.parse_month(text, now)
 
 
-def months_between(start, end):
-    """Whole months from start to end, never negative."""
-    if not start or not end:
-        return 0
-    return max(0, (end[0] - start[0]) * 12 + (end[1] - start[1]))
+def readable(row, now=TODAY):
+    return local_extract.readable(row, now)
 
 
-def is_professional(row):
-    """Clause 2: paid work, not an internship, traineeship or placement."""
-    title = (row.get("title") or "").lower()
-    return not any(word in title for word in NOT_PROFESSIONAL)
+def years_from(employment, now=TODAY, ignore_relevance=False):
+    return local_extract.years_from(employment, now, ignore_relevance)
 
 
-def is_relevant(row):
-    """Clause 3. Absent means relevant — most résumés are one career, and a
-    model that omits the field should not have its subject's history
-    erased."""
-    return row.get("relevant") is not False
-
-
-def countable(rows, ignore_relevance=False):
-    """The rows the definition actually counts."""
-    return [r for r in rows or ()
-            if is_professional(r) and (ignore_relevance or is_relevant(r))]
-
-
-def readable(row, today=(2026, 9)):
-    """Are both ends of this row's date range parseable?"""
-    return bool(parse_month(row.get("start"), today)
-                and parse_month(row.get("end"), today))
-
-
-def years_from(employment, today=(2026, 9), ignore_relevance=False):
-    """The definition at the top of this file, computed.
-
-    Overlaps are merged rather than added (clause 4) — mateo held two real
-    jobs at once and hana interned in ML for six months while still
-    employed as a structural engineer, and summing counts that time twice.
-    Only merged spans are added, so gaps between them are excluded for
-    free (clause 5).
-
-    `ignore_relevance` computes the total-career figure instead, which is
-    not the definition but is what makes a career change detectable: the
-    two numbers differ only when there is one.
-    """
-    spans = []
-    for row in countable(employment, ignore_relevance):
-        start = parse_month(row.get("start"), today)
-        end = parse_month(row.get("end"), today)
-        if start and end and months_between(start, end) > 0:
-            spans.append((start, end))
-    if not spans:
-        return 0
-
-    spans.sort()
-    merged = [spans[0]]
-    for start, end in spans[1:]:
-        last_start, last_end = merged[-1]
-        if start <= last_end:
-            merged[-1] = (last_start, max(last_end, end))
-        else:
-            merged.append((start, end))
-    # Completed years, not nearest: ada has five years and seven months of
-    # continuous work and every résumé in the world calls that five. round()
-    # made it six and disagreed with the answer key on the control case.
-    return sum(months_between(s, e) for s, e in merged) // 12
-
-
-def ask(model, text, timeout=600, url=OLLAMA):
-    prompt = PROMPT.format(text=text)
-    body = json.dumps({
-        "model": model, "prompt": prompt, "format": SCHEMA, "stream": False,
-        "keep_alive": KEEP_ALIVE,
-        # bench/run.py has always sent this and this file never did, which
-        # made every document here reason at length before extracting a
-        # date — three minutes a document against ten seconds there, for
-        # the same 52 documents. Copying a row out of a table is not a
-        # reasoning task.
-        "think": False,
-        "options": {"temperature": 0, "num_ctx": ctx_for(prompt)},
-    }).encode()
-    request = urllib.request.Request(url, body,
-                                     {"Content-Type": "application/json"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(json.loads(response.read())["response"])
+def ask(model, text, timeout=600, url=local_extract.OLLAMA):
+    return local_extract.employment(model, text, timeout, url)
 
 
 def run(model, cache_path=None, asker=ask):
@@ -313,7 +167,7 @@ def demo():
     assert parse_month("Apr 2023") == (2023, 4)
     assert parse_month("04/2023") == (2023, 4)
     assert parse_month("2023") == (2023, 1)
-    assert parse_month("Present", today=(2026, 9)) == (2026, 9)
+    assert parse_month("Present", (2026, 9)) == (2026, 9)
     assert parse_month("") is None and parse_month("shortly") is None
     assert parse_month("September 2017") == (2017, 9)
 
@@ -325,7 +179,7 @@ def demo():
     ada = [{"title": "Backend Engineer", "start": "Jan 2021", "end": "Mar 2023"},
            {"title": "Senior Backend Engineer", "start": "Apr 2023",
             "end": "Present"}]
-    assert years_from(ada, today=(2026, 9)) == 5, years_from(ada, (2026, 9))
+    assert years_from(ada, now=(2026, 9)) == 5, years_from(ada, (2026, 9))
 
     # bhaskar: an internship only, so zero professional years.
     assert years_from([{"title": "Software Engineering Intern",
@@ -336,7 +190,7 @@ def demo():
     overlap = [{"title": "Structural Engineer", "start": "Apr 2014",
                 "end": "Dec 2021"},
                {"title": "Engineer", "start": "Jul 2021", "end": "Dec 2021"}]
-    assert years_from(overlap, today=(2026, 9)) == 7, years_from(overlap)
+    assert years_from(overlap, now=(2026, 9)) == 7, years_from(overlap)
 
     assert years_from([]) == 0 and years_from(None) == 0
     # Unreadable dates are dropped rather than counted as zero-length.
@@ -348,7 +202,7 @@ def demo():
     # how hana came to be "correctly" reported as 12 with full confidence.
     for slug, person in PEOPLE.items():
         rows = truth(slug)["employment_rows"]
-        got = years_from(rows, today=(2026, 9))
+        got = years_from(rows, now=(2026, 9))
         assert got == person["years_experience"], (
             slug, got, person["years_experience"])
 
