@@ -314,6 +314,13 @@ def select(own, base, rows, idx, total, seniority, vocab=None, cap=2):
     deterministic, it needs no inference, and the cap bounds the spend
     whatever the corpus throws up.
     """
+    return [title for title, _skill, _evidence in
+            select_detail(own, base, rows, idx, total, seniority, vocab, cap)]
+
+
+def select_detail(own, base, rows, idx, total, seniority, vocab=None, cap=2):
+    """select(), but saying which skill produced each keyword and how
+    strongly — the ordering downstream has to be explainable."""
     vocab = vocab if vocab is not None else ds.vocabulary(rows)
     scored = []
     for skill, titles in blocks_for(own, base, rows, idx, total, seniority,
@@ -328,14 +335,14 @@ def select(own, base, rows, idx, total, seniority, vocab=None, cap=2):
                            skill, title))
     scored.sort(key=lambda row: (-row[0], row[2]))
     keep = []
-    for _evidence, _skill, title in scored:
+    for evidence_, skill, title in scored:
         # Checked BEFORE appending: the other order appends one and then
         # notices, so a cap of zero still added a keyword.
         if len(keep) >= cap:
             break
-        if any(title in got or got in title for got in keep):
+        if any(title in got or got in title for got, _s, _e in keep):
             continue
-        keep.append(title)
+        keep.append((title, skill, evidence_))
     return keep
 
 

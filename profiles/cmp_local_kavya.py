@@ -1,9 +1,4 @@
-"""NOTE: experience_years and max_experience_years were forced to Gemini's
-values (2 and 5) so the two profiles query the same market. The local
-pipeline extracted 1 completed year; the disagreement is reported as an
-extraction finding, not hidden by this override.
-
-cmp_local_kavya — generated from a résumé by auto-apply/make_profile.py.
+"""cmp_local_kavya — generated from a résumé by auto-apply/make_profile.py.
 
 business analysis
 
@@ -35,10 +30,10 @@ FEEDS = {
             'salesforce cpq engineer 3',
             'software engineer, business systems',
             'revenue operations systems analyst',
+            'salesforce developer',
             'sales operations analyst',
             'business analyst',
             'associate salesforce developer',
-            'salesforce developer',
         ],
     },
 }
@@ -51,10 +46,10 @@ SEARCH = {
         'salesforce cpq engineer 3',
         'software engineer, business systems',
         'revenue operations systems analyst',
+        'salesforce developer',
         'sales operations analyst',
         'business analyst',
         'associate salesforce developer',
-        'salesforce developer',
     ],
     "experience_years": 2,
     "locations": [
@@ -154,8 +149,10 @@ ATS_TITLE_HINTS = [
     'api developer',
     'api engineer',
     'application developer',
+    'application development',
     'application engineer',
     'application security',
+    'application support engineer',
     'applied ai',
     'associate salesforce',
     'associate salesforce developer',
@@ -165,7 +162,6 @@ ATS_TITLE_HINTS = [
     'backend',
     'build engineer',
     'business analyst',
-    'business support engineer',
     'business systems',
     'c#',
     'cloud engineer',
@@ -181,7 +177,6 @@ ATS_TITLE_HINTS = [
     'engineer fullstack',
     'engineer salesforce',
     'engineering manager',
-    'f d',
     'flutter',
     'front end',
     'front-end',
@@ -205,6 +200,7 @@ ATS_TITLE_HINTS = [
     'javascript',
     'llm engineer',
     'machine learning engineer',
+    'manager-application development-full stack developer',
     'mean stack',
     'member of technical staff',
     'mern',
@@ -241,7 +237,6 @@ ATS_TITLE_HINTS = [
     'sde',
     'sdet',
     'security engineer',
-    'sf data cloud consultant',
     'site reliability',
     'software architect',
     'software dev',

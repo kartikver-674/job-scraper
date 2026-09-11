@@ -37,6 +37,7 @@ sys.path.insert(0, os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "auto-apply"))
 
 from bench import derive_search as ds
+from bench import ranking
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -61,17 +62,28 @@ def profile_for(model, text, log=print):
     person = {"skills": sorted(own),
               "employment": (employment or {}).get("employment") or []}
 
-    base = cold_start.validated(
-        cold_start.from_resume(person, seniority)
-        + ds.canonicalise(
-            ds.keywords_for(own, rows, idx, total, want=12,
-                            seniority=seniority), rows, seniority),
-        rows, seniority)
+    held_raw = cold_start.from_resume(person, seniority)
+    corpus_raw = ds.canonicalise(
+        ds.keywords_for(own, rows, idx, total, want=12,
+                        seniority=seniority), rows, seniority)
+    # Validated as ONE list, exactly as before, so every guard sees the
+    # same input it used to. The split below is for ordering only.
+    base = cold_start.validated(held_raw + corpus_raw, rows, seniority)
+    held_keys = {h.strip().lower() for h in held_raw}
+    held = [k for k in base if k.strip().lower() in held_keys]
+    corpus = [k for k in base if k.strip().lower() not in held_keys]
 
     # The orphan pass: a skill the market knows and these keywords do
     # not search for gets one of its own, chosen from corpus candidates
     # and ranked by anchor evidence. No model call — see osk.select.
-    extra = osk.select(own, base, rows, idx, total, seniority, vocab)
+    anchored = osk.select_detail(own, base, rows, idx, total, seniority,
+                                 vocab)
+    extra = [title for title, _s, _e in anchored]
+
+    # Held titles first, then the specialist recovery, then the corpus
+    # ranking. A budget cap now discards the market's aggregate opinion
+    # before it discards what this person actually is.
+    ranked = ranking.rank(held, anchored, corpus)
 
     field = (employment or {}).get("target_field") or ""
     return {
@@ -80,7 +92,8 @@ def profile_for(model, text, log=print):
         "years": years,
         "skills": sorted(own),
         "filler_dropped": filler,
-        "keywords": base + extra,
+        "keywords": ranking.keywords(ranked),
+        "ranking": [[k, t, w] for k, t, w in ranked],
         "from_orphans": extra,
         "hints": ds.hints_for(own, rows, idx, total, seniority),
         "grounding": decision["decision"],
