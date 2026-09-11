@@ -221,9 +221,15 @@ main {
 .split > * { min-width: 0; }
 
 .grid2 { display: grid; gap: var(--s4); }
+/* The row of figures above the search grid, and only there (running.html).
+   It used to cap each tile at 18rem and pack them left, so three tiles ended
+   short of the panel they sit above and the column read as ragged. auto-fit
+   collapses the tracks nothing occupies and a 1fr max lets the survivors take
+   the width back, so three tiles span the row and still drop to two, then
+   one, as it narrows. */
 .tiles {
-  display: grid; gap: var(--s4); justify-content: start;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 18rem));
+  display: grid; gap: var(--s4);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
 /* ---- Panels ------------------------------------------------------------- */
