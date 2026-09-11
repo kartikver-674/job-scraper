@@ -844,9 +844,55 @@ class TestWidenSkills(unittest.TestCase):
 
     def test_every_added_skill_says_where_it_came_from(self):
         out = self._widen({"skill_weights": [], "notes": "original"})
+        # The model's own remark survives, the added terms are named,
+        # and the per-term reasons live in skills_added rather than in
+        # prose a person has to read past.
         self.assertTrue(out["notes"].startswith("original"))
         self.assertIn("lwc", out["notes"])
-        self.assertIn("its expansion", out["notes"])
+        self.assertIn("its expansion", out["skills_added"]["lwc"])
+
+    def test_the_notes_stay_short_however_much_is_added(self):
+        # notes is prose a person reads on the review screen and in the
+        # profile docstring. Kavya's résumé yields around thirty scanned
+        # terms; thirty parenthetical explanations there would bury the
+        # sentences that actually describe the parse.
+        import sys as _sys
+        if make_profile.cfg.REPO_ROOT not in _sys.path:
+            _sys.path.insert(0, make_profile.cfg.REPO_ROOT)
+        import skill_scan
+
+        vocab = {f"skill {i}": 40 for i in range(20)}
+        text = "Technical Skills\n" + ", ".join(vocab) + "\n"
+        out = skill_scan.widen({"skill_weights": []}, text, vocab=vocab,
+                               log=lambda *a: None)
+        self.assertGreaterEqual(len(out["skills_added"]), 20)
+        self.assertLess(len(out["notes"]), 250)
+        self.assertIn("more", out["notes"])
+
+    def test_the_reasons_survive_outside_the_prose(self):
+        out = self._widen({"skill_weights": []})
+        self.assertIn("its expansion", out["skills_added"]["lwc"])
+        self.assertNotIn("its expansion", out["notes"])
+
+    def test_the_notes_are_deterministic(self):
+        first = self._widen({"skill_weights": []})["notes"]
+        second = self._widen({"skill_weights": []})["notes"]
+        self.assertEqual(first, second)
+
+    def test_render_carries_every_reason_into_the_profile(self):
+        out = self._widen({"skill_weights": []})
+        data = dict(_MINIMAL_PROFILE, **out)
+        source = make_profile.render("demo", data, _MINIMAL_PREFS)
+        for term, why in out["skills_added"].items():
+            self.assertIn(term, source)
+            self.assertIn(why, source)
+        # And they are comments beside the weights, not docstring prose.
+        self.assertIn("#   lwc", source)
+
+    def test_render_is_unchanged_when_nothing_was_added(self):
+        source = make_profile.render("demo", dict(_MINIMAL_PROFILE),
+                                     _MINIMAL_PREFS)
+        self.assertNotIn("named by the market", source)
 
     def test_the_callers_data_is_not_mutated(self):
         data = {"skill_weights": [{"term": "aura", "weight": 4}]}
@@ -884,6 +930,21 @@ class TestWidenSkills(unittest.TestCase):
             make_profile.generate(None, ("m",), self.RESUME, {},
                                   log=lambda *a: None)
         self.assertEqual(seen.get("called_with"), self.RESUME)
+
+
+_MINIMAL_PROFILE = {
+    "candidate_name": "X", "field_summary": "A developer.",
+    "years_experience": 2, "role_keywords": ["dev"], "skill_weights": [],
+    "penalty_terms": [], "domain_half_a": [], "domain_half_b": [],
+    "domain_title_terms": [], "title_hints": [], "title_exclude": [],
+    "domain_bonus": 0, "notes": "n",
+}
+
+_MINIMAL_PREFS = {
+    "locations": ["X"], "min_comp_usd": None, "exclude_levels": [],
+    "avoid": [], "max_results": None, "max_spend_usd": None,
+    "max_age_days": None, "remote_scopes": None, "linkedin_locations": None,
+}
 
 
 @contextlib.contextmanager

@@ -595,6 +595,18 @@ def render(name, data, prefs):
 
     years = int(data["years_experience"])
     skills = _weights(data["skill_weights"])
+    # The scanned terms and why each was kept, as a comment beside the
+    # weights they became. notes carries the count; this carries the
+    # reasons, where someone reviewing the profile can check them
+    # without them crowding the docstring.
+    added_block = ""
+    if data.get("skills_added"):
+        lines = "\n".join(f"    #   {term:<28} {why}"
+                           for term, why in sorted(data["skills_added"].items()))
+        added_block = (
+            "    # Found in the résumé and named by the market, added to what\n"
+            "    # the model reported. Each line says why it counted as a claim.\n"
+            f"{lines}\n")
 
     extra_search = (f'    "max_results": {int(prefs["max_results"])!r},\n'
                      if prefs.get("max_results") is not None else "")
@@ -734,7 +746,7 @@ SETTINGS = {{
 {extra_settings}}}
 
 SCORING = {{
-    "skill_weights": {_fmt(skills)},
+{added_block}    "skill_weights": {_fmt(skills)},
 
     # The avoid-list plus technologies off-domain for this field.
     "penalty_terms": {_fmt(penalties)},

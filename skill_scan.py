@@ -207,6 +207,11 @@ def gated(text, vocab, pairs=None):
 # this and moves it against the market like any other.
 NEUTRAL_WEIGHT = 3
 
+# How many scanned terms the user-facing prose names before it stops
+# counting. Enough to show what KIND of thing was added without the
+# sentence becoming the whole paragraph.
+SHOWN_IN_NOTES = 3
+
 
 def widen(data, resume_text, output_dir=None, log=print, vocab=None):
     """`data` with market terms found in the résumé added to skill_weights.
@@ -218,8 +223,13 @@ def widen(data, resume_text, output_dir=None, log=print, vocab=None):
     if vocab is None:
         import corpus_signal
         vocab = corpus_signal.vocabulary(output_dir)
-    if not vocab or not resume_text:
-        return data
+    # No early return for an empty vocabulary or an empty résumé. It
+    # read well and it was redundant: with nothing to search for, or
+    # nothing to search, gated() finds nothing and the `not added`
+    # branch below returns the caller's dict unchanged by the same
+    # path. Two mechanisms for one behaviour, and only one of them
+    # could fail a test. The degradation is unchanged and still
+    # asserted three ways in demo() and in the production suite.
     weights = list(data.get("skill_weights") or ())
     have = {str(e.get("term", "")).strip().lower() for e in weights}
     added = [(term, why) for term, why in sorted(gated(resume_text, vocab).items())
@@ -230,13 +240,22 @@ def widen(data, resume_text, output_dir=None, log=print, vocab=None):
     data = dict(data)
     data["skill_weights"] = weights + [
         {"term": term, "weight": NEUTRAL_WEIGHT} for term, _why in added]
-    # Said out loud and carried into the profile, because these are
-    # skills the model did not report and a person reviewing the profile
-    # should be able to see where each came from.
-    note = "; ".join(f"{term} ({why})" for term, why in added)
+    # The reasons are kept, and kept OUT of the prose. notes is read by a
+    # person on Sweep's review screen and printed into the profile's
+    # docstring under "HOW THE MODEL READ THIS RÉSUMÉ"; a résumé like
+    # Kavya's yields thirty scanned terms, and thirty parenthetical
+    # explanations there would bury the one or two sentences that
+    # actually describe the parse. So the prose gets a count and a few
+    # examples, deterministically ordered, and every reason survives in
+    # skills_added for the profile to render and for anyone debugging.
+    data["skills_added"] = dict(added)
+    shown = ", ".join(term for term, _why in added[:SHOWN_IN_NOTES])
+    more = len(added) - SHOWN_IN_NOTES
     data["notes"] = ((data.get("notes") or "").rstrip()
-                     + f" Added from the market vocabulary found in the "
-                       f"résumé: {note}.").strip()
+                     + f" Also found {len(added)} skill(s) written in the "
+                       f"résumé and named by the market — {shown}"
+                     + (f" and {more} more" if more > 0 else "")
+                     + ".").strip()
     log(f"  added {len(added)} skill(s) the model did not report, "
         f"found in the résumé and named by the market:")
     for term, why in added[:10]:
@@ -300,11 +319,32 @@ def demo():
     # The model's own weight is untouched.
     assert [e for e in out["skill_weights"] if e["term"] == "apex"] == [
         {"term": "apex", "weight": 5}]
-    assert "react native" in out["notes"] and out["notes"].startswith("x")
+    # The prose stays short and the reasons survive elsewhere.
+    assert out["notes"].startswith("x")
+    assert "react native" in out["notes"]
+    assert "listed under skills" not in out["notes"], "reasons are not prose"
+    assert out["skills_added"]["react native"] == "listed under skills"
+
+    # Many additions do not become many sentences.
+    wide_vocab = dict(vocab, **{f"skill {i}": 40 for i in range(12)})
+    wide_text = ("Technical Skills\n"
+                 + ", ".join(f"skill {i}" for i in range(12)) + "\n")
+    many = widen({"skill_weights": []}, wide_text, vocab=wide_vocab,
+                 log=lambda *a: None)
+    assert len(many["skills_added"]) >= 12, many["skills_added"]
+    assert many["notes"].count(",") <= SHOWN_IN_NOTES, many["notes"]
+    assert "and 9 more" in many["notes"], many["notes"]
+    assert len(many["notes"]) < 200, len(many["notes"])
+    # Deterministic: the same input names the same examples every time.
+    assert many["notes"] == widen({"skill_weights": []}, wide_text,
+                                  vocab=wide_vocab,
+                                  log=lambda *a: None)["notes"]
     assert data["skill_weights"] == [{"term": "apex", "weight": 5}], \
         "the caller's dict is not mutated"
 
-    # Graceful degradation, three ways, all returning the input unchanged.
+    # Graceful degradation, three ways, all returning the CALLER'S OWN
+    # dict — an absent output/ yields an empty vocabulary, and a profile
+    # must pass through untouched rather than empty.
     assert widen(data, text, vocab={}) is data
     assert widen(data, "", vocab=vocab) is data
     assert widen(data, "nothing relevant here", vocab=vocab) is data
