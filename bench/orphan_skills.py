@@ -45,128 +45,27 @@ from bench import derive_search as ds
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# A skill is REPRESENTED when one of the selected keywords already draws
-# listings that name it this often. Below that the keyword set is not
-# really searching for it, whatever the skill list says.
-REPRESENTED = 0.10
+# The production implementations. This module keeps the measurement harness
+# and the retired model-assisted variant it was compared against, so the
+# benchmark scores the code that ships rather than a copy of it.
+from local_search import (  # noqa: E402,F401
+    ANCHOR_EVIDENCE, MIN_ROWS, REPRESENTED, SKILL_LIFT,
+    ORPHAN_MIN_COMPANIES as MIN_COMPANIES,
+    ORPHAN_MIN_LISTINGS as MIN_LISTINGS,
+    anchor_evidence, blocks_for, candidates_for_skill, orphans, represented,
+    select, select_detail, skill_lift, worth_it,
+)
 
-# A skill needs at least this many listings, at this many employers, to
-# be worth a paid search of its own. The same shape as the fragment
-# guards in derive_search, for the same reason: one employer's stack is
-# not a market.
-MIN_LISTINGS = 15
-MIN_COMPANIES = 8
-
-# A title only earns a search because of THIS skill if its listings name
-# the skill far more than the market does. Without this the mechanism
-# offered "backend engineer" for spring boot and "full stack engineer"
-# for aws, the model took both, and one person's keyword set went from
-# 408 rows at 94% relevance to 3,095 at 67% — seven times the cost for
-# worse results, while missing the one title the feature exists for.
-#
-# 10x keeps salesforce developer (14.1x), java developer (21.4x), android
-# developer (28.1x) and ai/ml engineer (17.6x); it rejects backend
-# engineer (5.4x), full stack engineer (5.0x) and account executive
-# (5.8x). The closest false positive is "business development
-# representative" for salesforce at 8.4x, so the margin is real but not
-# generous.
-SKILL_LIFT = 10.0
+# The whole-set relevance bar. Only accept() still reads it — worth_it()
+# takes the anchor-evidence route now.
+MIN_RELEVANCE = 0.75
 
 
-def skill_lift(title, skill, rows, vocab, total):
-    """How much more this title's listings name this skill than the market."""
-    matched = [r for r in rows if title in r[0]]
-    base = vocab.get(skill, 0) / total if total else 0.0
-    if not matched or not base:
-        return None
-    return (sum(1 for r in matched if skill in r[2]) / len(matched)) / base
-
-
-def represented(skill, keywords, rows):
-    """Share of the rows these keywords buy that name this skill."""
-    needles = [k.strip().lower() for k in keywords if k.strip()]
-    if not needles:
-        return 0.0
-    seen = [r for r in rows if any(n in r[0] for n in needles)]
-    if not seen:
-        return 0.0
-    return sum(1 for r in seen if skill in r[2]) / len(seen)
-
-
-def orphans(own, keywords, rows, vocab=None):
-    """Skills that are present and searchable and nobody is searching for.
-
-    Returns [(skill, listings, employers, share)] worst-covered first, so
-    the most neglected skill is the first candidate for a keyword.
-    """
-    vocab = vocab if vocab is not None else ds.vocabulary(rows)
-    employers = collections.defaultdict(set)
-    for _t, _s, skills, company in rows:
-        for skill in skills:
-            if company:
-                employers[skill].add(company)
-    out = []
-    for skill in sorted(own):
-        listings = vocab.get(skill, 0)
-        if listings < MIN_LISTINGS or len(employers[skill]) < MIN_COMPANIES:
-            continue
-        share = represented(skill, keywords, rows)
-        if share >= REPRESENTED:
-            continue
-        out.append((skill, listings, len(employers[skill]), share))
-    out.sort(key=lambda row: (row[3], -row[1]))
-    return out
-
-
-def candidates_for_skill(skill, rows, idx, total, seniority=(), want=8,
-                         min_share=0.02, vocab=None):
-    """The job titles this market attaches to this skill, most common first.
-
-    A LIST, not a pick, because frequency alone chooses wrong. The corpus
-    names "salesforce" in 932 listings and the commonest titles among
-    them are "development representative" (23%), "business development
-    representative" (12%) and "sales development representative" (11%) —
-    sales jobs that require Salesforce CRM. "salesforce developer" is
-    5.9% of them, and it is the one a mobile engineer with Salesforce SDK
-    experience should be searching. matched_skills cannot tell a CRM user
-    from a Salesforce developer; that is the semantic step.
-
-    Every candidate is a real title from the corpus, guarded the same way
-    every other keyword is, so whatever selects among them cannot invent
-    one.
-    """
-    named = [r for r in rows if skill in r[2]]
-    if not named:
-        return []
-    vocab = vocab if vocab is not None else ds.vocabulary(rows)
-    here = collections.Counter()
-    for title, _score, _skills, _company in named:
-        for fragment in ds.fragments(title, seniority):
-            here[fragment] += 1
-    titles = collections.Counter(t for t, _s, _k, _c in rows)
-    out = []
-    for fragment, count in here.most_common(80):
-        entry = idx.get(fragment)
-        if not entry or count / len(named) < min_share:
-            continue
-        if len(entry["companies"]) < MIN_COMPANIES:
-            continue
-        if entry["listings"] / total > ds.MAX_SHARE:
-            continue
-        title = ds.canonical(fragment, titles, seniority)
-        if not title or title in out:
-            continue
-        if any(title in got or got in title for got in out):
-            continue
-        # The guard that makes this a skill-anchored keyword rather than
-        # a second helping of generic ones.
-        lift = skill_lift(title, skill, rows, vocab, total)
-        if lift is None or lift < SKILL_LIFT:
-            continue
-        out.append(title)
-        if len(out) >= want:
-            break
-    return out
+def setup():
+    """The corpus and the seniority lists, built once."""
+    import local_search
+    market = local_search.Market()
+    return market.rows, market.index, market.vocab, market.seniority
 
 
 SCHEMA = {
@@ -247,105 +146,6 @@ def ask(model, field, blocks, timeout=900):
 # off-cluster skills this feature exists to recover. Relevance is a fact
 # about the listings and does not have that bias: salesforce developer
 # scores 91% on it, the highest of any candidate.
-MIN_RELEVANCE = 0.75
-
-
-# A title can be right for someone even when most of its listings want
-# none of their other skills — that is what being a SPECIALIST means.
-# Lovish writes enterprise Apex and "salesforce developer" scores 34%
-# against his whole skill set, because those listings do not ask for his
-# React or Node; the same title scores 91% for Sarthak, for whom
-# Salesforce is secondary and React is what the rest of the listing
-# wants. Judged on the whole set, the bar keeps the generalist's
-# secondary skill and throws away the specialist's primary one.
-#
-# So the anchor gets its own test: how much this title's market wants
-# the SKILL THAT PRODUCED IT, weighted by how much that skill narrows
-# the market. Raw anchor share cannot do it alone — apex scores 0.25 and
-# java 0.21 — but apex is four times rarer, and the product separates
-# them: apex 1.46, salesforce 2.39, java 0.84, sql 0.68.
-ANCHOR_EVIDENCE = 1.2
-
-# And a title nothing much is posted under is not worth a search
-# whatever it scores: "sf data cloud consultant" matched two listings.
-MIN_ROWS = 20
-
-
-def anchor_evidence(title, anchor, rows, vocab, total):
-    """How strongly this title's market wants the skill that produced it."""
-    named = [r for r in rows if title in r[0]]
-    if not named or not anchor:
-        return 0.0
-    share = sum(1 for r in named if anchor in r[2]) / len(named)
-    return share * ds.idf(anchor, vocab, total)
-
-
-def worth_it(title, rows, own, anchor=None, vocab=None, total=None):
-    """Is this addition about this person, or just a wider net?"""
-    got = ds.buys([title], rows, own)
-    if got["listings"] < MIN_ROWS or got["relevance"] is None:
-        return False, got
-    if anchor is None:
-        # No anchor to reason about: fall back to the whole-set bar.
-        return got["relevance"] >= MIN_RELEVANCE, got
-    # One gate, not two. The whole-set relevance test used to be an
-    # alternative route in, and it let "associate ai/ml engineer" through
-    # on a git anchor — generic skill, 0.87 evidence, no business being a
-    # paid search. Anchor evidence already says what the other test was
-    # reaching for, and says it for specialists too.
-    vocab = vocab if vocab is not None else ds.vocabulary(rows)
-    total = total or len(rows)
-    strength = anchor_evidence(title, anchor, rows, vocab, total)
-    return strength >= ANCHOR_EVIDENCE, got
-
-
-def select(own, base, rows, idx, total, seniority, vocab=None, cap=2):
-    """The orphan keywords to add, chosen without asking a model.
-
-    The model was here and is not any more. It was asked to pick the
-    software title out of a skill's candidates — "salesforce developer"
-    rather than "sales operations analyst" — and on the one résumé the
-    feature exists for it returned an empty list at temperature 0, having
-    picked correctly three runs earlier on a slightly different candidate
-    set. Removing it entirely and letting worth_it decide everything went
-    the other way: ten additions for one person.
-
-    Ranking by anchor evidence and capping does both jobs. It is
-    deterministic, it needs no inference, and the cap bounds the spend
-    whatever the corpus throws up.
-    """
-    return [title for title, _skill, _evidence in
-            select_detail(own, base, rows, idx, total, seniority, vocab, cap)]
-
-
-def select_detail(own, base, rows, idx, total, seniority, vocab=None, cap=2):
-    """select(), but saying which skill produced each keyword and how
-    strongly — the ordering downstream has to be explainable."""
-    vocab = vocab if vocab is not None else ds.vocabulary(rows)
-    scored = []
-    for skill, titles in blocks_for(own, base, rows, idx, total, seniority,
-                                    vocab=vocab):
-        for title in titles:
-            if any(title in b or b in title for b in base):
-                continue
-            ok, _got = worth_it(title, rows, own, skill, vocab, total)
-            if not ok:
-                continue
-            scored.append((anchor_evidence(title, skill, rows, vocab, total),
-                           skill, title))
-    scored.sort(key=lambda row: (-row[0], row[2]))
-    keep = []
-    for evidence_, skill, title in scored:
-        # Checked BEFORE appending: the other order appends one and then
-        # notices, so a cap of zero still added a keyword.
-        if len(keep) >= cap:
-            break
-        if any(title in got or got in title for got, _s, _e in keep):
-            continue
-        keep.append((title, skill, evidence_))
-    return keep
-
-
 def accept(answer, blocks, rows, seniority):
     """(kept, refused) — the picks that survive, and why the others did not.
 
@@ -377,30 +177,6 @@ def accept(answer, blocks, rows, seniority):
                 continue
             kept.append((skill, low))
     return kept, refused
-
-
-def setup():
-    """The corpus and the seniority lists, built once."""
-    import config
-
-    rows = ds.corpus_rows()
-    seniority = (tuple(config.SCORING["hard_drop_terms"])
-                 + tuple(config.SCORING["soft_drop_terms"]))
-    return rows, ds.index(rows, seniority), ds.vocabulary(rows), seniority
-
-
-def blocks_for(own, keywords, rows, idx, total, seniority, cap=8,
-               vocab=None):
-    """[(skill, [candidate titles])] for this person's orphaned skills."""
-    out = []
-    for skill, _n, _emp, _share in orphans(own, keywords, rows):
-        titles = candidates_for_skill(skill, rows, idx, total, seniority,
-                                      vocab=vocab)
-        if titles:
-            out.append((skill, titles))
-        if len(out) >= cap:
-            break
-    return out
 
 
 def run(model, cache_path=None, asker=ask):

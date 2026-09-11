@@ -34,55 +34,8 @@ deduplicates across tiers so a title held AND recovered is bought once.
 
 import sys
 
-TIERS = {1: "held", 2: "anchored", 3: "corpus"}
-
-
-def rank(held, anchored, corpus):
-    """[(keyword, tier, why)] in the order they should be searched.
-
-    `held` are titles from relevant employment, `anchored` are
-    (keyword, skill, evidence) from the specialist recovery, `corpus`
-    are the corpus-ranked keywords. Ties inside a tier keep the order
-    they arrived in, which is already each source's own ranking.
-    """
-    out, seen = [], set()
-
-    def add(keyword, tier, why):
-        key = str(keyword).strip().lower()
-        if not key or key in seen:
-            return
-        # A keyword reachable two ways is bought once, at its BEST
-        # tier — the first tier that offered it, since tiers are added
-        # in order.
-        seen.add(key)
-        out.append((key, tier, why))
-
-    for title in held or ():
-        add(title, 1, "held: a title from this person's own employment")
-    for item in anchored or ():
-        keyword, skill, strength = (item if isinstance(item, (tuple, list))
-                                    else (item, "", 0.0))
-        add(keyword, 2,
-            f"anchored: recovered from '{skill}' (evidence {strength:.2f})"
-            if skill else "anchored: recovered from a discriminative skill")
-    for keyword in corpus or ():
-        add(keyword, 3, "corpus: ranked by market lift")
-    return out
-
-
-def keywords(ranked):
-    """Just the strings, in order."""
-    return [keyword for keyword, _tier, _why in ranked]
-
-
-def explain(ranked, limit=None):
-    """The ordering, said out loud, so a bad first keyword is visible."""
-    lines = []
-    for position, (keyword, tier, why) in enumerate(ranked, start=1):
-        mark = "  <- would run" if limit and position <= limit else ""
-        lines.append(f"    {position:>2}. [{TIERS[tier]:<8}] {keyword:<38}"
-                     f" {why}{mark}")
-    return "\n".join(lines)
+from local_search import TIERS, explain, rank  # noqa: F401
+from local_search import ranked_keywords as keywords  # noqa: F401
 
 
 def demo():

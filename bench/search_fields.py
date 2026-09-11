@@ -84,30 +84,17 @@ sys.path.insert(0, os.path.join(
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# Seniority is already handled twice over in config.SCORING — hard_drop_terms
-# removes those rows and soft_drop_terms down-ranks them — which is why RULE 3
-# says title_exclude is for DIFFERENT CAREERS and never for seniority. A
-# seniority word in a title gate is redundant at best and, in title_exclude,
-# deletes rows the pipeline was going to rank rather than remove.
-def _seniority():
-    import config
-    return (tuple(config.SCORING["hard_drop_terms"]),
-            tuple(config.SCORING["soft_drop_terms"]))
-
-
-# A keyword matching more than this share of the whole market is not a
-# keyword, it is a wildcard: it buys the catalogue and lets scoring sort it
-# out, which is exactly the spend the budget screen exists to prevent.
-WILDCARD_SHARE = 0.25
-
-# Below this many listings a keyword is not "bad", it is unmeasured — this
-# corpus is one person's market and cannot speak for another profession.
-UNMEASURED = 1
-
-# What a keyword's rows cost. LinkedIn is the cheapest paid source and so
-# the most conservative choice for a waste figure: quoting Naukri's $0.50
-# per 50 would flatter the argument.
-CHEAPEST_RATE, CHEAPEST_BASIS = 0.045, 25
+# The production implementations. Everything the validators need now lives
+# in local_search; this module keeps the measurement harness and the
+# generation-side experiment (capped_schema/ask/run), so the benchmark
+# scores the code that ships.
+from local_search import (  # noqa: E402,F401
+    CHEAPEST_BASIS, CHEAPEST_RATE, REACHABLE, UNMEASURED, WILDCARD_SHARE,
+    _has, _words, baseline, check_domain, check_penalties,
+    check_role_keywords, check_title_exclude, check_title_hints, droppable,
+    profile_of, spend, validate,
+)
+from local_search import seniority_lists as _seniority
 
 
 def load_titles(output_dir=None):
@@ -120,23 +107,6 @@ def yield_of(term, titles):
     """(listings drawn, mean score) for one keyword, substring-matched."""
     import corpus_signal
     return corpus_signal.keyword_yield(term, titles)
-
-
-def droppable(title, hard):
-    """Would the pipeline delete this row after paying for it?
-
-    Word-boundary on purpose, matching config's own matcher: "intern" must
-    not fire inside "internal" or "international".
-    """
-    import re
-    low = title.lower()
-    return any(re.search(r"(?<![a-z])" + re.escape(w) + r"(?![a-z])", low)
-               for w in hard)
-
-
-def spend(listings):
-    """Dollars for that many results at the cheapest paid rate."""
-    return math.ceil(listings / CHEAPEST_BASIS) * CHEAPEST_RATE
 
 
 def keyword_rows(terms, titles, hard):
@@ -154,238 +124,6 @@ def keyword_rows(terms, titles, hard):
             "share": listings / len(titles) if titles else 0.0,
         })
     return rows
-
-
-# config.py:534 already reasons in this band — "11 of the 15 reachable rows
-# at score >= 20" — so the bar is the repo's own rather than one invented
-# here. 15% of the corpus clears it, which is the baseline every
-# title-alone promoter has to beat to be worth anything.
-REACHABLE = 20
-
-
-def baseline(titles):
-    """Share of the whole market that reaches the readable band."""
-    if not titles:
-        return 0.0
-    return sum(1 for _, s in titles if s >= REACHABLE) / len(titles)
-
-
-def profile_of(term, titles, hard):
-    """What one keyword actually buys: rows, reachable rows, wasted rows."""
-    needle = term.strip().lower()
-    if not needle:
-        return {"term": term, "listings": 0, "reachable": 0, "wasted": 0,
-                "share": 0.0, "precision": None}
-    matched = [(t, s) for t, s in titles if needle in t]
-    reachable = sum(1 for _, s in matched if s >= REACHABLE)
-    wasted = sum(1 for t, _ in matched if droppable(t, hard))
-    return {
-        "term": term,
-        "listings": len(matched),
-        "reachable": reachable,
-        "wasted": wasted,
-        "share": len(matched) / len(titles) if titles else 0.0,
-        "precision": reachable / len(matched) if matched else None,
-    }
-
-
-def _words(text):
-    return set(str(text).lower().replace("-", " ").replace(".", " ").split())
-
-
-def _has(term, words):
-    """Does this term carry one of these words, as a word?"""
-    return bool(_words(term) & set(words))
-
-
-def check_role_keywords(profile, titles, hard, soft):
-    """The field that spends. Corrections here are dollars, not tidiness."""
-    terms = list(profile.get("role_keywords") or [])
-    corrections, escalations = [], []
-    wildcards, senior = [], []
-    for term in terms:
-        row = profile_of(term, titles, hard)
-        # A keyword matching a quarter of the market is not a search, it is
-        # the catalogue. "software engineer" draws 4,890 of 15,514 rows at a
-        # mean of 3.6 and costs $8.82 at the cheapest paid rate.
-        if row["share"] > WILDCARD_SHARE:
-            wildcards.append(term)
-        # A hard_drop word in a paid keyword buys rows config DELETES —
-        # pure waste. A soft_drop word only costs them -4, so those rows
-        # still reach the shortlist and dropping the keyword would lose
-        # real inventory. config draws that line itself; so does this.
-        if _has(term, hard):
-            senior.append(term)
-    if wildcards:
-        corrections.append({
-            "field": "role_keywords", "action": "dropped",
-            "removed": wildcards,
-            "why": f"each matches over {WILDCARD_SHARE:.0%} of the market, so "
-                   f"the search buys the catalogue and pays per row"})
-    if senior:
-        corrections.append({
-            "field": "role_keywords", "action": "dropped",
-            "removed": senior,
-            "why": "carries a config.SCORING hard_drop word, so every row "
-                   "it matches is deleted after being paid for"})
-    bad = len(set(wildcards) | set(senior))
-    if terms and bad / len(terms) > 0.5:
-        escalations.append(
-            f"role_keywords: {bad} of {len(terms)} are wildcards or carry "
-            f"seniority, which is not a list to correct item by item")
-    return corrections, escalations
-
-
-def check_penalties(profile):
-    """A penalty on the person's own skill is a penalty on the person."""
-    penalties = [e["term"] for e in profile.get("penalty_terms") or ()]
-    own = {e["term"].strip().lower()
-           for e in profile.get("skill_weights") or () if e.get("term")}
-    clash = [p for p in penalties if p.strip().lower() in own]
-    if not clash:
-        return [], []
-    return [{"field": "penalty_terms", "action": "dropped", "removed": clash,
-             "why": "also listed as one of this person's own skills, and "
-                    "penalty_terms is negated at render time"}], []
-
-
-def check_title_exclude(profile, hard, soft):
-    """The gate that wins over the others, so the gate that can delete work.
-
-    scraper.is_dev_title checks title_exclude FIRST, so an entry matching
-    the person's own target roles removes inventory before anything scores
-    it, and nothing downstream reports what went missing.
-    """
-    excludes = list(profile.get("title_exclude") or [])
-    targets = [t.strip().lower() for t in
-               (list(profile.get("role_keywords") or [])
-                + list(profile.get("title_hints") or [])) if t.strip()]
-    corrections, escalations = [], []
-    # One direction only. The test is "would a job titled like one of this
-    # person's target roles be caught by this exclude fragment", which is
-    # `exclude in target`. Testing both directions flagged the shipped
-    # profiles' "sdet" because the hint "sde" is a substring of it — and
-    # SDET is a different career, which is exactly what this gate is for.
-    self_block = [e for e in excludes
-                  if any(e.strip().lower() in t for t in targets)]
-    # RULE 3: title_exclude is for DIFFERENT CAREERS, never for seniority.
-    senior = [e for e in excludes
-              if _has(e, hard + soft) and e not in self_block]
-    if self_block:
-        corrections.append({
-            "field": "title_exclude", "action": "dropped",
-            "removed": self_block,
-            "why": "matches this person's own role_keywords or title_hints, "
-                   "and title_exclude is checked first so it would delete "
-                   "their target roles silently"})
-    if senior:
-        corrections.append({
-            "field": "title_exclude", "action": "dropped", "removed": senior,
-            "why": "seniority, which config.SCORING already ranks — RULE 3 "
-                   "reserves this gate for different careers"})
-    return corrections, escalations
-
-
-def check_title_hints(profile, titles, hard, soft):
-    """The gate on the free sources. Widening only, so the risk is one-sided."""
-    hints = list(profile.get("title_hints") or [])
-    corrections = []
-    # This gate only ever WIDENS, so a present senior variant costs
-    # nothing — RULE 3 says "err towards including a title". The real
-    # failure is a MISSING stem: "senior developer" without "developer"
-    # gates out every non-senior row, and those rows are the reachable
-    # ones. So the stem is added rather than the hint removed. Deleting
-    # hints here would lose inventory, which is the bug this gate exists
-    # to prevent.
-    have = {h.strip().lower() for h in hints}
-    add = []
-    for hint in hints:
-        stem = " ".join(w for w in hint.lower().split() if w not in soft)
-        stem = stem.strip()
-        if stem and stem != hint.strip().lower() and stem not in have:
-            add.append(stem)
-            have.add(stem)
-    if add:
-        corrections.append({
-            "field": "title_hints", "action": "added", "added": add,
-            "why": "the seniority-free stem was missing, and without it the "
-                   "gate drops every non-senior row — RULE 3 asks for "
-                   "'developer', not only 'senior developer'"})
-    return corrections, []
-
-
-def check_domain(profile, titles, hard):
-    """domain_title_terms promote on the title alone, so they must earn it."""
-    terms = list(profile.get("domain_title_terms") or [])
-    corrections, escalations = [], []
-    bar = baseline(titles)
-    leaky = []
-    for term in terms:
-        row = profile_of(term, titles, hard)
-        # Promoting a job on its title alone is only defensible if that
-        # title beats the market. A term whose matches reach the readable
-        # band LESS often than a random row is worse than no rule at all —
-        # which is precisely RULE 2's "business analyst" leak.
-        if row["listings"] > UNMEASURED and row["precision"] is not None \
-                and row["precision"] < bar:
-            leaky.append(term)
-    if leaky:
-        corrections.append({
-            "field": "domain_title_terms", "action": "dropped",
-            "removed": leaky,
-            "why": f"the rows each one matches reach score {REACHABLE} less "
-                   f"often than the market's own {bar:.0%}, so promoting on "
-                   f"this title alone is worse than not promoting"})
-    # RULE consistency: a bonus with nothing to combine is a dead setting.
-    halves = (profile.get("domain_half_a") or [],
-              profile.get("domain_half_b") or [])
-    if profile.get("domain_bonus") and not (halves[0] and halves[1]):
-        corrections.append({
-            "field": "domain_bonus", "action": "computed",
-            "from": profile.get("domain_bonus"), "to": 0,
-            "why": "a both-halves bonus with an empty half can never fire"})
-    return corrections, escalations
-
-
-def validate(profile, titles, hard=None, soft=None):
-    """One decision for one generated profile, with its reasons."""
-    if hard is None or soft is None:
-        hard, soft = _seniority()
-    if not profile:
-        return {"decision": "escalate", "result": None, "corrections": [],
-                "reasons": ["the local model returned nothing usable"]}
-    corrections, reasons = [], []
-    for check in (lambda p: check_role_keywords(p, titles, hard, soft),
-                  lambda p: check_penalties(p),
-                  lambda p: check_title_exclude(p, hard, soft),
-                  lambda p: check_title_hints(p, titles, hard, soft),
-                  lambda p: check_domain(p, titles, hard)):
-        fixes, stops = check(profile)
-        corrections.extend(fixes)
-        reasons.extend(stops)
-    if reasons:
-        return {"decision": "escalate", "result": None,
-                "corrections": [], "reasons": reasons}
-
-    result = dict(profile)
-    for fix in corrections:
-        field = fix["field"]
-        if fix["action"] == "dropped":
-            gone = {str(v).strip().lower() for v in fix["removed"]}
-            values = result.get(field) or []
-            if values and isinstance(values[0], dict):
-                result[field] = [e for e in values
-                                 if str(e.get("term", "")).strip().lower()
-                                 not in gone]
-            else:
-                result[field] = [v for v in values
-                                 if str(v).strip().lower() not in gone]
-        elif fix["action"] == "added":
-            result[field] = list(result.get(field) or []) + list(fix["added"])
-        elif fix["action"] == "computed":
-            result[field] = fix["to"]
-    return {"decision": "corrected" if corrections else "accept",
-            "result": result, "corrections": corrections, "reasons": []}
 
 
 def search_quality(profile, titles, hard=None, soft=None):

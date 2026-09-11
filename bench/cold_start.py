@@ -52,36 +52,7 @@ sys.path.insert(0, os.path.join(
 
 from bench import derive_search as ds
 
-# A résumé title is one role. Splitting on these gives the searchable
-# stems inside it — "Full-Stack Developer / React Native" is two.
-_SPLIT = re.compile(r"\s*[/|,()]\s*|\s+-\s+")
-
-
-def from_resume(person, seniority=()):
-    """Role keywords taken from the person's own job titles.
-
-    The zero-dependency floor: no corpus, no model, no key. Seniority is
-    stripped for the same reason RULE 3 asks for the stem — "Senior
-    Backend Engineer" as a search string finds only the senior rows, and
-    the reachable ones are the others.
-    """
-    from bench import dates as dating
-
-    out = []
-    # The same two clauses the years derivation uses. Without them hana
-    # searches for "structural engineer" and kwame for "mathematics
-    # teacher" — the careers they left — and bhaskar searches for the
-    # internship he did rather than the job he wants.
-    for job in dating.countable(person.get("employment") or ()):
-        for piece in _SPLIT.split(job.get("title") or ""):
-            words = [w for w in re.findall(r"[a-z0-9+#.]+", piece.lower())
-                     if w not in seniority]
-            stem = " ".join(words).strip()
-            # One word is a fragment, not a role: "engineer" alone buys
-            # the catalogue, which is what the wildcard guard exists for.
-            if len(words) >= 2 and stem not in out:
-                out.append(stem)
-    return out
+from local_search import from_resume, validated  # noqa: F401
 
 
 def holdout(rows, own):
@@ -115,37 +86,6 @@ def strategies(person, rows, idx, total, seniority, want=12):
             union.append(k)
     return {"résumé only": resume, "corpus only": warm,
             "résumé + corpus": union}
-
-
-def validated(keywords, rows, seniority):
-    """The keywords a validator would actually let through.
-
-    Measuring unvalidated strategies flattered the wrong one: lena's own
-    title is "Software Engineer", which buys 4,890 rows — a third of the
-    market — and dragged résumé-only below the market on reachability
-    while looking like a volume win.
-    """
-    from bench import search_fields as sf
-
-    profile = {"role_keywords": list(keywords), "title_hints": [],
-               "title_exclude": [], "skill_weights": [], "penalty_terms": [],
-               "domain_half_a": [], "domain_half_b": [],
-               "domain_title_terms": [], "domain_bonus": 0}
-    titles = [(t, s) for t, s, _sk, _c in rows]
-    out = sf.validate(profile, titles)
-    if out["decision"] == "escalate":
-        return []
-    # Deduplicated, because the two sources overlap. A résumé saying
-    # "Senior Business Development Associate" yields the stem "business
-    # development associate", and corpus canonicalisation independently
-    # yields the same title — one search's worth of rows bought twice.
-    seen, unique = set(), []
-    for keyword in out["result"]["role_keywords"]:
-        key = keyword.strip().lower()
-        if key and key not in seen:
-            seen.add(key)
-            unique.append(keyword)
-    return unique
 
 
 def report(want=12):
