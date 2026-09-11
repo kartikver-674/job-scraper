@@ -89,6 +89,9 @@ OUTPUT_COLUMNS = [
     "visa", "eor", "timezones",
     "experience_required", "salary", "hr_email", "hr_phone",
     "source_site", "apply_url", "date_posted", "req_number", "grade", "verified_live",
+    # Appended, never inserted: every existing column keeps its position, so a
+    # consumer reading by index is unaffected.
+    "search_query", "search_rank",
 ]
 
 
@@ -1038,8 +1041,16 @@ def scrape_search(client, site_key, actor_id, search):
     cost = float(run.usage_total_usd or 0)
     if not run.default_dataset_id:
         return [], cost
-    rows = [normalize(item, site_key)
-            for item in client.dataset(run.default_dataset_id).iterate_items()]
+    # enumerate: the dataset preserves the actor's result order, so the index IS
+    # the position within this search.
+    label = f"{search.get('keywords') or '(all)'} @ {search.get('location') or ''}"
+    rows = []
+    for rank, item in enumerate(
+            client.dataset(run.default_dataset_id).iterate_items(), 1):
+        row = normalize(item, site_key)
+        row["search_query"] = label
+        row["search_rank"] = rank
+        rows.append(row)
     if remote_was_queried(site_key, search):
         # Stamp what the query already guarantees, the same way the remote-only
         # feeds do, so enrich sees it. Their own location text is kept because it
@@ -1116,6 +1127,20 @@ def to_output(row):
         # both fine, this assembler was the only broken link.
         "grade": row.get("grade", ""),
         "verified_live": row.get("verified_live", ""),
+        # WHICH paid search returned this row, and at what position in it.
+        # Two measurement rounds wanted this and had to work around not having
+        # it: keyword attribution was unrecoverable without re-reading Apify
+        # datasets, and result rank survived only by accident inside LinkedIn's
+        # own apply_url. Free sources answer no query and leave both blank.
+        #
+        # Stamped in scrape_search BEFORE finalize() dedupes, so the value
+        # describes the search that actually produced the row. NOTE that dedupe
+        # then keeps one row per posting and the survivor's rank is whichever
+        # search sorted first, NOT the lowest rank across searches — a depth
+        # analysis built on this is an upper bound on what a shallower sweep
+        # would lose, not an exact figure.
+        "search_query": row.get("search_query", ""),
+        "search_rank": row.get("search_rank", ""),
     }
 
 
