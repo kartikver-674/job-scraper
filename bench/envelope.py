@@ -37,7 +37,13 @@ import sys
 # them changes the result for reasons unrelated to the search fields.
 GATES = ("max_age_days", "min_comp_usd", "remote_scopes", "drop_excluded",
          "max_experience_years", "experience_aggregate", "drop_undated",
-         "min_score", "max_results", "max_spend_usd")
+         "min_score", "max_results", "max_spend_usd",
+         # Sent to the board as part of the QUERY — scraper.py sets
+         # inp["experience"] from it and LinkedIn's f_E band comes from
+         # it too — so two profiles differing here are not fetching the
+         # same market. It was missing from this list, and the first
+         # comparison it guarded had it differ 1 against 2.
+         "experience_years")
 
 # Fields a comparison is ALLOWED to differ in — the ones under test.
 UNDER_TEST = ("role_keywords", "skill_weights", "penalty_terms",
