@@ -202,6 +202,24 @@ ATS_BOARDS = {
         "rws": "RWS",                         #  10/72   b2
         "dozee": "Dozee",                     #  15/27   b3
         "pocketfm": "Pocket FM",              #   2/5    b3
+        # --- backlog harvest, 2026-09-11 --------------------------------------
+        # From the Apify-only backlog (docs/superpowers/specs/
+        # 2026-09-11-backlog-harvest.md): 486 of 2,512 companies probed,
+        # 12.9% resolved. Re-probed live the day they were added. Counts are
+        # india/total. Trailing flags: i = this employer has only ever posted
+        # inside India; m = the board carries a posting a PAID sweep already
+        # found, so it converts a job we were paying to see into a free one.
+        "veeva": "Veeva Systems",             #  33/898   m
+        "portagepointpartners": "Portage Point Partners",   #  31/52   im
+        "acceldata": "Acceldata",             #  19/46   im
+        "sophos": "Sophos",                   #  16/115   m
+        "levelai": "Level AI",                #  16/19    m
+        "jumpcloud": "JumpCloud",             #  11/20   im
+        "appzen": "AppZen",                   #  10/22   im
+        "cin7": "Cin7",                       #   2/10    m
+        "binance": "Binance",                 #   2/296   m
+        "biorender": "BioRender",             #   0/1
+
     },
     # Indian employers, plus global companies WITH an India presence — the
     # combination that makes SETTINGS["keep_restricted_if_hires_home"] pay off,
@@ -255,6 +273,39 @@ ATS_BOARDS = {
         "mcafee": "McAfee, Inc.",             #   0/4    b3
         "unisonconsulting": "Unison Consulting",            #   0/2    b3
         "victrix": "Victrix Systems & Labs",  #   0/3    b3
+        # --- backlog harvest, 2026-09-11 --------------------------------------
+        # From the Apify-only backlog (docs/superpowers/specs/
+        # 2026-09-11-backlog-harvest.md): 486 of 2,512 companies probed,
+        # 12.9% resolved. Re-probed live the day they were added. Counts are
+        # india/total. Trailing flags: i = this employer has only ever posted
+        # inside India; m = the board carries a posting a PAID sweep already
+        # found, so it converts a job we were paying to see into a free one.
+        "okta": "Okta",                       # 105/324   m
+        "payoneer": "Payoneer",               #  47/122  im
+        "accordionindia": "Accordion India",  #  21/21   i
+        "netskope": "Netskope",               #  20/139   m
+        "avathon": "Avathon",                 #  16/35   im
+        "newrelic": "New Relic",              #  12/56    m
+        "cloudsek": "CloudSEK",               #  11/14   im
+        "komodohealth": "Komodo Health",      #   8/31   im
+        "godaddy": "GoDaddy",                 #   6/31    m
+        "precisionaq": "Precision AQ",        #   5/40   im
+        "launchdarkly": "LaunchDarkly",       #   5/51   im
+        "bitgo": "BitGo",                     #   4/37   im
+        "eulerity": "Eulerity",               #   1/17    m
+        "rtingscom": "RTINGS.com",            #   0/5     m
+        "fingerprint": "Fingerprint",         #   0/23   im
+        "breezeway": "Breezeway",             #   0/10
+        "diligent": "Diligent",               #   0/5
+        "cobblestoneenergy": "Cobblestone Energy",          #   0/2
+        "shield": "SHIELD",                   #   0/1
+        "bold": "BOLD",                       #   0/1    i
+        # Speechify resolved (greenhouse:speechify, 1,086 postings) and is NOT
+        # here: it publishes one opening per US city with the city IN THE TITLE
+        # ("Go-to-Market - Anaheim, CA, USA"), so 1,041 distinct titles across
+        # 329 locations. job_key is company+title, so dedupe cannot collapse
+        # them and a sweep would carry all of them.
+
     },
     # Probed 2026-07-26 and NOT resolvable, so nobody burns time re-trying:
     # razorpay, zerodha, dream11, sharechat, unacademy, swiggy, zomato, flipkart,
@@ -279,6 +330,32 @@ ATS_BOARDS = {
         "tekion": "Tekion",                   #  88/110  b3
         "gradera": "Gradera",                 #   6/8    b3
         "whisk": "Whisk Software Private Limited",          #   0/4    b3
+        # --- backlog harvest, 2026-09-11 --------------------------------------
+        # From the Apify-only backlog (docs/superpowers/specs/
+        # 2026-09-11-backlog-harvest.md): 486 of 2,512 companies probed,
+        # 12.9% resolved. Re-probed live the day they were added. Counts are
+        # india/total. Trailing flags: i = this employer has only ever posted
+        # inside India; m = the board carries a posting a PAID sweep already
+        # found, so it converts a job we were paying to see into a free one.
+        "elevenlabs": "ElevenLabs",           #  10/248   m
+        "uipath": "UiPath",                   #   5/109  i
+        "glomo": "Glomo",                     #   4/8    im
+        "clera": "Clera",                     #   1/267   m
+        "abound": "Abound",                   #   0/19    m
+        "maincode": "Maincode",               #   0/15    m
+        "xero": "Xero",                       #   0/123   m
+        "solace": "Solace",                   #   0/27    m
+        "brainco": "Brain Co.",               #   0/34    m
+        "realmalliance": "Realm Alliance",    #   0/11    m
+        "nory": "Nory",                       #   0/7     m
+        "freetrade": "Freetrade",             #   0/8     m
+        "omni": "Omni",                       #   0/22    m
+        "attio": "Attio",                     #   0/43    m
+        "pylon": "Pylon",                     #   0/12
+        "vantage": "Vantage",                 #   0/5
+        "sitemate": "Sitemate",               #   0/15
+        "pilgrim": "Pilgrim",                 #   0/4    i
+
     },
     # smartrecruiters and breezy list NO DESCRIPTION (sources/ats.py maps no
     # Description field for either), so their postings are scored on the TITLE
@@ -308,6 +385,24 @@ ATS_BOARDS = {
         "nisum": "Nisum",                     #   0/1    b3
         "technogen": "TechnoGen",             #   0/49   b3
         "vichara": "Vichara Technologies",    #   0/8    b3
+        # --- backlog harvest, 2026-09-11 --------------------------------------
+        # From the Apify-only backlog (docs/superpowers/specs/
+        # 2026-09-11-backlog-harvest.md): 486 of 2,512 companies probed,
+        # 12.9% resolved. Re-probed live the day they were added. Counts are
+        # india/total. Trailing flags: i = this employer has only ever posted
+        # inside India; m = the board carries a posting a PAID sweep already
+        # found, so it converts a job we were paying to see into a free one.
+        "codeyoung": "Codeyoung",             #   2/2    i
+        "capestart": "CapeStart",             #   1/1    i
+        "genpactindia": "Genpact India Pvt. Ltd.",          #   1/1    i
+        "servicetitan": "ServiceTitan",       #   0/8    i
+        "rebelfoods": "Rebel Foods",          #   0/1    i
+        "gepworldwide": "GEP Worldwide",      #   0/1    i
+        "lingaro": "Lingaro",                 #   0/1    i
+        "pentair": "Pentair",                 #   0/1    i
+        "spottedzebra": "Spotted Zebra",      #   0/1
+        "synechron": "Synechron",             #   0/3
+
     },
     "breezy": {
         # --- Adzuna Phase 1 harvest, 2026-09-11 -------------------------------
@@ -319,6 +414,16 @@ ATS_BOARDS = {
         # known through a paid sweep, so this is one we can now stop paying to
         # see; b3 = never seen through any source before.
         "iqvia": "IQVIA",                     #   0/7    b2
+        # --- backlog harvest, 2026-09-11 --------------------------------------
+        # From the Apify-only backlog (docs/superpowers/specs/
+        # 2026-09-11-backlog-harvest.md): 486 of 2,512 companies probed,
+        # 12.9% resolved. Re-probed live the day they were added. Counts are
+        # india/total. Trailing flags: i = this employer has only ever posted
+        # inside India; m = the board carries a posting a PAID sweep already
+        # found, so it converts a job we were paying to see into a free one.
+        "anovia": "Anovia Inc.",              #   9/12   im
+        "foundationhealth": "Foundation Health",            #   0/31
+
     },
 }
 
@@ -620,6 +725,11 @@ SCORING = {
     # outright, whatever they score. Matched on the company name, case- and
     # punctuation-insensitively ("SWAKIO™" -> "swakio"), whole name only, so a
     # real employer whose name merely contains one of these is unaffected.
+    # Also probed 2026-09-11 and deliberately NOT added to ATS_BOARDS:
+    # lever:jobgether resolves with 4,662 postings — 2,023 distinct titles each
+    # reposted across up to 42 countries. That is this list's definition, not an
+    # employer board. Left out of ATS_BOARDS rather than added here, so the
+    # filter's behaviour is unchanged.
     "company_blocklist": ["hired", "hire feed", "jobs ai", "swakio"],
 
     # -- Seniority filters ----------------------------------------------------
