@@ -725,12 +725,26 @@ SCORING = {
     # outright, whatever they score. Matched on the company name, case- and
     # punctuation-insensitively ("SWAKIO™" -> "swakio"), whole name only, so a
     # real employer whose name merely contains one of these is unaffected.
-    # Also probed 2026-09-11 and deliberately NOT added to ATS_BOARDS:
-    # lever:jobgether resolves with 4,662 postings — 2,023 distinct titles each
-    # reposted across up to 42 countries. That is this list's definition, not an
-    # employer board. Left out of ATS_BOARDS rather than added here, so the
-    # filter's behaviour is unchanged.
-    "company_blocklist": ["hired", "hire feed", "jobs ai", "swakio"],
+    # jobgether and speechify were both kept out of ATS_BOARDS on 2026-09-11 and
+    # are blocked here too, because a retroactive audit found them ALREADY IN
+    # paid output — 41 and 12 LinkedIn rows respectively. They fail in two
+    # different ways, and only the first is what this list was written for:
+    #
+    #   jobgether   a repost aggregator, not an employer. Its Lever board is
+    #               4,669 postings, 2,023 titles reposted across up to 42
+    #               countries. 19 distinct postings reached our output, 12 of
+    #               them scoring >= 20 and 5 >= 40 — all of them other
+    #               companies' jobs, applied for through the wrong door.
+    #   speechify   A REAL EMPLOYER, blocked for posting SHAPE rather than
+    #               provenance: it publishes one row per city with the city in
+    #               the TITLE ("Software Engineer, Platform - Sydney,
+    #               Australia"), which job_key cannot collapse because it keys
+    #               on company+title. Its board would carry 920 rows for 4
+    #               distinct roles. Blocking it does delete genuine openings —
+    #               today all 12 score 11-12, none >= 20 — so if that trade ever
+    #               looks wrong, remove this one entry rather than the pair.
+    "company_blocklist": ["hired", "hire feed", "jobs ai", "swakio",
+                          "jobgether", "speechify"],
 
     # -- Seniority filters ----------------------------------------------------
     # Two tiers, because a job TITLE is a label and not a requirement. The real
