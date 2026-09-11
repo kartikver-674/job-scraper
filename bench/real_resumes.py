@@ -68,24 +68,10 @@ def profile_for(model, text, log=print):
                             seniority=seniority), rows, seniority),
         rows, seniority)
 
-    # The orphan pass: a skill the market knows and these keywords do not
-    # search for gets one of its own, chosen from corpus candidates.
-    blocks = osk.blocks_for(own, base, rows, idx, total, seniority,
-                            vocab=vocab)
-    extra = []
-    if blocks:
-        try:
-            answer = osk.ask(model, (employment or {}).get("target_field")
-                             or "software engineering", blocks)
-        except Exception as exc:                # noqa: BLE001 - logged
-            answer = {"error": f"{type(exc).__name__}: {exc}"}
-        kept, _refused = osk.accept(answer, blocks, rows, seniority)
-        for _skill, title in kept:
-            if any(title in got or got in title for got in base + extra):
-                continue
-            ok, _got = osk.worth_it(title, rows, own)
-            if ok:
-                extra.append(title)
+    # The orphan pass: a skill the market knows and these keywords do
+    # not search for gets one of its own, chosen from corpus candidates
+    # and ranked by anchor evidence. No model call — see osk.select.
+    extra = osk.select(own, base, rows, idx, total, seniority, vocab)
 
     field = (employment or {}).get("target_field") or ""
     return {

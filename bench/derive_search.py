@@ -47,6 +47,7 @@ figure here is reported alongside its coverage for that reason.
 import collections
 import csv
 import glob
+import math
 import os
 import re
 import sys
@@ -170,7 +171,32 @@ def relevance(entry, own):
                if skill in own) / entry["listings"]
 
 
-def matching_rows(own, rows, need=2):
+# Two overlapping skills is not two pieces of evidence. "sql + agile"
+# matches most software listings and says nothing about anyone; "apex +
+# soql" says a great deal. The sum of inverse document frequency over
+# the overlap measures how much the match NARROWS the market, which is
+# the same tf-idf shape corpus_signal.separation() already uses on
+# weights.
+#
+# Calibrated against the pairs that actually went wrong: sql+agile
+# scores 4.26 and put a business analyst into frontend-engineer
+# searches, react+node.js scores 3.11, while react native+redux toolkit
+# scores 8.54 and apex+soql 12.11. The bar sits between them.
+MIN_EVIDENCE = 7.0
+
+
+def idf(skill, vocab, total):
+    """How much knowing a listing wants this skill narrows the market."""
+    return math.log(total / (1 + vocab.get(skill, 0)))
+
+
+def evidence(overlap, vocab, total):
+    """Summed idf of the skills a listing and a person share."""
+    return sum(idf(skill, vocab, total) for skill in overlap)
+
+
+def matching_rows(own, rows, need=2, vocab=None, total=None,
+                  min_evidence=MIN_EVIDENCE):
     """The listings that actually want this person, and how much.
 
     Retrieval before aggregation. The first version of this scored every
@@ -181,16 +207,28 @@ def matching_rows(own, rows, need=2):
     Selecting the LISTINGS first is what makes a Django backend engineer
     and a Go platform engineer come out different.
     """
-    out = []
+    vocab = vocab if vocab is not None else vocabulary(rows)
+    total = total or len(rows)
+    out, weak = [], []
     for title, score, skills, _company in rows:
-        overlap = len(skills & own)
-        if overlap >= need:
-            out.append((title, score, overlap))
-    return out
+        shared = skills & own
+        if len(shared) < need:
+            continue
+        strength = evidence(shared, vocab, total)
+        row = (title, score, strength)
+        if strength >= min_evidence:
+            out.append(row)
+        else:
+            weak.append(row)
+    # Someone whose every skill is a common one would otherwise retrieve
+    # nothing at all. Falling back to the unweighted match keeps the
+    # cold-start behaviour honest: thin evidence is still evidence when
+    # it is all there is.
+    return out or weak
 
 
 def keywords_for(own, rows, idx, total, want=12, need=2,
-                 min_listings=MIN_LISTINGS, seniority=()):
+                 min_listings=MIN_LISTINGS, seniority=(), vocab=None):
     """Title fragments distinctive to the listings that want these skills.
 
     Ranked by LIFT — how much more common a fragment is among this
@@ -201,16 +239,25 @@ def keywords_for(own, rows, idx, total, want=12, need=2,
     """
     from bench.search_fields import REACHABLE
 
-    matched = matching_rows(own, rows, need)
+    vocab = vocab if vocab is not None else vocabulary(rows)
+    matched = matching_rows(own, rows, need, vocab, total)
     if not matched:
         return []
+    # Each matched listing counts for how much EVIDENCE it carries, not
+    # one apiece. A listing wanting apex and soql (12.11) is stronger
+    # evidence about a Salesforce developer than one wanting java and
+    # docker (6.75), and counting rows equally let the bulk of a
+    # generalist skill list outvote the speciality that defines someone.
     here = collections.Counter()
     reach = collections.Counter()
-    for title, score, _ in matched:
+    weight_total = 0.0
+    for title, score, shared in matched:
+        row_weight = max(1.0, float(shared))
+        weight_total += row_weight
         for frag in fragments(title, seniority):
-            here[frag] += 1
+            here[frag] += row_weight
             if score >= REACHABLE:
-                reach[frag] += 1
+                reach[frag] += row_weight
 
     scored = []
     for frag, mine in here.items():
@@ -222,7 +269,7 @@ def keywords_for(own, rows, idx, total, want=12, need=2,
         share = entry["listings"] / total if total else 0.0
         if share > MAX_SHARE:
             continue
-        lift = (mine / len(matched)) / share if share else 0.0
+        lift = (mine / weight_total) / share if share and weight_total else 0.0
         if lift <= 1.0:
             continue
         # Reachability decides between two equally distinctive fragments:
@@ -674,6 +721,28 @@ def demo():
     assert len(hints) > len(keys), (hints, keys)
     assert hints == list(dict.fromkeys(hints)), "no duplicates"
     assert all(h.strip() == h and h.islower() for h in hints)
+
+    # The evidence bar. Two shared skills is not two pieces of evidence:
+    # a pair both sides of the market have says nothing, and it is what
+    # put a business analyst into frontend-engineer searches.
+    big = [("generic role", 40, frozenset({"agile", "sql"}), f"g{i}")
+           for i in range(400)]
+    big += [("apex specialist", 40, frozenset({"apex", "soql"}), f"s{i}")
+            for i in range(10)]
+    big += [("filler", 0, frozenset(), f"f{i}") for i in range(600)]
+    vbig, tbig = vocabulary(big), len(big)
+    both_kinds = {"agile", "sql", "apex", "soql"}
+    matched_titles = {r[0] for r in matching_rows(both_kinds, big, 2, vbig, tbig)}
+    assert "apex specialist" in matched_titles, matched_titles
+    assert "generic role" not in matched_titles, "a common pair is not evidence"
+    # The third element is the EVIDENCE, which is what ranking weights by.
+    row = [r for r in matching_rows(both_kinds, big, 2, vbig, tbig)][0]
+    assert row[2] > 2.0, row
+    # Someone whose every skill is common still gets their listings back
+    # rather than nothing at all.
+    only_common = {"agile", "sql"}
+    weak = {r[0] for r in matching_rows(only_common, big, 2, vbig, tbig)}
+    assert weak == {"generic role"}, weak
 
     bought = buys(["react developer"], rows, own)
     assert bought["listings"] == 70 and bought["relevance"] == 1.0

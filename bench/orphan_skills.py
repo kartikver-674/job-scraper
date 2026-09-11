@@ -250,12 +250,93 @@ def ask(model, field, blocks, timeout=900):
 MIN_RELEVANCE = 0.75
 
 
-def worth_it(title, rows, own):
+# A title can be right for someone even when most of its listings want
+# none of their other skills — that is what being a SPECIALIST means.
+# Lovish writes enterprise Apex and "salesforce developer" scores 34%
+# against his whole skill set, because those listings do not ask for his
+# React or Node; the same title scores 91% for Sarthak, for whom
+# Salesforce is secondary and React is what the rest of the listing
+# wants. Judged on the whole set, the bar keeps the generalist's
+# secondary skill and throws away the specialist's primary one.
+#
+# So the anchor gets its own test: how much this title's market wants
+# the SKILL THAT PRODUCED IT, weighted by how much that skill narrows
+# the market. Raw anchor share cannot do it alone — apex scores 0.25 and
+# java 0.21 — but apex is four times rarer, and the product separates
+# them: apex 1.46, salesforce 2.39, java 0.84, sql 0.68.
+ANCHOR_EVIDENCE = 1.2
+
+# And a title nothing much is posted under is not worth a search
+# whatever it scores: "sf data cloud consultant" matched two listings.
+MIN_ROWS = 20
+
+
+def anchor_evidence(title, anchor, rows, vocab, total):
+    """How strongly this title's market wants the skill that produced it."""
+    named = [r for r in rows if title in r[0]]
+    if not named or not anchor:
+        return 0.0
+    share = sum(1 for r in named if anchor in r[2]) / len(named)
+    return share * ds.idf(anchor, vocab, total)
+
+
+def worth_it(title, rows, own, anchor=None, vocab=None, total=None):
     """Is this addition about this person, or just a wider net?"""
     got = ds.buys([title], rows, own)
-    if not got["listings"] or got["relevance"] is None:
+    if got["listings"] < MIN_ROWS or got["relevance"] is None:
         return False, got
-    return got["relevance"] >= MIN_RELEVANCE, got
+    if anchor is None:
+        # No anchor to reason about: fall back to the whole-set bar.
+        return got["relevance"] >= MIN_RELEVANCE, got
+    # One gate, not two. The whole-set relevance test used to be an
+    # alternative route in, and it let "associate ai/ml engineer" through
+    # on a git anchor — generic skill, 0.87 evidence, no business being a
+    # paid search. Anchor evidence already says what the other test was
+    # reaching for, and says it for specialists too.
+    vocab = vocab if vocab is not None else ds.vocabulary(rows)
+    total = total or len(rows)
+    strength = anchor_evidence(title, anchor, rows, vocab, total)
+    return strength >= ANCHOR_EVIDENCE, got
+
+
+def select(own, base, rows, idx, total, seniority, vocab=None, cap=2):
+    """The orphan keywords to add, chosen without asking a model.
+
+    The model was here and is not any more. It was asked to pick the
+    software title out of a skill's candidates — "salesforce developer"
+    rather than "sales operations analyst" — and on the one résumé the
+    feature exists for it returned an empty list at temperature 0, having
+    picked correctly three runs earlier on a slightly different candidate
+    set. Removing it entirely and letting worth_it decide everything went
+    the other way: ten additions for one person.
+
+    Ranking by anchor evidence and capping does both jobs. It is
+    deterministic, it needs no inference, and the cap bounds the spend
+    whatever the corpus throws up.
+    """
+    vocab = vocab if vocab is not None else ds.vocabulary(rows)
+    scored = []
+    for skill, titles in blocks_for(own, base, rows, idx, total, seniority,
+                                    vocab=vocab):
+        for title in titles:
+            if any(title in b or b in title for b in base):
+                continue
+            ok, _got = worth_it(title, rows, own, skill, vocab, total)
+            if not ok:
+                continue
+            scored.append((anchor_evidence(title, skill, rows, vocab, total),
+                           skill, title))
+    scored.sort(key=lambda row: (-row[0], row[2]))
+    keep = []
+    for _evidence, _skill, title in scored:
+        # Checked BEFORE appending: the other order appends one and then
+        # notices, so a cap of zero still added a keyword.
+        if len(keep) >= cap:
+            break
+        if any(title in got or got in title for got in keep):
+            continue
+        keep.append(title)
+    return keep
 
 
 def accept(answer, blocks, rows, seniority):
@@ -396,7 +477,7 @@ def report(model, cache=None):
             if any(title in got_ or got_ in title
                    for got_ in base + extra):
                 continue
-            ok, _got = worth_it(title, rows, own)
+            ok, _got = worth_it(title, rows, own, _s)
             (extra if ok else thin).append(title)
         thin_all.extend((slug, t) for t in dict.fromkeys(thin))
         seen_extra = set()
@@ -557,6 +638,60 @@ def demo():
     bad, got = worth_it("warehouse operative", rows, own)
     assert not bad and got["relevance"] == 0.0
     assert worth_it("nothing here", rows, own)[0] is False
+
+    # Anchored: a title whose market wants the DISCRIMINATIVE skill that
+    # produced it survives even when it wants little else this person
+    # has. That is what being a specialist looks like, and the whole-set
+    # bar threw it away.
+    vocab = ds.vocabulary(rows)
+    strong = anchor_evidence("salesforce developer", "salesforce", rows,
+                             vocab, total)
+    assert strong >= ANCHOR_EVIDENCE, strong
+    # A generic anchor cannot carry a title, however common the title is.
+    weak = anchor_evidence("business development representative", "react",
+                           rows, vocab, total)
+    assert weak < ANCHOR_EVIDENCE, weak
+    # Too few listings is not a market whatever the evidence says.
+    assert worth_it("salesforce developer", rows, own, "salesforce",
+                    vocab, total)[0]
+    assert MIN_ROWS > 2
+
+    # The anchored gate, on a market where a generic anchor cannot
+    # carry a title. "software engineer" is wanted by 100% of this
+    # person's skills and is still not a keyword they should buy,
+    # because the skill that produced it — react, in 660 of 1380
+    # listings — narrows nothing. Only this gate rejects it.
+    wide = ([("react developer", 40, frozenset({"react", "typescript"}),
+              f"r{i}") for i in range(60)]
+            + [("salesforce developer", 35,
+                frozenset({"salesforce"} | ({"apex"} if i < 10 else set())),
+                f"s{i}") for i in range(20)]
+            + [("software engineer", 20, frozenset({"react", "typescript"}),
+                f"g{i}") for i in range(300)]
+            + [("web developer", 20, frozenset({"react", "typescript"}),
+                f"h{i}") for i in range(300)]
+            + [("warehouse operative", 0, frozenset(), f"w{i}")
+               for i in range(700)])
+    wv, wt = ds.vocabulary(wide), len(wide)
+    wown = {"react", "typescript", "salesforce", "apex"}
+    strong_ok, strong_got = worth_it("salesforce developer", wide, wown,
+                                     "apex", wv, wt)
+    weak_ok, weak_got = worth_it("software engineer", wide, wown,
+                                 "react", wv, wt)
+    assert strong_ok and weak_got["relevance"] == 1.0
+    assert not weak_ok, "a generic anchor cannot carry a title"
+    # Both score 100% on the whole set, so the old bar kept both.
+    assert strong_got["relevance"] == weak_got["relevance"] == 1.0
+
+    # select(): deterministic, ranked, capped. No model.
+    base = ["react developer"]
+    picked = select(own, base, rows, idx, total, sen, vocab, cap=2)
+    assert "salesforce developer" in picked, picked
+    assert len(picked) <= 2
+    assert select(own, base, rows, idx, total, sen, vocab, cap=0) == []
+    # Same inputs, same answer, every time — the property the model
+    # could not provide.
+    assert picked == select(own, base, rows, idx, total, sen, vocab, cap=2)
     print("orphan_skills demo ok")
 
 

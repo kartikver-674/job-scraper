@@ -2,28 +2,27 @@
  "ada": {
   "base": [
    "backend engineer",
-   "sde ii, amazon now",
    "full stack ai engineer",
-   "back end developer",
    "gen ai engineer",
-   "fullstack developer",
    "data scientist",
-   "associate ai/ml engineer",
-   "ai ml engineer",
+   "back end developer",
    "full stack engineer",
-   "backend developer"
+   "software engineer ii",
+   "engineering-l2-hyderabad-associate-software engineering",
+   "ai ml engineer",
+   "associate engineer dotnet"
   ],
   "blocks": [
-   [
-    "kubernetes",
-    [
-     "gen ai engineer"
-    ]
-   ],
    [
     "redis",
     [
      "back end developer"
+    ]
+   ],
+   [
+    "kubernetes",
+    [
+     "gen ai engineer"
     ]
    ]
   ],
@@ -33,24 +32,12 @@
  },
  "bhaskar": {
   "base": [
-   "frontend developer",
-   "web developer",
-   "front end developer",
-   ".net developer ai-assisted development",
-   "full stack developer",
-   "software development engineer ii",
-   "frontend engineer",
-   "full stack engineer"
+   "associate- ai data engineer(retail)",
+   "full stack web developer",
+   "ai solutions engineer",
+   "applied ai engineer"
   ],
   "blocks": [
-   [
-    "spring boot",
-    [
-     "backend developer",
-     "java developer",
-     "back end developer"
-    ]
-   ],
    [
     "java",
     [
@@ -62,10 +49,37 @@
     [
      "associate ai/ml engineer"
     ]
+   ],
+   [
+    "spring boot",
+    [
+     "backend developer",
+     "java developer",
+     "back end developer"
+    ]
    ]
   ],
   "answer": {
-   "picks": []
+   "picks": [
+    {
+     "skill": "java",
+     "titles": [
+      "java developer"
+     ]
+    },
+    {
+     "skill": "git",
+     "titles": []
+    },
+    {
+     "skill": "spring boot",
+     "titles": [
+      "backend developer",
+      "java developer",
+      "back end developer"
+     ]
+    }
+   ]
   }
  },
  "chen": {
@@ -73,22 +87,17 @@
    "platform engineer",
    "site reliability engineer",
    "infrastructure engineer",
+   "full stack ai engineer",
    "gen ai engineer",
-   "ai ml engineer",
-   "full stack engineer",
    "mobile application developer",
-   "engineering-l2-hyderabad-associate-software engineering",
    "software engineer ii",
-   "ai engineer"
+   "full stack engineer",
+   "ai ml engineer",
+   "engineering-l2-hyderabad-associate-software engineering",
+   "machine learning engineer",
+   "associate software engineer"
   ],
-  "blocks": [
-   [
-    "kubernetes",
-    [
-     "gen ai engineer"
-    ]
-   ]
-  ],
+  "blocks": [],
   "answer": {
    "picks": []
   }
@@ -106,12 +115,9 @@
  "esi": {
   "base": [
    "full stack developer",
-   "mern stack developer",
-   "react native engineer",
-   "node.js developer",
    "full stack ai engineer",
-   "react js developer",
-   "full stack web developer"
+   "software engineer ii",
+   "full stack engineer"
   ],
   "blocks": [],
   "answer": {
@@ -122,12 +128,13 @@
   "base": [
    "data engineer",
    "analytics engineer",
-   "full stack ai engineer",
-   "full stack engineer",
-   "software engineer ii",
    "mobile application developer",
+   "full stack engineer",
+   "ai ml engineer",
+   "ai/ml engineer",
+   "associate ai/ml engineer",
    "engineering-l2-hyderabad-associate-software engineering",
-   "ai ml engineer"
+   "associate software engineer"
   ],
   "blocks": [],
   "answer": {
@@ -155,7 +162,9 @@
   "base": [
    "machine learning engineer",
    "computer vision engineer",
-   "ai ml engineer"
+   "ai ml engineer",
+   "ai engineer",
+   "ai-native software entwickler (m/w/d)"
   ],
   "blocks": [
    [
@@ -166,14 +175,7 @@
    ]
   ],
   "answer": {
-   "picks": [
-    {
-     "skill": "opencv",
-     "titles": [
-      "ai/ml engineer"
-     ]
-    }
-   ]
+   "picks": []
   }
  },
  "iris": {
@@ -181,11 +183,12 @@
    "frontend consultant",
    "react consultant",
    "full stack ai engineer",
-   "react native engineer",
-   "react js developer",
-   "full stack web developer",
-   "react native developer",
+   "front end engineer",
+   "software development engineer ii",
    "frontend developer",
+   "frontend software engineer",
+   "mern stack developer",
+   "applied ai engineer",
    "front end developer"
   ],
   "blocks": [
@@ -213,12 +216,13 @@
  "jonas": {
   "base": [
    "data engineer",
-   "full stack ai engineer",
-   "full stack engineer",
-   "software engineer ii",
    "mobile application developer",
+   "full stack engineer",
+   "ai ml engineer",
+   "ai/ml engineer",
+   "associate ai/ml engineer",
    "engineering-l2-hyderabad-associate-software engineering",
-   "ai ml engineer"
+   "associate software engineer"
   ],
   "blocks": [],
   "answer": {
@@ -228,11 +232,15 @@
  "kwame": {
   "base": [
    "data engineer",
+   "gen ai engineer",
+   "java fullstack",
+   "full stack ai engineer",
+   "data scientist",
+   "software development engineer ii",
+   "fullstack developer",
+   "artificial intelligence engineer",
    "full stack engineer",
-   "software engineer ii",
-   "engineering-l2-hyderabad-associate-software engineering",
-   "ai ml engineer",
-   "backend engineer"
+   "mobile application developer"
   ],
   "blocks": [],
   "answer": {
@@ -241,14 +249,19 @@
  },
  "lena": {
   "base": [
+   "full stack ai engineer",
+   "node js",
    "sf data cloud consultant",
    "llm full stack engineer",
-   "software engineer ii",
-   "ai ml engineer",
-   "backend engineer",
-   "software developer"
+   "gen ai engineer"
   ],
   "blocks": [
+   [
+    "java",
+    [
+     "java developer"
+    ]
+   ],
    [
     "spring boot",
     [
@@ -266,54 +279,24 @@
      "mobile developer",
      "android engineer"
     ]
-   ],
-   [
-    "java",
-    [
-     "java developer"
-    ]
    ]
   ],
   "answer": {
-   "picks": [
-    {
-     "skill": "spring boot",
-     "titles": [
-      "backend developer",
-      "java developer",
-      "back end developer"
-     ]
-    },
-    {
-     "skill": "kotlin",
-     "titles": [
-      "android developer",
-      "mobile app developer",
-      "mobile developer"
-     ]
-    },
-    {
-     "skill": "java",
-     "titles": [
-      "java developer"
-     ]
-    }
-   ]
+   "picks": []
   }
  },
  "mateo": {
   "base": [
    "backend engineer",
    "part time backend engineer",
-   "sde ii, amazon now",
-   "full stack ai engineer",
-   "back end developer",
    "gen ai engineer",
-   "fullstack developer",
+   "full stack ai engineer",
+   "java fullstack",
+   "back end developer",
+   "react js developer",
    "data scientist",
-   "software development engineer ii",
    "full stack engineer",
-   "ai ml engineer"
+   "associate engineer dotnet"
   ],
   "blocks": [
    [
@@ -321,17 +304,16 @@
     [
      "back end developer"
     ]
+   ],
+   [
+    "aws",
+    [
+     "ai/ml engineer"
+    ]
    ]
   ],
   "answer": {
-   "picks": [
-    {
-     "skill": "redis",
-     "titles": [
-      "back end developer"
-     ]
-    }
-   ]
+   "picks": []
   }
  }
 }
