@@ -135,6 +135,13 @@ def location_matches(location, text):
 
 # --------------------------------------------------------------------------
 def main():
+    # bench-only, and the same mechanism every other credential in this repo
+    # uses. Never echoed, never written back.
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--profile", required=True, help="output/<profile>/ to replay")
