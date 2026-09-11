@@ -90,12 +90,20 @@ SITES = {
     # FEW broad regions ("Delhi / NCR" = id 9508 covers Delhi+Gurgaon+Noida in one
     # run). So naukri does few large runs; control keyword count with --limit.
     # Runs LAST — it's the priciest, so a cap sacrifices only its remaining combos.
-    # OFF by default. Measured across every run in output/ (9,932 rows,
-    # 2026-09-09): naukri has produced ZERO rows and appears in no .done_combos
-    # — it has never actually been run, because at a $0.50 per-run MINIMUM it is
-    # the most expensive source in the table and its inventory is largely what
-    # LinkedIn already returns for the same searches. Turn it on per profile if
-    # you want India-specific boards LinkedIn misses.
+    # OFF by default, and re-measured 2026-09-12 across every run in output/
+    # (22,745 rows): naukri has still produced ZERO rows and appears in no
+    # .done_combos on any profile — in a year it has never executed once,
+    # because at a $0.50 per-run MINIMUM it is the most expensive source in the
+    # table and its inventory is largely what LinkedIn already returns for the
+    # same searches. Turn it on per profile if you want India-specific boards
+    # LinkedIn misses.
+    #
+    # Deleting the entry outright was tried on 2026-09-12 and REVERTED. It is
+    # not a one-line removal: make_profile.validate_keys rejects a SITES key
+    # that config does not define, so every generated profile breaks, and eight
+    # sweep tests assert naukri's presence in the UI and that its per-run floor
+    # is not scaled by the depth control. enabled=False already means it cannot
+    # be planned or run; the cascade costs more than the dead line it removes.
     "naukri":   {"enabled": False, "actor": "muhammetakkurtt/naukri-job-scraper",
                  "results_per_run": 50,
                  "locations": ["Delhi / NCR", "Remote"]},
