@@ -1184,6 +1184,107 @@ class TestSkillWeightEditing(Isolated):
         self.assertIn('name="term"', body)
 
 
+class TestExperienceEditing(Isolated):
+    """The years/months the parse read, corrected before anything is spent.
+
+    Two consumers read this number and both DROP rows when it is wrong —
+    SEARCH["experience_years"] picks LinkedIn's seniority band and
+    SETTINGS["max_experience_years"] is years + 3 — so a parse that read
+    the dates wrong deletes reachable roles before scoring ever runs. It
+    was static text on this screen until now.
+    """
+
+    READ = dict(DERIVED, years_experience=1, experience_months=22)
+
+    def _app(self, derived=None):
+        derived = self.READ if derived is None else derived
+        app = app_module.create_app(
+            state={"resume_text": "a résumé", "cap_usd": 8.41,
+                   "derived": derived},
+            extract=lambda p: "x", derive=lambda t, p: derived,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RAW_PLAN,
+            profile_exists=lambda n: False)
+        app.config.update(TESTING=True)
+        app.written = []
+        app.write_profile = lambda n, src: app.written.append(src)
+        return app
+
+    def _years(self, source):
+        return (int(re.search(r'"experience_years": (\d+)', source).group(1)),
+                int(re.search(r'"max_experience_years": (\d+)', source).group(1)))
+
+    def test_the_months_are_shown_not_just_the_floored_years(self):
+        # 1y10m displayed as "1 year" reads as a misparse of the résumé.
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        self.assertRegex(body, r'name="experience_years"[^>]*value="1"')
+        self.assertRegex(body, r'name="experience_months"[^>]*value="10"')
+
+    def test_the_field_is_a_stepper_not_static_text(self):
+        body = self._app().test_client().get("/review").get_data(as_text=True)
+        # Real number inputs, so both are still typable with no JS.
+        self.assertRegex(body, r'name="experience_years"[^>]*min="0"[^>]*max="60"')
+        self.assertRegex(body, r'name="experience_months"[^>]*min="0"[^>]*max="11"')
+        # And explicit minus/plus either side, which is what a pill is.
+        self.assertIn('@click="n = Math.min(60, n + 1)"', body)
+        self.assertIn('@click="n = Math.min(11, n + 1)"', body)
+
+    def test_an_edited_year_reaches_the_profile(self):
+        app = self._app()
+        r = app.test_client().post("/review", data={
+            "name": "tmp_years", "experience_years": "5",
+            "experience_months": "3"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self._years(app.written[-1]), (5, 8))
+
+    def test_months_alone_do_not_move_the_seniority_band(self):
+        # A posting's stated floor is always in years, so the months are
+        # carried for the display and nothing else. Rounding them up here
+        # would search one band too senior on a 1y11m résumé.
+        app = self._app()
+        app.test_client().post("/review", data={
+            "name": "tmp_years", "experience_years": "1",
+            "experience_months": "11"})
+        self.assertEqual(self._years(app.written[-1]), (1, 4))
+
+    def test_an_edited_year_survives_the_next_configure_change(self):
+        # /estimate re-renders the profile from state["derived"], which is
+        # how an edited weight used to be silently reverted.
+        app = self._app()
+        client = app.test_client()
+        client.post("/review", data={"name": "tmp_years",
+                                     "experience_years": "7",
+                                     "experience_months": "0"})
+        client.post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(self._years(app.written[-1]), (7, 10))
+
+    def test_a_twelfth_month_is_refused(self):
+        # Twelve months is a year, and accepting it would let the two boxes
+        # disagree about the same number.
+        app = self._app()
+        r = app.test_client().post("/review", data={
+            "name": "tmp_years", "experience_years": "1",
+            "experience_months": "12"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Months of experience", r.get_data(as_text=True))
+        self.assertEqual(app.written, [])
+
+    def test_a_form_without_the_field_leaves_the_number_alone(self):
+        # The results screen's re-rank panel posts weights and no experience.
+        # Defaulting a missing field to zero there would rewrite the profile
+        # as a fresher on every re-rank.
+        kept = app_module.with_experience(self.READ, None, None)
+        self.assertEqual(kept["years_experience"], 1)
+        self.assertEqual(kept["experience_months"], 22)
+
+    def test_a_resume_the_engine_read_no_months_from_still_renders(self):
+        # The Gemini engine answers with years and no months at all.
+        body = self._app(DERIVED).test_client().get("/review").get_data(
+            as_text=True)
+        self.assertRegex(body, r'name="experience_years"[^>]*value="2"')
+        self.assertRegex(body, r'name="experience_months"[^>]*value="0"')
+
+
 EMPTY_PLAN = {"profile": "kanav", "sites": {}, "max_results": {},
               "free_sources": 39}
 

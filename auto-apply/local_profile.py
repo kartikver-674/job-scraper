@@ -193,6 +193,9 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
         "candidate_name": checked.get("name") or "",
         "field_summary": _summary(field, years, fields["skills"]),
         "years_experience": years,
+        # Display only — render() ignores it. The review screen shows the
+        # months too, because "1 year" for 1y10m reads as a misparse.
+        "experience_months": checked.get("experience_months"),
         "role_keywords": fields["role_keywords"],
         "skill_weights": [{"term": s, "weight": NEUTRAL_WEIGHT}
                           for s in fields["skills"]],

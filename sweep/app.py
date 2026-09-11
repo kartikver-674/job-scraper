@@ -38,7 +38,7 @@ from sweep.logic import (  # noqa: E402,F401
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
     site_label, sort_rows, step_states, sweep_dates, sweep_state,
-    worst_filter)
+    with_experience, worst_filter)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -1053,6 +1053,9 @@ def create_app(state=None, extract=None, resume_dir=None,
                               request.form.getlist("drop"),
                               request.form.get("add_skills") or "",
                               request.form.get("add_weight") or "")
+            kept = with_experience(kept,
+                                   request.form.get("experience_years"),
+                                   request.form.get("experience_months"))
         except _FormError as exc:
             return render_template("review.html", **shell(
                 "review", derived=derived, commodity=commodity,

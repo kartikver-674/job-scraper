@@ -523,6 +523,30 @@ def reweighted(derived, terms, weights, dropped, add_raw="", add_weight=""):
     return kept
 
 
+def with_experience(derived, years_raw, months_raw):
+    """`derived` with the experience the user corrected on the review screen.
+
+    Raises _FormError. Separate from reweighted() because the results
+    screen's re-rank panel posts weights without this field, and a missing
+    field there must leave the number alone rather than reset it to zero.
+
+    Only the whole years reach the profile — render() writes them into
+    SEARCH["experience_years"] (LinkedIn's seniority band) and
+    SETTINGS["max_experience_years"], and both compare against a posting's
+    stated floor, which is always in years. The months are stored for the
+    display that showed them.
+    """
+    if years_raw is None and months_raw is None:
+        return derived
+    # 60 rather than no ceiling: this is a career length, and an unbounded
+    # one reaches config as max_experience_years and silently stops
+    # filtering anything.
+    years = _parse_int(years_raw or 0, 0, 60, "Years of experience")
+    months = _parse_int(months_raw or 0, 0, 11, "Months of experience")
+    return dict(derived, years_experience=years,
+                experience_months=years * 12 + months)
+
+
 def paid_sites():
     """Sites the Configure screen can switch off, in run order.
 
