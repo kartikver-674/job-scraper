@@ -238,6 +238,7 @@ def principal(header, accepted):
 def validate(body):
     """(model, prompt, schema, timeout) or Refused.
 
+
     Strict: exact keys, exact types, bounded sizes. This is a trust
     boundary — a prompt is a string we are about to spend GPU seconds on
     and a schema is something a runtime will compile.
@@ -280,7 +281,7 @@ def validate(body):
     # Clamped rather than refused: a client asking for longer than we will
     # give is not an error, it just does not get it.
     return (inference.model_name(model), prompt, schema,
-            min(float(timeout), MAX_TIMEOUT), size)
+            min(float(timeout), MAX_TIMEOUT))
 
 
 def runtime_reachable(timeout=3):
@@ -332,17 +333,28 @@ def create_app(runtime=None, accepted=None, slots=None):
         g.request_id = request.headers.get("X-Request-Id") or uuid.uuid4().hex[:12]
         g.started = time.time()
         g.category = "ok"
-        g.prompt_bytes = 0
 
     @app.after_request
     def _log(response):
-        # Operational metadata only. Note what is NOT here: the prompt, the
-        # model's answer, and anything derived from either.
-        log.info("request_id=%s path=%s status=%s model=%s prompt_bytes=%d "
-                 "waited_ms=%d duration_ms=%d outcome=%s",
+        """Five facts, and no sixth.
+
+        request id, model, duration, outcome and the category — plus the
+        path and status those two describe. Nothing else, and in
+        particular nothing DERIVED from the request body.
+
+        prompt_bytes used to be here. It is a size, not content, and it
+        was genuinely useful for spotting a slow call — and it is still
+        gone, because "it is only a size" is the argument every field
+        makes on the way in. A service that handles other people's
+        résumés earns trust by having nothing to explain, not by having
+        a good explanation. Duration and the outcome category are enough
+        to debug with; if they ever stop being enough, the thing to add
+        is a metric, not a log field.
+        """
+        log.info("request_id=%s path=%s status=%s model=%s duration_ms=%d "
+                 "outcome=%s",
                  getattr(g, "request_id", "-"), request.path,
                  response.status_code, getattr(g, "model", "-"),
-                 getattr(g, "prompt_bytes", 0), getattr(g, "waited_ms", 0),
                  int((time.time() - getattr(g, "started", time.time())) * 1000),
                  getattr(g, "category", "ok"))
         response.headers["X-Request-Id"] = getattr(g, "request_id", "-")
@@ -421,29 +433,33 @@ def create_app(runtime=None, accepted=None, slots=None):
 
         try:
             body = request.get_json(force=False, silent=True)
-            model, prompt, schema, timeout, size = validate(body)
+            model, prompt, schema, timeout = validate(body)
         except Refused as exc:
             return fail(exc.status, exc.category, exc.message)
 
-        g.model, g.prompt_bytes = model, size
+        g.model = model
 
         # Wait for the model, do not race for it. A second concurrent
         # generation makes the runtime load a second copy of a 5GB model
         # or evict the first; both callers then finish later than either
         # would have alone.
-        waited = time.time()
         if not app.config["MODEL_SLOT"].acquire(
                 timeout=app.config["QUEUE_WAIT"]):
-            g.waited_ms = int((time.time() - waited) * 1000)
-            reply = fail(503, "model_busy",
+            # 429, not 503. The difference is not pedantry: 503 says the
+            # service is unavailable, and a caller that believes that has
+            # a reason to go somewhere else — in Sweep's case, to a paid
+            # API, under load, which is the worst possible moment to
+            # start spending money. 429 says "you asked for more than
+            # there is right now", which is exactly true and is the one
+            # failure here a caller may sensibly retry.
+            reply = fail(429, "model_busy",
                          f"all {app.config['SLOTS']} model slot(s) were "
                          f"busy for {app.config['QUEUE_WAIT']:g}s")
             # Advisory, and honest: the queue is however long it is, and
             # one generation is the shortest it can be.
             reply[0].headers["Retry-After"] = str(
-                int(app.config["QUEUE_WAIT"]))
+                max(1, int(app.config["QUEUE_WAIT"])))
             return reply
-        g.waited_ms = int((time.time() - waited) * 1000)
 
         started = time.time()
         try:
@@ -643,6 +659,52 @@ def demo():
     for reply in (client().get("/v1/generate", headers=good),
                   client().post("/nope", json=body, headers=good)):
         assert reply.get_json()["error"]["category"] == "not_found"
+
+    # A full model slot is 429 with a Retry-After, not 503 — it is
+    # capacity, and the caller may sensibly come back.
+    app = create_app(Fake(), accepted={"good"}, slots=1)
+    app.config["TESTING"] = True
+    app.config["QUEUE_WAIT"] = 0.01
+    assert app.config["MODEL_SLOT"].acquire(timeout=1)
+    try:
+        reply = app.test_client().post("/v1/generate", json=body,
+                                       headers=good)
+    finally:
+        app.config["MODEL_SLOT"].release()
+    assert reply.status_code == 429, reply.status_code
+    assert reply.get_json()["error"]["category"] == "model_busy"
+    # Never 0: a Retry-After of zero is an invitation to hot-loop.
+    assert int(reply.headers["Retry-After"]) >= 1, reply.headers
+
+    # The log line carries five facts and no sixth. Nothing derived from
+    # the request body, and in particular no prompt size.
+    records = []
+
+    class Sink(logging.Handler):
+        def emit(self, record):
+            records.append(record.getMessage())
+
+    sink = Sink()
+    log.addHandler(sink)
+    # logging.disable() at the top of this demo is a global filter, not a
+    # logger flag, so it has to be lifted rather than worked around.
+    logging.disable(logging.NOTSET)
+    was, log.disabled = log.disabled, False
+    log.setLevel(logging.INFO)
+    try:
+        client().post("/v1/generate",
+                      json=dict(body, prompt="Ada Okonkwo, 5 years"),
+                      headers=good)
+    finally:
+        log.removeHandler(sink)
+        log.disabled = was
+        logging.disable(logging.CRITICAL)
+    line = " ".join(records)
+    for field in ("request_id=", "model=", "duration_ms=", "outcome=ok",
+                  "status=200"):
+        assert field in line, (field, line)
+    for gone in ("prompt_bytes", "waited_ms", "Okonkwo", "5 years"):
+        assert gone not in line, (gone, line)
 
     # /healthz needs no token and reports what it found.
     health = client().get("/healthz").get_json()

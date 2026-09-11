@@ -129,6 +129,29 @@ class BadModelOutput(ModelUnavailable):
     """The runtime answered, but not with the JSON it was asked for."""
 
 
+class ModelBusy(InferenceError):
+    """Every model slot is taken. Come back shortly.
+
+    NOT a ModelUnavailable, and the distinction is the whole point. A
+    ModelUnavailable means there is no model to ask, which make_profile's
+    local-first engine has always been willing to spend one Gemini call
+    on. Saturation is not that: the model exists, it is working, and it
+    will be free in about as long as one generation takes. Spending a
+    paid API call because a queue was busy for thirty seconds is the
+    wrong trade, and doing it under load — exactly when the queue is
+    busiest — is the worst possible time to start spending money.
+
+    NOT a RemoteServiceError either: nothing is misconfigured, so this is
+    the one failure here that a caller may sensibly retry.
+
+    `retry_after` is the service's own advice, in seconds, or None.
+    """
+
+    def __init__(self, message, retry_after=None):
+        self.retry_after = retry_after
+        super().__init__(message)
+
+
 class RemoteServiceError(InferenceError):
     """The inference service is unreachable, refusing, or off-contract.
 
@@ -300,13 +323,16 @@ class LocalOllama:
 # The service's own error categories, and which of the two exception
 # classes each one is. Anything unrecognised is a service problem, not a
 # model problem — an unknown category means the contract moved.
-# "model_busy" is here rather than with the service failures on purpose.
-# A saturated service is not a misconfigured one: the model exists, this
-# caller just cannot have it right now, and that is the same thing to a
-# caller as a laptop with no model on it — make_profile's local-first
-# engine should spend its one Gemini call rather than fail the upload.
-MODEL_CATEGORIES = ("model_unavailable", "model_timeout", "bad_model_output",
-                    "model_busy")
+# Categories meaning "there is no model to ask". These and only these
+# become ModelUnavailable, which is what make_profile's local-first engine
+# has always been willing to spend one Gemini call on.
+#
+# "model_busy" is deliberately NOT here — see ModelBusy. Saturation is not
+# absence, and it must not open the paid path.
+MODEL_CATEGORIES = ("model_unavailable", "model_timeout", "bad_model_output")
+
+# Capacity, not absence and not misconfiguration. Its own class.
+BUSY_CATEGORY = "model_busy"
 
 
 class RemoteService:
@@ -362,6 +388,15 @@ class RemoteService:
         return payload["result"]
 
 
+def _retry_after(exc):
+    """The service's own advice, in seconds, or None. Never a crash."""
+    try:
+        seconds = float(exc.headers.get("Retry-After"))
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return seconds if seconds >= 0 else None
+
+
 def _from_error(exc, model):
     """An HTTP error from the service, as the right exception class.
 
@@ -370,6 +405,7 @@ def _from_error(exc, model):
     the malformed-response case, and treating it as a model problem would
     send a broken deployment round the Gemini fallback forever.
     """
+    retry_after = _retry_after(exc)
     try:
         body = json.loads(exc.read())
         error = body["error"]
@@ -383,6 +419,11 @@ def _from_error(exc, model):
         # the body is big enough — and leaking it is a ResourceWarning
         # per failed request.
         exc.close()
+    if category == BUSY_CATEGORY:
+        return ModelBusy(
+            f"{message} (via the inference service)"
+            + (f" — retry after {retry_after:g}s" if retry_after else ""),
+            retry_after)
     if category in MODEL_CATEGORIES:
         return ModelUnavailable(f"{message} (via the inference service)")
     return RemoteServiceError(
@@ -424,9 +465,9 @@ def demo():
         assert "not a backend" in str(exc), exc
 
     # A service error is classified by CATEGORY, not by status code.
-    def http_error(code, body):
+    def http_error(code, body, headers=None):
         return urllib.error.HTTPError(
-            "http://x/v1/generate", code, "no", {},
+            "http://x/v1/generate", code, "no", headers or {},
             io.BytesIO(json.dumps(body).encode()))
 
     model_down = _from_error(http_error(503, {"error": {
@@ -440,11 +481,21 @@ def demo():
         assert keep_alive() == want, (given, keep_alive())
     del os.environ[KEEP_ALIVE_ENV]
 
-    # A busy service routes like a model that is not there, not like a
-    # broken one — see MODEL_CATEGORIES.
-    busy = _from_error(http_error(503, {"error": {
-        "category": "model_busy", "message": "no slot"}}), "qwen3:8b")
-    assert isinstance(busy, ModelUnavailable), busy
+    # A busy service is its own thing: retryable, and it must NOT open
+    # the Gemini path the way an absent model does.
+    busy = _from_error(http_error(429, {"error": {
+        "category": "model_busy", "message": "no slot"}},
+        {"Retry-After": "12"}), "qwen3:8b")
+    assert isinstance(busy, ModelBusy), busy
+    assert not isinstance(busy, ModelUnavailable), busy
+    assert not isinstance(busy, RemoteServiceError), busy
+    assert busy.retry_after == 12 and "retry after 12s" in str(busy), busy
+    # ... and a missing or nonsense Retry-After is not a crash.
+    for headers in ({}, {"Retry-After": "soon"}, {"Retry-After": "-1"}):
+        quiet = _from_error(http_error(429, {"error": {
+            "category": "model_busy", "message": "no slot"}}, headers),
+            "qwen3:8b")
+        assert isinstance(quiet, ModelBusy) and quiet.retry_after is None
 
 
     for category in ("unauthorized", "payload_too_large", "bad_request"):

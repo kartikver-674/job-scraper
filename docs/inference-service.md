@@ -170,19 +170,32 @@ code is a hint:
 | `unauthorized` | 401 | Missing, malformed or unknown bearer token | Check `SWEEP_INFERENCE_TOKEN` on both sides |
 | `bad_request` | 400 | Unknown field, missing field, wrong type, empty prompt or schema | The client is off-contract; the message names the field |
 | `payload_too_large` | 413 | Prompt over 256 KB, or body over 320 KB | Not a résumé. Refused before it reaches the model |
-| `model_busy` | 503 | No model slot within `SWEEP_INFERENCE_QUEUE_WAIT` | The service is saturated. Retry, or raise the wait |
+| `model_busy` | **429** | No model slot within `SWEEP_INFERENCE_QUEUE_WAIT` | Capacity, not failure. Retry after `Retry-After`, or raise the wait |
 | `model_unavailable` | 503 | Ollama not running, or the model not pulled | `ollama serve`; `ollama pull qwen3:8b`. `/healthz` will also be degraded |
 | `model_timeout` | 504 | The model did not answer within the request's deadline | Usually a cold load on a busy machine. See keep-alive |
 | `bad_model_output` | 502 | The runtime answered with something that is not the JSON it was asked for | A model or runtime problem, not a client one |
 | `internal_error` | 500 | A bug | The request id is in the log with a traceback |
 | `not_found` | 404/405 | Wrong path or method | Only `POST /v1/generate` and `GET /healthz` exist |
 
-On the client side `inference.py` splits these in two, because they route
-differently. `model_*` categories become `ModelUnavailable` — *there is no model
-to ask*, which Sweep's `local-first` engine has always been willing to spend one
-Gemini call on. Everything else, **including any response that is not this
-shape**, becomes `RemoteServiceError`, which nothing catches. A misconfigured
-service must not be able to hide behind a paid API forever.
+On the client side `inference.py` splits these three ways, because they route
+differently:
+
+| Exception | From | Sweep's `local-first` engine |
+| --- | --- | --- |
+| `ModelUnavailable` | `model_unavailable`, `model_timeout`, `bad_model_output` | *There is no model to ask.* Worth one Gemini call |
+| `ModelBusy` | `model_busy` | **Never escalates.** Retryable; carries `retry_after` |
+| `RemoteServiceError` | everything else, **including any response that is not this shape** | Nothing catches it. Explicit failure |
+
+`ModelBusy` is deliberately none of the other two. A full queue is not an absent
+model, so it must not open the paid path — and it would open it *under load*,
+which is the worst possible moment to start spending per request. It is not a
+misconfiguration either, so it is the one failure here a caller may sensibly
+retry. That is also why the status is `429` and not `503`: `503` tells a caller
+the service is unavailable and gives it a reason to go somewhere else, which is
+exactly the wrong conclusion.
+
+Sweep does not retry automatically today — it raises. Adding a bounded backoff is
+a sensible next step when there is more than one caller.
 
 Sweep never falls back from the remote service to a local Ollama. Failures are
 explicit.
@@ -203,21 +216,19 @@ request_id=65440b5bcb86 path=/v1/generate status=503 model=nope:1b \
   prompt_bytes=41 waited_ms=0 duration_ms=1 outcome=model_unavailable
 ```
 
-Request id, path, status, model, prompt **size**, queue wait, duration, outcome
-category. `duration_ms` is the whole request; `waited_ms` is how much of it was
-spent queued for the model slot, so the generation itself is the difference.
-Four concurrent requests against one slot look like this — the queue is visible
-rather than inferred:
+Six fields and no seventh: request id, the path and status they describe, model,
+duration and the outcome category. **Nothing derived from the request body.**
 
-```
-waited_ms=0     duration_ms=5394    outcome=ok
-waited_ms=5393  duration_ms=10444   outcome=ok
-waited_ms=10443 duration_ms=15399   outcome=ok
-waited_ms=15398 duration_ms=20441   outcome=ok
-```
+`prompt_bytes` and `waited_ms` used to be here. A byte count reconstructs
+nothing, which is precisely the argument every field makes on the way in — a
+service that handles other people's résumés earns trust by having nothing to
+explain, not by having a good explanation. Duration plus the outcome category is
+enough to debug with; if it ever stops being enough, the thing to add is a
+metric, not a log field.
 
-The response body's own `duration_ms` is the model time alone, and excludes the
-wait. Never the prompt, never the résumé, never the model's answer, never the
+`duration_ms` is the whole request, so for a queued one it includes the wait. A
+saturated service shows up as `outcome=model_busy` lines, not as a number to
+subtract. Never the prompt, never the résumé, never the model's answer, never the
 token. An unhandled exception logs its type and its **frames** but not its
 message — `json`, `urllib` and runtime adapters all routinely put the thing they
 choked on into the message, and for this service that thing is a résumé.
@@ -244,8 +255,9 @@ Nothing is persisted. No database, no cache, no spool file, no audit trail.
   moving.
 - **No TLS.** Loopback only today. The prompt is a résumé in clear text, so
   anything beyond loopback needs TLS terminated in front of this.
-- **No retry on `model_busy`.** The client fails or escalates; it does not
-  back off and retry. Worth adding when there is more than one caller.
+- **No automatic retry on `model_busy`.** The client raises `ModelBusy` with the
+  service's `Retry-After` attached and leaves the decision to the caller. A
+  bounded backoff is worth adding when there is more than one caller.
 - **No draining flag on `/healthz`.** During shutdown it keeps reporting `ok`
   until the port closes. That matters when a load balancer is watching, and there
   isn't one.

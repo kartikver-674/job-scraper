@@ -148,13 +148,15 @@ def captured_logs(level=logging.DEBUG):
 
 
 @contextlib.contextmanager
-def raw_service(status, body, content_type="application/json"):
+def raw_service(status, body, content_type="application/json", headers=None):
     """A server that answers with whatever we say, contract or not."""
     payload = body if isinstance(body, bytes) else json.dumps(body).encode()
 
     def app(environ, start_response):
-        start_response(f"{status} x", [("Content-Type", content_type),
-                                       ("Content-Length", str(len(payload)))])
+        start_response(f"{status} x",
+                       [("Content-Type", content_type),
+                        ("Content-Length", str(len(payload)))]
+                       + list((headers or {}).items()))
         return [payload]
 
     with serving(app) as url:
@@ -859,25 +861,68 @@ class TestConcurrentRequests(unittest.TestCase):
             time.sleep(0.3)
             status, body, headers = self.post(url)
             first.join(timeout=30)
-        self.assertEqual(status, 503)
+        # 429, not 503: this is capacity, and the caller may come back.
+        self.assertEqual(status, 429)
         self.assertEqual(body["error"]["category"], "model_busy")
         self.assertIn("busy for", body["error"]["message"])
-        self.assertEqual(headers["Retry-After"], "0")
+        # Never 0 — a Retry-After of zero is an invitation to hot-loop.
+        self.assertGreaterEqual(int(headers["Retry-After"]), 1)
         self.assertEqual(len(runtime.calls), 1,
                          "the refused request still reached the model")
 
-    def test_a_busy_service_routes_like_an_absent_model_not_a_broken_one(self):
-        """make_profile's local-first engine should spend its Gemini call.
+    def test_a_busy_service_is_retryable_and_never_opens_the_paid_path(self):
+        """The one that costs money if it is wrong.
 
-        The model exists; this caller cannot have it right now. That is
-        the same thing to a caller as a laptop with no model on it, and
-        failing the user's upload over a queue is the wrong answer.
+        A full queue must NOT look like an absent model, because an
+        absent model is what make_profile's local-first engine spends a
+        Gemini call on — and it would spend it under load, which is the
+        worst possible moment to start paying per request.
         """
-        with raw_service(503, {"error": {"category": "model_busy",
-                                         "message": "all 1 slot(s) busy"}}
-                         ) as url:
-            with self.assertRaises(inference.ModelUnavailable):
+        with raw_service(429, {"error": {"category": "model_busy",
+                                         "message": "all 1 slot(s) busy"}},
+                         headers={"Retry-After": "30"}) as url:
+            with self.assertRaises(inference.ModelBusy) as caught:
                 client(url).generate("m", "p", SCHEMA, 10)
+        busy = caught.exception
+        # Not absence, so local-first does not escalate to Gemini.
+        self.assertNotIsInstance(busy, inference.ModelUnavailable)
+        # Not misconfiguration either — nothing here is broken.
+        self.assertNotIsInstance(busy, inference.RemoteServiceError)
+        # Still an InferenceError, so nothing escapes the family.
+        self.assertIsInstance(busy, inference.InferenceError)
+        self.assertEqual(busy.retry_after, 30)
+        self.assertIn("retry after 30s", str(busy))
+
+    def test_a_busy_service_does_not_reach_gemini_through_local_first(self):
+        import make_profile
+
+        asked = []
+        with no_real_ollama(), raw_service(
+                429, {"error": {"category": "model_busy",
+                                "message": "all 1 slot(s) busy"}}) as url:
+            with mock.patch.dict(os.environ, {
+                    inference.URL_ENV: url,
+                    inference.TOKEN_ENV: TOKEN,
+                    inference.BACKEND_ENV: "remote"}):
+                with mock.patch.object(make_profile, "_generate_one",
+                                       lambda *a, **kw: asked.append(a)):
+                    with self.assertRaises(inference.ModelBusy):
+                        make_profile.generate(object(), ("m",), "résumé", {},
+                                              engine="local-first",
+                                              log=lambda *a: None)
+        self.assertEqual(asked, [],
+                         "a busy queue spent a Gemini call")
+
+    def test_a_missing_or_nonsense_retry_after_is_not_a_crash(self):
+        for headers in ({}, {"Retry-After": "soon"},
+                        {"Retry-After": "-1"}, {"Retry-After": ""}):
+            with self.subTest(headers=headers), raw_service(
+                    429, {"error": {"category": "model_busy",
+                                    "message": "busy"}},
+                    headers=headers) as url:
+                with self.assertRaises(inference.ModelBusy) as caught:
+                    client(url).generate("m", "p", SCHEMA, 10)
+                self.assertIsNone(caught.exception.retry_after)
 
     def test_healthz_answers_while_a_generation_holds_the_slot(self):
         # The reason to accept concurrently at all. One thread would put
@@ -1057,8 +1102,22 @@ class TestNoSensitiveLogging(unittest.TestCase):
         self.assertIn("duration_ms=", text)
         self.assertIn("outcome=ok", text)
         self.assertIn("status=200", text)
-        # The size is fine — it reconstructs nothing.
-        self.assertIn("prompt_bytes=", text)
+        # And nothing derived from the request body. prompt_bytes was
+        # here once: a size reconstructs nothing, which is the argument
+        # every field makes on the way in. A service handling other
+        # people's résumés earns trust by having nothing to explain.
+        for derived in ("prompt_bytes", "waited_ms", "chars", "len="):
+            self.assertNotIn(derived, text)
+
+    def test_the_log_line_carries_the_five_agreed_facts_and_no_sixth(self):
+        _reply, records = self.run_once(FakeRuntime())
+        lines = [r.getMessage() for r in records
+                 if "request_id=" in r.getMessage()]
+        self.assertTrue(lines, "nothing was logged at all")
+        fields = {pair.split("=", 1)[0] for pair in lines[0].split()
+                  if "=" in pair}
+        self.assertEqual(fields, {"request_id", "path", "status", "model",
+                                  "duration_ms", "outcome"})
 
     def test_no_failure_path_logs_the_prompt_or_the_answer(self):
         cases = [
