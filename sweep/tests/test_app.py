@@ -1458,8 +1458,9 @@ class TestResumeParsingScreen(Isolated):
         import apply_config as cfg
         seen = {}
 
-        def fake_generate(client, models, resume_text, prefs):
+        def fake_generate(client, models, resume_text, prefs, engine=None):
             seen["models"] = models
+            seen["engine"] = engine
             return DERIVED
 
         app = app_module.create_app(state={"resume_text": "x"},
@@ -1472,6 +1473,10 @@ class TestResumeParsingScreen(Isolated):
         self.assertEqual(r.status_code, 302)
         self.assertEqual(tuple(seen["models"]), tuple(cfg.MODELS))
         self.assertGreater(len(seen["models"]), 1)
+        # And the engine travels with it, defaulting to the one that has
+        # always run here — turning the local pipeline on is a deliberate
+        # act, never a side effect of an upgrade.
+        self.assertEqual(seen["engine"], "gemini")
 
     def test_a_named_model_failure_is_named_on_the_screen(self):
         # ModelAnswerError is the one exception whose text this app composed

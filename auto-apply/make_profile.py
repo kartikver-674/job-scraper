@@ -31,9 +31,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import apply_config as cfg
 import resume_parser
-import tailor
 
-from google.genai import types
+if cfg.REPO_ROOT not in sys.path:
+    sys.path.insert(0, cfg.REPO_ROOT)
+
+import local_extract
+
+# `tailor` and `google.genai` are imported inside the two functions that
+# actually reach Gemini (_generate_one and main), NOT here. At module
+# level they made google-genai a hard install dependency of this file —
+# and this file is unavoidable for the local engine, because render() and
+# the engine seam live in it. So `engine=local` could not run in an
+# environment without the Gemini SDK, which is the whole point of it.
 
 # The two rules that make or break the output, both learned from live failures
 # documented in RESUME_AUTOCONFIG_PROMPT.md. Keep them together: they are the
@@ -346,36 +355,96 @@ def widen_skills(data, resume_text, output_dir=None, log=print):
     return skill_scan.widen(data, resume_text, output_dir, log)
 
 
-def generate(client, models, resume_text, prefs, attempts=5, sleep=time.sleep,
-             log=print, output_dir=None):
-    """One structured Gemini call, down a ladder of models.
+# Which engine reads the résumé. Read from the environment so both entry
+# points — the CLI and Sweep's injected derive() — pick it up without
+# either of them growing a flag, and defaulted to the engine that has
+# always run here so turning this on is a deliberate act.
+#
+#   gemini       one Gemini call (the default; unchanged behaviour)
+#   local-first  the local pipeline, with Gemini as the fallback when a
+#                deterministic check escalates
+#   local        the local pipeline only — no API key needed, and an
+#                escalation is an error rather than a fallback
+ENGINE_ENV = "SWEEP_PROFILE_ENGINE"
+ENGINES = ("gemini", "local-first", "local")
 
-    `models` is a model id or a sequence of them, tried in order. A model whose
-    DAILY quota is spent (429) or that no longer exists (404) is skipped — RPD
-    is counted per model, so the next one has its own budget. The transient
-    503s are retried on the SAME model first, since they are not about which
-    model was asked.
 
-    Raises QuotaExhausted, naming when the quota comes back, only when every
-    model on the ladder is spent.
+def engine_name(engine=None):
+    """The engine to use, validated. An unknown name is an error, not a
+    silent fall back to Gemini — that would spend a call the user asked
+    not to spend."""
+    name = (engine or os.environ.get(ENGINE_ENV) or "gemini").strip().lower()
+    if name not in ENGINES:
+        raise ValueError(
+            f"{ENGINE_ENV}={name!r} is not an engine — expected one of "
+            f"{', '.join(ENGINES)}")
+    return name
+
+
+def _finish(data, resume_text, output_dir, log):
+    """The two steps every engine's answer goes through.
+
+    Widen BEFORE re-scoring, so a scanned term is weighted against the
+    market exactly like a reported one — and both before render(), because
+    render() is where the USER's reviewed weights arrive from Sweep's
+    review screen and those must win over both of these.
     """
+    return reweight_from_corpus(
+        widen_skills(data, resume_text, output_dir, log), output_dir, log)
+
+
+def generate_local(resume_text, prefs, log=print, output_dir=None, model=None):
+    """The local engine, finished exactly like the Gemini one."""
+    if cfg.REPO_ROOT not in sys.path:
+        sys.path.insert(0, cfg.REPO_ROOT)
+    import local_profile
+
+    return _finish(
+        local_profile.generate(resume_text, prefs, model=model,
+                               output_dir=output_dir, log=log),
+        resume_text, output_dir, log)
+
+
+def generate(client, models, resume_text, prefs, attempts=5, sleep=time.sleep,
+             log=print, output_dir=None, engine=None):
+    """One profile from one résumé, by whichever engine is selected.
+
+    With the default engine this is one structured Gemini call down a
+    ladder of models. `models` is a model id or a sequence of them, tried
+    in order. A model whose DAILY quota is spent (429) or that no longer
+    exists (404) is skipped — RPD is counted per model, so the next one
+    has its own budget. The transient 503s are retried on the SAME model
+    first, since they are not about which model was asked.
+
+    Raises QuotaExhausted, naming when the quota comes back, only when
+    every model on the ladder is spent.
+    """
+    engine = engine_name(engine)
+    if engine != "gemini":
+        import local_profile
+        try:
+            return generate_local(resume_text, prefs, log, output_dir)
+        except (local_profile.Escalated,
+                local_extract.ModelUnavailable) as exc:
+            if engine == "local":
+                raise
+            # local-first: a deterministic check found EVIDENCE of a
+            # problem, or there is no local model to ask. Both are worth
+            # one Gemini call; neither is worth failing the upload.
+            log(f"  local engine escalated ({exc}) — asking Gemini")
+            if client is None:
+                raise
+
     if isinstance(models, str):
         models = (models,)
     models = tuple(models)
     spent, last = [], None
     for index, model in enumerate(models):
         try:
-            # Widen BEFORE re-scoring, so a scanned term is weighted
-            # against the market exactly like a reported one — and
-            # before render(), for the same reason reweight_from_corpus
-            # runs here: the user's reviewed weights arrive at render()
-            # and must win over both of these.
-            return reweight_from_corpus(
-                widen_skills(
-                    _generate_one(client, model, resume_text, prefs,
-                                  attempts, sleep, log),
-                    resume_text, output_dir, log),
-                output_dir, log)
+            return _finish(
+                _generate_one(client, model, resume_text, prefs,
+                              attempts, sleep, log),
+                resume_text, output_dir, log)
         except Exception as exc:
             last = exc
             if _is(exc, _SPENT):
@@ -408,6 +477,9 @@ def generate(client, models, resume_text, prefs, attempts=5, sleep=time.sleep,
 
 def _generate_one(client, model, resume_text, prefs, attempts, sleep, log):
     """One structured Gemini call, retried on the transient 503s this API throws."""
+    # Imported here rather than at module level: see the note at the top.
+    from google.genai import types
+
     prompt = build_prompt(resume_text, prefs)
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTION,
@@ -791,15 +863,27 @@ def main(argv=None):
                         help="annual pay floor in USD; omit to keep undisclosed postings")
     parser.add_argument("--avoid", default="", help="comma-separated roles/stacks to down-rank")
     parser.add_argument("--force", action="store_true", help="overwrite an existing profile")
+    parser.add_argument("--engine", choices=ENGINES, default=None,
+                        help=f"who reads the résumé (default: ${ENGINE_ENV} "
+                             f"or gemini). 'local' needs no API key.")
     args = parser.parse_args(argv)
 
     out = os.path.join(cfg.REPO_ROOT, "profiles", f"{args.name}.py")
     if os.path.exists(out) and not args.force:
         sys.exit(f"{out} exists. Re-run with --force to overwrite (git has the old one).")
 
+    try:
+        engine = engine_name(args.engine)
+    except ValueError as exc:
+        sys.exit(str(exc))
     api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        sys.exit("GEMINI_API_KEY missing from .env.")
+    # Only the engines that can actually call Gemini need the key. This is
+    # the whole point of the local engine, so demanding it anyway would
+    # defeat it.
+    if not api_key and engine != "local":
+        sys.exit("GEMINI_API_KEY missing from .env."
+                 + ("" if engine == "gemini" else
+                    " Use --engine local to run without one."))
 
     prefs = {
         "locations": _csv(args.locations),
@@ -808,11 +892,27 @@ def main(argv=None):
         "min_comp_usd": args.min_comp_usd,
     }
 
-    resume_text = resume_parser.load_resume(args.resume, cfg.RESUME_TXT)
+    # The cache is ONE shared file and load_resume only compares its mtime
+    # against whichever PDF it was handed, so a cache newer than the named
+    # file is returned for it — "594 chars from ada-plain.pdf" silently
+    # reading 3,634 chars of somebody else. That is the same defect that
+    # once had one person measured twice under two names. The cache is
+    # only ever right for the résumé it was made from.
+    resume_text = (resume_parser.load_resume(args.resume, cfg.RESUME_TXT)
+                   if os.path.abspath(args.resume) == os.path.abspath(cfg.RESUME_PDF)
+                   else resume_parser.extract_text(args.resume))
     print(f"Résumé: {len(resume_text)} chars from {args.resume}")
 
+    print(f"Engine: {engine}")
+    client = None
+    # A key AND an engine that can use one. A leftover GEMINI_API_KEY in
+    # .env is common, and building a client for it would import the SDK
+    # and crash a local-only install that never needed either.
+    if api_key and engine != "local":
+        import tailor
+        client = tailor.get_client(api_key)
     try:
-        data = generate(tailor.get_client(api_key), cfg.MODELS, resume_text, prefs)
+        data = generate(client, cfg.MODELS, resume_text, prefs, engine=engine)
     except QuotaExhausted as exc:
         # Nothing was written, and running it again today reaches the same
         # place — so the exit says when it will not.

@@ -13,11 +13,10 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESUME_DIR = os.path.join(REPO_ROOT, "auto-apply", "resume")
 
 # make_profile.render() is used at POST /review time regardless of whether
-# extract/derive are injected, so it's imported once here at module load —
-# matching how auto-apply's own tests import it, so the DeprecationWarning
-# google.genai raises on its first import lands during test collection
-# (silenced by Python's default filters) rather than during a test run
-# (where unittest turns warnings back on).
+# extract/derive are injected, so it's imported once here at module load.
+# It no longer pulls in google.genai: that import moved inside the two
+# functions that reach Gemini, so this app starts without the SDK and the
+# local engine needs neither it nor a key.
 sys.path.insert(0, os.path.join(REPO_ROOT, "auto-apply"))
 import make_profile  # noqa: E402
 
@@ -186,17 +185,31 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     if derive is None:
         import apply_config as cfg
-        import tailor
 
         def derive(resume_text, prefs):
+            engine = make_profile.engine_name()
             api_key = os.environ.get("GEMINI_API_KEY")
-            if not api_key:
-                raise RuntimeError("GEMINI_API_KEY is missing from .env.")
+            # Only the engines that can reach Gemini need the key. The
+            # local engine exists so that a user without one can still
+            # get a profile, so asking for it here would defeat it.
+            if not api_key and engine != "local":
+                raise RuntimeError(
+                    "GEMINI_API_KEY is missing from .env."
+                    + ("" if engine == "gemini" else
+                       f" Set {make_profile.ENGINE_ENV}=local to run "
+                       f"without one."))
+            client = None
+            # A key AND an engine that can use one. `tailor` pulls in
+            # google.genai, so building a client for a leftover key would
+            # crash a local-only install that never needed the SDK.
+            if api_key and engine != "local":
+                import tailor
+                client = tailor.get_client(api_key)
             # The ladder, not the pin: RPD is counted per model on the free
             # tier, so an exhausted primary is a reason to ask the next model,
             # not to fail the upload.
             return make_profile.generate(
-                tailor.get_client(api_key), cfg.MODELS, resume_text, prefs)
+                client, cfg.MODELS, resume_text, prefs, engine=engine)
 
     if profile_exists is None:
         def profile_exists(name):

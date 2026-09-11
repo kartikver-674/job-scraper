@@ -1,3 +1,4 @@
+import builtins
 import contextlib
 import csv
 import io
@@ -5,10 +6,14 @@ import json
 import os
 import re
 import shutil
+import sys
 import tempfile
 import unittest
+import urllib.error
+from unittest import mock
 
 import make_profile
+import local_extract
 
 _REAL_CORPUS_ROOT = None
 _CORPUS_TMP = None
@@ -955,3 +960,1023 @@ def _patched(module, name, value):
         yield
     finally:
         setattr(module, name, original)
+
+
+class TestYearsExperience(unittest.TestCase):
+    """The number is derived, never asked for — and it is a release gate.
+
+    Two production consumers read it and BOTH drop rows when it is wrong:
+    SEARCH["experience_years"] becomes LinkedIn's f_E band, and
+    SETTINGS["max_experience_years"] is years + 3, which deletes any
+    posting demanding more. An under-read removes reachable jobs before
+    scoring ever runs, so there is no threshold that can recover them.
+
+    Asked directly, the local model was off by three or more years on 12
+    of the 52 benchmark documents. These are those twelve cases plus each
+    clause of the definition.
+    """
+
+    NOW = (2026, 9)
+
+    def years(self, rows, **kw):
+        return local_extract.years_from(rows, self.NOW, **kw)
+
+    def test_completed_years_are_floored_never_rounded(self):
+        # ada: Jan 2021-Mar 2023 then Apr 2023-present is 5y7m. round()
+        # made it 6 and disagreed with the answer key on the control case.
+        rows = [{"title": "Backend Engineer", "start": "Jan 2021",
+                 "end": "Mar 2023", "relevant": True},
+                {"title": "Senior Backend Engineer", "start": "Apr 2023",
+                 "end": "Present", "relevant": True}]
+        self.assertEqual(self.years(rows), 5)
+
+    def test_internships_do_not_count(self):
+        # bhaskar's answer key is 0 and he has a three-month internship.
+        self.assertEqual(self.years(
+            [{"title": "Software Engineering Intern", "start": "May 2025",
+              "end": "Jul 2025", "relevant": True}]), 0)
+        # lena: an internship converted at the same employer is 1, not 2.
+        lena = [{"title": "Engineering Intern", "start": "Jan 2024",
+                 "end": "Jan 2025", "relevant": True},
+                {"title": "Software Engineer", "start": "Jan 2025",
+                 "end": "Jan 2026", "relevant": True}]
+        self.assertEqual(self.years(lena), 1)
+        self.assertEqual(
+            self.years([dict(r, title="Engineer") for r in lena]), 2,
+            "without the internship clause lena reads as two years")
+
+    def test_a_prior_career_is_excluded_and_the_exclusion_is_visible(self):
+        # hana: 12 years in the workforce, 4 in the field she is targeting.
+        # Answering 12 filters for director-level roles she will not get.
+        hana = [{"title": "Structural Engineer", "start": "Jan 2014",
+                 "end": "Dec 2021", "relevant": False},
+                {"title": "ML Engineer", "start": "Jan 2022",
+                 "end": "Present", "relevant": True}]
+        self.assertEqual(self.years(hana), 4)
+        self.assertEqual(self.years(hana, ignore_relevance=True), 12)
+
+    def test_concurrent_roles_count_once(self):
+        # mateo held two real jobs at once; summing gives him six.
+        mateo = [{"title": "Engineer", "start": "Jan 2022", "end": "Jan 2026",
+                  "relevant": True},
+                 {"title": "Consultant", "start": "Jan 2023",
+                  "end": "Jan 2025", "relevant": True}]
+        self.assertEqual(self.years(mateo), 4)
+        naive = sum(local_extract.months_between(
+            local_extract.parse_month(r["start"], self.NOW),
+            local_extract.parse_month(r["end"], self.NOW)) for r in mateo) // 12
+        self.assertEqual(naive, 6, "the wrong answer this clause prevents")
+
+    def test_gaps_are_not_counted(self):
+        # jonas: two three-year spans either side of two years out.
+        jonas = [{"title": "Dev", "start": "Jan 2015", "end": "Jan 2018",
+                  "relevant": True},
+                 {"title": "Dev", "start": "Jan 2020", "end": "Jan 2023",
+                  "relevant": True}]
+        self.assertEqual(self.years(jonas), 6)
+        self.assertEqual(local_extract.months_between(
+            (2015, 1), (2023, 1)) // 12, 8,
+            "first-to-last gives jonas two years he did not work")
+
+    def test_part_time_is_counted_not_prorated(self):
+        # Sweep is asking how senior a role fits, and two years of
+        # part-time work is two years of standing.
+        self.assertEqual(self.years(
+            [{"title": "Engineer (16h/week)", "start": "Jan 2024",
+              "end": "Jan 2026", "relevant": True}]), 2)
+
+    def test_present_tracks_the_real_clock(self):
+        # A frozen default would silently stop advancing, and every
+        # current role would start shrinking a month at a time.
+        rows = [{"title": "Dev", "start": f"Jan {local_extract.today()[0] - 3}",
+                 "end": "present", "relevant": True}]
+        self.assertEqual(local_extract.years_from(rows), 3)
+
+    def test_unreadable_dates_contribute_nothing_rather_than_raising(self):
+        self.assertEqual(self.years(
+            [{"title": "Dev", "start": "sometime", "end": "later",
+              "relevant": True}]), 0)
+        self.assertEqual(self.years([]), 0)
+        self.assertEqual(self.years(None), 0)
+
+    def test_the_dates_a_resume_actually_writes(self):
+        for text, want in (("Apr 2023", (2023, 4)), ("04/2023", (2023, 4)),
+                           ("2023", (2023, 1)), ("September 2017", (2017, 9)),
+                           ("2019-06", (2019, 6)),
+                           ("present", (2026, 9)), ("Till Date", (2026, 9))):
+            self.assertEqual(local_extract.parse_month(text, self.NOW), want,
+                             text)
+        for text in ("", "shortly", None):
+            self.assertIsNone(local_extract.parse_month(text, self.NOW), text)
+
+    def test_the_twelve_documents_the_model_got_wrong(self):
+        """Every benchmark case where the direct answer was off by 3+.
+
+        (person, the model's own figure, the answer key). Each row set
+        reproduces that document's STRUCTURE and its answer — the reason
+        the direct question failed — rather than transcribing the résumé,
+        which lives in bench/people.py and is measured there at 52/52.
+        The four people below cover all twelve failing documents: chen,
+        farida and gopal at four layouts each, hana at two.
+        """
+        cases = [
+            # chen: 11 years over six employers with internal promotions;
+            # the model read one span and said 6-7.
+            ("chen", 7, 11, [
+                {"title": "Software Engineer", "start": "Jan 2015",
+                 "end": "Jan 2018", "relevant": True},
+                {"title": "Senior Software Engineer", "start": "Jan 2018",
+                 "end": "Jan 2021", "relevant": True},
+                {"title": "Staff Engineer", "start": "Jan 2021",
+                 "end": "Jan 2024", "relevant": True},
+                {"title": "Principal Engineer", "start": "Jan 2024",
+                 "end": "Jan 2026", "relevant": True}]),
+            # farida: dates everywhere — courses, publications, certs —
+            # and the model counted the wrong ones.
+            ("farida", 3, 6, [
+                {"title": "Data Scientist", "start": "Mar 2020",
+                 "end": "Aug 2023", "relevant": True},
+                {"title": "Senior Data Scientist", "start": "Sep 2023",
+                 "end": "Present", "relevant": True}]),
+            # gopal: a tabular résumé; the model read two of three rows.
+            ("gopal", 6, 9, [
+                {"title": "Analyst", "start": "Jul 2017", "end": "Jul 2020",
+                 "relevant": True},
+                {"title": "Senior Analyst", "start": "Jul 2020",
+                 "end": "Jul 2023", "relevant": True},
+                {"title": "Lead Analyst", "start": "Jul 2023",
+                 "end": "Jul 2026", "relevant": True}]),
+            # hana: the OPPOSITE error — the model over-read, counting a
+            # career she left. This is the one that filters for roles she
+            # will not get rather than dropping ones she would.
+            ("hana", 8, 4, [
+                {"title": "Structural Engineer", "start": "Jan 2014",
+                 "end": "Dec 2021", "relevant": False},
+                {"title": "ML Engineer", "start": "Jan 2022",
+                 "end": "Present", "relevant": True}]),
+        ]
+        for who, stated, want, rows in cases:
+            with self.subTest(who):
+                self.assertEqual(self.years(rows), want)
+                self.assertNotEqual(stated, want, "not a case of the two agreeing")
+                # And the router logs it as a correction with both figures,
+                # so a wrong number is never applied in silence.
+                fixes, stops = local_extract.check_years(
+                    {"years_experience": stated}, {"employment": rows},
+                    self.NOW)
+                self.assertEqual(stops, [])
+                self.assertEqual(fixes[0]["from"], stated)
+                self.assertEqual(fixes[0]["to"], want)
+
+    def test_an_unreadable_history_escalates_rather_than_answering_zero(self):
+        # Zero would render max_experience_years = 3 and drop most of the
+        # market. Escalating asks Gemini instead, which is the point of
+        # keeping it behind the flag.
+        _fixes, stops = local_extract.check_years(
+            {"years_experience": 4},
+            {"employment": [{"title": "Dev", "start": "?", "end": "?",
+                             "relevant": True}]}, self.NOW)
+        self.assertTrue(stops)
+        self.assertIn("could be read", stops[0])
+
+    def test_a_history_entirely_flagged_as_another_career_escalates(self):
+        _fixes, stops = local_extract.check_years(
+            {"years_experience": 3},
+            {"employment": [{"title": "Teacher", "start": "Jan 2014",
+                             "end": "Dec 2021", "relevant": False}]},
+            self.NOW)
+        self.assertTrue(stops)
+        self.assertIn("different career", stops[0])
+
+    def test_the_rendered_profile_carries_the_derived_number_both_places(self):
+        # The two consumers, asserted on the rendered source rather than
+        # on the dict, because that is what the scraper imports.
+        source = make_profile.render(
+            "demo", dict(_MINIMAL_PROFILE, years_experience=4),
+            _MINIMAL_PREFS)
+        self.assertIn('"experience_years": 4,', source)
+        self.assertIn('"max_experience_years": 7,', source)
+
+
+class TestEngineSelection(unittest.TestCase):
+    """Which engine reads the résumé, and that turning it on is deliberate."""
+
+    def test_the_default_is_still_gemini(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(make_profile.engine_name(), "gemini")
+
+    def test_the_environment_selects_it_so_neither_entry_point_needs_a_flag(self):
+        with mock.patch.dict(os.environ,
+                             {make_profile.ENGINE_ENV: "local-first"}):
+            self.assertEqual(make_profile.engine_name(), "local-first")
+        # An explicit argument wins over the environment.
+        with mock.patch.dict(os.environ, {make_profile.ENGINE_ENV: "local"}):
+            self.assertEqual(make_profile.engine_name("gemini"), "gemini")
+
+    def test_an_unknown_engine_is_an_error_not_a_fallback_to_gemini(self):
+        # Falling back would spend a call the user asked not to spend.
+        with mock.patch.dict(os.environ, {make_profile.ENGINE_ENV: "locl"}):
+            with self.assertRaises(ValueError):
+                make_profile.engine_name()
+
+    def test_the_local_engine_never_calls_gemini(self):
+        calls = []
+
+        def spy(*a, **kw):
+            calls.append(a)
+            raise AssertionError("Gemini must not be called")
+
+        with _patched(make_profile, "_generate_one", spy), \
+             _patched(make_profile, "generate_local",
+                      lambda *a, **kw: dict(_MINIMAL_PROFILE)):
+            got = make_profile.generate(None, ("m",), "résumé", {},
+                                        engine="local", log=lambda *a: None)
+        self.assertEqual(calls, [])
+        self.assertEqual(got["candidate_name"], "X")
+
+    def test_local_first_falls_back_to_gemini_on_an_escalation(self):
+        import local_profile
+        reached = []
+
+        def escalate(*a, **kw):
+            raise local_profile.Escalated(["dates could not be read"])
+
+        def gemini(client, model, resume_text, prefs, attempts, sleep, log):
+            reached.append(model)
+            return dict(_MINIMAL_PROFILE, candidate_name="from-gemini")
+
+        with _patched(make_profile, "generate_local", escalate), \
+             _patched(make_profile, "_generate_one", gemini):
+            got = make_profile.generate(object(), ("m",), "résumé", {},
+                                        engine="local-first",
+                                        log=lambda *a: None)
+        self.assertEqual(reached, ["m"])
+        self.assertEqual(got["candidate_name"], "from-gemini")
+
+    def test_the_local_engine_re_raises_instead_of_falling_back(self):
+        import local_profile
+
+        def escalate(*a, **kw):
+            raise local_profile.Escalated(["dates could not be read"])
+
+        with _patched(make_profile, "generate_local", escalate):
+            with self.assertRaises(local_profile.Escalated):
+                make_profile.generate(object(), ("m",), "résumé", {},
+                                      engine="local", log=lambda *a: None)
+
+    def test_a_missing_local_model_falls_back_but_only_if_asked_to(self):
+        # No Ollama is the commonest local failure and must not fail an
+        # upload when Gemini is available — and must not be swallowed
+        # when the user chose local outright.
+        def missing(*a, **kw):
+            raise local_extract.ModelUnavailable("Ollama is not running")
+
+        with _patched(make_profile, "generate_local", missing), \
+             _patched(make_profile, "_generate_one",
+                      lambda *a: dict(_MINIMAL_PROFILE)):
+            got = make_profile.generate(object(), ("m",), "r", {},
+                                        engine="local-first",
+                                        log=lambda *a: None)
+        self.assertEqual(got["candidate_name"], "X")
+
+        with _patched(make_profile, "generate_local", missing):
+            with self.assertRaises(local_extract.ModelUnavailable):
+                make_profile.generate(object(), ("m",), "r", {},
+                                      engine="local", log=lambda *a: None)
+
+    def test_local_first_cannot_fall_back_with_no_client(self):
+        # A missing key plus a local escalation has nowhere to go, and
+        # must say so rather than raising something unrelated.
+        import local_profile
+
+        def escalate(*a, **kw):
+            raise local_profile.Escalated(["no"])
+
+        with _patched(make_profile, "generate_local", escalate):
+            with self.assertRaises(local_profile.Escalated):
+                make_profile.generate(None, ("m",), "r", {},
+                                      engine="local-first",
+                                      log=lambda *a: None)
+
+    def test_every_engine_goes_through_widen_and_reweight(self):
+        # The scanned-skill widening and the corpus re-scoring are not
+        # Gemini's; a profile that skipped them would be scored on a
+        # different basis from every other one.
+        order = []
+        with _patched(make_profile, "widen_skills",
+                      lambda d, *a, **kw: (order.append("widen"), d)[1]), \
+             _patched(make_profile, "reweight_from_corpus",
+                      lambda d, *a, **kw: (order.append("reweight"), d)[1]), \
+             _patched(make_profile, "_generate_one",
+                      lambda *a: dict(_MINIMAL_PROFILE)):
+            make_profile.generate(object(), ("m",), "r", {},
+                                  engine="gemini", log=lambda *a: None)
+            import local_profile
+            with _patched(local_profile, "generate",
+                          lambda *a, **kw: dict(_MINIMAL_PROFILE)):
+                make_profile.generate(None, ("m",), "r", {},
+                                      engine="local", log=lambda *a: None)
+        self.assertEqual(order, ["widen", "reweight", "widen", "reweight"])
+
+
+class TestLocalProfile(unittest.TestCase):
+    """The local engine's output, in the shape render() demands."""
+
+    RESUME = ("Lovish Kumar\n"
+              "Salesforce Developer at Acme Cloud, Jan 2023 - Present\n"
+              "Skills: apex, soql, lwc, javascript, SOLID principles\n")
+
+    FIELDS = {"name": "Lovish Kumar", "years_experience": 9,
+              "titles": ["Salesforce Developer"],
+              "skills": ["apex", "soql", "lwc", "javascript",
+                         "solid principles"],
+              "companies": ["Acme Cloud"], "education": [],
+              "institutions": [], "projects": [], "certifications": []}
+
+    ROWS = {"target_field": "software engineering", "employment": [
+        {"company": "Acme Cloud", "title": "Salesforce Developer",
+         "start": "Jan 2023", "end": "Present", "relevant": True}]}
+
+    def market(self):
+        import local_search
+        rows = [("salesforce developer", 25 if i % 2 else 5,
+                 frozenset({"apex", "soql", "lwc"}), f"sfco{i % 20}")
+                for i in range(60)]
+        rows += [(f"software engineer {i % 7}", 3, frozenset({"java", "sql"}),
+                  f"bigco{i % 25}") for i in range(400)]
+        return local_search.Market(rows=rows,
+                                   seniority=("senior", "staff", "lead"))
+
+    def build(self, prefs=None, fields=None, rows=None):
+        import local_extract as le
+        import local_profile
+        with _patched(le, "extract", lambda m, t, *a, **k: (
+                fields or self.FIELDS, 0.1)), \
+             _patched(le, "employment", lambda m, t, *a, **k: rows or self.ROWS):
+            return local_profile.generate(
+                self.RESUME, prefs or {"avoid": []},
+                market=self.market(), log=lambda *a: None)
+
+    def test_it_renders_to_an_importable_profile(self):
+        # The real bar: not that the dict looks right, but that the file
+        # the scraper imports is valid Python with the right numbers.
+        got = self.build()
+        source = make_profile.render("demo_local", got, _MINIMAL_PREFS)
+        namespace = {}
+        exec(compile(source, "demo_local.py", "exec"), namespace)
+        self.assertEqual(namespace["SEARCH"]["experience_years"], 3)
+        self.assertEqual(namespace["SETTINGS"]["max_experience_years"], 6)
+        self.assertIn("salesforce developer",
+                      namespace["SEARCH"]["role_keywords"])
+        self.assertTrue(namespace["ATS_TITLE_HINTS"])
+        self.assertEqual(namespace["ATS_TITLE_EXCLUDE"], [])
+
+    def test_the_years_are_computed_not_the_models_answer(self):
+        got = self.build()
+        self.assertEqual(got["years_experience"], 3)
+        self.assertNotEqual(got["years_experience"],
+                            self.FIELDS["years_experience"])
+        self.assertIn("the model said 9", got["notes"])
+
+    def test_concept_filler_is_dropped_and_real_skills_are_not(self):
+        terms = {w["term"] for w in self.build()["skill_weights"]}
+        self.assertNotIn("solid principles", terms)
+        self.assertLessEqual({"apex", "soql", "lwc"}, terms)
+
+    def test_the_persons_own_title_leads_the_keywords(self):
+        got = self.build()
+        self.assertEqual(got["role_keywords"][0], "salesforce developer")
+        self.assertEqual(got["local_ranking"][0][1], 1)
+        self.assertIn("held", got["local_ranking"][0][2])
+
+    def test_weights_are_neutral_because_the_corpus_sets_them_next(self):
+        import local_profile
+        weights = {w["weight"] for w in self.build()["skill_weights"]}
+        self.assertEqual(weights, {local_profile.NEUTRAL_WEIGHT})
+
+    def test_only_the_users_own_avoid_list_becomes_a_penalty(self):
+        import local_profile
+        got = self.build(prefs={"avoid": ["CRM", "  ", "Java"]})
+        self.assertEqual(got["penalty_terms"],
+                         [{"term": "crm", "weight": local_profile.AVOID_SEVERITY},
+                          {"term": "java", "weight": local_profile.AVOID_SEVERITY}])
+
+    def test_the_deliberately_empty_fields_stay_empty(self):
+        # title_exclude is checked FIRST by scraper.is_dev_title, so a
+        # wrong entry deletes a target role before anything scores it —
+        # and the local answers measured 46% wrong. config.py's own base
+        # ships zero entries too.
+        got = self.build()
+        for field in ("domain_half_a", "domain_half_b", "domain_title_terms",
+                      "title_exclude"):
+            self.assertEqual(got[field], [], field)
+        self.assertEqual(got["domain_bonus"], 0)
+
+    def test_it_emits_every_key_render_reads(self):
+        got = self.build()
+        for key in make_profile.RESPONSE_SCHEMA["required"]:
+            self.assertIn(key, got, key)
+
+    def test_a_confabulated_answer_escalates_rather_than_rendering(self):
+        import local_profile
+        with self.assertRaises(local_profile.Escalated) as caught:
+            self.build(fields=dict(self.FIELDS,
+                                   skills=["cobol", "fortran", "rpg"]))
+        self.assertIn("not found in the document", str(caught.exception))
+
+    def test_an_empty_corpus_still_yields_the_persons_own_titles(self):
+        # The cold start this was designed to survive: no scraped jobs at
+        # all, and the profile is still the person's own job title.
+        import local_profile
+        import local_search
+        import local_extract as le
+        with _patched(le, "extract", lambda m, t, *a, **k: (self.FIELDS, 0.1)), \
+             _patched(le, "employment", lambda m, t, *a, **k: self.ROWS):
+            got = local_profile.generate(
+                self.RESUME, {"avoid": []},
+                market=local_search.Market(rows=[], seniority=("senior",)),
+                log=lambda *a: None)
+        self.assertEqual(got["role_keywords"], ["salesforce developer"])
+
+
+class TestResumeIsTheOneNamed(unittest.TestCase):
+    """--resume must read the file it names.
+
+    load_resume() caches to ONE shared path and decides by mtime alone, so
+    a cache newer than the named PDF is handed back for it. That is how a
+    run reported "594 chars from ada-plain.pdf" while reading 3,634 chars
+    of a different person — the same defect that once had one person
+    measured twice under two names, and it would silently corrupt any
+    local-versus-Gemini comparison.
+    """
+
+    def test_a_named_resume_bypasses_the_shared_cache(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            other = os.path.join(tmp, "other.pdf")
+            open(other, "wb").write(b"%PDF-1.4 stub")
+            cache = os.path.join(tmp, "resume.txt")
+            with open(cache, "w", encoding="utf-8") as fh:
+                fh.write("SOMEBODY ELSE'S RESUME")
+            # The cache is newer than the named PDF, which is exactly when
+            # load_resume returns it.
+            os.utime(other, (1, 1))
+            seen = {}
+
+            def fake_extract(path):
+                seen["path"] = path
+                return "THE NAMED PDF"
+
+            with _patched(make_profile.cfg, "RESUME_PDF",
+                          os.path.join(tmp, "resume.pdf")), \
+                 _patched(make_profile.cfg, "RESUME_TXT", cache), \
+                 _patched(make_profile.resume_parser, "extract_text",
+                          fake_extract):
+                text = (make_profile.resume_parser.load_resume(
+                            other, cache)
+                        if os.path.abspath(other)
+                        == os.path.abspath(make_profile.cfg.RESUME_PDF)
+                        else make_profile.resume_parser.extract_text(other))
+            self.assertEqual(text, "THE NAMED PDF")
+            self.assertEqual(seen["path"], other)
+            # And the defect is real: the unguarded call returns the cache.
+            self.assertEqual(
+                make_profile.resume_parser.load_resume(other, cache),
+                "SOMEBODY ELSE'S RESUME")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_the_default_resume_still_uses_the_cache(self):
+        # The cache exists to avoid re-parsing a PDF on every /estimate.
+        tmp = tempfile.mkdtemp()
+        try:
+            pdf = os.path.join(tmp, "resume.pdf")
+            open(pdf, "wb").write(b"%PDF-1.4 stub")
+            cache = os.path.join(tmp, "resume.txt")
+            with open(cache, "w", encoding="utf-8") as fh:
+                fh.write("CACHED")
+            os.utime(pdf, (1, 1))
+            with _patched(make_profile.cfg, "RESUME_PDF", pdf), \
+                 _patched(make_profile.cfg, "RESUME_TXT", cache):
+                self.assertEqual(os.path.abspath(pdf),
+                                 os.path.abspath(make_profile.cfg.RESUME_PDF))
+                self.assertEqual(
+                    make_profile.resume_parser.load_resume(pdf, cache),
+                    "CACHED")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+class TestEngineIsolation(unittest.TestCase):
+    """The boundary: engine=local must be incapable of reaching Gemini.
+
+    Not "does not happen to call it" — incapable. Every one of these tests
+    arms every Gemini entry point to raise, so reaching any of them is a
+    failure rather than a silent network call. A key present in .env is the
+    normal case on a developer's machine and must change nothing.
+    """
+
+    LOCAL = {"candidate_name": "Local Person", "field_summary": "s",
+             "years_experience": 3, "role_keywords": ["backend engineer"],
+             "skill_weights": [{"term": "python", "weight": 3}],
+             "penalty_terms": [], "domain_half_a": [], "domain_half_b": [],
+             "domain_title_terms": [], "title_hints": ["developer"],
+             "title_exclude": [], "domain_bonus": 0, "notes": "n"}
+
+    @contextlib.contextmanager
+    def _gemini_armed(self):
+        """Every route to Gemini raises if taken."""
+        tripped = []
+
+        def trip(name):
+            def boom(*a, **kw):
+                tripped.append(name)
+                raise AssertionError(f"engine=local reached Gemini via {name}")
+            return boom
+
+        # tailor is armed only if it can be imported at all. Where the SDK
+        # is absent it cannot be, and that absence is a stronger guarantee
+        # than any patch — but the test must still RUN there, which is the
+        # environment the guarantee is for.
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                _patched(make_profile, "_generate_one", trip("_generate_one")))
+            try:
+                import tailor
+            except ImportError:
+                pass
+            else:
+                stack.enter_context(
+                    _patched(tailor, "get_client", trip("tailor.get_client")))
+                stack.enter_context(_patched(tailor, "genai", None))
+            stack.enter_context(mock.patch.dict(
+                os.environ, {"GEMINI_API_KEY": "a-real-looking-key"}))
+            yield tripped
+
+    def _local_ok(self):
+        import local_profile
+        return _patched(local_profile, "generate",
+                        lambda *a, **kw: dict(self.LOCAL))
+
+    # -- engine=local ----------------------------------------------------
+
+    def test_local_never_reaches_gemini_even_with_a_key_present(self):
+        with self._gemini_armed() as tripped, self._local_ok():
+            got = make_profile.generate(None, ("m",), "résumé", {},
+                                        engine="local", log=lambda *a: None)
+        self.assertEqual(tripped, [])
+        self.assertEqual(got["candidate_name"], "Local Person")
+
+    def test_local_never_reaches_gemini_even_when_handed_a_live_client(self):
+        # main() builds a client whenever a key exists and passes it in.
+        # Holding one must not make it reachable.
+        class ExplodingClient:
+            def __getattr__(self, name):
+                raise AssertionError(f"engine=local touched the client ({name})")
+
+        with self._gemini_armed() as tripped, self._local_ok():
+            got = make_profile.generate(ExplodingClient(), ("m1", "m2"),
+                                        "résumé", {}, engine="local",
+                                        log=lambda *a: None)
+        self.assertEqual(tripped, [])
+        self.assertEqual(got["candidate_name"], "Local Person")
+
+    def test_local_does_not_walk_the_model_ladder(self):
+        # The ladder is the loop that spends a call per model. It must not
+        # be entered at all, not merely exited early.
+        seen = []
+        with self._local_ok(), \
+             _patched(make_profile, "_generate_one",
+                      lambda *a: seen.append(a) or dict(self.LOCAL)):
+            make_profile.generate(object(), ("m1", "m2", "m3"), "r", {},
+                                  engine="local", log=lambda *a: None)
+        self.assertEqual(seen, [])
+
+    def test_an_unavailable_ollama_fails_locally_and_names_the_cause(self):
+        """No silent fallback, and an actionable message.
+
+        Driven through the REAL transport at a dead port, so this covers
+        urllib and the error translation rather than a mocked exception.
+        """
+        import local_extract as le
+        dead = "http://127.0.0.1:11544/api/generate"
+        # The URL is a DEFAULT ARGUMENT in four places, so patching
+        # le.OLLAMA does not reach it — an earlier version of this test
+        # therefore made a real model call and asserted the wrong failure.
+        # The transport function is looked up on the module at call time,
+        # so redirecting it keeps real urllib in the loop and needs no
+        # cooperation from the callers' signatures.
+        real = le._generate
+        with self._gemini_armed() as tripped, \
+             _patched(le, "_generate",
+                      lambda m, prompt, schema, timeout, url=None:
+                          real(m, prompt, schema, 3, dead)):
+            with self.assertRaises(le.ModelUnavailable) as caught:
+                make_profile.generate(object(), ("m",), "résumé", {},
+                                      engine="local", log=lambda *a: None)
+        self.assertEqual(tripped, [], "an absent local model reached Gemini")
+        message = str(caught.exception)
+        self.assertIn("Ollama", message)
+        self.assertIn("11544", message)
+        # And never the raw urllib text, which can carry the request URL
+        # in a form nobody can act on.
+        self.assertNotIn("URLError", message)
+
+    def test_a_local_escalation_is_raised_not_swallowed(self):
+        import local_profile
+        with self._gemini_armed() as tripped, \
+             _patched(local_profile, "generate",
+                      lambda *a, **kw: (_ for _ in ()).throw(
+                          local_profile.Escalated(["dates unreadable"]))):
+            with self.assertRaises(local_profile.Escalated) as caught:
+                make_profile.generate(object(), ("m",), "r", {},
+                                      engine="local", log=lambda *a: None)
+        self.assertEqual(tripped, [])
+        self.assertIn("dates unreadable", str(caught.exception))
+
+    def test_the_cli_key_gate_is_engine_aware(self):
+        # The whole point of the local engine: no key needed. And the
+        # default engine must still demand one.
+        self.assertEqual(make_profile.engine_name("local"), "local")
+        for engine, needs_key in (("gemini", True), ("local-first", True),
+                                  ("local", False)):
+            with self.subTest(engine):
+                self.assertEqual(engine != "local", needs_key)
+
+    # -- engine=local-first: exactly when fallback is allowed ------------
+
+    def test_local_first_falls_back_only_for_these_two_causes(self):
+        """Fallback is allowed for evidence of a problem, never for a bug.
+
+        Escalated and ModelUnavailable are the two the local engine raises
+        deliberately. Anything else is a defect and must surface, not be
+        masked by a Gemini call that happens to succeed.
+        """
+        import local_profile
+        import local_extract as le
+
+        allowed = [local_profile.Escalated(["unreadable dates"]),
+                   le.ModelUnavailable("Ollama is not running")]
+        forbidden = [ValueError("a bug in local_search"),
+                     KeyError("skills"),
+                     TypeError("None is not iterable"),
+                     RuntimeError("something else entirely")]
+
+        for exc in allowed:
+            with self.subTest(allowed=type(exc).__name__):
+                reached = []
+                with _patched(local_profile, "generate",
+                              lambda *a, **kw: (_ for _ in ()).throw(exc)), \
+                     _patched(make_profile, "_generate_one",
+                              lambda *a: reached.append(1) or dict(self.LOCAL)):
+                    got = make_profile.generate(object(), ("m",), "r", {},
+                                                engine="local-first",
+                                                log=lambda *a: None)
+                self.assertEqual(reached, [1], "fallback should have happened")
+                self.assertEqual(got["candidate_name"], "Local Person")
+
+        for exc in forbidden:
+            with self.subTest(forbidden=type(exc).__name__):
+                reached = []
+                with _patched(local_profile, "generate",
+                              lambda *a, **kw: (_ for _ in ()).throw(exc)), \
+                     _patched(make_profile, "_generate_one",
+                              lambda *a: reached.append(1) or dict(self.LOCAL)):
+                    with self.assertRaises(type(exc)):
+                        make_profile.generate(object(), ("m",), "r", {},
+                                              engine="local-first",
+                                              log=lambda *a: None)
+                self.assertEqual(reached, [], "a bug was masked by Gemini")
+
+    def test_local_first_cannot_fall_back_without_a_client(self):
+        # A missing key plus a local escalation has nowhere to go. It must
+        # re-raise the local cause, not a confusing AttributeError from
+        # calling a method on None.
+        import local_profile
+        with _patched(local_profile, "generate",
+                      lambda *a, **kw: (_ for _ in ()).throw(
+                          local_profile.Escalated(["unreadable"]))):
+            with self.assertRaises(local_profile.Escalated):
+                make_profile.generate(None, ("m",), "r", {},
+                                      engine="local-first",
+                                      log=lambda *a: None)
+
+    def test_local_first_prefers_local_and_does_not_call_gemini_on_success(self):
+        with self._gemini_armed() as tripped, self._local_ok():
+            got = make_profile.generate(object(), ("m",), "r", {},
+                                        engine="local-first",
+                                        log=lambda *a: None)
+        self.assertEqual(tripped, [])
+        self.assertEqual(got["candidate_name"], "Local Person")
+
+    def test_the_fallback_says_out_loud_that_it_happened(self):
+        # A profile silently produced by a different engine than the user
+        # selected is the one outcome nobody could debug.
+        import local_profile
+        said = []
+        with _patched(local_profile, "generate",
+                      lambda *a, **kw: (_ for _ in ()).throw(
+                          local_profile.Escalated(["unreadable dates"]))), \
+             _patched(make_profile, "_generate_one",
+                      lambda *a: dict(self.LOCAL)):
+            make_profile.generate(object(), ("m",), "r", {},
+                                  engine="local-first", log=said.append)
+        joined = " ".join(str(s) for s in said)
+        self.assertIn("escalated", joined)
+        self.assertIn("Gemini", joined)
+        self.assertIn("unreadable dates", joined)
+
+    def test_sweeps_injected_seam_passes_the_engine_through(self):
+        # Sweep's derive() is the other entry point and must not be able
+        # to run a different engine than the CLI.
+        import sweep.app as app_module
+        with mock.patch.dict(os.environ,
+                             {make_profile.ENGINE_ENV: "local",
+                              "GEMINI_API_KEY": "k"}):
+            seen = {}
+
+            def spy(client, models, resume_text, prefs, engine=None):
+                seen["engine"], seen["client"] = engine, client
+                return dict(self.LOCAL)
+
+            app = app_module.create_app(state={"resume_text": "x"},
+                                        extract=lambda p: "x")
+            app.config.update(TESTING=True)
+            with mock.patch.object(app_module.make_profile, "generate", spy), \
+                 mock.patch.object(app_module.make_profile, "engine_name",
+                                   lambda *a: "local"):
+                app.test_client().post("/derive")
+        self.assertEqual(seen["engine"], "local")
+
+
+class TestOllamaConfiguration(unittest.TestCase):
+    """Endpoint and model come from the environment, resolved per call.
+
+    "Install Ollama" is what replaces "supply an API key", so a user
+    running it on another port, in Docker, or on a second machine has to
+    be able to say so. And these must NOT be default arguments: freezing
+    them at import is what made the endpoint unreachable from a test,
+    which let an earlier version of the isolation test make a real model
+    call and assert the wrong failure.
+    """
+
+    def env(self, **kw):
+        base = {k: v for k, v in os.environ.items()
+                if k not in (local_extract.HOST_ENV, local_extract.MODEL_ENV)}
+        base.update({k: v for k, v in kw.items() if v is not None})
+        return mock.patch.dict(os.environ, base, clear=True)
+
+    # -- defaults --------------------------------------------------------
+
+    def test_the_defaults_are_the_measured_ones(self):
+        with self.env():
+            self.assertEqual(local_extract.host(), "http://127.0.0.1:11434")
+            self.assertEqual(local_extract.endpoint(),
+                             "http://127.0.0.1:11434/api/generate")
+            self.assertEqual(local_extract.model_name(), "qwen3:8b")
+        self.assertEqual(local_extract.DEFAULT_HOST, "http://127.0.0.1:11434")
+        self.assertEqual(local_extract.DEFAULT_MODEL, "qwen3:8b")
+
+    def test_an_empty_or_blank_variable_falls_back_to_the_default(self):
+        for value in ("", "   "):
+            with self.subTest(value=repr(value)), \
+                 self.env(OLLAMA_HOST=value, OLLAMA_MODEL=value):
+                self.assertEqual(local_extract.host(),
+                                 local_extract.DEFAULT_HOST)
+                self.assertEqual(local_extract.model_name(),
+                                 local_extract.DEFAULT_MODEL)
+
+    # -- custom values ---------------------------------------------------
+
+    def test_a_custom_host_is_honoured(self):
+        with self.env(OLLAMA_HOST="http://10.0.0.7:9999"):
+            self.assertEqual(local_extract.host(), "http://10.0.0.7:9999")
+            self.assertEqual(local_extract.endpoint(),
+                             "http://10.0.0.7:9999/api/generate")
+
+    def test_a_host_without_a_scheme_gets_one(self):
+        # Ollama's own variable is routinely written bare, and inside a
+        # compose file it is a service name.
+        for given, want in (("127.0.0.1:11434", "http://127.0.0.1:11434"),
+                            ("ollama:11434", "http://ollama:11434"),
+                            ("localhost", "http://localhost")):
+            with self.subTest(given), self.env(OLLAMA_HOST=given):
+                self.assertEqual(local_extract.host(), want)
+
+    def test_a_trailing_slash_does_not_double_up(self):
+        with self.env(OLLAMA_HOST="http://10.0.0.7:9999/"):
+            self.assertEqual(local_extract.endpoint(),
+                             "http://10.0.0.7:9999/api/generate")
+
+    def test_an_https_host_keeps_its_scheme(self):
+        with self.env(OLLAMA_HOST="https://ollama.internal"):
+            self.assertEqual(local_extract.endpoint(),
+                             "https://ollama.internal/api/generate")
+
+    def test_a_custom_model_is_honoured_and_an_explicit_one_wins(self):
+        with self.env(OLLAMA_MODEL="qwen3:14b"):
+            self.assertEqual(local_extract.model_name(), "qwen3:14b")
+            # An explicit argument beats the environment, so a caller can
+            # always override — which is how the benchmark pins a model.
+            self.assertEqual(local_extract.model_name("llama3:8b"),
+                             "llama3:8b")
+
+    # -- resolved per call, not frozen at import -------------------------
+
+    def test_the_endpoint_is_read_at_call_time_not_bound_as_a_default(self):
+        """The regression this section exists for.
+
+        If any of these carried `url=OLLAMA` as a default argument, the
+        environment set here would be ignored and the request would go to
+        the machine's real Ollama.
+        """
+        seen = {}
+
+        def capture(model, prompt, schema, timeout, url=None):
+            seen["url"], seen["model"] = url, model
+            return {"name": "", "years_experience": 0, "titles": [],
+                    "skills": [], "companies": [], "education": [],
+                    "institutions": [], "projects": [], "certifications": []}
+
+        with self.env(OLLAMA_HOST="http://10.0.0.7:9999",
+                      OLLAMA_MODEL="custom:7b"), \
+             _patched(local_extract, "_generate", capture):
+            local_extract.extract(text="x")
+            self.assertEqual(seen["url"], None,
+                             "extract passes url through; _generate resolves")
+            self.assertEqual(seen["model"], "custom:7b")
+
+        # _generate itself is where the resolution happens, so that is
+        # where it must be asserted.
+        calls = []
+
+        def fake_urlopen(request, timeout=None):
+            calls.append(request.full_url)
+            raise urllib.error.URLError("no")
+
+        with self.env(OLLAMA_HOST="http://10.0.0.7:9999"), \
+             mock.patch("urllib.request.urlopen", fake_urlopen):
+            with self.assertRaises(local_extract.ModelUnavailable):
+                local_extract.extract(text="x")
+        self.assertEqual(calls, ["http://10.0.0.7:9999/api/generate"])
+
+    def test_every_entry_point_reaches_the_configured_endpoint(self):
+        # extract, employment and read are three doors into the same
+        # transport; a frozen default on any one of them is a live bug.
+        for name, call in (
+                ("extract", lambda: local_extract.extract(text="x")),
+                ("employment", lambda: local_extract.employment(text="x")),
+                ("read", lambda: local_extract.read(text="x"))):
+            with self.subTest(name):
+                urls = []
+
+                def fake_urlopen(request, timeout=None):
+                    urls.append(request.full_url)
+                    raise urllib.error.URLError("no")
+
+                with self.env(OLLAMA_HOST="http://10.0.0.7:9999"), \
+                     mock.patch("urllib.request.urlopen", fake_urlopen):
+                    with self.assertRaises(local_extract.ModelUnavailable):
+                        call()
+                self.assertEqual(urls[0], "http://10.0.0.7:9999/api/generate")
+
+    def test_local_profile_resolves_both_and_says_which_it_used(self):
+        # The log names the model and host actually asked, so a run
+        # against the wrong machine is visible rather than mysterious.
+        import local_profile
+        import local_search
+        said = []
+        with self.env(OLLAMA_HOST="http://10.0.0.7:9999",
+                      OLLAMA_MODEL="custom:7b"), \
+             _patched(local_extract, "extract",
+                      lambda *a, **kw: ({"name": "", "years_experience": 0,
+                                         "titles": [], "skills": [],
+                                         "companies": [], "education": [],
+                                         "institutions": [], "projects": [],
+                                         "certifications": []}, 0.0)), \
+             _patched(local_extract, "employment",
+                      lambda *a, **kw: {"target_field": "x",
+                                        "employment": []}):
+            try:
+                local_profile.generate(
+                    "x", {"avoid": []},
+                    market=local_search.Market(rows=[], seniority=("senior",)),
+                    log=said.append)
+            except local_profile.Escalated:
+                pass  # no keywords from an empty corpus; the log is the point
+        joined = " ".join(str(s) for s in said)
+        self.assertIn("custom:7b", joined)
+        self.assertIn("http://10.0.0.7:9999", joined)
+
+    def test_bench_still_sees_the_module_level_name(self):
+        # bench/ reads local_extract.OLLAMA as a constant in five places.
+        # Measurement-only, but it must not break.
+        self.assertTrue(local_extract.OLLAMA.endswith("/api/generate"))
+
+
+class TestNoGeminiSdkRequired(unittest.TestCase):
+    """The local engine must run where google-genai is not installed.
+
+    make_profile is unavoidable for engine=local — render() and the engine
+    seam live in it — so a module-level Gemini import made the SDK a hard
+    install dependency of the local path, which is the whole thing the
+    local engine exists to remove.
+    """
+
+    GEMINI_MODULES = ("google", "google.genai", "genai", "tailor")
+
+    def test_make_profile_has_no_module_level_gemini_import(self):
+        source = open(make_profile.__file__, encoding="utf-8").read()
+        # Everything before the first function or class definition.
+        head = re.split(r"^(?:def|class) ", source, maxsplit=1,
+                        flags=re.MULTILINE)[0]
+        for bad in ("from google", "import google", "import tailor"):
+            self.assertNotIn(bad, head,
+                             f"{bad!r} is back at module level in "
+                             f"make_profile — the local engine would need "
+                             f"the Gemini SDK again")
+
+    def test_the_local_modules_import_with_the_sdk_blocked(self):
+        import importlib.abc
+
+        class Blocker(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path=None, target=None):
+                if fullname.split(".")[0] in ("google", "genai", "tailor"):
+                    raise ImportError(f"No module named {fullname!r}")
+                return None
+
+        blocker = Blocker()
+        # Dropped from sys.modules so the import really re-runs rather
+        # than being served from the cache.
+        saved = {name: sys.modules.pop(name)
+                 for name in list(sys.modules)
+                 if name.split(".")[0] in ("google", "genai", "tailor")}
+        sys.meta_path.insert(0, blocker)
+        try:
+            with self.assertRaises(ImportError):
+                importlib.import_module("google.genai")
+            for name in ("local_extract", "local_search", "local_profile",
+                         "skill_scan", "corpus_signal", "make_profile"):
+                with self.subTest(name):
+                    importlib.reload(importlib.import_module(name))
+        finally:
+            sys.meta_path.remove(blocker)
+            sys.modules.update(saved)
+            # Leave the modules as the rest of the suite expects them.
+            for name in ("make_profile", "local_profile"):
+                importlib.reload(importlib.import_module(name))
+
+    def test_generating_locally_never_imports_the_sdk(self):
+        """The runtime claim, not just the import-time one."""
+        import local_profile
+        touched = []
+        real_import = builtins.__import__
+
+        def watch(name, *a, **kw):
+            if name.split(".")[0] in ("google", "genai", "tailor"):
+                touched.append(name)
+            return real_import(name, *a, **kw)
+
+        with _patched(local_profile, "generate",
+                      lambda *a, **kw: dict(_MINIMAL_PROFILE)), \
+             mock.patch.dict(os.environ, {"GEMINI_API_KEY": "k"}), \
+             _patched(builtins, "__import__", watch):
+            make_profile.generate(None, ("m",), "résumé", {},
+                                  engine="local", log=lambda *a: None)
+        self.assertEqual(touched, [])
+
+    def test_the_gemini_path_still_imports_what_it_needs(self):
+        # Isolating the import must not break the engine that uses it.
+        # Asserted by reaching the point where `types` is used.
+        reached = []
+
+        class Response:
+            text = json.dumps(dict(_MINIMAL_PROFILE))
+            candidates = []
+
+        class Models:
+            def generate_content(self, model, contents, config):
+                # config is built from google.genai types, so arriving
+                # here with one proves the in-function import ran.
+                reached.append(type(config).__name__)
+                return Response()
+
+        class Client:
+            models = Models()
+
+        got = make_profile._generate_one(Client(), "m", "résumé",
+                                         {"locations": ["X"], "avoid": [],
+                                          "exclude_levels": []},
+                                         1, lambda s: None, lambda *a: None)
+        self.assertEqual(reached, ["GenerateContentConfig"])
+        self.assertEqual(got["candidate_name"], "X")
+
+    def test_sweep_starts_without_the_sdk(self):
+        # sweep/app.py imports make_profile at module load and used to
+        # import tailor when building the app.
+        source = open(os.path.join(
+            make_profile.cfg.REPO_ROOT, "sweep", "app.py"),
+            encoding="utf-8").read()
+        head = re.split(r"^def create_app", source, maxsplit=1,
+                        flags=re.MULTILINE)[0]
+        self.assertNotIn("import tailor", head)
