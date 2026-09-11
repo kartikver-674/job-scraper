@@ -19,12 +19,15 @@ import re
 # (header, row key, character width) — the width is Excel's, and the other
 # two formats ignore it.
 #
-# Fifteen columns, not the CSV's twenty-four. The dropped ones (tz_gap,
+# Sixteen columns, not the CSV's twenty-four. The dropped ones (tz_gap,
 # eor, req_number, verified_live, ...) are either scoring intermediates or
 # near-always empty, and a sheet where a third of the columns are blank is
 # harder to read, not more complete. The engine's CSV is still on disk for
 # anyone who wants all of it.
 COLUMNS = [
+    # First, because it is the column a tracker is sorted and filtered by —
+    # the question "what have I already done" comes before "where is it".
+    ("Applied", "_applied", 9),
     ("Reachable", "_bucket", 16),
     ("Score", "score", 8),
     ("Role", "title", 46),
@@ -98,6 +101,10 @@ def rows_for_export(buckets, sections):
         for row in buckets.get(key) or ():
             tagged = dict(row)
             tagged["_bucket"] = BUCKET_LABELS.get(key, key)
+            # "Yes" or blank rather than True/False: a spreadsheet filters a
+            # word, and a blank cell reads as "not yet" where FALSE reads as
+            # a fact someone established.
+            tagged["_applied"] = "Yes" if row.get("applied") else ""
             out.append(tagged)
     return out
 
@@ -214,16 +221,22 @@ def demo():
     body = as_csv(rows)
     assert body.startswith(b"\xef\xbb\xbf"), "Excel needs the BOM"
     text = body.decode("utf-8-sig")
-    assert text.splitlines()[0].startswith("Reachable,Score,Role")
+    assert text.splitlines()[0].startswith("Applied,Reachable,Score,Role")
     assert "'=cmd|calc" in text, "a formula must not reach the sheet live"
 
     loaded = json.loads(as_json(rows))
     assert loaded[0]["Score"] == 91 and loaded[0]["Role"] == "=cmd|calc"
 
-    tagged = rows_for_export({"abroad": [{"title": "B"}], "india": [{"title": "A"}]},
+    tagged = rows_for_export({"abroad": [{"title": "B"}],
+                              "india": [{"title": "A", "applied": True}]},
                              [("india", "", ""), ("abroad", "", "")])
     assert [r["title"] for r in tagged] == ["A", "B"], "screen order"
     assert tagged[0]["_bucket"] == "In India"
+    # The tick reaches every format, since all three build from COLUMNS.
+    assert tagged[0]["_applied"] == "Yes" and tagged[1]["_applied"] == ""
+    applied_csv = as_csv(tagged).decode("utf-8-sig").splitlines()
+    assert applied_csv[1].startswith("Yes,") and applied_csv[2].startswith(",")
+    assert json.loads(as_json(tagged))[0]["Applied"] == "Yes"
 
     try:
         from openpyxl import load_workbook
@@ -232,12 +245,16 @@ def demo():
         return
     book = load_workbook(io.BytesIO(as_xlsx(rows, about=[("Profile", "kanav")])))
     sheet = book["Listings"]
-    assert sheet["A1"].value == "Reachable" and sheet["B1"].value == "Score"
-    assert sheet["B2"].value == 91, "score must be a number, not text"
-    assert sheet["C2"].value == "'=cmd|calc"
-    assert sheet["C2"].hyperlink.target == "https://x/1"
-    assert sheet["C3"].hyperlink is None, "only http(s) may be linked"
-    assert sheet.freeze_panes == "A2" and sheet.auto_filter.ref == "A1:O3"
+    # Shifted one column by "Applied" at A. The builder derives both the
+    # hyperlink column and the filter range from COLUMNS, so only these
+    # hand-written letters move.
+    assert sheet["A1"].value == "Applied" and sheet["B1"].value == "Reachable"
+    assert sheet["C1"].value == "Score" and sheet["D1"].value == "Role"
+    assert sheet["C2"].value == 91, "score must be a number, not text"
+    assert sheet["D2"].value == "'=cmd|calc"
+    assert sheet["D2"].hyperlink.target == "https://x/1"
+    assert sheet["D3"].hyperlink is None, "only http(s) may be linked"
+    assert sheet.freeze_panes == "A2" and sheet.auto_filter.ref == "A1:P3"
     assert book["About this export"]["B1"].value == "kanav"
     print("exports demo ok")
 

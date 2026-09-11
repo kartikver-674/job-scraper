@@ -399,6 +399,17 @@ tbody tr:hover td, table tr:hover td { background: rgba(26, 44, 51, 0.5); }
    affordance, so this only has to say it is clickable. */
 tr.rowlink { cursor: pointer; }
 
+/* Applied. Dimmed rather than hidden or moved: the row stays exactly where
+   it was so the list does not reflow under the click that ticked it, and it
+   stays readable because "where did I apply" is a question asked later. The
+   tick itself keeps full contrast — it is the control, not the content. */
+tr.applied > td { opacity: .45; }
+tr.applied > td.did { opacity: 1; }
+.did { width: 1.75rem; }
+.tick { display: inline-flex; cursor: pointer; }
+.tick input { width: 1rem; height: 1rem; margin: 0; cursor: pointer;
+              accent-color: var(--paid); }
+
 /* Already opened, in this browser. Faded enough to sort itself out of the
    ones you have not read yet, and no further: these rows are still live
    listings, still clickable, and the disabled treatment elsewhere in this

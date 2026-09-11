@@ -10,6 +10,7 @@
   <div class="listings">
     <table>
       <tr class="muted">
+        <th scope="col"><span class="visually-hidden">Applied</span></th>
         <th scope="col">Source</th><th scope="col">Score</th>
         <th scope="col">Role</th><th scope="col">Location</th>
         <th scope="col">Pay</th><th scope="col">Experience</th>
@@ -24,7 +25,39 @@
            carries no data-href and is not clickable. #}
         {%- set href = (row['apply_url'] or '')|trim %}
         {%- set linkable = (href|lower).startswith(('http://', 'https://')) %}
-        <tr{% if linkable %} class="rowlink" data-href="{{ href }}"{% endif %}>
+        {# The row owns the applied state, so the dim follows the tick with no
+           reload and the checkbox cannot disagree with the class it drives.
+           The dim is bound ONLY — never also written into the static class,
+           which Alpine did not add and so would never remove on untick. #}
+        <tr x-data="{ done: {{ 'true' if row['applied'] else 'false' }} }"
+            :class="done && 'applied'"
+            {%- if linkable %} class="rowlink" data-href="{{ href }}"{% endif %}>
+          {# A row with no identity cannot be tracked — the ledger is keyed on
+             it, and one blank key would tick every other unkeyable row along
+             with it. Rare enough to leave the cell empty rather than explain. #}
+          <td class="did">
+            {%- if row['_key'] %}
+              {# The key travels in a data attribute, not interpolated into the
+                 JS below: a req-number or URL key is not normalized the way a
+                 company+title one is, and a quote in it would end the string
+                 literal it was pasted into. An attribute is escaped as markup,
+                 which is the one place this is safe to put. #}
+              <label class="tick">
+                <input type="checkbox" x-model="done"
+                       data-key="{{ row['_key'] }}"
+                       @change="fetch('{{ url_for('applied') }}', {
+                         method: 'POST',
+                         headers: {'Content-Type':
+                                   'application/x-www-form-urlencoded'},
+                         body: 'key=' + encodeURIComponent($el.dataset.key)
+                               + '&on=' + (done ? '1' : '0')
+                       }).then(r => { if (!r.ok) { done = !done } })
+                         .catch(() => { done = !done })"
+                       {{ 'checked' if row['applied'] }}>
+                <span class="visually-hidden">Applied to
+                  {{ row['title'] }} at {{ row['company'] }}</span>
+              </label>
+            {%- endif %}</td>
           {# Same rule plan.cost() and the running screen's tiles use: a site
              listed at a $0.00 rate is free either way. #}
           <td class="{{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">{{ row['source_site'] }}</td>

@@ -38,7 +38,7 @@ from sweep.logic import (  # noqa: E402,F401
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
     site_label, sort_rows, step_states, sweep_dates, sweep_state,
-    with_experience, worst_filter)
+    with_experience, worst_filter, applied_path, read_applied, set_applied)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
 # label has to be true after either answer — a step chip reading "Connect key"
@@ -532,6 +532,31 @@ def create_app(state=None, extract=None, resume_dir=None,
                 # is showing every sweep or only the most recent one.
                 row.setdefault("_merged", "1" if merged else "")
             return rows
+
+    def _applied_file():
+        return applied_path(output_dir, app.state["profile"])
+
+    def rows_with_applied(profile):
+        """This profile's shortlist, each row flagged with whether it has been
+        ticked as applied.
+
+        One place, called by both the screen and the export, because a row
+        shown as applied and exported as not would make the tick worthless.
+        The ledger is read once per request rather than per row — it is a set
+        of a few hundred keys, and the file is small enough that caching it
+        would only add a way for it to go stale.
+        """
+        # Copied, not flagged in place: read_rows is injectable and a test's
+        # fixture list is shared between cases, so writing into the caller's
+        # dicts leaks one case's ticks into the next.
+        rows = [dict(row) for row in read_rows(profile)]
+        done = read_applied(applied_path(output_dir, profile))
+        for row in rows:
+            # The engine's own identity rule, the same one the live feed
+            # above uses — never a second one that could disagree with it.
+            row["_key"] = scraper._seen_key(row)
+            row["applied"] = bool(row["_key"]) and row["_key"] in done
+        return rows
 
     if start_rescore is None:
         from sweep import runs as runs_mod
@@ -1578,7 +1603,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         if not free_only() and app.state.get("credit_total_usd") is not None:
             refresh_credits()
         profile = app.state["profile"]
-        all_rows = read_rows(profile)
+        all_rows = rows_with_applied(profile)
         sweeps = list_sweeps(profile)
         # A single sweep's file is complete for that sweep but does not span
         # earlier ones, and merge_jobs.py is what combines them.
@@ -1748,6 +1773,37 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state["merge_proc"] = start_merge(app.state["profile"])
         return redirect(_results_url())
 
+    @app.post("/applied")
+    def applied():
+        """Tick or untick one listing. Answers 204, never a page.
+
+        Posted by the checkbox itself so a tick does not reload the results
+        screen — which would lose the scroll position on a 1,600-row page,
+        and with it the row the user was looking at when they ticked it.
+
+        The key arrives from the browser, so it is checked against the keys
+        THIS profile's shortlist actually contains rather than written
+        straight to the ledger: the ledger outlives the output files, and a
+        junk key in it would never be cleaned up by anything.
+        """
+        if not app.state.get("profile"):
+            return redirect(url_for("upload"))
+        key = (request.form.get("key") or "").strip()
+        on = request.form.get("on") == "1"
+        known = {row["_key"]: row
+                 for row in rows_with_applied(app.state["profile"])
+                 if row.get("_key")}
+        if key not in known:
+            # Not an error the user can act on — it means the shortlist was
+            # rewritten under them (a merge, a re-score) since the page
+            # loaded. Say so plainly rather than writing a key nothing owns.
+            return {"error": "That listing is no longer in this shortlist — "
+                             "reload the results screen."}, 409
+        row = known[key]
+        set_applied(_applied_file(), key, on,
+                    row.get("title", ""), row.get("company", ""))
+        return "", 204
+
     @app.get("/results")
     def results():
         if not app.state.get("profile"):
@@ -1779,7 +1835,7 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         profile = app.state["profile"]
         min_score, source, q, sort = _shortlist_args()
-        rows = shortlist(read_rows(profile), min_score, source, q, sort)
+        rows = shortlist(rows_with_applied(profile), min_score, source, q, sort)
         # Tagged from the SAME buckets the screen renders, so a row cannot be
         # filed under one heading on the page and another in the file.
         tagged = exports.rows_for_export(bucket_rows(rows), SECTIONS)
