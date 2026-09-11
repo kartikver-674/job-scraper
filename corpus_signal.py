@@ -82,6 +82,17 @@ def frequencies(output_dir=None):
     return out
 
 
+def vocabulary(output_dir=None, freqs=None):
+    """{term: listings naming it} — the market's own skill vocabulary.
+
+    Derived from frequencies() rather than read again: that function
+    already walks output/ and counts every term in matched_skills, and
+    a second reader would be a second thing to keep correct.
+    """
+    freqs = freqs if freqs is not None else frequencies(output_dir)
+    return {term: hits for term, (hits, _seen) in freqs.items() if hits}
+
+
 def separation(term, freqs):
     """How much this term narrows the market, 1-5, or None when unmeasured."""
     hits, seen = freqs.get(term, (0, 0))
@@ -295,6 +306,12 @@ def demo():
         rows = title_yield(tmp)
         assert rows == [("react developer", 44)], rows
         assert frequencies(tmp)["react"][0] == 1
+
+    # vocabulary() is frequencies() with the denominator dropped, so
+    # a term counted zero times is not in the market's vocabulary.
+    assert vocabulary(freqs={"react": (30, 100), "cobol": (0, 100)}) == {
+        "react": 30}
+    assert vocabulary(freqs={}) == {}
 
     print("corpus_signal demo ok")
 

@@ -784,3 +784,113 @@ class TestCli(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestWidenSkills(unittest.TestCase):
+    """The market-vocabulary scan, wired in before reweight_from_corpus.
+
+    A model reads a skills section well and under-reads prose, so about a
+    third of the technologies on a real résumé never reach the profile.
+    These cover the seam and the gate, not the scanner — skill_scan has
+    its own self-check.
+    """
+
+    RESUME = ("Technical Skills\n"
+              "Frontend: Lightning Web Components, Aura\n"
+              "Experience\n"
+              "- Built with Apex, LWC, SOQL for a field sales platform.\n")
+    VOCAB = {"lwc": 35, "lightning web components": 33, "apex": 45,
+             "aura": 20, "field sales": 4, "soql": 28}
+
+    def _widen(self, data, text=None):
+        import sys as _sys
+        if make_profile.cfg.REPO_ROOT not in _sys.path:
+            _sys.path.insert(0, make_profile.cfg.REPO_ROOT)
+        import skill_scan
+
+        return skill_scan.widen(data, self.RESUME if text is None else text,
+                                log=lambda *a: None, vocab=self.VOCAB)
+
+    def test_it_adds_a_skill_the_model_did_not_report(self):
+        out = self._widen({"skill_weights": [{"term": "aura", "weight": 4}]})
+        self.assertIn("lightning web components",
+                      {e["term"] for e in out["skill_weights"]})
+
+    def test_a_real_technology_named_once_in_prose_is_still_rejected(self):
+        # Apex is a genuine skill and appears once, in a bullet, with no
+        # expansion listed. The gate cannot tell it from "field sales
+        # platform" and does not try: one passing mention is context.
+        # This is the recall the gate trades away for precision — a
+        # deliberate cost, not an oversight.
+        out = self._widen({"skill_weights": []})
+        self.assertNotIn("apex", {e["term"] for e in out["skill_weights"]})
+
+    def test_an_abbreviation_inherits_its_expansions_evidence(self):
+        # LWC appears once, in a bullet. Its expansion is in the skills
+        # list two lines above, so it is a claim and not passing context.
+        out = self._widen({"skill_weights": []})
+        self.assertIn("lwc", {e["term"] for e in out["skill_weights"]})
+
+    def test_a_one_off_product_noun_is_not_a_skill(self):
+        # "field sales platform" describes what was built, not a skill.
+        out = self._widen({"skill_weights": []})
+        self.assertNotIn("field sales",
+                         {e["term"] for e in out["skill_weights"]})
+
+    def test_the_models_own_weight_is_never_overwritten(self):
+        out = self._widen({"skill_weights": [{"term": "aura", "weight": 5}]})
+        aura = [e for e in out["skill_weights"] if e["term"] == "aura"]
+        self.assertEqual(aura, [{"term": "aura", "weight": 5}])
+
+    def test_every_added_skill_says_where_it_came_from(self):
+        out = self._widen({"skill_weights": [], "notes": "original"})
+        self.assertTrue(out["notes"].startswith("original"))
+        self.assertIn("lwc", out["notes"])
+        self.assertIn("its expansion", out["notes"])
+
+    def test_the_callers_data_is_not_mutated(self):
+        data = {"skill_weights": [{"term": "aura", "weight": 4}]}
+        self._widen(data)
+        self.assertEqual(data["skill_weights"],
+                         [{"term": "aura", "weight": 4}])
+
+    def test_no_vocabulary_means_no_change(self):
+        import sys as _sys
+        if make_profile.cfg.REPO_ROOT not in _sys.path:
+            _sys.path.insert(0, make_profile.cfg.REPO_ROOT)
+        import skill_scan
+
+        data = {"skill_weights": [{"term": "aura", "weight": 4}]}
+        # An absent or unscraped output/ yields an empty vocabulary, and
+        # the profile must pass through untouched rather than empty.
+        self.assertIs(skill_scan.widen(data, self.RESUME, vocab={},
+                                       log=lambda *a: None), data)
+        self.assertIs(skill_scan.widen(data, "", vocab=self.VOCAB,
+                                       log=lambda *a: None), data)
+
+    def test_generate_widens_before_rescoring(self):
+        # The seam itself: generate() must call this, or none of the
+        # above reaches a real profile.
+        seen = {}
+        real = make_profile.widen_skills
+
+        def spy(data, resume_text, output_dir=None, log=print):
+            seen["called_with"] = resume_text
+            return real(data, resume_text, output_dir, log)
+
+        with _patched(make_profile, "widen_skills", spy), \
+                _patched(make_profile, "_generate_one",
+                         lambda *a, **k: {"skill_weights": []}):
+            make_profile.generate(None, ("m",), self.RESUME, {},
+                                  log=lambda *a: None)
+        self.assertEqual(seen.get("called_with"), self.RESUME)
+
+
+@contextlib.contextmanager
+def _patched(module, name, value):
+    original = getattr(module, name)
+    setattr(module, name, value)
+    try:
+        yield
+    finally:
+        setattr(module, name, original)

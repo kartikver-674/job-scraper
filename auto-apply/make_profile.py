@@ -320,6 +320,32 @@ def reweight_from_corpus(data, output_dir=None, log=print):
     return data
 
 
+def widen_skills(data, resume_text, output_dir=None, log=print):
+    """Add skills the résumé names and the market recognises.
+
+    The model reads a skills section well and under-reads prose: about a
+    third of the technologies on a real résumé are named only in
+    experience bullets or headings, and thin coverage was measured to
+    cause most of the ranking gap — a specialist's own roles scoring
+    below the readable band. skill_scan gates every hit structurally, so
+    a term appearing once in passing is not treated as a claim, and
+    carries its reason into notes.
+
+    Here rather than in render(), and before reweight_from_corpus, for
+    the same reason that function is here: render() is where the USER's
+    reviewed weights arrive from Sweep's review screen, and both of
+    these must be settled before that so the user's edits still win.
+
+    Degrades to a no-op: an absent or empty output/ yields no
+    vocabulary, so nothing is added.
+    """
+    if cfg.REPO_ROOT not in sys.path:
+        sys.path.insert(0, cfg.REPO_ROOT)
+    import skill_scan
+
+    return skill_scan.widen(data, resume_text, output_dir, log)
+
+
 def generate(client, models, resume_text, prefs, attempts=5, sleep=time.sleep,
              log=print, output_dir=None):
     """One structured Gemini call, down a ladder of models.
@@ -339,9 +365,16 @@ def generate(client, models, resume_text, prefs, attempts=5, sleep=time.sleep,
     spent, last = [], None
     for index, model in enumerate(models):
         try:
+            # Widen BEFORE re-scoring, so a scanned term is weighted
+            # against the market exactly like a reported one — and
+            # before render(), for the same reason reweight_from_corpus
+            # runs here: the user's reviewed weights arrive at render()
+            # and must win over both of these.
             return reweight_from_corpus(
-                _generate_one(client, model, resume_text, prefs, attempts,
-                              sleep, log),
+                widen_skills(
+                    _generate_one(client, model, resume_text, prefs,
+                                  attempts, sleep, log),
+                    resume_text, output_dir, log),
                 output_dir, log)
         except Exception as exc:
             last = exc
