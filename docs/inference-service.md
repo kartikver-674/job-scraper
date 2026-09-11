@@ -12,7 +12,9 @@ is the only component in the repo that knows Ollama exists. Sweep reaches it
 through `inference.py`'s provider boundary and never falls back to a local model
 when it cannot be reached.
 
-**Not deployed anywhere yet.** This documents how to run it, not where.
+**Not deployed anywhere yet.** This documents how to run it, not where —
+[docs/inference-hosting.md](inference-hosting.md) is the evidence for *where*,
+and what it would cost.
 
 ---
 
