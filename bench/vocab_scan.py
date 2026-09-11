@@ -256,7 +256,30 @@ def sections_of(text):
     return "\n".join(skills), "\n".join(other)
 
 
-def gated(text, vocab):
+def abbreviations(vocab):
+    """{term: {its abbreviation or its expansion}} from the vocabulary.
+
+    Derived, not listed. A multi-word market term whose initials are
+    THEMSELVES a market term is an abbreviation pair: "lightning web
+    components" gives "lwc", both are terms employers use, so the two
+    are the same skill written two ways. Nothing here knows what either
+    of them is, and the same rule pairs any acronym the market happens
+    to use alongside its expansion.
+    """
+    pairs = {}
+    for term in vocab:
+        words = [w for w in str(term).split() if w]
+        if len(words) < 2:
+            continue
+        acronym = "".join(w[0] for w in words)
+        if len(acronym) < 2 or acronym == term or acronym not in vocab:
+            continue
+        pairs.setdefault(acronym, set()).add(term)
+        pairs.setdefault(term, set()).add(acronym)
+    return pairs
+
+
+def gated(text, vocab, pairs=None):
     """Vocabulary hits that clear a deterministic quality gate.
 
     Two structural conditions, no tuned numbers:
@@ -278,13 +301,26 @@ def gated(text, vocab):
     found = scan(text, vocab)
     skills_text, _other = sections_of(text)
     low = text.lower()
+    pairs = pairs if pairs is not None else abbreviations(vocab)
     kept = {}
     for term, how in found.items():
         in_skills = bool(occurrences(term, skills_text, vocab))
+        # An abbreviation inherits the structural evidence of its
+        # expansion. Lovish writes "Lightning Web Components" in his
+        # skills list and "LWC" once in a bullet; the abbreviation was
+        # being discarded as a one-off prose mention while the very same
+        # skill sat two lines above, spelled out.
+        partner = ""
+        if not in_skills:
+            for other in sorted(pairs.get(term, ())):
+                if occurrences(other, skills_text, vocab):
+                    in_skills, partner = True, other
+                    break
         repeated = len(re.findall(re.escape(term.lower()), low)) > 1
         exact = how == "boundary"
         if in_skills:
-            kept[term] = "listed under skills"
+            kept[term] = (f"its expansion {partner!r} is listed under skills"
+                          if partner else "listed under skills")
         elif repeated and exact:
             kept[term] = "occurs more than once, exact match"
         elif exact and how == "boundary" and term in skills_text.lower():
@@ -345,6 +381,33 @@ def demo():
     sk, other = sections_of(text)
     assert "React Native" in sk and "field sales" not in sk
     assert "field sales" in other
+
+    # Abbreviation pairs are DERIVED from the vocabulary: a multi-word
+    # term whose initials are themselves a market term.
+    abbr_vocab = dict(vocab, **{"lwc": 35, "lightning web components": 33,
+                                "field sales platform": 9})
+    pairs = abbreviations(abbr_vocab)
+    assert pairs["lwc"] == {"lightning web components"}, pairs.get("lwc")
+    assert "lightning web components" in pairs
+    # A multi-word term whose initials are NOT a market term makes no
+    # pair, which is what keeps this from inventing relations.
+    assert "field sales platform" not in pairs, pairs.get("field sales platform")
+    assert abbreviations({"react native": 1}) == {}
+
+    # The case this rule exists for: the expansion is listed under
+    # skills, the abbreviation appears once in a bullet. Without the
+    # rule the abbreviation is discarded as passing context.
+    doc = ("Technical Skills\n"
+           "Frontend: Lightning Web Components, Aura\n"
+           "Experience\n- Built with Apex, LWC, SOQL for reporting.\n")
+    without, _all1 = gated(doc, abbr_vocab, pairs={})
+    with_, _all2 = gated(doc, abbr_vocab, pairs=pairs)
+    assert "lwc" not in without, without
+    assert "lwc" in with_, with_
+    assert "expansion" in with_["lwc"]
+    # And it does not open a door: a one-off product noun with no
+    # expansion listed anywhere is still rejected.
+    assert "field sales" not in gated(text, abbr_vocab, pairs=pairs)[0]
 
     p, r, f1, missing, spurious = score({"a", "b"}, ["a", "c"])
     assert p == 0.5 and r == 0.5 and missing == ["c"] and spurious == ["b"]
