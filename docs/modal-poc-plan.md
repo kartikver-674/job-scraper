@@ -440,3 +440,74 @@ snapshot arm** — same prompt, same schema, `temperature: 0`. Greedy decoding
 on a GPU is not bit-identical across kernel choices. Harmless for timing, but
 it means **profile equivalence has to be measured, not assumed**, before
 Modal serves anything real. `bench/backends.py` is that check.
+
+
+---
+
+## 11. Snapshot run 2: it works. 147.44 s → 27.97 s
+
+Corrected experiment, deployed app, T4, forced-cold containers.
+
+```
+  cold container:     147.44s end to end, boot_id=a39b8861ef5e boot_cost=108.38s
+  snapshot creation:  171.62s end to end, boot_id=b8afc0beb78e
+  restored container:  27.97s end to end, boot_id=b8afc0beb78e  <- same id
+```
+
+**Two different containers, one `boot_id`.** The restored container never ran
+`boot()`. Corroborated by `seconds_since_boot`: 236.43 s on the snapshot arm
+against 121.82 s on the control — its "boot" happened four minutes earlier, in
+the container that created the snapshot.
+
+### Where the cold time goes
+
+| | control | snapshot |
+| --- | ---: | ---: |
+| Modal container spin-up | 25.72 s | — |
+| `boot()` — ollama start + CUDA/kernel warm | 108.38 s | **0.00 s** |
+| snapshot restore | — | 13.78 s |
+| the profile itself | 13.34 s | 14.19 s |
+| **cold end to end** | **147.44 s** | **27.97 s** |
+
+**119.47 s saved, 81%, 5.3× faster cold.** Generation is unaffected: 36.4 vs
+36.1 tok/s. The restored container's first prefill is slower (775 vs 1388 tok/s
+— some kernel re-warm) but that is 0.6 s.
+
+### This is what decides the hosting question
+
+| cold `fields` HTTP request | time | margin to Modal's 150 s cap |
+| --- | ---: | ---: |
+| without snapshots | 144.78 s | **+5.22 s** |
+| with snapshots | 25.21 s | **+124.79 s** |
+
+Without snapshots the very first request after a scale-to-zero sits **5 seconds**
+from the cliff — and past it Modal 303-redirects, `urllib` turns a followed 303
+into a GET, and `/v1/generate` answers `not_found`. With snapshots there is 24×
+the headroom and the risk is gone.
+
+### A third bug in the verdict function, worth recording
+
+It printed *"it did not restore — it booted"* against data that clearly showed a
+restore. The test was `boot_cost_s > 30`, but **`boot_cost_s` is a restored
+attribute**: it carries the value recorded when `boot()` ran in the container
+that *created* the snapshot, so a restored container faithfully reports the cost
+it **skipped**. The only sound evidence is the `boot_id` appearing in two
+different containers — which the driver checks, and which was right all along.
+
+Fixed: the driver now stamps `restored` (it is the only party that knows which
+container created the snapshot; a restored container's attributes are
+indistinguishable from the ones it was born with), and the verdict reads that.
+
+### Still open, and it is now the blocker
+
+`employment` returned **53 output tokens** here in both arms, but **117** on the
+M1 and **117** in the previous snapshot run. Same prompt, same schema,
+`temperature: 0`. Greedy decoding on a GPU is not bit-identical across kernel
+choices, and a shorter employment answer can mean **fewer extracted rows**,
+which feeds `years_experience`, which two production consumers use to drop
+postings.
+
+This is no longer a curiosity. **Profile equivalence must be measured on Modal
+before it serves anything** — `bench/backends.py`, the same field-for-field
+comparison that proved Oracle identical to local-direct. Timing is settled;
+correctness is not.

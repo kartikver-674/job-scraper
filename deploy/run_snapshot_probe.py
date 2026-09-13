@@ -115,12 +115,18 @@ def main():
         print("  second invocation should RESTORE — this is the measurement",
               flush=True)
         results["snapshot"] = timed(snapshot, text, "restored container")
-        if results["snapshot"]["boot_id"] == first["boot_id"]:
-            print("  -> same boot_id as the creating container: RESTORED",
-                  flush=True)
-        else:
-            print("  -> different boot_id: it BOOTED rather than restoring",
-                  flush=True)
+        # The driver knows which container created the snapshot, so it can
+        # settle this; the probe cannot, because a restored container's
+        # attributes are indistinguishable from the ones it was born with.
+        restored = results["snapshot"]["boot_id"] == first["boot_id"]
+        results["snapshot"]["restored"] = restored
+        results["snapshot"]["snapshot_creation_s"] = first["cold_end_to_end_s"]
+        print(f"  -> {'same' if restored else 'different'} boot_id as the "
+              f"creating container: "
+              f"{'RESTORED' if restored else 'BOOTED, not restored'}",
+              flush=True)
+    if "control" in results:
+        results["control"]["restored"] = False
 
     if "control" in results and "snapshot" in results:
         _verdict(results["control"], results["snapshot"])

@@ -336,8 +336,13 @@ def _verdict(control, snapshot):
     print("  SNAPSHOT vs CONTROL — T4, Ollama 0.34.0, qwen3:8b Q4_K_M")
     print("=" * 78)
     rows = [
-        ("boot id (same => restored)", control["boot_id"], snapshot["boot_id"]),
-        ("BOOT COST paid (s)", control["boot_cost_s"], snapshot["boot_cost_s"]),
+        ("boot id", control["boot_id"], snapshot["boot_id"]),
+        ("ran boot() in this container", not control.get("restored", False),
+         not snapshot.get("restored", False)),
+        ("boot cost (paid / SKIPPED)",
+         f"{control['boot_cost_s']:.2f} paid",
+         f"{snapshot['boot_cost_s']:.2f} "
+         + ("SKIPPED" if snapshot.get("restored") else "paid")),
         ("age of that boot (s)", control["seconds_since_boot"],
          snapshot["seconds_since_boot"]),
         ("ollama alive after restore", control["ollama_alive_after_restore"],
@@ -375,15 +380,28 @@ def _verdict(control, snapshot):
     elif snapshot["size_vram"] <= 0:
         print("\n  VERDICT: Ollama survived but the model is NOT in VRAM. "
               "Inference would\n           silently run on CPU.")
-    elif snapshot["boot_cost_s"] > 30:
-        print(f"\n  VERDICT: the snapshot arm PAID {snapshot['boot_cost_s']:.1f}s "
-              f"of boot cost in this\n           container, so it did not "
-              f"restore — it booted. Check whether the\n           app is "
-              f"deployed rather than ephemeral.")
+    elif not snapshot.get("restored"):
+        # NOT boot_cost_s. That is a RESTORED ATTRIBUTE: it carries the
+        # value recorded when boot() ran in the container that CREATED the
+        # snapshot, so a restored container reports the cost it SKIPPED and
+        # an earlier version of this function read that as proof it had
+        # booted. The only sound evidence is the boot_id appearing in two
+        # different containers.
+        print(f"\n  VERDICT: the snapshot arm ran boot() in this container "
+              f"— a new boot_id.\n           It did not restore. Check the "
+              f"app is deployed, not ephemeral,\n           and that the "
+              f"containers were given time to scale to zero.")
     else:
-        print("\n  VERDICT: restored cleanly and skipped the boot cost. "
-              "Compare the\n           COLD END-TO-END row for what it is "
-              "worth in wall clock.")
+        saved = (control.get("cold_end_to_end_s") or 0) - (
+            snapshot.get("cold_end_to_end_s") or 0)
+        print(f"\n  VERDICT: RESTORED — same boot_id in a different "
+              f"container, so the\n           {snapshot['boot_cost_s']:.1f}s "
+              f"of boot cost was skipped rather than paid.")
+        if saved:
+            print(f"           Cold end to end: "
+                  f"{control['cold_end_to_end_s']:.2f}s -> "
+                  f"{snapshot['cold_end_to_end_s']:.2f}s, "
+                  f"{saved:.2f}s saved.")
     print("=" * 78, flush=True)
 
 
