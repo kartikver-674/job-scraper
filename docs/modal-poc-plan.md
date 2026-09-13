@@ -276,3 +276,100 @@ The POC succeeds if **all** of these hold:
 
 It **fails**, and we say so, if the GPU is not used, if the profile is not
 identical, or if a contract behaviour differs.
+
+---
+
+## 9. Measured: T4, real résumé, 13 September 2026
+
+The POC ran. **Ollama works on a Modal T4** — `size_vram 5,274,117,078`, the
+whole model in VRAM, Volume cache working, no redownload. §2.2's go/no-go passed.
+
+Sarthak résumé (3634 chars), production prompts and schema, `le.read()`:
+
+| | cold | warm (same prompt) |
+| --- | --- | --- |
+| fields | 101.26 s | — |
+| employment | 4.33 s | — |
+| **profile** | **105.60 s** | 13.42 s |
+
+Warm is prefix-cache-assisted and does not predict a second user.
+
+### Where the 105.60 s went
+
+| | |
+| --- | --- |
+| reading 5.23 GB off the Volume | **0.98 s** (5.34 GB/s) |
+| weights → VRAM (reload, warm cache) | 4.46 s |
+| `ollama serve` ready | 7.14 s |
+| real prefill, 1100 tok @ 1145 tok/s | 0.96 s |
+| real generation, 359 tok @ 37.2 tok/s | 9.65 s |
+| employment call, all of it | 4.33 s |
+| **one-time init inside `load_duration`** | **52.43 s** |
+| **one-time init billed to `prompt_eval`** | **33.73 s** |
+| | **= 86.16 s, or 81.6% of the run** |
+
+**The tell**: the first call prefills 1100 tokens at 31.7 tok/s, the second
+prefills 1156 at **1143.6 tok/s** — 36×, same GPU, same container, neither
+cached, no shared prefix. The first `prompt_eval` is not measuring prefill at
+all; it is CUDA kernel/JIT warmup billed to the wrong counter.
+
+**Disk is not the bottleneck and neither is the VRAM transfer.** Strip the
+one-time init and the profile is **~15 s** — better than the M1 Pro's 37.4 s and
+12× better than Oracle's 186.9 s.
+
+### The three-way table so far
+
+| Host | Cold profile | Steady state (model resident, prompt uncached) |
+| --- | --- | --- |
+| M1 Pro | 37.8 s | 21.5 s |
+| Oracle A1, 2 OCPU | 186.9 s | — |
+| **Modal T4** | **105.60 s** | **~15 s** |
+
+Modal wins decisively on steady state and loses on cold start. Everything now
+hinges on whether the 86 s is payable once instead of per container.
+
+### The 150-second web-endpoint cap
+
+The cap is **per HTTP request**, and Sweep makes two, so the binding constraint
+is the worst single call — cold `fields` at 101.26 s, a **+48.7 s margin (32% of
+the cap)**.
+
+Résumé length barely moves it, because the 86 s is fixed:
+
+| résumé | ctx | cold `fields` | margin |
+| --- | --- | --- | --- |
+| 3 634 (measured) | 2048 | 96.9 s | +53.1 s |
+| 6 000 | 2048 | 101.2 s | +48.8 s |
+| 12 000 | 4096 | 110.2 s | +39.8 s |
+| 30 000 | 8192 | 124.0 s | +26.0 s |
+
+So there **is** margin, but it is hostage to a fixed 86 s, and the failure mode
+past the cap is ugly: Modal 303-redirects, `urllib` turns a followed 303 into a
+GET, and `/v1/generate` answers `not_found` — a routing error, not a timeout.
+
+**Do not deploy the public endpoint while cold start is 86 s.** Remove the init
+and cold `fields` is ~15 s with +135 s of margin, and the question disappears.
+
+### Next: does a GPU snapshot skip the init?
+
+`deploy/modal_snapshot_probe.py`. Modal's GPU memory snapshots are exactly aimed
+at "skipping past work like imports and JIT compilation", which is what the 86 s
+is — but every published success is an in-process PyTorch workload, and Ollama is
+not one. Four things could sink it, and the probe makes each fail separately:
+
+1. **The CUDA context lives in a child process.** `ollama serve` (Go) spawns
+   `llama-server` (C++), which holds the GPU. Modal's write-up says it enumerates
+   "all active CUDA sessions and their associated PIDs", which is promising but
+   untested here.
+2. **Ollama is a server with a listening socket.** Restoring one is the part of
+   checkpoint/restore most likely not to survive.
+3. **It is not PyTorch.**
+   [modal-client#4132](https://github.com/modal-labs/modal-client/issues/4132)
+   reports restore segfaulting on ~60% of attempts with CTranslate2 — a C++ CUDA
+   library, the closest published analogue to llama.cpp.
+4. **Driver support on T4.** GPU snapshots need the CUDA checkpoint/restore API
+   on driver branch 570/575; the documented example uses an A10.
+
+If it fails, the next step is **not** to change the runtime. It is a straight
+L4-vs-T4 comparison — same Ollama, same model, same prompts — to see whether
+newer silicon shortens the 86 s.
