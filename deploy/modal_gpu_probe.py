@@ -334,8 +334,15 @@ def gpu_warm_probe():
 # disagree, this file is wrong by construction — it has no opinions to be
 # wrong with.
 #
-#     modal run deploy/modal_gpu_probe.py::profile_probe \
-#         --resume "/path/to/Resume_Sarthak 1.pdf"
+# RUN IT THROUGH THE LOCAL ENTRYPOINT, not the function:
+#
+#     modal run deploy/modal_gpu_probe.py
+#     modal run deploy/modal_gpu_probe.py --resume "/path/to/other.pdf"
+#
+# `modal run ...::profile_probe` targets the remote function directly, which
+# skips main() and so skips parsing the PDF — it would ask for --resume-text
+# and expect you to paste a résumé onto the command line. The entrypoint is
+# what extracts the text locally with the production parser.
 
 
 def _metrics_row(label, wall, num_ctx, prompt_chars, metrics):
