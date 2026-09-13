@@ -50,9 +50,21 @@ its own CUDA context in-process. Ollama is neither:
 Any of those can sink it. This probe is built so that each one FAILS
 LOUDLY AND SEPARATELY instead of producing a confusing number.
 
-    modal run deploy/modal_snapshot_probe.py                  # both arms
-    modal run deploy/modal_snapshot_probe.py --arm snapshot
-    modal run deploy/modal_snapshot_probe.py --arm control
+DEPLOY IT — DO NOT `modal run` IT
+---------------------------------
+Modal refuses memory snapshots on ephemeral apps:
+
+    Memory snapshots are disabled for ephemeral apps.
+    Deploy your app with `modal deploy` to enable memory snapshots.
+
+`modal run` creates an ephemeral app, so running this experiment that way
+silently disables the thing it measures — the snapshot arm degrades into a
+second control and the verdict reads "no difference" for a reason that has
+nothing to do with Ollama. A wrong number that looks right is worse than an
+error, so there is no `local_entrypoint` here on purpose.
+
+    modal deploy deploy/modal_snapshot_probe.py
+    python deploy/run_snapshot_probe.py
 
 Nothing in production changes. Same T4, same Ollama 0.34.0, same qwen3:8b
 digest, same prompts, schema and options — all imported, never restated.
@@ -341,35 +353,5 @@ def _verdict(control, snapshot):
     print("=" * 78, flush=True)
 
 
-@app.local_entrypoint()
-def main(resume: str = "auto-apply/resume/resume.pdf", arm: str = "both"):
-    """Parse locally with the production parser, measure remotely."""
-    import sys
-
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, root)
-    sys.path.insert(0, os.path.join(root, "auto-apply"))
-    from resume_parser import extract_text
-
-    text = extract_text(resume)
-    if not text.strip():
-        raise SystemExit(f"no text extracted from {resume} — a scanned PDF?")
-    print(f"{os.path.basename(resume)}: {len(text)} chars, parsed locally "
-          f"by the production parser\n")
-
-    results = {}
-    if arm in ("both", "control"):
-        print("--- CONTROL ARM (snapshots off) ---", flush=True)
-        results["control"] = ControlArm().run.remote(text)
-    if arm in ("both", "snapshot"):
-        print("\n--- SNAPSHOT ARM (alpha GPU memory snapshot) ---")
-        print("The FIRST run creates the snapshot and will not be fast. "
-              "Modal needs a\nsecond invocation to restore from it — this "
-              "calls twice and reports the second.", flush=True)
-        SnapshotArm().run.remote(text)          # creates the snapshot
-        results["snapshot"] = SnapshotArm().run.remote(text)   # restores
-
-    if "control" in results and "snapshot" in results:
-        _verdict(results["control"], results["snapshot"])
-    print("\nJSON:")
-    print(json.dumps(results, indent=2))
+# No @app.local_entrypoint() on purpose — see "DEPLOY IT" above. The driver
+# is deploy/run_snapshot_probe.py, which talks to the DEPLOYED app.
