@@ -149,6 +149,15 @@ class _Probe:
         server, the weights in VRAM, and — via one real generation — the
         CUDA kernels that cost 33.73s the first time they are used.
         """
+        import uuid
+
+        # A fingerprint of THIS boot. If a later container reports the same
+        # id, its state came from the snapshot rather than from running
+        # boot() again — which is the only way to tell a genuine restore
+        # from Modal simply handing back a container that is still warm.
+        self.boot_id = uuid.uuid4().hex[:12]
+        self.boot_epoch = time.time()
+
         started = time.perf_counter()
         self.process = start_ollama()
         self.ollama_ready_s = time.perf_counter() - started
@@ -172,8 +181,13 @@ class _Probe:
             le.FIELDS_SCHEMA, 300)
         self.warmup_s = time.perf_counter() - warm_started
         self.booted_vram = _resident().get("size_vram", 0)
-        print(f"[boot] ollama ready {self.ollama_ready_s:.2f}s, "
+        # THE NUMBER THE EXPERIMENT IS ABOUT. This is the one-time cost a
+        # snapshot would let us skip: server start plus the CUDA/kernel
+        # warmup that the T4 probe measured at ~86s.
+        self.boot_cost_s = self.ollama_ready_s + self.warmup_s
+        print(f"[boot {self.boot_id}] ollama ready {self.ollama_ready_s:.2f}s, "
               f"warmup generation {self.warmup_s:.2f}s, "
+              f"TOTAL BOOT COST {self.boot_cost_s:.2f}s, "
               f"size_vram {self.booted_vram:,}", flush=True)
 
     def measure(self, resume_text, arm):
@@ -240,6 +254,12 @@ class _Probe:
 
         return {
             "arm": arm,
+            # The experiment's actual subject: what boot() cost, and whether
+            # this container paid it or inherited it from a snapshot.
+            "boot_id": getattr(self, "boot_id", None),
+            "boot_cost_s": round(getattr(self, "boot_cost_s", 0), 2),
+            "seconds_since_boot": round(time.time() - getattr(
+                self, "boot_epoch", time.time()), 2),
             "ollama_alive_after_restore": alive,
             "ollama_restarted": restarted,
             "readiness_s": round(readiness_s, 2),
@@ -264,6 +284,12 @@ class _Probe:
     enable_memory_snapshot=True,
     experimental_options={"enable_gpu_snapshot": True},
     max_containers=1,
+    # Two seconds, the minimum. The default 60s window let the second
+    # invocation land on the container that had just served the first —
+    # so "restore" was really "reuse", and the prompt cache came with it
+    # (25,501 tok/s prefill, an 18x tell). A restore has to start from a
+    # dead container to mean anything.
+    scaledown_window=2,
 )
 class SnapshotArm(_Probe):
     """Ollama booted and warmed INSIDE the snapshot."""
@@ -283,6 +309,7 @@ class SnapshotArm(_Probe):
     volumes={"/root/.ollama": model_volume},
     timeout=1800,
     max_containers=1,
+    scaledown_window=2,
 )
 class ControlArm(_Probe):
     """Identical, with snapshots off. The honest comparison."""
@@ -297,59 +324,66 @@ class ControlArm(_Probe):
 
 
 def _verdict(control, snapshot):
-    """Say plainly whether the snapshot did anything, and what broke."""
+    """Say plainly what happened, using the boot fingerprints.
+
+    The first version of this compared profile totals and concluded "the
+    snapshot saved little". That was wrong: boot() runs in @modal.enter()
+    in BOTH arms, so both had already paid the one-time init before
+    measure() started its stopwatch. It was comparing warm against warm.
+    The numbers below are the ones that can actually tell the difference.
+    """
     print("\n" + "=" * 78)
     print("  SNAPSHOT vs CONTROL — T4, Ollama 0.34.0, qwen3:8b Q4_K_M")
     print("=" * 78)
     rows = [
+        ("boot id (same => restored)", control["boot_id"], snapshot["boot_id"]),
+        ("BOOT COST paid (s)", control["boot_cost_s"], snapshot["boot_cost_s"]),
+        ("age of that boot (s)", control["seconds_since_boot"],
+         snapshot["seconds_since_boot"]),
         ("ollama alive after restore", control["ollama_alive_after_restore"],
          snapshot["ollama_alive_after_restore"]),
         ("ollama had to be restarted", control["ollama_restarted"],
          snapshot["ollama_restarted"]),
-        ("size_vram", f"{control['size_vram']:,}",
-         f"{snapshot['size_vram']:,}"),
-        ("readiness to first call (s)", control["readiness_s"],
-         snapshot["readiness_s"]),
+        ("size_vram", f"{control['size_vram']:,}", f"{snapshot['size_vram']:,}"),
         ("1st call load_duration (s)", control["first_call_load_s"],
          snapshot["first_call_load_s"]),
-        ("1st call prompt_eval (s)", control["first_call_prefill_s"],
-         snapshot["first_call_prefill_s"]),
         ("1st call prefill (tok/s)", control["first_call_prefill_tok_s"],
          snapshot["first_call_prefill_tok_s"]),
-        ("1st call generation (s)", control["first_call_gen_s"],
-         snapshot["first_call_gen_s"]),
         ("generation rate (tok/s)", control["first_call_gen_tok_s"],
          snapshot["first_call_gen_tok_s"]),
-        ("FULL COLD PROFILE (s)", control["profile_s"], snapshot["profile_s"]),
+        ("profile, model already warm (s)", control["profile_s"],
+         snapshot["profile_s"]),
     ]
-    print(f"  {'':30} {'control':>14} {'snapshot':>14}")
+    print(f"  {'':32} {'control':>14} {'snapshot':>14}")
     for label, a, b in rows:
-        print(f"  {label:30} {str(a):>14} {str(b):>14}")
+        print(f"  {label:32} {str(a):>14} {str(b):>14}")
 
-    print(f"\n  no-snapshot baseline from the function probe: "
-          f"{BASELINE_COLD_S}s cold "
-          f"({BASELINE_ONE_TIME_S}s of it one-time init)")
+    for key, label in (("cold_end_to_end_s", "COLD END-TO-END, client-side"),):
+        a, b = control.get(key), snapshot.get(key)
+        if a and b:
+            print(f"  {label:32} {a:>14.2f} {b:>14.2f}")
+            print(f"\n  snapshot saves {a - b:+.2f}s end to end "
+                  f"({(a - b) / a * 100:+.1f}%)")
 
-    saved = control["profile_s"] - snapshot["profile_s"]
-    print(f"  snapshot saves {saved:+.2f}s vs the control arm "
-          f"({saved / control['profile_s'] * 100:+.1f}%)")
+    print(f"\n  reference: the function probe measured a {BASELINE_COLD_S}s "
+          f"cold profile,\n  {BASELINE_ONE_TIME_S}s of it one-time init.")
 
     if snapshot["ollama_restarted"]:
-        print("\n  VERDICT: the snapshot did NOT preserve Ollama. The server "
-              "had to be\n           restarted after restore, so its "
-              "initialisation was paid again.\n           GPU snapshots are "
-              "incompatible with Ollama as deployed here.")
+        print("\n  VERDICT: the snapshot did NOT preserve Ollama — it had to be "
+              "restarted,\n           so its initialisation was paid again. "
+              "Incompatible as deployed.")
     elif snapshot["size_vram"] <= 0:
-        print("\n  VERDICT: Ollama survived but the model is NOT in VRAM after "
-              "restore.\n           The GPU state did not come back; "
-              "inference would run on CPU.")
-    elif saved > 30:
-        print("\n  VERDICT: the snapshot works and removes most of the "
-              "one-time init.")
+        print("\n  VERDICT: Ollama survived but the model is NOT in VRAM. "
+              "Inference would\n           silently run on CPU.")
+    elif snapshot["boot_cost_s"] > 30:
+        print(f"\n  VERDICT: the snapshot arm PAID {snapshot['boot_cost_s']:.1f}s "
+              f"of boot cost in this\n           container, so it did not "
+              f"restore — it booted. Check whether the\n           app is "
+              f"deployed rather than ephemeral.")
     else:
-        print("\n  VERDICT: the snapshot restored cleanly but saved little. "
-              "The init\n           is being paid somewhere the snapshot does "
-              "not reach.")
+        print("\n  VERDICT: restored cleanly and skipped the boot cost. "
+              "Compare the\n           COLD END-TO-END row for what it is "
+              "worth in wall clock.")
     print("=" * 78, flush=True)
 
 

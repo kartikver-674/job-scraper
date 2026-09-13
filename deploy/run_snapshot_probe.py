@@ -26,6 +26,13 @@ import argparse
 import json
 import os
 import sys
+import time
+
+# Long enough for a container with scaledown_window=2 to be gone. Without
+# this the second invocation lands on the still-warm container that served
+# the first, and "restore" is really "reuse" — which is exactly what the
+# first run of this experiment measured without noticing.
+GAP = 45
 
 import modal
 
@@ -68,20 +75,52 @@ def main():
     print(f"{os.path.basename(args.resume)}: {len(text)} chars, parsed "
           f"locally by the production parser\n")
 
+    def timed(handle, text, label):
+        """Wall clock the CLIENT sees — container spin-up, boot and all.
+
+        This is the number that matters and the one the first run never
+        captured: measure() inside the container starts its stopwatch after
+        @modal.enter() has already paid the boot cost, so it can only ever
+        report a warm profile.
+        """
+        started = time.time()
+        result = handle.run.remote(text)
+        result["cold_end_to_end_s"] = round(time.time() - started, 2)
+        print(f"  {label}: {result['cold_end_to_end_s']:.2f}s end to end, "
+              f"boot_id={result['boot_id']} "
+              f"boot_cost={result['boot_cost_s']:.2f}s", flush=True)
+        return result
+
+    def let_containers_die(seconds=GAP):
+        """scaledown_window is 2s, so this guarantees the next invocation
+        gets a genuinely new container instead of the warm one."""
+        print(f"  ... waiting {seconds}s for the container to scale to zero",
+              flush=True)
+        time.sleep(seconds)
+
     results = {}
     if args.arm in ("both", "control"):
         print("--- CONTROL ARM (snapshots off) ---", flush=True)
-        results["control"] = arm("ControlArm").run.remote(text)
+        let_containers_die()
+        results["control"] = timed(arm("ControlArm"), text, "cold container")
 
     if args.arm in ("both", "snapshot"):
-        print("\n--- SNAPSHOT ARM (alpha GPU memory snapshot) ---")
-        print("First invocation CREATES the snapshot and will not be fast.",
-              flush=True)
+        print("\n--- SNAPSHOT ARM (alpha GPU memory snapshot) ---", flush=True)
         snapshot = arm("SnapshotArm")
-        snapshot.run.remote(text)
-        print("\nSecond invocation — this one restores, and is the "
-              "measurement.", flush=True)
-        results["snapshot"] = snapshot.run.remote(text)
+        let_containers_die()
+        print("  first invocation CREATES the snapshot — not the measurement",
+              flush=True)
+        first = timed(snapshot, text, "snapshot creation")
+        let_containers_die()
+        print("  second invocation should RESTORE — this is the measurement",
+              flush=True)
+        results["snapshot"] = timed(snapshot, text, "restored container")
+        if results["snapshot"]["boot_id"] == first["boot_id"]:
+            print("  -> same boot_id as the creating container: RESTORED",
+                  flush=True)
+        else:
+            print("  -> different boot_id: it BOOTED rather than restoring",
+                  flush=True)
 
     if "control" in results and "snapshot" in results:
         _verdict(results["control"], results["snapshot"])

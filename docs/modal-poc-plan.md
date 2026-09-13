@@ -373,3 +373,70 @@ not one. Four things could sink it, and the probe makes each fail separately:
 If it fails, the next step is **not** to change the runtime. It is a straight
 L4-vs-T4 comparison — same Ollama, same model, same prompts — to see whether
 newer silicon shortens the 86 s.
+
+
+---
+
+## 10. Snapshot run 1: a real finding, and a broken measurement
+
+Run 13 September 2026, deployed app, T4.
+
+### The good news, and it is genuinely good
+
+| | |
+| --- | --- |
+| `ollama_alive_after_restore` | **True** |
+| `ollama_restarted` | **False** |
+| `size_vram` | **5,274,117,078** — intact |
+
+**All four predicted failure modes did not fire.** The CUDA context in a
+child process, the listening socket, the non-PyTorch CUDA library, the T4
+driver — none of them broke. Ollama came back serving with the model in VRAM.
+That was the real risk, and it is retired.
+
+### T4 steady state, confirmed
+
+The control arm is a clean uncached measurement: **12.93 s per profile**
+(fields 10.32 s, employment 2.60 s), prefill 1,147–1,424 tok/s, generation
+36.9–37.7 tok/s.
+
+| Host | Profile, model warm |
+| --- | --- |
+| Oracle A1, 2 OCPU | 186.9 s |
+| M1 Pro | 37.4 s |
+| **Modal T4** | **12.93 s — 2.9× the M1, 14.5× Oracle** |
+
+### The measurement was wrong, and the verdict line with it
+
+The probe printed *"the snapshot restored cleanly but saved little"*. That
+conclusion was not supported by the data it had.
+
+`boot()` runs in `@modal.enter()` in **both** arms, so both containers had
+already paid the one-time init before `measure()` started its stopwatch —
+`load_s = 0.0` and `readiness_s = 0.0` on both arms say so plainly. It
+compared warm against warm and could not have detected a difference.
+
+Worse, the snapshot arm's second invocation almost certainly **reused the
+warm container rather than restoring**: its prefill read 25,501 tok/s against
+the control's 1,424 — 18×, which is a prompt-cache hit, and a genuine restore
+begins from a snapshot taken before `measure()` ever saw that résumé. The two
+invocations ran back to back inside the default 60 s scaledown window.
+
+### Corrected, and what changed
+
+- `boot()` records a **`boot_id`** and its **`boot_cost_s`**. Same id in a
+  different container proves a restore; a boot cost near zero proves the
+  init was skipped. No more inferring from totals.
+- `scaledown_window=2` on both arms, and the driver waits 45 s between
+  invocations, so a "restore" cannot be a reuse.
+- The driver times each call **client-side**, so the number includes
+  container spin-up and `@modal.enter()` — the part the old measurement
+  structurally could not see.
+
+### One oddity to carry forward
+
+`employment` returned **53 output tokens in the control arm and 117 in the
+snapshot arm** — same prompt, same schema, `temperature: 0`. Greedy decoding
+on a GPU is not bit-identical across kernel choices. Harmless for timing, but
+it means **profile equivalence has to be measured, not assumed**, before
+Modal serves anything real. `bench/backends.py` is that check.
