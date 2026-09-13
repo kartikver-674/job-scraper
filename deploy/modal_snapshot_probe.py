@@ -65,44 +65,60 @@ import urllib.request
 
 import modal
 
-from modal_gpu_probe import (            # the proven pieces, unchanged
+# Container-side helpers only, from a module with no Modal objects in it.
+# NOT imported from modal_gpu_probe: Modal ships only the ENTRYPOINT module
+# into the container, so that import died there with ModuleNotFoundError and
+# every container crash-looped. See ollama_probe_lib's docstring.
+from ollama_probe_lib import (
     EXPECTED_DIGEST_PREFIX,
     MODEL,
-    _metrics_row,
-    _show,
-    image,
-    model_volume,
+    OLLAMA_VERSION,
+    metrics_row as _metrics_row,
+    ollama_alive as _ollama_alive,
+    resident as _resident,
+    show as _show,
     start_ollama,
 )
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(HERE)
+
 app = modal.App("sweep-ollama-snapshot-probe")
+
+# Same volume NAME as the GPU probe, so the already-pulled qwen3:8b is
+# reused rather than downloaded again.
+model_volume = modal.Volume.from_name("sweep-ollama-models",
+                                      create_if_missing=True)
+
+# Defined here rather than imported, for the same reason as the helpers: a
+# module that builds Modal objects at import time is a module that can fail
+# to import inside the container.
+image = (
+    modal.Image.debian_slim(python_version="3.12")
+    .apt_install("curl", "ca-certificates", "zstd")
+    .run_commands(
+        "curl -fsSL "
+        "'https://ollama.com/download/ollama-linux-amd64.tar.zst"
+        f"?version={OLLAMA_VERSION}' "
+        "| zstd -d | tar -xf - -C /usr"
+    )
+    # The production modules and the shared helpers, all under one path on
+    # PYTHONPATH. The prompts, schema and options are imported from these,
+    # never restated.
+    .add_local_file(os.path.join(REPO_ROOT, "inference.py"),
+                    "/app/inference.py", copy=True)
+    .add_local_file(os.path.join(REPO_ROOT, "local_extract.py"),
+                    "/app/local_extract.py", copy=True)
+    .add_local_file(os.path.join(HERE, "ollama_probe_lib.py"),
+                    "/app/ollama_probe_lib.py", copy=True)
+    .env({"PYTHONPATH": "/app"})
+)
 
 # The measured no-snapshot baseline this experiment is trying to beat.
 BASELINE_COLD_S = 105.60
 BASELINE_LOAD_S = 56.89
 BASELINE_PREFILL_S = 34.69
 BASELINE_ONE_TIME_S = 86.16
-
-
-def _ollama_alive(timeout=2):
-    """Is the server answering? Used AFTER restore, where it may not be."""
-    try:
-        with urllib.request.urlopen("http://127.0.0.1:11434/api/tags",
-                                    timeout=timeout):
-            return True
-    except Exception:
-        return False
-
-
-def _resident():
-    """What Ollama currently holds in VRAM, or {} — never loads anything."""
-    try:
-        with urllib.request.urlopen("http://127.0.0.1:11434/api/ps",
-                                    timeout=10) as response:
-            models = json.load(response).get("models") or []
-        return models[0] if models else {}
-    except Exception:
-        return {}
 
 
 class _Probe:
