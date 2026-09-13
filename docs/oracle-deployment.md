@@ -1,10 +1,14 @@
 # Deploying the inference service on Oracle Cloud Always Free
 
 A runbook. Follow it top to bottom on a fresh instance; every command is meant to
-be pasted. **Nothing here has been run against a real Oracle instance** — it is
-derived from the service's actual code and the measurements in
-[inference-hosting.md](inference-hosting.md), and the verification section is how
-you prove each step rather than trust it.
+be pasted.
+
+> **Status: deployed and live, 13 September 2026**, at
+> `sweep-inference.duckdns.org` (140.245.7.224). The architecture works end to
+> end. One thing in this runbook was wrong and is fixed below (§18.1), and the
+> measured performance is far worse than
+> [inference-hosting.md](inference-hosting.md) projected — see
+> [§9 there](inference-hosting.md) and §18.2 here.
 
 **Target architecture** (decided in [inference-hosting.md §7](inference-hosting.md)):
 
@@ -286,6 +290,13 @@ OLLAMA_MODEL=qwen3:8b
 # The application default stays 30s and is correct on a laptop.
 # Do not "optimise" this back to 30s — you will lose the instance.
 SWEEP_MODEL_KEEP_ALIVE=-1
+
+# --- benchmarking only. OFF in normal operation. ---
+# When on, a SUCCESSFUL response additionally carries Ollama's own token
+# counts and durations, for bench/remote_profile.py. It changes what is
+# returned, never what is logged: the access line is the same six fields
+# either way. Turn it on to diagnose latency, then turn it off.
+# SWEEP_INFERENCE_METRICS=1
 EOF
 ```
 
@@ -736,3 +747,86 @@ the in-flight generation finishes — gunicorn's `graceful_timeout` is 330 s and
 `TimeoutStopSec` is 360 s, so systemd is always the last to lose patience.
 Verified locally: SIGTERM sent 8 s into a live extraction, the request returned
 `200` at 9.8 s, then the port closed.
+
+---
+
+## 18. What the first real deployment exposed
+
+### 18.1 Gunicorn's control socket vs `ProtectSystem=strict`
+
+Gunicorn 26 opens a unix control socket at `$HOME/.gunicorn/gunicorn.ctl`. Under
+the unit in §9, `$HOME` is `/opt/sweep-inference` and `ProtectSystem=strict`
+makes it read-only, so every start logged:
+
+```
+Control server error: [Errno 30] Read-only file system: '/opt/sweep-inference/.gunicorn'
+```
+
+The service stayed healthy — the control socket is an optional side channel
+nothing here uses — but it logged that on every start, and a warning nobody can
+act on is a warning people learn to scroll past.
+
+**Fixed in the repository**, in `gunicorn.conf.py`:
+
+```python
+control_socket_disable = True
+```
+
+Turned off rather than made writable. The alternatives were relaxing
+`ProtectSystem` or punching a `ReadWritePaths` hole, and both weaken the
+hardening of an internet-facing box to enable a feature we do not use. A test
+now asserts the setting, and a second asserts that nothing else in the gunicorn
+config wants a writable path.
+
+*This only appeared in production because a developer's `$HOME` is writable —
+the same gunicorn logs "Control socket listening at …" happily on a laptop.
+Nothing short of the hardened unit would have caught it.*
+
+### 18.2 Performance: ~7 minutes, not 2–4
+
+The first real profile took **~7 minutes**, against a projection of 100–240 s.
+`llama-server` sat at 184–191% CPU on 2 OCPUs with the model resident and no
+memory pressure, so it is CPU-bound inference, not cold loading or transport.
+
+Thinking was ruled out by tracing the literal request body on both paths — it is
+disabled, identically, and the prompts and schema cross the wire byte for byte.
+The full analysis is in [inference-hosting.md §9](inference-hosting.md).
+
+**Before drawing a hosting conclusion, get the split.** On the server:
+
+```bash
+sudo sed -i 's/^# SWEEP_INFERENCE_METRICS=1/SWEEP_INFERENCE_METRICS=1/' \
+     /etc/sweep-inference/env
+sudo systemctl restart sweep-inference
+```
+
+From the laptop, on the same résumé:
+
+```bash
+python -m bench.remote_profile --url https://sweep-inference.duckdns.org \
+       --token "$TOKEN" --resume /path/to/that/resume.pdf
+```
+
+That prints, per call, prompt and output token counts, prefill and generation
+rates as Ollama reports them, context size and model load time — and warns if the
+two calls asked for different `num_ctx`, which forces a reload between them
+regardless of keep-alive.
+
+Turn it back off afterwards: it is a diagnostic, not a mode.
+
+### 18.3 Everything else held
+
+For the record, the parts of this runbook the deployment confirmed rather than
+corrected:
+
+- iptables above the final REJECT, persisted; 8811 and 11434 externally filtered
+  while `/healthz` answers over HTTPS.
+- Ollama bound to `127.0.0.1:11434` only, with `MemoryMax=9G`, `MemorySwapMax=0`.
+- `SWEEP_MODEL_KEEP_ALIVE=-1` holds the model resident — `expires_at` reads 2318
+  and RSS sits at ~5.5 GB, which is also what keeps memory above Oracle's 20%
+  reclamation floor.
+- The three-file deployment: no résumé pipeline on the server.
+- Unauthenticated `/v1/generate` → 401; `model_busy` → 429 and no Gemini call.
+- Caddy proxying only `/healthz` and `/v1/generate`, with trusted TLS from a free
+  DuckDNS hostname.
+- Python 3.12 and gunicorn 26.2.0 on ARM64, no compiler needed.

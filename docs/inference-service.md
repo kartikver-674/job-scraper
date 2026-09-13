@@ -15,7 +15,8 @@ when it cannot be reached.
 **Not deployed anywhere yet.** This documents how to run it, not where.
 [inference-hosting.md](inference-hosting.md) is the evidence for *where* and what
 it would cost; [oracle-deployment.md](oracle-deployment.md) is the step-by-step
-runbook for the host that evidence picked.
+runbook for the host that evidence picked, now deployed and live.
+[modal-poc-plan.md](modal-poc-plan.md) is the design for the next experiment.
 
 ---
 

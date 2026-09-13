@@ -729,6 +729,35 @@ class TestProductionEntryPoint(unittest.TestCase):
                 inference_service.PORT_ENV: "9001"}):
             self.assertEqual(self.gunicorn_conf().bind, "0.0.0.0:9001")
 
+    def test_the_control_socket_is_disabled(self):
+        """The first real deployment found this, so a test holds it.
+
+        Gunicorn 26 opens a unix control socket under $HOME. On the
+        deployed unit $HOME is /opt/sweep-inference and ProtectSystem is
+        strict, so every start logged
+        `Control server error: [Errno 30] Read-only file system`.
+
+        The fix must stay on THIS side: disabling a side channel nothing
+        uses, rather than relaxing ProtectSystem or adding a
+        ReadWritePaths hole to an internet-facing box.
+        """
+        self.assertIs(self.gunicorn_conf().control_socket_disable, True)
+
+    def test_the_config_asks_for_no_writable_paths_at_all(self):
+        """Nothing in the config may need a writable directory.
+
+        The service is stateless; if a setting ever points at a file it
+        would have to be created, the deployment's ProtectSystem=strict
+        would fail it at exactly the moment nobody is watching.
+        """
+        conf = self.gunicorn_conf()
+        # accesslog is off, errorlog goes to stdout for journald.
+        self.assertIsNone(conf.accesslog)
+        self.assertEqual(conf.errorlog, "-")
+        for name in ("pidfile", "worker_tmp_dir"):
+            self.assertIsNone(getattr(conf, name, None),
+                              f"{name} would need a writable path")
+
     def test_gunicorns_own_access_log_is_off(self):
         # The app logs every request itself, with a request id and
         # without the prompt. A second copy is redundant at best.
@@ -1093,6 +1122,113 @@ class TestGracefulModelUnavailable(unittest.TestCase):
             runtime.raises = None
             self.assertEqual(client(url).generate("m", "p", SCHEMA, 10),
                              ANSWER)
+
+
+class TestBenchmarkMetrics(unittest.TestCase):
+    """The runtime's own counters, for benchmarking only.
+
+    Added because the first real Oracle deployment took ~7 minutes for a
+    profile against a 100-240s extrapolation, and nobody could say which
+    part was slow. It must not widen the production contract to find out.
+    """
+
+    BODY = {"model": "qwen3:8b", "prompt": "read this",
+            "schema": {"type": "object"}}
+
+    def post(self, runtime, on):
+        env = {inference_service.METRICS_ENV: "1"} if on else {}
+        with mock.patch.dict(os.environ, env, clear=False):
+            if not on:
+                os.environ.pop(inference_service.METRICS_ENV, None)
+            app = inference_service.create_app(runtime, accepted={TOKEN})
+            app.config["TESTING"] = True
+            return app.test_client().post(
+                "/v1/generate", json=self.BODY,
+                headers={"Authorization": f"Bearer {TOKEN}"}).get_json()
+
+    def runtime_with(self, metrics):
+        runtime = FakeRuntime()
+        runtime.last_metrics = metrics
+        return runtime
+
+    def test_metrics_are_off_by_default(self):
+        body = self.post(self.runtime_with({"eval_count": 141}), on=False)
+        self.assertEqual(set(body),
+                         {"request_id", "model", "duration_ms", "result"})
+        self.assertNotIn("metrics", body)
+
+    def test_metrics_appear_only_when_switched_on(self):
+        body = self.post(self.runtime_with(
+            {"eval_count": 141, "prompt_eval_count": 430,
+             "eval_duration": 7_000_000_000}), on=True)
+        self.assertEqual(body["metrics"]["eval_count"], 141)
+        self.assertEqual(body["metrics"]["prompt_eval_count"], 430)
+        # ... and the production keys are all still there, unchanged.
+        self.assertLessEqual({"request_id", "model", "duration_ms", "result"},
+                             set(body))
+
+    def test_only_the_allow_listed_counters_are_echoed(self):
+        """A future Ollama field must not ride along.
+
+        The response from /api/generate carries `response` (the model's
+        answer) and `context` (the tokenised prompt AND answer). Neither
+        may ever reach a caller through this path.
+        """
+        body = self.post(self.runtime_with({
+            "eval_count": 141,
+            "response": "Ada Okonkwo, ada@example.com",
+            "context": [1, 2, 3],
+            "done_reason": "stop",
+            "some_future_field": 7,
+        }), on=True)
+        self.assertEqual(set(body["metrics"]), {"eval_count"})
+        # Scoped to metrics: `result` is the model's answer and IS meant to
+        # come back — that is the API. What must never ride along is the
+        # runtime's own echo of the text, or a field nobody allow-listed.
+        block = json.dumps(body["metrics"])
+        self.assertNotIn("Okonkwo", block)
+        self.assertNotIn("some_future_field", block)
+        self.assertNotIn("context", block)
+
+    def test_the_provider_keeps_counters_and_never_text(self):
+        """last_metrics is populated from a real-shaped Ollama response."""
+        payload = {"response": '{"name": "Ada Okonkwo"}',
+                   "context": [1, 2, 3], "done": True, "done_reason": "stop",
+                   "model": "qwen3:8b", "eval_count": 141,
+                   "eval_duration": 7_000_000_000,
+                   "prompt_eval_count": 430, "load_duration": 3_100_000_000,
+                   "total_duration": 12_400_000_000}
+        engine = inference.LocalOllama("http://x/api/generate")
+        with mock.patch.object(inference, "_post",
+                               return_value=(200, payload)):
+            engine.generate("qwen3:8b", "p", SCHEMA, 10)
+        self.assertEqual(engine.last_metrics["eval_count"], 141)
+        self.assertEqual(engine.last_metrics["load_duration"], 3_100_000_000)
+        # Strings, lists and booleans are all excluded.
+        for absent in ("response", "context", "done", "done_reason", "model"):
+            self.assertNotIn(absent, engine.last_metrics, absent)
+        self.assertNotIn("Okonkwo", json.dumps(engine.last_metrics))
+
+    def test_metrics_do_not_change_the_log_line(self):
+        """Whatever the response carries, the access log is the same six
+        fields. The contract that matters is the one on disk."""
+        fields = {}
+        for on in (False, True):
+            with captured_logs() as records:
+                self.post(self.runtime_with({"eval_count": 141}), on=on)
+            line = next(r.getMessage() for r in records
+                        if "request_id=" in r.getMessage())
+            fields[on] = {p.split("=", 1)[0] for p in line.split() if "=" in p}
+        self.assertEqual(fields[False], fields[True])
+        self.assertEqual(fields[True], {"request_id", "path", "status",
+                                        "model", "duration_ms", "outcome"})
+
+    def test_a_runtime_without_metrics_is_not_an_error(self):
+        runtime = FakeRuntime()
+        runtime.last_metrics = None
+        body = self.post(runtime, on=True)
+        self.assertEqual(body["result"], ANSWER)
+        self.assertNotIn("metrics", body)
 
 
 class TestNoSensitiveLogging(unittest.TestCase):

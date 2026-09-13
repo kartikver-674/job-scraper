@@ -72,9 +72,14 @@ measured token counts:
 | ada | 46 s | 74 s | **~120 s** | 18.9 s |
 | hana | 102 s | 135 s | **~240 s** | 29.6 s |
 
-**2–4 minutes per profile — roughly 8× slower than local.** For a
-once-per-user résumé upload at 10 users/day, that is tolerable. It is not
-tolerable for anything interactive.
+> ### ⚠️ THE TABLE ABOVE IS AN EXTRAPOLATION, AND IT WAS WRONG
+>
+> It was written before anything was deployed, from a published tok/s figure
+> and our own token counts. **The first real profile on the live Oracle box
+> took ~7 minutes**, not the 2–4 minutes projected — roughly **3× the
+> estimate**. See §9 for what was actually observed and what is still
+> unknown. Everything below this box is kept as written because the *method*
+> is worth auditing; the *numbers* are superseded.
 
 Worth checking: the longest *single call* projects to ~120 s, comfortably inside
 our 300 s `MAX_TIMEOUT` and the 360 s gunicorn worker timeout. **No configuration
@@ -299,7 +304,7 @@ Starting it is unchanged from the laptop: `python -m inference_service`.
 
 | | |
 | --- | --- |
-| Warm (model resident) | **~100–240 s per profile** (2 calls) |
+| Warm (model resident) | **~7 minutes per profile, measured** (2 calls). The 100–240 s in earlier drafts was an extrapolation and was ~3× optimistic — see §9 |
 | Cold (first request after a restart) | + the model load. Measured at 5.2 s on this laptop's SSD; budget more on ARM |
 | Between a profile's two calls | **No reload at any keep-alive setting** — they are back to back. See §8 |
 | Between two users' profiles | A reload at `30s`, none at `-1`. Measured cost 2.9 s locally |
@@ -462,3 +467,111 @@ someone will otherwise "optimise" it back to `30s` and lose the instance.
 `300s` is the awkward middle: it gets the between-profile latency without the
 reclamation protection, since an overnight gap still unloads. Pick it only if
 holding 5.3 GB permanently is a problem on the host — which on 12 GB it is not.
+
+---
+
+## 9. What the live Oracle deployment actually measured
+
+Deployed 13 September 2026 at `sweep-inference.duckdns.org`. The architecture
+worked end to end on the first real profile. The performance did not match §2.
+
+### The number
+
+| | |
+| --- | --- |
+| §2's extrapolation, per profile | 100–240 s |
+| **Measured, first real profile** | **~7 minutes (~420 s)** |
+| Local M1 Pro, same pipeline (`ada`) | 14.3 s |
+| Ratio, Oracle : laptop | **~30×** |
+
+Observed on the box during the run: `llama-server` at **184–191% CPU** on 2
+OCPUs — both cores saturated — ~5.5 GB resident, no swap, `size_vram = 0`,
+context length 2048, the model resident throughout.
+
+### What it is not
+
+Ruled out by the deployment's own observations and by the checks below:
+
+- **Not cold loading.** The model stayed resident; `/api/ps` reports
+  `expires_at` in 2318.
+- **Not HTTP, Caddy or TLS.** The hop measured 0.50 ms median locally, and the
+  box showed the CPU pinned, not the network.
+- **Not eviction.** `SWEEP_MODEL_KEEP_ALIVE=-1` held.
+- **Not memory pressure.** No swap, 5.5 GB of 12 GB.
+- **Not thinking tokens.** Traced, not assumed — see below.
+
+### Thinking is disabled, identically, on both paths
+
+The strongest candidate for a 3× miss was Qwen3 reasoning before extracting,
+which earlier benchmarking measured at 37.4 s per document against 9.4 s with it
+off. It was checked by **capturing the literal request body** that reaches
+Ollama on each path, through the real service:
+
+```
+                    local-direct        remote (via the service)
+  model             qwen3:8b            qwen3:8b
+  think             False               False
+  options           {temperature: 0,    {temperature: 0,
+                     num_ctx: 2048}      num_ctx: 2048}
+  stream            False               False
+  prompt            <1584 chars>        <1584 chars>   byte-for-byte identical
+  format            <schema>            <schema>       byte-for-byte identical
+
+  identical, key for key and value for value: True
+```
+
+Both calls, both paths. The prompt equals `FIELDS_PROMPT.format(text=...)` and
+the schema *is* `FIELDS_SCHEMA` — the same objects the benchmark scored. The
+remote provider changes no option and no context behaviour, because it is the
+same `LocalOllama` class; the service is a pipe.
+
+A local A/B also shows that with structured output (`format`) qwen3:8b emits **no
+reasoning text either way** — the schema already constrains it — so `think:false`
+is correct and present but is not the lever here. **Thinking is not the cause.**
+
+### So it is CPU, and the estimate was simply wrong
+
+§2 assumed ~3.5 tok/s generation and ~20 tok/s prefill at 2 OCPU, extrapolated
+from a published 4-OCPU figure. To produce 420 s the real rates must be roughly
+half that. Two compounding errors:
+
+1. **Halving OCPUs does not halve throughput cleanly** — memory bandwidth,
+   not core count, bounds token generation, and the published figure was a
+   different quantisation on a different build.
+2. **A real résumé is longer than any benchmark document.** The benchmark set
+   runs 503–3013 characters (median 816). A real two-page CV is commonly
+   4000–6000, which is 2–5× the prompt tokens *and* more output tokens.
+
+Both push the same way. Neither was measured before the estimate was published,
+which is the actual lesson.
+
+### What is still unknown, and how to settle it
+
+The split between prefill and generation was not captured, so "CPU is slow" is
+as precise as this gets. `bench/remote_profile.py` closes that: it records, per
+call, wall clock, prompt and output token counts, the prefill and generation
+rates **Ollama itself reports**, the context size in force, and model load time.
+
+```bash
+# on the server, add to /etc/sweep-inference/env, then restart:
+SWEEP_INFERENCE_METRICS=1
+
+# from the laptop, on the SAME résumé that took 7 minutes:
+python -m bench.remote_profile --url https://sweep-inference.duckdns.org \
+       --token "$TOKEN" --resume /path/to/that/resume.pdf
+```
+
+The metrics echo is **off by default** and changes only what is *returned*,
+never what is *logged* — the access line is the same six fields either way, and
+a test asserts it. Only counters and durations travel; a test also asserts that
+Ollama's `response` and `context` fields can never ride along.
+
+Until that runs, three things are open:
+
+- the real prefill vs generation split, and therefore whether a shorter prompt
+  would help at all;
+- whether that résumé lands in the **3840–4130 character window** where the two
+  calls request different `num_ctx` and Ollama must reload the model between
+  them (§8) — on ARM that reload is not cheap, and it looks exactly like "the
+  host is slow". `bench/remote_profile.py` prints a warning when it happens;
+- whether 7 minutes is typical or was a first-run outlier.

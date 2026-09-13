@@ -278,6 +278,11 @@ class LocalOllama:
         # unreachable from a test: a test that patched the constant made a
         # real model call and asserted the wrong failure.
         self._url = url
+        # The runtime's own counters from the last call — token counts and
+        # nanosecond durations, never text. Read by the service only when
+        # SWEEP_INFERENCE_METRICS is on, and by bench/. Kept here because
+        # this is the only object that ever sees Ollama's full response.
+        self.last_metrics = None
 
     def endpoint(self):
         return (self._url or host() + "/api/generate")
@@ -327,6 +332,10 @@ class LocalOllama:
             raise ModelUnavailable(
                 "no local model server is reachable at "
                 f"{self.describe()} — is Ollama running?") from None
+        # Counters only — the response text is never kept here.
+        self.last_metrics = {k: v for k, v in payload.items()
+                             if isinstance(v, (int, float))
+                             and not isinstance(v, bool)}
         try:
             return json.loads(payload["response"])
         except (KeyError, TypeError, json.JSONDecodeError):

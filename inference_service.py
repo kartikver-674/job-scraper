@@ -114,6 +114,21 @@ DEFAULT_WORKERS = 1
 # own deadline runs out.
 DEFAULT_QUEUE_WAIT = 30
 
+# Benchmark-only. When set, successful responses carry a "metrics" object
+# holding the runtime's OWN timing counters — token counts and durations,
+# never text. OFF by default, because the production contract is the five
+# keys in §"API contract" and a benchmark must not quietly widen it.
+#
+# It changes what is RETURNED, never what is LOGGED: the access line is the
+# same six fields either way. See docs/inference-service.md.
+METRICS_ENV = "SWEEP_INFERENCE_METRICS"
+
+# Counters echoed when metrics are on. An explicit allow-list, so a future
+# Ollama release adding a field cannot leak anything through this path:
+# every one of these is a count or a nanosecond duration.
+METRIC_KEYS = ("prompt_eval_count", "prompt_eval_duration", "eval_count",
+               "eval_duration", "load_duration", "total_duration")
+
 # Where gunicorn's settings live. Read by main() and by the deployment
 # notes; a single file so the timeouts cannot drift from MAX_TIMEOUT.
 GUNICORN_CONF = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -173,6 +188,12 @@ def _positive(name, default, cast=int):
     if value <= 0:
         raise Misconfigured(f"{name}={raw!r} must be positive")
     return value
+
+
+def metrics_enabled():
+    """Is the benchmark-only metrics echo on? Off unless explicitly set."""
+    return (os.environ.get(METRICS_ENV) or "").strip().lower() in (
+        "1", "true", "yes", "on")
 
 
 def bind():
@@ -478,9 +499,17 @@ def create_app(runtime=None, accepted=None, slots=None):
             app.config["MODEL_SLOT"].release()
 
         g.category = "ok"
-        return jsonify({"request_id": g.request_id, "model": model,
-                        "duration_ms": int((time.time() - started) * 1000),
-                        "result": result})
+        reply = {"request_id": g.request_id, "model": model,
+                 "duration_ms": int((time.time() - started) * 1000),
+                 "result": result}
+        if metrics_enabled():
+            # The runtime's own counters, filtered to the allow-list. Only
+            # present when explicitly switched on, and only ever numbers.
+            stats = getattr(app.config["RUNTIME"], "last_metrics", None)
+            if stats:
+                reply["metrics"] = {k: stats[k] for k in METRIC_KEYS
+                                    if k in stats}
+        return jsonify(reply)
 
     return app
 

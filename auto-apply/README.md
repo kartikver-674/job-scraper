@@ -82,6 +82,7 @@ Runtime requirements, every environment variable, the health check and the full
 list of failure modes: [docs/inference-service.md](../docs/inference-service.md).
 Where to host it and what it costs: [docs/inference-hosting.md](../docs/inference-hosting.md).
 How to provision that host: [docs/oracle-deployment.md](../docs/oracle-deployment.md).
+The next hosting experiment: [docs/modal-poc-plan.md](../docs/modal-poc-plan.md).
 
 ## Phase 2 — LinkedIn Easy Apply autofill (userscript)
 

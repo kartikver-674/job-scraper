@@ -61,6 +61,23 @@ limit_request_line = 4094
 limit_request_fields = 50
 limit_request_field_size = 8190
 
+# Gunicorn 26 opens a unix control socket at $HOME/.gunicorn/gunicorn.ctl.
+# Nothing here uses it, and under the deployed systemd unit $HOME is
+# /opt/sweep-inference with ProtectSystem=strict, so the attempt fails:
+#
+#   Control server error: [Errno 30] Read-only file system:
+#   '/opt/sweep-inference/.gunicorn'
+#
+# The service stayed healthy — it is an optional side channel — but it
+# logged that on every start, and a warning nobody can act on is a warning
+# people learn to scroll past.
+#
+# Turned OFF rather than made writable. The alternative fixes are to relax
+# ProtectSystem or to punch a ReadWritePaths hole, and both weaken the
+# hardening of an internet-facing box to enable a feature we do not use.
+# Found by the first real deployment; see docs/oracle-deployment.md.
+control_socket_disable = True
+
 # Connections wait here rather than being refused at the TCP level, which
 # is what makes a queued request show up as a `model_busy` with a
 # Retry-After instead of a connection reset nobody can categorise.
