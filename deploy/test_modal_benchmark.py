@@ -45,14 +45,30 @@ class RestoreGate(unittest.TestCase):
 
 @unittest.skipUnless(importlib.util.find_spec("modal"), "install the benchmark Modal SDK")
 class EndpointContract(unittest.TestCase):
+    """The full WSGI contract, run against BOTH apps.
+
+    Production is only acceptable if it is the wrapper the answer-key gate
+    measured. Running the identical contract against both decorated classes
+    is what holds that — a drift in either one fails here.
+    """
+
     def setUp(self):
-        self.assertTrue((ROOT / "deploy/modal_benchmark.py").exists(),
-                        "temporary endpoint has not been implemented")
+        import modal_serving
+        self.serving = modal_serving
+
+    def endpoints(self):
         import modal_benchmark
-        self.module = modal_benchmark
+        import modal_production
+        return (("benchmark", modal_benchmark.BenchmarkEndpoint),
+                ("production", modal_production.ProductionEndpoint))
 
     def test_real_wsgi_auth_limits_errors_and_warmup_options(self):
-        module = self.module
+        for label, endpoint in self.endpoints():
+            with self.subTest(app=label):
+                self.check_contract(endpoint)
+
+    def check_contract(self, endpoint):
+        module = self.serving
         seen = []
 
         def wire(url, body, timeout, headers=None):
@@ -68,7 +84,7 @@ class EndpointContract(unittest.TestCase):
                 patch.object(inference, "_post", side_effect=wire), \
                 warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)  # .local has no Volume
-            handle = module.BenchmarkEndpoint()
+            handle = endpoint()
             app = handle.web.local()
             client = app.test_client()
             payload = {"prompt": "fixture", "schema": {"type": "object"}}
@@ -121,8 +137,25 @@ class EndpointContract(unittest.TestCase):
             for forbidden in ("private-resume-marker", "model-output-marker", "test-secret"):
                 self.assertNotIn(forbidden, logged)
 
+    def test_production_is_its_own_app_secret_and_warm_window(self):
+        import modal_benchmark
+        import modal_production
+        self.assertNotEqual(modal_production.APP_NAME, modal_benchmark.APP_NAME)
+        self.assertNotEqual(modal_production.SECRET_NAME, modal_benchmark.SECRET_NAME)
+        self.assertEqual(modal_production.SCALEDOWN_WINDOW, 60)
+        self.assertEqual(modal_production.MAX_CONTAINERS, 1)
+        self.assertEqual(driver.TARGETS["production"]["app"], modal_production.APP_NAME)
+        options = self.serving.serving_options(modal_production.SECRET_NAME, 60, 1)
+        self.assertEqual(options["gpu"], "T4")
+        self.assertEqual(options["min_containers"], 0, "production must scale to zero")
+        self.assertEqual(options["max_containers"], 1)
+        self.assertEqual(options["scaledown_window"], 60)
+        self.assertTrue(options["enable_memory_snapshot"])
+        self.assertEqual(options["experimental_options"], {"enable_gpu_snapshot": True})
+        self.assertEqual(options["timeout"], 360)
+
     def test_model_identity_refuses_changed_digest_or_cpu_residency(self):
-        module = self.module
+        module = self.serving
         tag = {"name": "qwen3:8b", "digest": "500a1f067a9f" + "0" * 52,
                "details": {"quantization_level": "Q4_K_M"}}
         payloads = {"/api/version": {"version": "0.34.0"},
@@ -137,6 +170,63 @@ class EndpointContract(unittest.TestCase):
             tag["digest"] = "different"
             with self.assertRaises(RuntimeError):
                 module.model_identity()
+
+
+class Targets(unittest.TestCase):
+    def test_benchmark_and_production_never_share_app_state_or_token(self):
+        bench, prod = driver.TARGETS["benchmark"], driver.TARGETS["production"]
+        for key in ("app", "cls", "state", "token_env"):
+            self.assertNotEqual(bench[key], prod[key], key)
+        # Every earlier command still means the benchmark.
+        self.assertEqual(driver.APP_NAME, bench["app"])
+        self.assertEqual(driver.STATE, bench["state"])
+
+
+class LiveContractAgainstARealServer(unittest.TestCase):
+    """contract_http run against the real service over a real socket, with
+    only the model faked — so the live run cannot fail on a checker bug."""
+
+    def serve(self, queue_wait):
+        import inference_service
+        import local_extract as le
+        from werkzeug.serving import make_server
+
+        answer = {key: ([] if key != "name" and key != "years_experience" else
+                        ("" if key == "name" else 0)) for key in le.FIELDS_SCHEMA["required"]}
+
+        class Runtime:
+            def generate(self, model, prompt, schema, timeout):
+                if timeout <= 1:
+                    raise inference.ModelTimeout("slower than the deadline")
+                import time
+                time.sleep(0.3)
+                return answer
+
+            def describe(self):
+                return "fake"
+
+        app = inference_service.create_app(Runtime(), accepted={"tok"}, slots=1)
+        app.config["QUEUE_WAIT"] = queue_wait
+        server = make_server("127.0.0.1", 0, app, threaded=True)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        return f"http://127.0.0.1:{server.server_port}"
+
+    def test_every_agreed_response_is_provoked_and_recognised(self):
+        import inference_service
+        with patch.object(inference_service, "runtime_reachable", return_value=True):
+            checks = driver.contract_http(self.serve(queue_wait=0.05), "tok", "p")
+        for label in ("GET /healthz", "unknown route", "no bearer token", "wrong bearer token",
+                      "unknown request field", "oversized prompt", "authenticated generation",
+                      "model slower than the request deadline", "client maps model_timeout",
+                      "burst answers only 200 or 429", "model_busy under contention"):
+            self.assertIn(label, checks)
+
+    def test_a_service_that_never_says_model_busy_fails_the_contract(self):
+        import inference_service
+        with patch.object(inference_service, "runtime_reachable", return_value=True):
+            with self.assertRaisesRegex(driver.GateError, "model_busy"):
+                driver.contract_http(self.serve(queue_wait=30), "tok", "p", concurrency=2)
 
 
 if __name__ == "__main__":
