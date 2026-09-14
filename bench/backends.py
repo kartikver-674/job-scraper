@@ -260,12 +260,16 @@ def compare_observations(left, right, now=None):
 
 def run(people=None, limit=None, model=None, log=print, *, layouts=("plain",),
         paths=None, url=None, token=None, label="remote", output_dir=None,
-        endpoint_state=None):
+        endpoint_state=None, answer_key=False):
     import corpus_signal
     from resume_parser import extract_text
 
     if label.casefold() == "modal" and not endpoint_state:
         raise ValueError("Modal acceptance requires --endpoint-state from a restored smoke test")
+    if answer_key and paths:
+        raise ValueError("answer-key scoring needs synthetic corpus documents, not explicit paths")
+    if answer_key:
+        from bench import answer_key as ak
     docs = documents(people, limit, layouts, paths)
     model = inference.model_name(model)
     identity = local_identity(model)
@@ -306,8 +310,15 @@ def run(people=None, limit=None, model=None, log=print, *, layouts=("plain",),
             row.update(compare_observations(direct, remote, now))
             row["local"], row["remote"] = direct, remote
             row["accepted"] = "failure" not in direct and "failure" not in remote
+            if answer_key:
+                person = ak.person_of(slug)
+                row["key"] = ak.key_observation(text, person, market, frequencies, now)
+                row["scoring"] = ak.score_document(direct, remote, row["key"], person, now)
+                row["disagreements"] = ak.classify_disagreements(row)
             log(f"{slug}: exact={row['exact_match']} semantic={row['semantic_match']} "
                 f"accepted={row['accepted']} local={row['local_s']:.2f}s {label}={row['remote_s']:.2f}s")
+            if answer_key:
+                ak.describe(row, log)
             for d in row["diffs"]:
                 log(f"  {slug} | {d['path']} | {d['classification']} ({d['reason']})\n"
                     f"    local: {d['local']!r}\n    {label}: {d['remote']!r}")
@@ -317,6 +328,10 @@ def run(people=None, limit=None, model=None, log=print, *, layouts=("plain",),
             row["error"] = type(exc).__name__  # messages can quote request content
             log(f"{slug}: ERROR {row['error']} (no retry or fallback)")
         report["rows"].append(row)
+        if answer_key:
+            # Every document is scored against the key: a backend
+            # disagreement is the thing being measured, not a reason to stop.
+            continue
         if row.get("error") or not row.get("semantic_match") or not row.get("accepted"):
             log("STOP: gate failed; remaining documents were not run.")
             break
@@ -363,7 +378,8 @@ def summarise(report, log=print):
 
 def demo():
     import unittest
-    suite = unittest.defaultTestLoader.loadTestsFromName("bench.test_backends")
+    suite = unittest.defaultTestLoader.loadTestsFromNames(
+        ["bench.test_backends", "bench.test_answer_key"])
     return unittest.TextTestRunner().run(suite).wasSuccessful()
 
 
@@ -384,11 +400,16 @@ def main():
     parser.add_argument("--output-dir", help="existing local scored-job corpus; never fetches jobs")
     parser.add_argument("--json", help="local report path, preferably under ignored output/")
     parser.add_argument("--demo", action="store_true", help="offline self-checks only")
+    parser.add_argument("--answer-key", action="store_true",
+                        help="score BOTH backends against bench/people.py and run every "
+                             "document; synthetic corpus only")
     args = parser.parse_args()
     if args.demo:
         return 0 if demo() else 1
     if args.label.casefold() == "modal" and not args.endpoint_state:
         parser.error("Modal acceptance requires --endpoint-state from a restored smoke test")
+    if args.answer_key and args.resume:
+        parser.error("--answer-key scores the synthetic corpus; use --all, --people or --representative")
     token = args.token or os.environ.get(args.token_env) or os.environ.get(inference.TOKEN_ENV)
     if not token:
         parser.error("bearer token required via --token or --token-env")
@@ -407,11 +428,14 @@ def main():
     try:
         report = run(people, limit, layouts=layouts, paths=args.resume,
                      url=url, token=token, label=args.label, output_dir=args.output_dir,
-                     endpoint_state=args.endpoint_state)
+                     endpoint_state=args.endpoint_state, answer_key=args.answer_key)
     except Exception as exc:
         print(f"Preflight failed: {type(exc).__name__}; check local pinned model and remote health.")
         return 1
     ok = summarise(report)  # before writing: the verdict belongs in the report
+    if args.answer_key:
+        from bench import answer_key as ak
+        ok = ak.summarise(report)
     if args.json:
         destination = Path(args.json)
         destination.parent.mkdir(parents=True, exist_ok=True)
