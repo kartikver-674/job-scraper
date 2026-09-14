@@ -6,7 +6,8 @@ either one means changing the extraction prompts or schema, which changes the
 exact inference behaviour the 52-document answer-key gate just validated —
 so a fix is its own piece of work, followed by a full re-run of that gate.
 
-Modal production is already correct on both cases below.
+Modal is correct on case 2. **Case 1 is not local-only:** the production
+Modal endpoint reproduced it on its first Sarthak run (below).
 
 Affected: anyone running the local engine against a local Ollama
 (`SWEEP_INFERENCE_BACKEND=local-direct`, the default). **Untested:** whether
@@ -25,7 +26,14 @@ DealerMatix Technologies, Software Engineer, Jan 2025 – Present.
 | --- | --- | --- |
 | local-direct, M1, model warm | 2 (identical) | 5/5 |
 | local-direct, M1, model reloaded each time | 2 (identical) | 3/3 |
-| Modal T4, cold before every profile (production shape) | 1 | 7/7 |
+| Modal T4 benchmark app, cold before every profile | 1 | 7/7 |
+| **Modal T4 production app, 15 Sep 2026 rollout** | **2 (identical)** | **1/1** |
+
+So it is the model, not the local path: same model digest, same prompts, and
+the output flips between runs on the same hardware class. Why the benchmark
+app never showed it and production did on its first try is unknown — one run
+is not a rate. Both production runs so far matched local exactly (raw and
+semantic), because both returned the duplicate.
 
 **Impact: none measured on search behaviour.** Held titles are de-duplicated
 twice in `local_search` (the `stem not in out` guard, then `add()` in
