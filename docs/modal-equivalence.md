@@ -323,3 +323,59 @@ The 14 September reset was an **undervoltage lockout** (`vdd_under`,
 through Apple's 96 W adapter with a healthy battery. That points at the
 machine, not the workload or the charger. Sustained local inference can trigger
 it; run Apple Diagnostics.
+
+---
+
+## Final result, 15 September 2026 — Modal qualifies
+
+Supersedes the interim 36-document status above. All 52 synthetic documents
+scored against bench/people.py; batches 1–3 (run 14 September) merged with
+batch 4 (run 14–15 September) under identical conditions — clock month
+(2026, 9), market corpus (22 806 listings, same hash), endpoint URL and model
+digest `500a1f067a9f`, re-checked by the merge. Report:
+`output/modal-equivalence/answer-key-2026-09/answer-key-52.json`.
+
+| | |
+| --- | --- |
+| Documents | 52 |
+| Local fully correct (every search/filter-driving field) | 50 |
+| **Modal fully correct** | **51** |
+| Both fully correct | 50 |
+| Local-only correct | 0 |
+| Modal-only correct | 1 — `dmitri-plain` |
+| Both incorrect | 1 — `mateo-tables` |
+| Raw backend exact / semantic matches | 41 / 41 |
+| Behaviour-changing per the backend comparator | 11 — only `dmitri-plain` touches a driving field |
+| Duplicate-only benign | 0 |
+| **Driving regressions (local right, Modal wrong)** | **0** |
+| Driving-field correct totals | local 668, **Modal 672** |
+
+Driving fields at 52/52 on both backends: employment rows, dates, relevance,
+skills, years_experience, SEARCH/SETTINGS experience limits, title hints,
+skill-driven scoring, escalation. Title, role_keywords, feed queries and
+rendered config: local 50, Modal 51.
+
+**Acceptance: all four criteria pass — at least as correct as local on driving
+fields, no driving regression, every disagreement classifiable, every document
+scored.**
+
+Reported individually rather than averaged away:
+
+- `dmitri-plain` — local swaps company and title; Modal is correct. Local
+  searches for company names.
+- `mateo-tables` — **both** backends drop "Part-time" from the second role
+  (`Backend Engineer` for `Part-time Backend Engineer`), identically, so
+  `part time backend engineer` is missing from role_keywords on both. A shared
+  model/layout error on the tables layout, not a backend difference.
+- `iris-twocol` — Modal adds "Independent Frontend Consultant" to the
+  fields-call titles; local is right. **Non-driving**: that list feeds
+  grounding only, and the employment titles are correct on both.
+- `kwame-tables`, `kwame-messy` — local misses "Mathematics Teacher" in the
+  fields-call titles; Modal is right. Non-driving.
+- Projects, certifications, fields-call companies and institutions are wrong
+  the same way on both backends in several layouts — PDF text gluing words
+  together, not a backend effect.
+
+Modal is back down: the batch runner stopped the endpoint at 00:17:02; every
+app stopped, 0 containers. The run cost roughly $0.10–0.15 of the credit,
+inside the $25 workspace budget. Nothing has been pointed at Modal.
