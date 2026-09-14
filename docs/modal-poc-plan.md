@@ -235,6 +235,12 @@ precisely the margin the Oracle estimate lacked.
 
 ### Credit versus infrastructure
 
+> **Correction, 14 September 2026:** on this account the $30/month was not
+> available until a **payment method was added** — before that the workspace
+> had a $1 credit, which the benchmark nearly exhausted. With a card on file,
+> a Modal workspace budget (set below $30) is required before anything is
+> deployed; see [modal-equivalence.md](modal-equivalence.md#the-spend-guard--set-it-before-anything-is-deployed-again).
+
 **Modal's $30/month is a recurring credit allowance, not free infrastructure.**
 It resets monthly and does not roll over ([pricing](https://modal.com/pricing)).
 It is a vendor's commercial decision and can be changed or withdrawn; Oracle's

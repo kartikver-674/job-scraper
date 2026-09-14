@@ -240,3 +240,31 @@ class RunKeepsGoing(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MergeBatches(unittest.TestCase):
+    """Batches exist so a reset loses one batch; the merge must not let
+    batches from different conditions masquerade as one run."""
+
+    @staticmethod
+    def batch(slugs, now=(2026, 9)):
+        return {"now": list(now), "market_sha256": "m", "url": "u",
+                "baseline": {"digest": "d"}, "requested": len(slugs),
+                "rows": [{"resume": s} for s in slugs]}
+
+    def test_rows_come_back_in_corpus_order_and_unrun_documents_are_named(self):
+        from bench import merge_answer_key as merge
+        combined = merge.merge([self.batch(["hana-plain"]), self.batch(["ada-plain"])])
+        self.assertEqual([r["resume"] for r in combined["rows"]], ["ada-plain", "hana-plain"])
+        self.assertEqual(combined["requested"], 52)
+        self.assertEqual(len(combined["not_run"]), 50)
+
+    def test_batches_from_different_months_are_refused(self):
+        from bench import merge_answer_key as merge
+        with self.assertRaisesRegex(ValueError, "identical conditions"):
+            merge.merge([self.batch(["ada-plain"]), self.batch(["hana-plain"], now=(2026, 10))])
+
+    def test_a_document_in_two_batches_is_refused(self):
+        from bench import merge_answer_key as merge
+        with self.assertRaisesRegex(ValueError, "more than one batch"):
+            merge.merge([self.batch(["ada-plain"]), self.batch(["ada-plain"])])

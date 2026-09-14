@@ -223,3 +223,103 @@ public endpoint. The model Volume, historical probes and Oracle remain intact:
 ```bash
 .venv/bin/modal app stop sweep-inference-benchmark
 ```
+
+---
+
+## Status, 14 September 2026 — paused; Modal is down
+
+### What ran
+
+| Stage | Result |
+| --- | --- |
+| Sarthak gate | raw **FAIL** (local repeats the one DealerMatix role), semantic **PASS** after the approved exact-duplicate rule; every search-driving field equal |
+| Representative (bhaskar / ada / hana) | 3/3 raw and semantic |
+| First full gate (local as oracle) | stopped at `dmitri-plain`: local swaps company/title (4/4), Modal matches the key (5/5) |
+| Answer-key scoring, batches 1–3 | **36 of 52 scored** |
+| Batch 4 (jonas, kwame, lena, mateo — 16 documents) | **not run** — paused for the credit decision below |
+
+### Interim answer-key result, 36 documents
+
+| | |
+| --- | --- |
+| Local fully correct on every search/filter-driving field | 35 |
+| Modal fully correct | 36 |
+| Both fully correct | 35 |
+| Local-only correct | 0 |
+| Modal-only correct | 1 (`dmitri-plain`) |
+| Both incorrect | 0 |
+| Raw backend exact / semantic matches | 28 / 28 |
+| Behaviour-changing per the backend comparator | 8 — 7 on non-driving fields |
+| **Driving regressions (local right, Modal wrong)** | **0** |
+| Driving-field correct totals | local 464, Modal 468 |
+
+Reported individually, as it is a Modal error the aggregate would hide:
+`iris-twocol` — the **fields-call titles** are wrong on Modal and right on
+local. That list only feeds grounding (held titles come from the employment
+rows, correct on both), so it is not a search regression. Both-wrong-same-way
+fields (projects ×11, companies ×3) come from PDF layouts gluing words together.
+
+Acceptance: three of four criteria pass; the fourth fails only because 16
+documents have not run. **Modal is not yet accepted.**
+
+Reports (local, ignored): `output/modal-equivalence/ak-batch-{1,2,3}.json`,
+`output/modal-equivalence/answer-key-36-interim.json`.
+
+### Why it paused, and the credit correction
+
+A Modal email reported 85% of a **$1** credit used. Earlier documents here said
+Modal's Starter plan carries $30/month; on this account the $30 was unlocked
+only by **adding a payment method**. With a card on file, the rule is now:
+Modal must never cost more than the $30 credit, even by mistake. Modal stays
+down until the next billing period.
+
+- Every Modal app is **stopped** (`sweep-inference-benchmark`,
+  `sweep-ollama-snapshot-probe`); 0 containers.
+- Kept, because they cost nothing: the `sweep-ollama-models` Volume (5.2 GB,
+  inside the free 1 TiB) and the `sweep-inference-benchmark` Secret.
+
+### The spend guard — set it before anything is deployed again
+
+Neither setting is available from the CLI. In Modal: **Settings → Usage &
+Billing** (`/settings/usage`), as a Workspace Owner or Manager:
+
+1. **Workspace budget — $25.** The budget is Modal's "hard outer cap" on total
+   usage before credits. Set below $30 because Modal does not document how
+   quickly a limit is enforced or whether usage can overshoot it.
+2. **Spend limit — $0** if the page accepts it (out-of-pocket charges after
+   credits; the docs do not say whether $0 is allowed). If it does not, use the
+   smallest value it accepts; the $25 budget still bounds total usage.
+
+The budget is the guarantee, not the code. The code only bounds the rate: the
+benchmark endpoint runs at most one T4 container (`max_containers=1`, idle
+scale-down 2 s, bearer token required) — about $0.59/h of GPU, roughly $0.66/h
+with CPU and memory, so $25 would take ~38 continuous hours. The batch runner
+stops the endpoint on exit, whatever the exit.
+
+### Resuming next billing period
+
+Re-run all 52 in the new month. September's batches cannot be merged with
+October's — the merge refuses different clock months, because "present" dates
+resolve against the clock.
+
+```bash
+# 0. budget + spend limit set in the Modal dashboard (above)
+ollama serve &                                 # local baseline; qwen3:8b 500a1f067a9f
+export SWEEP_BENCHMARK_TOKEN="$(cut -d= -f2 output/modal-equivalence/token.env)"
+.venv/bin/modal deploy deploy/modal_benchmark.py
+.venv/bin/python deploy/run_modal_benchmark.py prime
+.venv/bin/python deploy/run_modal_benchmark.py smoke
+caffeinate -i bash deploy/run_answer_key_batches.sh   # ~50 min, ~$0.5; stops the endpoint on exit
+# verdict: output/modal-equivalence/answer-key-YYYY-MM/merged.log
+```
+
+If the machine resets mid-run, run the last command again: batches already
+saved in this month's directory are skipped.
+
+### The Mac
+
+The 14 September reset was an **undervoltage lockout** (`vdd_under`,
+`vdd_hi_uvlo`), the third with that signature (twice on 10 September), on AC
+through Apple's 96 W adapter with a healthy battery. That points at the
+machine, not the workload or the charger. Sustained local inference can trigger
+it; run Apple Diagnostics.
