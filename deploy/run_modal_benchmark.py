@@ -60,14 +60,34 @@ def check_identity(info):
         raise GateError("identity/VRAM/source/keep-alive check failed; do not benchmark")
 
 
-def check_restored(prime, restored):
+# A genuine GPU-snapshot restore answered in 17.35s on the benchmark app; a
+# container that has to CREATE a snapshot (full boot, then the write) took
+# ~150s. Sixty seconds sits cleanly between the two.
+RESTORE_LIMIT_S = 60
+
+
+def check_restored(prime, restored, restore_s=None):
+    """A restore: a different container from the one primed, the same pinned
+    model, and — when timed — fast enough to have been restored, not created.
+
+    Deliberately NOT "the same boot_id as prime". Modal keeps one GPU
+    snapshot per worker type. On the production rollout the first cold
+    request landed on a second worker type and created a second snapshot
+    (logged twice as 'Creating GPU memory snapshot'); the next cold request
+    restored from that one in seconds — genuine, and a different boot_id.
+    Requiring the primed boot_id failed a correct restore. What this check
+    exists to catch is still caught: a reused warm container (same instance)
+    and a boot that paid snapshot creation (too slow). Every snapshot is
+    captured by the same synthetic-only boot(), so no résumé is in any of them.
+    """
     check_identity(restored)
-    if prime["boot_id"] != restored["boot_id"]:
-        raise GateError("new snapshot creation, not restore; prime again before benchmarking")
     if prime["instance_id"] == restored["instance_id"]:
         raise GateError("same container reused; wait for actual scale-down and repeat smoke")
     if prime["digest"] != restored["digest"]:
         raise GateError("model changed between prime and smoke")
+    if restore_s is not None and restore_s > RESTORE_LIMIT_S:
+        raise GateError(f"first request took {restore_s:.0f}s: a snapshot was being created, "
+                        f"not restored (Modal keeps one per worker type); run smoke again")
 
 
 def wait_for_zero(handle, limit=180):
@@ -266,19 +286,33 @@ def main():
         started = time.perf_counter()
         # The public WSGI method must restore first, before private diagnostics
         # can accidentally warm it on behalf of the smoke test.
-        status, health = http(state["url"], "/healthz")
+        try:
+            status, health = http(state["url"], "/healthz")
+        except TimeoutError:
+            state["restored_health_s"] = None
+            args.state.write_text(json.dumps(state, indent=2))
+            raise GateError("the first cold request outlasted 145s: a snapshot was being "
+                            "created, not restored (Modal keeps one per worker type); "
+                            "run smoke again") from None
         state["restored_health_s"] = round(time.perf_counter() - started, 2)
         if status != 200 or health.get("status") != "ok":
             raise GateError("restored HTTPS health check failed")
         restored = handle.diagnostics.remote()
-        check_restored(state["prime"], restored)
+        # Recorded before judging, so a failure still leaves the evidence.
+        state["restored"] = restored
+        state["restored_from"] = ("the primed snapshot"
+                                  if restored["boot_id"] == state["prime"]["boot_id"]
+                                  else "another worker type's snapshot")
+        args.state.write_text(json.dumps(state, indent=2))
+        check_restored(state["prime"], restored, state["restored_health_s"])
         smoke_http(state["url"], token)
         after = handle.diagnostics.remote()
         check_restored(state["prime"], after)
         state.update(smoke_passed=True, restored=after,
                      smoke_e2e_s=round(time.perf_counter() - started, 2))
-        print(f"Restored HTTPS ready: {state['restored_health_s']}s; "
-              f"size_vram={after['size_vram']}; auth/schema/generation passed.")
+        print(f"Restored HTTPS ready: {state['restored_health_s']}s from "
+              f"{state['restored_from']}; size_vram={after['size_vram']}; "
+              f"auth/schema/generation passed.")
     args.state.parent.mkdir(parents=True, exist_ok=True)
     args.state.write_text(json.dumps(state, indent=2))
     args.state.chmod(0o600)

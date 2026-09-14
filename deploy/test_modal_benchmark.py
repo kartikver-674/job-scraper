@@ -19,15 +19,24 @@ from deploy import run_modal_benchmark as driver
 
 
 class RestoreGate(unittest.TestCase):
-    def test_restored_boot_attribute_is_not_mistaken_for_a_new_container(self):
+    def test_a_restore_is_a_new_container_fast_enough_to_have_been_restored(self):
         prime = {"boot_id": "captured", "instance_id": "creator", "digest": "same"}
-        restored = {**prime, "instance_id": "new-container"}
+        fresh = {**prime, "instance_id": "new-container"}
         with patch.object(driver, "check_identity"):
-            driver.check_restored(prime, restored)
-            with self.assertRaises(driver.GateError):
-                driver.check_restored(prime, prime)
-            with self.assertRaises(driver.GateError):
-                driver.check_restored(prime, {**restored, "boot_id": "new-boot"})
+            driver.check_restored(prime, fresh, restore_s=17.35)
+            # Modal keeps one snapshot per worker type; a restore from the
+            # other one is still a restore. This is what the production
+            # rollout hit, and the old boot_id rule rejected it.
+            driver.check_restored(prime, {**fresh, "boot_id": "second-worker-type"},
+                                  restore_s=20)
+            with self.assertRaisesRegex(driver.GateError, "reused"):
+                driver.check_restored(prime, prime, restore_s=5)
+            with self.assertRaisesRegex(driver.GateError, "being created"):
+                driver.check_restored(prime, fresh, restore_s=150)
+            with self.assertRaisesRegex(driver.GateError, "model changed"):
+                driver.check_restored(prime, {**fresh, "digest": "other"}, restore_s=10)
+            # Untimed checks (after the contract) judge container and model only.
+            driver.check_restored(prime, fresh)
 
     def test_only_matching_source_hashes_and_gpu_residency_pass(self):
         import hashlib
