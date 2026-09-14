@@ -147,11 +147,48 @@ def observe(text, backend, market, frequencies, model=None, url=None, token=None
     return seen, time.perf_counter() - started
 
 
+EMPLOYMENT_ROWS = ("employment", "employment")
+DUPLICATE_ROWS = "exact_duplicate_employment_rows"
+
+
+def exact_unique(rows):
+    """(first occurrence of each exact row, how many exact repeats were removed).
+
+    "Exact" means equal in EVERY field after the per-field normalization
+    below has already run — so dates compare as parsed months, and company,
+    title and relevance compare exactly as emitted: no case folding, no
+    fuzzy matching, no near-duplicates. The first occurrence is kept, so the
+    order held titles are read in is unchanged.
+    """
+    seen, kept = set(), []
+    for row in rows:
+        key = json.dumps(row, sort_keys=True)
+        if key not in seen:
+            seen.add(key)
+            kept.append(row)
+    return kept, len(rows) - len(kept)
+
+
 def normalize(value, path=(), now=None):
     """Field-specific normalization. Unknown fields and query order stay exact.
 
     Keep duplicates, booleans vs numbers, missing vs null, and employment row
     order (held titles use it). No synonym or punctuation folding.
+
+    ONE exception to "keep duplicates": an employment row that is an exact
+    repeat of an earlier row is dropped, for the SEMANTIC comparison only.
+    Measured on Sarthak, local-direct emits the same DealerMatix role twice
+    (8/8 runs) and cold Modal once (7/7) — the résumé lists it once. Sweep
+    cannot tell the two apart: held titles are de-duplicated twice in
+    local_search (the `stem not in out` guard, then `add` in rank()) and
+    months_from merges overlapping ranges, and pushing the duplicate through
+    every downstream consumer changed nothing. Treating it as behaviour-
+    changing was a false positive in this gate, not a property of Sweep.
+
+    Deliberately narrow: exact rows only. Different titles, dates or
+    relevance, a missing role, reordered distinct roles, near-duplicates and
+    case-only company differences all still fail, and the exact/raw result is
+    untouched, so the gate still reports that the backends' lists differ.
     """
     if isinstance(value, dict):
         return {k: normalize(v, path + (k,), now) for k, v in value.items()}
@@ -164,6 +201,8 @@ def normalize(value, path=(), now=None):
                 "skills", "titles", "companies", "institutions", "education",
                 "projects", "certifications")):
             return sorted(items, key=lambda v: json.dumps(v, sort_keys=True))
+        if path == EMPLOYMENT_ROWS:
+            return exact_unique(items)[0]
         return items
     if (len(path) == 4 and path[:2] == ("employment", "employment")
             and path[-1] in ("start", "end") and isinstance(value, str)):
@@ -193,14 +232,27 @@ def compare_observations(left, right, now=None):
     for path, a, b in differences(left, right):
         same = (a is not MISSING and b is not MISSING and not list(
             differences(normalize(a, path, now), normalize(b, path, now))))
-        diffs.append({"path": ".".join(map(str, path)),
-                      "local": "<MISSING>" if a is MISSING else a,
-                      "remote": "<MISSING>" if b is MISSING else b,
-                      "classification": "benign formatting" if same else "behavior-changing",
-                      "reason": ("display-only notes; structured evidence compared separately"
-                                 if path == ("profile", "notes") else
-                                 "field-specific normalization" if same else
-                                 "semantic evidence or downstream value differs")})
+        record = {"path": ".".join(map(str, path)),
+                  "local": "<MISSING>" if a is MISSING else a,
+                  "remote": "<MISSING>" if b is MISSING else b,
+                  "classification": "benign formatting" if same else "behavior-changing",
+                  "reason": ("display-only notes; structured evidence compared separately"
+                             if path == ("profile", "notes") else
+                             "field-specific normalization" if same else
+                             "semantic evidence or downstream value differs")}
+        if same and path == EMPLOYMENT_ROWS and isinstance(a, list) and isinstance(b, list):
+            # Say WHICH side repeated a row, so the raw mismatch stays legible
+            # in the report even though it no longer blocks the gate.
+            removed = [exact_unique([normalize(v, path + (i,), now)
+                                     for i, v in enumerate(rows)])[1] for rows in (a, b)]
+            if any(removed):
+                record["normalization"] = DUPLICATE_ROWS
+                record["reason"] = (
+                    f"raw employment lists differ only by exact duplicate rows "
+                    f"(local repeats {removed[0]}, remote repeats {removed[1]}); removed for "
+                    f"the semantic comparison only — Sweep de-duplicates held titles and "
+                    f"merges overlapping ranges, so no downstream value changes")
+        diffs.append(record)
     return {"exact_match": not diffs,
             "semantic_match": all(d["classification"] == "benign formatting" for d in diffs),
             "diffs": diffs}
@@ -272,10 +324,40 @@ def run(people=None, limit=None, model=None, log=print, *, layouts=("plain",),
 
 
 def summarise(report, log=print):
+    """The gate's verdict, kept in the report as well as printed.
+
+    Raw and semantic stay separate on purpose: a document whose lists differ
+    only by an exact duplicate row is a raw MISMATCH and a semantic MATCH, and
+    the report says both. Unrun documents are never counted as passes.
+    """
     rows = report["rows"]
-    exact = sum(r.get("exact_match", False) and r.get("accepted", False) for r in rows)
-    semantic = sum(r.get("semantic_match", False) and r.get("accepted", False) for r in rows)
-    log(f"Completed {len(rows)}/{report['requested']}; exact {exact}; semantic {semantic}.")
+    passed = [r for r in rows if r.get("accepted") and not r.get("error")]
+    exact = sum(r.get("exact_match", False) for r in passed)
+    semantic = sum(r.get("semantic_match", False) for r in passed)
+    name = lambda r: r.get("resume", "<unnamed>")
+    duplicate_only = [name(r) for r in passed
+                      if r.get("semantic_match") and not r.get("exact_match")
+                      and r.get("diffs")
+                      and all(d.get("normalization") == DUPLICATE_ROWS for d in r["diffs"])]
+    mismatches = [name(r) for r in rows
+                  if r.get("error") or not r.get("accepted") or not r.get("semantic_match")]
+    remaining = [{"resume": name(r), "path": d["path"],
+                  "classification": d["classification"], "reason": d["reason"]}
+                 for r in rows for d in r.get("diffs", [])
+                 if d.get("normalization") != DUPLICATE_ROWS]
+    report["summary"] = {
+        "requested": report["requested"], "completed": len(rows),
+        "raw_exact_matches": exact, "semantic_matches": semantic,
+        "semantic_mismatches": mismatches,
+        "duplicate_only_raw_differences": duplicate_only,
+        "remaining_differences": remaining,
+    }
+    log(f"Completed {len(rows)}/{report['requested']}; raw exact {exact}; semantic {semantic}; "
+        f"semantic mismatches {len(mismatches)}; duplicate-only raw differences "
+        f"{len(duplicate_only)}{' ' + str(duplicate_only) if duplicate_only else ''}.")
+    for d in remaining:
+        log(f"  remaining difference: {d['resume']} | {d['path']} | {d['classification']} "
+            f"({d['reason']})")
     return semantic == report["requested"]
 
 
@@ -329,6 +411,7 @@ def main():
     except Exception as exc:
         print(f"Preflight failed: {type(exc).__name__}; check local pinned model and remote health.")
         return 1
+    ok = summarise(report)  # before writing: the verdict belongs in the report
     if args.json:
         destination = Path(args.json)
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -336,7 +419,7 @@ def main():
             json.dump(report, fh, indent=2, ensure_ascii=False)
         destination.chmod(0o600)
         print(f"Private local report: {destination}")
-    return 0 if summarise(report) else 1
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
