@@ -32,8 +32,8 @@ DealerMatix Technologies, Software Engineer, Jan 2025 – Present.
 So it is the model, not the local path: same model digest, same prompts, and
 the output flips between runs on the same hardware class. Why the benchmark
 app never showed it and production did on its first try is unknown — one run
-is not a rate. Both production runs so far matched local exactly (raw and
-semantic), because both returned the duplicate.
+is not a rate. That production run matched local exactly (raw and semantic),
+because both backends returned the duplicate.
 
 **Impact: none measured on search behaviour.** Held titles are de-duplicated
 twice in `local_search` (the `stem not in out` guard, then `add()` in
