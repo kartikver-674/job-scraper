@@ -38,13 +38,18 @@ def wait_for_ollama(timeout=30):
     raise RuntimeError("Ollama did not become ready")
 
 
-def start_ollama():
+def start_ollama(output=subprocess.PIPE):
     env = os.environ.copy()
     env["OLLAMA_HOST"] = "127.0.0.1:11434"
     process = subprocess.Popen(
         ["ollama", "serve"], env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    wait_for_ollama()
+        stdout=output, stderr=subprocess.STDOUT, text=True)
+    try:
+        wait_for_ollama()
+    except Exception:
+        process.terminate()
+        process.wait(timeout=10)
+        raise
     return process
 
 

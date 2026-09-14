@@ -1,5 +1,14 @@
 # Where to host the inference service
 
+**Status update, 14 September 2026:** Oracle is running as the reference/backup.
+The instrumented Sarthak comparison is M1 Pro **37.4 s**, Oracle A1 **186.9 s**,
+Modal T4 with GPU snapshot restore **27.97 s cold E2E**. These supersede the
+hosting estimates below for this input; the earlier ~7-minute Oracle run remains
+a separate initial observation. The next gate is semantic equivalence through
+the temporary endpoint, not another hardware comparison. See
+[modal-equivalence.md](modal-equivalence.md) for the manual commands. The original
+provider/pricing discussion below is historical and must be rechecked before use.
+
 Research, September 2026. **Nothing is deployed.** This is the evidence for one
 decision: where `inference_service.py` should run when it stops running on a
 laptop, at a ceiling of ~10 users/day and a budget of ₹0.

@@ -1,7 +1,15 @@
 # Modal GPU: the POC plan
 
-**Nothing is deployed.** This is the design for the next experiment, written
-before it runs so the result cannot be argued into whatever we hoped for.
+**Current status (14 September 2026):** the private T4 probes and GPU snapshots
+have run successfully (§§9–11). The temporary HTTP equivalence endpoint is now
+implemented locally; it has not yet been deployed or benchmarked in this task.
+Use [modal-equivalence.md](modal-equivalence.md) for the commands and acceptance
+gate. Oracle remains backup/reference. No L4 experiment is planned.
+
+Sections 1–8 below are the original pre-experiment plan, preserved as history;
+their unknown timings and proposed next steps are superseded by §§9–11 and the
+equivalence runbook. The instrumented Sarthak comparison is M1 37.4 s, Oracle
+186.9 s, T4 restored cold E2E 27.97 s. Correctness across backends remains open.
 
 Researched 13 September 2026. Prices and limits move; every figure is sourced.
 

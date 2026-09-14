@@ -1,5 +1,12 @@
 # Deploying the inference service on Oracle Cloud Always Free
 
+**14 September 2026:** this deployment remains the working reference/backup.
+The later instrumented Sarthak run measured **186.9 s** (fields 142.0 s,
+employment 44.8 s), with no model load time and ~2.6–2.7 generated tokens/s.
+Section 18's ~7-minute result records the initial observation, not this later
+controlled measurement. The next experiment is the temporary Modal
+[equivalence gate](modal-equivalence.md); no Oracle change is required.
+
 A runbook. Follow it top to bottom on a fresh instance; every command is meant to
 be pasted.
 
