@@ -201,7 +201,11 @@ def step_states(steps, state, current):
              "confirm": has_profile and has_access,
              # launched, not has_plan: see the docstring.
              "running": launched,
-             "results": has_profile}
+             "results": has_profile,
+             # Public mode's last step: the profile is downloaded, not
+             # written to disk. Unknown to the local flow, which never
+             # puts it in STEPS.
+             "profile_done": has_profile}
     done = {"upload": has_resume,
             "review": has_profile,
             "key": has_access,
@@ -209,7 +213,8 @@ def step_states(steps, state, current):
             "confirm": launched,
             "running": launched,
             # The last step. Nothing is downstream of it to prove it finished.
-            "results": False}
+            "results": False,
+            "profile_done": False}
 
     slugs = [slug for slug, _ in steps]
     at = slugs.index(current) if current in slugs else None

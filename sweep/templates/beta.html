@@ -1,0 +1,38 @@
+{# The door. Deliberately NOT extending base.html: that shell renders the
+   step tracker and the spend meter from a session this visitor does not
+   have yet, and the one thing this page needs is to be readable before
+   any of that exists. #}
+<!doctype html>
+{% from "_mark.html" import mark %}
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sweep — private beta</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sweep.css') }}">
+
+<div class="working" style="max-width: 32rem; margin: 4rem auto; padding: 0 1.5rem">
+  {{ mark(56) }}
+  <h1>Sweep is in private beta</h1>
+
+  {% if limited %}
+    <p class="error">{{ limited }}</p>
+    <p class="lede">Reading a résumé runs a model on a GPU, so the beta has a
+      daily limit. Nothing is wrong with your file.</p>
+  {% else %}
+    <p class="lede">Sweep reads your résumé and works out which job titles to
+      search for and how to weight your skills. Enter the code you were given
+      to try it.</p>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <form method="post" action="{{ url_for('beta_gate') }}">
+      <label><span class="label">Beta code</span>
+        <input type="password" name="code" autocomplete="off" required
+               autofocus></label>
+      <div class="actions">
+        <button class="primary" type="submit">Enter</button>
+      </div>
+    </form>
+  {% endif %}
+</div>

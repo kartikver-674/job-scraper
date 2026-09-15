@@ -47,11 +47,17 @@
     {# Three states, not two: "no key yet" and "no key wanted" are different
        facts about the same absent token, and only one of them is something
        still to do. #}
+    {# Public beta has no key and spends no Apify credit, so the whole
+       money chrome is off: a "No key yet" chip would be a to-do for
+       something a visitor cannot do, and the pills behind it carry the
+       operator's own key state. #}
+    {% if not public_mode %}
     <span class="chip {% if free_only %}free{% elif cap_usd is not none %}on{% else %}quiet{% endif %}">
       {%- if free_only %}Free sources only
       {%- elif cap_usd is not none %}Key connected
       {%- else %}No key yet{% endif -%}
     </span>
+    {% endif %}
   </div>
   {# A tracker, not tabs. These seven are a sequence, and four of them
      redirect away until their precondition is met — tabs implied you could
@@ -108,6 +114,7 @@
 </header>
 
 <div{% block meter_scope %}{% endblock %}>
+  {% if not public_mode %}
   {# over-cap red is for a sweep that outran its credit, so it is gated on
      the figure actually BEING this sweep's spend — not on a month-to-date
      total that merely happens to exceed the cap. #}
@@ -127,6 +134,7 @@
       {% if cap_usd is not none %}<div class="meter-cap" style="left: 100%"></div>{% endif %}
     </div>
   </div>
+  {% endif %}
 
   <main>{% block body %}{% endblock %}</main>
 </div>

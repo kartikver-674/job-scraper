@@ -75,6 +75,42 @@ were correct.
 
 **Severity: high where it occurs.**
 
+## 3. Local centrality is a constant, so weights can only reach 2/3/4
+
+**Not fixed, deliberately. Recorded here as the follow-up to the frozen
+market table** (`data/skill_market_frequencies.json`), which fixed a
+different half of the same screen.
+
+A skill's final weight is `blend(centrality, separation)` — the rounded
+geometric mean of how central the skill is to the candidate and how much it
+narrows the market. On the **Gemini** path the model supplies centrality
+1-5. On the **local** path nothing does: `local_profile.generate` stamps
+every skill with `NEUTRAL_WEIGHT = 3`, and `skill_scan` adds its own finds at
+the same 3.
+
+Three consequences, measured on the Sarthak résumé (42 skills):
+
+| | |
+| --- | --- |
+| Reachable weights | **only 2, 3 and 4** — `blend(3, sep)` cannot produce 1 or 5 for any `sep` |
+| "5 is reserved for a term the candidate is strongest in AND the market rarely asks for" (`blend`'s own docstring) | unreachable locally |
+| What decides the ranking | rarity alone, since centrality is constant |
+
+That last one is the real defect. **Bazel scores 4 and React Native scores
+3** on this résumé: Bazel is named once, in a comma-list under "Build
+Tools"; React Native is the job title, three bullets and two projects. Same
+for Axios and Tailwind CSS at 4. This is precisely the "rare but incidental"
+failure `blend` was written to prevent — it only prevents it when centrality
+varies.
+
+**Why it is not fixed here.** Any real centrality signal (for example: named
+in the experience bullets vs. skills-list only vs. one passing mention —
+`skill_scan` already records that evidence structurally) changes the weights
+on **both** backends, which changes shortlist order for every existing
+profile. That needs its own branch, a re-run of the 52-document answer-key
+gate, and a before/after ranking comparison on a real sweep — not a
+beta-week change.
+
 ## What a fix would involve — not started
 
 Either a prompt/schema change to the employment call, or a deterministic

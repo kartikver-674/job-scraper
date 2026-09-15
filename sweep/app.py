@@ -1,8 +1,10 @@
 """Routes. Business logic lives in sweep.plan and sweep.runs."""
 
+import contextlib
 import os
 import re
 import sys
+import tempfile
 import threading
 from datetime import datetime
 
@@ -37,7 +39,7 @@ import scraper  # noqa: E402
 # split, the empty-result diagnosis. Re-exported here because these are part
 # of this module's surface for its callers and tests, and because the split
 # exists to make them reachable WITHOUT a Flask test client, not to hide them.
-from sweep import exports  # noqa: E402
+from sweep import exports, public  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
@@ -192,6 +194,9 @@ def create_app(state=None, extract=None, resume_dir=None,
     # with one — output/ holds real paid-sweep results with no git history
     # to fall back on.
     output_dir = output_dir if output_dir is not None else os.path.join(REPO_ROOT, "output")
+    # Stashed so public mode can report WHICH market answered its skill
+    # weights without re-deriving where output/ is.
+    app.config["OUTPUT_DIR"] = output_dir
     # Injected so a test can advance the spend-poll throttle (SPEND_POLL_SECONDS
     # below) without a real sleep — a sleeping test is a slow test forever.
     import time as _time_mod
@@ -236,6 +241,14 @@ def create_app(state=None, extract=None, resume_dir=None,
             # not to fail the upload.
             return make_profile.generate(
                 client, cfg.MODELS, resume_text, prefs, engine=engine)
+
+    # Public mode: every extraction is two GPU calls on the operator's
+    # Modal account, so the daily limit wraps the CALL, not the route —
+    # POST /derive means to spend, but POST /review reaches the same
+    # function, and a limit a second route walks around is not a limit.
+    if public.enabled():
+        app.beta_limit = public.limit_from_env()
+        derive = public.metered(derive, app.beta_limit)
 
     if profile_exists is None:
         def profile_exists(name):
@@ -835,7 +848,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         # agreeing with what is actually configured. keys_attached used to
         # count os.environ while this list came from disk: two answers to
         # one question.
-        pills = key_pills(read_env_tokens(), app.state.get("key_credit"))
+        # Public mode never opens .env. The pills carry the operator's own
+        # key state — masked, but still their last four and their credit —
+        # and no visitor has any business seeing it.
+        public_mode = bool(app.config.get("PUBLIC_MODE"))
+        pills = ([] if public_mode
+                 else key_pills(read_env_tokens(), app.state.get("key_credit")))
         # "Credit left" means every account's credit added up, which is what
         # the header used to LABEL while showing cap_usd — the best single
         # key's balance. On four keys holding $8.33 it read $5.00.
@@ -852,7 +870,9 @@ def create_app(state=None, extract=None, resume_dir=None,
             left = total
             if spend and spend_is_this_sweep and not spend_is_estimate:
                 left = round(max(0.0, total - spend), 2)
-        return dict(steps=step_states(STEPS, app.state, step),
+        return dict(steps=step_states(app.config.get("STEPS", STEPS),
+                                      app.state, step),
+                    public_mode=public_mode,
                     step=step, spend=spend, cap_usd=cap,
                     credit_left=left,
                     free_only=free_only(),
@@ -944,18 +964,47 @@ def create_app(state=None, extract=None, resume_dir=None,
         if upload_file is None or not upload_file.filename:
             return upload_screen(error="Choose a PDF to upload."), 400
 
-        os.makedirs(resume_dir, exist_ok=True)
-        path = os.path.join(resume_dir, "resume.pdf")
-        upload_file.save(path)
+        # A public visitor's résumé is parsed from a temp file and deleted
+        # in this same request. RESUME_DIR is ONE fixed path: on a shared
+        # box every visitor would overwrite the last one's PDF and leave
+        # their own sitting there afterwards.
+        public_mode = app.config.get("PUBLIC_MODE")
+        if public_mode:
+            handle, path = tempfile.mkstemp(prefix="sweep-", suffix=".pdf")
+            os.close(handle)
+        else:
+            os.makedirs(resume_dir, exist_ok=True)
+            path = os.path.join(resume_dir, "resume.pdf")
+        try:
+            upload_file.save(path)
+            # Checked in every mode: the parser should be handed a PDF
+            # because the form said PDF, not because the browser was
+            # honest about it.
+            if not public.looks_like_pdf(path):
+                return upload_screen(
+                    error="That file is not a PDF. Export your résumé as a "
+                          "PDF and try again."), 400
+            text = extract(path)
+            if not text.strip():
+                return upload_screen(
+                    error="That PDF has no text in it — it is probably a scan. "
+                          "Export a text PDF and try again."), 400
+        finally:
+            if public_mode:
+                with contextlib.suppress(OSError):
+                    os.unlink(path)
 
-        text = extract(path)
-        if not text.strip():
-            return upload_screen(
-                error="That PDF has no text in it — it is probably a scan. "
-                      "Export a text PDF and try again."), 400
-
-        app.state["resume_path"] = path
+        # The NAME in public mode, never a path: the file is already gone,
+        # and the review screen only ever shows its basename.
+        app.state["resume_path"] = (upload_file.filename if public_mode
+                                    else path)
         app.state["resume_text"] = text
+        # The previous résumé's parse belongs to the previous résumé.
+        # Without this, uploading a second CV shows the FIRST one's skills
+        # and titles — derived_for_state() caches on state and only ever
+        # asks the model when there is nothing there.
+        for stale in ("derived", "profile", "profile_source"):
+            app.state.pop(stale, None)
         return redirect(url_for("review"))
 
     COMMODITY_WEIGHT = 2
@@ -1012,6 +1061,12 @@ def create_app(state=None, extract=None, resume_dir=None,
             return redirect(url_for("upload"))
         try:
             derived = derived_for_state()
+        except public.BetaLimited:
+            # Not a model failure and not this app's error page: the beta
+            # budget has its own 429 handler, and the catch-all below would
+            # turn "you have had your three for today" into "the model did
+            # not answer".
+            raise
         except make_profile.ModelAnswerError as exc:
             # The one exception whose text this app composed itself, from the
             # response's own finish_reason enum. Everything else stays behind
@@ -1123,7 +1178,28 @@ def create_app(state=None, extract=None, resume_dir=None,
         # the next one, with the profile then scoring against it.
         app.state["derived"] = kept
         app.state["profile"] = name
-        return redirect(url_for("key"))
+        return redirect(url_for(app.config.get("AFTER_REVIEW_ENDPOINT", "key")))
+
+    @app.get("/profile")
+    def profile_done():
+        """Public mode's last step. The profile is handed over here rather
+        than written into profiles/: that is a shared namespace on an
+        ephemeral disk, so one visitor's name could replace another's."""
+        source = app.state.get("profile_source")
+        if not source:
+            return redirect(url_for("upload"))
+        return render_template("profile_done.html", **shell(
+            "profile_done", name=app.state.get("profile"), source=source))
+
+    @app.get("/profile.py")
+    def profile_download():
+        source = app.state.get("profile_source")
+        if not source:
+            return redirect(url_for("upload"))
+        name = app.state.get("profile") or "profile"
+        return Response(
+            source, mimetype="text/x-python",
+            headers={"Content-Disposition": f'attachment; filename="{name}.py"'})
 
     def key_screen(**kw):
         """Step 3, from all four ways it is reached. The paid boards are named
@@ -1957,6 +2033,11 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state["rescore_proc"] = start_rescore(
                 app.state["profile"], hours)
         return redirect(_results_url())
+
+    # Last, so it overrides what create_app just built: the allowlist,
+    # per-session state, the beta door and the profile hand-off.
+    if public.enabled():
+        public.harden(app)
 
     return app
 

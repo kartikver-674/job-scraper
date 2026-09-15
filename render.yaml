@@ -1,0 +1,59 @@
+# Sweep's public beta on Render: the résumé → profile flow only.
+#
+# The app is a single-operator console; SWEEP_PUBLIC_MODE is what narrows it
+# to the three screens a stranger may use (see sweep/public.py). Without that
+# variable this would serve the operator's key management and the paid sweep
+# routes to the internet, so it is set here rather than left to the dashboard.
+services:
+  - type: web
+    name: sweep-beta
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # ONE worker, deliberately: sessions and the daily budget live in this
+    # process's memory, so a second worker would hand a visitor an empty
+    # session half the time and double the GPU allowance. Threads carry the
+    # concurrency instead.
+    #
+    # The long timeout is the Modal cold start: a container restoring from a
+    # GPU snapshot answers in ~20s, but one that has to CREATE a snapshot
+    # takes ~150s, and a profile is two model calls. Gunicorn's 30s default
+    # would kill exactly the request this whole stack was built to serve.
+    startCommand: >-
+      gunicorn 'sweep.app:create_app()'
+      --workers 1 --threads 8
+      --timeout 600 --graceful-timeout 60
+      --access-logfile - --bind 0.0.0.0:$PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: SWEEP_PUBLIC_MODE
+        value: "1"
+      # The profile engine that needs no Gemini key, pointed at the Modal
+      # service. An error here is an error — never a silent paid fallback.
+      - key: SWEEP_PROFILE_ENGINE
+        value: local
+      - key: SWEEP_INFERENCE_BACKEND
+        value: remote
+      # Generated once by Render and then stable: a key that changed on each
+      # deploy would log every visitor out mid-upload.
+      - key: SECRET_KEY
+        generateValue: true
+      # Set by hand in the dashboard. sync:false keeps them out of git.
+      - key: SWEEP_BETA_CODE
+        sync: false
+      - key: SWEEP_INFERENCE_URL
+        sync: false
+      - key: SWEEP_INFERENCE_TOKEN
+        sync: false
+      # Complete résumé derivations per day — not model calls. One
+      # derivation is two qwen3:8b calls on the operator's Modal budget,
+      # and both run inside one reserved slot.
+      - key: SWEEP_BETA_DAILY_PER_IP
+        value: "3"
+      - key: SWEEP_BETA_DAILY_TOTAL
+        value: "60"
+      # Proxies that write X-Forwarded-For in front of this service:
+      # Cloudflare, then Render's load balancer. The count is what makes
+      # the visitor's address unspoofable — see sweep/public.py.
+      - key: SWEEP_TRUSTED_PROXIES
+        value: "2"
