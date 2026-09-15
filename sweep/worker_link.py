@@ -127,14 +127,24 @@ def injections(app):
         # ever answer zero. A PAID one is different: that number is what a
         # visitor approves before spending their own money, so it comes
         # from the engine's own dry run, on the machine that has it.
-        if app.state.get("free_only") or not app.state.get("derived"):
+        if not app.state.get("derived"):
             return free_plan(profile)
-        raw = worker_client.plan(app.state["derived"], _prefs_of(app.state),
-                                 free_only=False)
+        free_only = bool(app.state.get("free_only"))
+        try:
+            raw = worker_client.plan(app.state["derived"], _prefs_of(app.state),
+                                     free_only=free_only)
+        except worker_client.WorkerError:
+            # A free sweep can still be configured and started while the
+            # plan service is unreachable: there is nothing to price. A paid
+            # one cannot — see /run, which refuses a plan it never got.
+            if free_only:
+                return free_plan(profile)
+            raise
         # The worker names the plan after its own throwaway profile; the
         # screens read this one back as the profile they are configuring.
         raw["profile"] = profile
         return raw
+
 
     def start_sweep(profile):
         # The visitor's key, if they chose to use one, is already held by

@@ -728,6 +728,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         running_now = proc is not None and proc.poll() is None
         p["finished"] = (not running_now) and p["outstanding"] == 0
         p["interrupted"] = (not running_now) and p["outstanding"] > 0
+        # The engine works through the free sources AFTER the paid searches,
+        # and they have no ledger and no tiles: at this point the grid is
+        # full, "still to run" reads zero, and listings go on arriving for
+        # minutes. Without saying so the screen looks stuck on a sweep that
+        # is busy — which is exactly how it read on a real run.
+        p["free_running"] = running_now and p["outstanding"] == 0
 
         # What the searches that never ran would cost, at the same effective
         # rates the plan was priced at. It is the figure the decision to

@@ -370,6 +370,48 @@ class TestTheProgressGrid(unittest.TestCase):
         self.assertFalse(answer["interrupted"])
         self.assertEqual(answer["fraction"], 1.0)
 
+    def test_it_says_so_while_the_free_sources_are_still_running(self):
+        """Reported from a real run: 6 of 6 paid searches done, 0 left,
+        every tile filled — and the sweep still going for minutes while it
+        worked through 134 free sources, with nothing on screen saying so.
+        It read as stuck."""
+        with stack() as (url, store):
+            with apify() as (_seen, check):
+                app = render_app(url, check_token=check)
+                client = paid_visitor(app, store)
+                with priced(app):
+                    client.get("/configure")
+                    client.post("/run", data={"over_cap_ack": "1"})
+                    run_id = only_run(store)
+                    for site in ("linkedin", "indeed"):
+                        self.finished(store, run_id, site, SEARCH)
+
+                    answer = client.get("/progress").get_json()
+                    screen = client.get("/running").get_data(as_text=True)
+
+        # Every paid search done, and the sweep is still going.
+        self.assertEqual(answer["outstanding"], 0)
+        self.assertFalse(answer["finished"])
+        self.assertTrue(answer["free_running"],
+                        "nothing told the watcher what it was doing")
+        self.assertIn("Now searching those free sources", screen)
+
+    def test_it_stops_saying_so_once_the_sweep_ends(self):
+        with stack() as (url, store):
+            with apify() as (_seen, check):
+                app = render_app(url, check_token=check)
+                client = paid_visitor(app, store)
+                with priced(app):
+                    client.get("/configure")
+                    client.post("/run", data={"over_cap_ack": "1"})
+                    run_id = only_run(store)
+                    for site in ("linkedin", "indeed"):
+                        self.finished(store, run_id, site, SEARCH)
+                    client.post("/stop")
+                    answer = client.get("/progress").get_json()
+        self.assertFalse(answer["free_running"])
+        self.assertTrue(answer["finished"])
+
     def test_yesterdays_ledger_is_not_progress(self):
         """The engine re-runs and re-bills yesterday's combos, so counting
         them would promise work that is about to happen again."""
