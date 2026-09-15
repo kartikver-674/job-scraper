@@ -67,12 +67,41 @@ Set in Render → Environment. Never commit values.
 | `SWEEP_INFERENCE_BACKEND` | `remote` |
 | `SWEEP_INFERENCE_URL` | the Modal production URL (`docs/modal-production.md`) |
 | `SWEEP_INFERENCE_TOKEN` | the Modal bearer token — server-side only, never rendered |
-| `SWEEP_BETA_DAILY_PER_IP` | `3` |
-| `SWEEP_BETA_DAILY_TOTAL` | `60` |
+| `SWEEP_BETA_DAILY_PER_IP` | `3` — complete derivations, not model calls |
+| `SWEEP_BETA_DAILY_TOTAL` | `60` — complete derivations, not model calls |
+| `SWEEP_TRUSTED_PROXIES` | `2` — Cloudflare, then Render's load balancer |
 
 Public mode **refuses to start** without `SECRET_KEY` and `SWEEP_BETA_CODE`.
 That is deliberate: a public app with an unstable session key cannot isolate
 anyone, and one with no door spends GPU money for whoever finds the URL.
+
+## The daily limit counts derivations, not model calls
+
+A profile is **two** inference calls — fields, then employment. The quota unit
+is the whole derivation, so nobody is ever let through the first call and
+refused on the second, holding half a résumé and a wasted GPU call.
+
+A slot is **reserved before** the model is asked, under a lock, and given back
+if the derivation fails. Check-then-count would be a race that a double-click
+wins with eight gunicorn threads; reserving means two concurrent requests
+cannot both see the last slot as free.
+
+## Who the limiter thinks you are
+
+Render puts **Cloudflare and its own load balancer** in front of every
+service, so the app never sees the visitor's socket. Each trusted hop appends
+the address it received from, so the visitor is the **second entry from the
+right** of `X-Forwarded-For` — which is what `SWEEP_TRUSTED_PROXIES=2`
+configures. Anything a client prepends stays to the left of that, where
+nothing looks, so a forged header cannot buy a fresh quota.
+
+`X-Forwarded-Host` is deliberately **not** trusted: `request.host` is what the
+cross-site check compares an Origin against, and trusting it would hand an
+attacker the means to match it.
+
+If a future front end has a different number of hops, change the variable —
+too low and every visitor shares one quota, too high and a client-supplied
+entry becomes their identity.
 
 ## After deploying
 
@@ -89,6 +118,9 @@ if the name is taken — the dashboard shows the real one).
    first résumé.
 8. Upload a second, different PDF in one session → the new parse, not the old.
 9. Exceed `SWEEP_BETA_DAILY_PER_IP` → a readable 429, not an error page.
+10. From a second network (phone on mobile data), confirm you get your own
+    quota rather than sharing the first one — that is `SWEEP_TRUSTED_PROXIES`
+    being right for how Render actually forwards.
 
 **First request after idle:** Render Free spins down after 15 minutes, so the
 first visitor waits ~1 minute for the app, plus up to ~150 s if Modal also has

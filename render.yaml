@@ -45,8 +45,15 @@ services:
         sync: false
       - key: SWEEP_INFERENCE_TOKEN
         sync: false
-      # Every résumé is two qwen3:8b calls on the operator's Modal budget.
+      # Complete résumé derivations per day — not model calls. One
+      # derivation is two qwen3:8b calls on the operator's Modal budget,
+      # and both run inside one reserved slot.
       - key: SWEEP_BETA_DAILY_PER_IP
         value: "3"
       - key: SWEEP_BETA_DAILY_TOTAL
         value: "60"
+      # Proxies that write X-Forwarded-For in front of this service:
+      # Cloudflare, then Render's load balancer. The count is what makes
+      # the visitor's address unspoofable — see sweep/public.py.
+      - key: SWEEP_TRUSTED_PROXIES
+        value: "2"
