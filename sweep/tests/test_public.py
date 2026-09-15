@@ -12,6 +12,7 @@ public mode is what it exposes, not what qwen3 answers.
 
 import io
 import os
+import threading
 import unittest
 from unittest import mock
 
@@ -318,6 +319,256 @@ class TestTheBudget(unittest.TestCase):
         r = client.post("/derive")
         self.assertEqual(r.status_code, 429)
         self.assertIn("beta limit", r.get_data(as_text=True))
+
+
+class TestTheQuotaUnit(unittest.TestCase):
+    """One complete derivation is one beta usage — not one model call.
+
+    A profile is two inference calls (fields, then employment). Counting
+    per call could let someone through the first and refuse the second,
+    which spends GPU and hands back nothing.
+    """
+
+    def _ctx(self, app, ip="203.0.113.7"):
+        return app.test_request_context(environ_base={"REMOTE_ADDR": ip})
+
+    def test_a_two_call_derivation_costs_exactly_one_slot(self):
+        calls = []
+        limit = public.DailyLimit(per_ip=3, total=99)
+
+        def two_call_derive(text, prefs):
+            # What make_profile.generate does underneath: fields, then
+            # employment, inside ONE derivation.
+            calls.append("fields")
+            calls.append("employment")
+            return dict(DERIVED)
+
+        guarded = public.metered(two_call_derive, limit)
+        with self._ctx(public_app()):
+            guarded("text", {})
+        self.assertEqual(calls, ["fields", "employment"])
+        self.assertEqual(limit.taken("203.0.113.7"), 1,
+                         "two model calls must not cost two beta usages")
+
+    def test_nobody_is_refused_halfway_through_their_own_profile(self):
+        """The UX rule: the second model call of a derivation already
+        holds its slot, so it can never be the call that is refused."""
+        limit = public.DailyLimit(per_ip=1, total=99)
+        refused = []
+
+        def derive_that_checks_again(text, prefs):
+            # Anything reaching the limiter mid-derivation must not be
+            # able to take this visitor's own slot away.
+            try:
+                limit.reserve(public.client_ip())
+                refused.append("a second slot was available")
+            except public.BetaLimited:
+                refused.append("held")
+            return dict(DERIVED)
+
+        guarded = public.metered(derive_that_checks_again, limit)
+        with self._ctx(public_app()):
+            self.assertEqual(guarded("text", {}), dict(DERIVED))
+        self.assertEqual(refused, ["held"])
+
+    def test_the_exact_per_ip_boundary(self):
+        limit = public.DailyLimit(per_ip=3, total=99)
+        guarded = public.metered(lambda t, p: dict(DERIVED), limit)
+        with self._ctx(public_app()):
+            for _ in range(3):
+                guarded("text", {})
+            self.assertEqual(limit.taken("203.0.113.7"), 3)
+            with self.assertRaises(public.BetaLimited):
+                guarded("text", {})
+            self.assertEqual(limit.taken("203.0.113.7"), 3,
+                             "a refusal must not consume a slot")
+
+    def test_the_exact_global_boundary(self):
+        limit = public.DailyLimit(per_ip=99, total=2)
+        guarded = public.metered(lambda t, p: dict(DERIVED), limit)
+        app = public_app()
+        for ip in ("203.0.113.1", "203.0.113.2"):
+            with self._ctx(app, ip):
+                guarded("text", {})
+        self.assertEqual(limit.taken(), 2)
+        with self._ctx(app, "203.0.113.3"):
+            with self.assertRaises(public.BetaLimited):
+                guarded("text", {})
+        self.assertEqual(limit.taken(), 2)
+
+    def test_a_failed_derivation_gives_its_slot_back(self):
+        limit = public.DailyLimit(per_ip=1, total=99)
+        guarded = public.metered(
+            lambda t, p: (_ for _ in ()).throw(RuntimeError("model fell over")),
+            limit)
+        with self._ctx(public_app()):
+            with self.assertRaises(RuntimeError):
+                guarded("text", {})
+            self.assertEqual(limit.taken("203.0.113.7"), 0)
+
+    def test_the_slot_is_held_while_the_derivation_is_still_running(self):
+        """Reserved up front, not counted afterwards — otherwise a second
+        request sees the last slot as free while the first is mid-flight."""
+        limit = public.DailyLimit(per_ip=1, total=99)
+        started, release = threading.Event(), threading.Event()
+        second = []
+
+        def slow(text, prefs):
+            started.set()
+            release.wait(5)
+            return dict(DERIVED)
+
+        guarded = public.metered(slow, limit)
+        app = public_app()
+
+        def run():
+            with self._ctx(app):
+                guarded("text", {})
+
+        worker = threading.Thread(target=run)
+        worker.start()
+        self.assertTrue(started.wait(5))
+        with self._ctx(app):
+            try:
+                guarded("text", {})
+                second.append("allowed")
+            except public.BetaLimited:
+                second.append("refused")
+        release.set()
+        worker.join(5)
+        self.assertEqual(second, ["refused"])
+
+    def test_concurrent_requests_cannot_both_take_the_last_slot(self):
+        """Eight gunicorn threads, one slot left: exactly one wins."""
+        limit = public.DailyLimit(per_ip=1, total=99)
+        begin = threading.Event()
+        outcomes = []
+        lock = threading.Lock()
+        app = public_app()
+
+        def racer():
+            begin.wait(5)
+            with self._ctx(app):
+                try:
+                    public.metered(lambda t, p: dict(DERIVED), limit)("t", {})
+                    result = "allowed"
+                except public.BetaLimited:
+                    result = "refused"
+            with lock:
+                outcomes.append(result)
+
+        threads = [threading.Thread(target=racer) for _ in range(8)]
+        for t in threads:
+            t.start()
+        begin.set()
+        for t in threads:
+            t.join(5)
+        self.assertEqual(outcomes.count("allowed"), 1, outcomes)
+        self.assertEqual(outcomes.count("refused"), 7, outcomes)
+        self.assertEqual(limit.taken("203.0.113.7"), 1)
+
+
+class TestBehindRenderProxies(unittest.TestCase):
+    """Render fronts every service with Cloudflare AND its own load
+    balancer, so the app never sees the visitor's own socket. Each trusted
+    hop APPENDS the address it received from, so the visitor is the second
+    entry from the right — and anything a client prepends stays to the
+    left of it, where nothing looks.
+
+    Every test here goes through the test CLIENT, not a request context:
+    ProxyFix is WSGI middleware, and a request context built by hand never
+    runs it. A test that skipped the middleware would pass while the real
+    thing read the wrong address.
+    """
+
+    def app_and_log(self, **env_extra):
+        """An app whose derive records who the stack thought was calling.
+
+        The quota comes from the environment, never assigned afterwards:
+        create_app wraps `derive` in the limit it builds at start-up, so a
+        limit swapped in later is one nothing consults.
+        """
+        seen = []
+
+        def derive(text, prefs):
+            from flask import request as req
+            seen.append({"ip": public.client_ip(), "secure": req.is_secure,
+                         "host": req.host, "scheme": req.scheme})
+            return dict(DERIVED)
+
+        app = public_app(env_extra=env_extra or None, derive=derive)
+        return app, seen
+
+    def visit(self, app, chain=None, client=None, extra=None):
+        """One derivation, through the whole stack, as a forwarded visitor."""
+        client = client or unlocked(app)
+        headers = dict(extra or {})
+        if chain is not None:
+            headers["X-Forwarded-For"] = chain
+        upload(client, name="cv.pdf")
+        return client.post("/derive", headers=headers)
+
+    def test_the_visitor_is_the_hop_cloudflare_recorded(self):
+        app, seen = self.app_and_log()
+        # client -> Cloudflare (appends the client) -> Render LB (appends CF)
+        self.visit(app, "203.0.113.7, 172.16.0.1")
+        self.assertEqual(seen[-1]["ip"], "203.0.113.7")
+
+    def test_a_client_cannot_prepend_a_fake_address_and_become_it(self):
+        app, seen = self.app_and_log()
+        self.visit(app, "9.9.9.9, 203.0.113.7, 172.16.0.1")
+        self.assertEqual(seen[-1]["ip"], "203.0.113.7")
+        self.assertNotEqual(seen[-1]["ip"], "9.9.9.9")
+
+    def test_two_forwarded_visitors_get_separate_quotas(self):
+        app, _seen = self.app_and_log(**{public.PER_IP_ENV: "1"})
+        limit = app.beta_limit
+        ada, ben = unlocked(app), unlocked(app)
+
+        self.assertEqual(
+            self.visit(app, "203.0.113.7, 172.16.0.1", ada).status_code, 302)
+        # A different visitor behind the same Cloudflare edge: own quota.
+        self.assertEqual(
+            self.visit(app, "198.51.100.4, 172.16.0.1", ben).status_code, 302)
+        self.assertEqual(limit.taken("203.0.113.7"), 1)
+        self.assertEqual(limit.taken("198.51.100.4"), 1)
+        # ... and each is now at their own limit.
+        self.assertEqual(
+            self.visit(app, "203.0.113.7, 172.16.0.1", ada).status_code, 429)
+
+    def test_a_spoofed_chain_cannot_buy_a_fresh_quota(self):
+        app, _seen = self.app_and_log(**{public.PER_IP_ENV: "1"})
+        limit = app.beta_limit
+        client = unlocked(app)
+        self.assertEqual(
+            self.visit(app, "203.0.113.7, 172.16.0.1", client).status_code, 302)
+        # The same visitor, now dressing the chain up as someone else.
+        for disguise in ("9.9.9.9", "1.1.1.1, 8.8.8.8"):
+            refused = self.visit(
+                app, f"{disguise}, 203.0.113.7, 172.16.0.1", client)
+            self.assertEqual(refused.status_code, 429, disguise)
+        self.assertEqual(limit.taken("203.0.113.7"), 1)
+        self.assertEqual(limit.taken(), 1, "no spoof bought a second slot")
+
+    def test_the_scheme_comes_from_the_proxy_so_https_is_seen_as_https(self):
+        app, seen = self.app_and_log()
+        self.visit(app, "203.0.113.7, 172.16.0.1",
+                   extra={"X-Forwarded-Proto": "https"})
+        self.assertTrue(seen[-1]["secure"])
+        self.assertEqual(seen[-1]["scheme"], "https")
+
+    def test_the_host_header_is_not_taken_from_a_forwarded_header(self):
+        """request.host is what the cross-site check compares an Origin
+        against, so a client that could rewrite it could defeat that check."""
+        app, seen = self.app_and_log()
+        self.visit(app, "203.0.113.7, 172.16.0.1",
+                   extra={"X-Forwarded-Host": "evil.example"})
+        self.assertNotIn("evil.example", seen[-1]["host"])
+
+    def test_the_hop_count_is_configurable_for_a_different_front_end(self):
+        app, seen = self.app_and_log(**{public.PROXIES_ENV: "1"})
+        self.visit(app, "203.0.113.7, 172.16.0.1")
+        self.assertEqual(seen[-1]["ip"], "172.16.0.1")
 
 
 class TestSessionStore(unittest.TestCase):

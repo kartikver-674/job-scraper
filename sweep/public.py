@@ -28,6 +28,7 @@ The three things that make the subset safe:
 import hmac
 import os
 import secrets
+import threading
 import time
 from collections.abc import MutableMapping
 
@@ -39,6 +40,22 @@ SECRET_ENV = "SECRET_KEY"
 CODE_ENV = "SWEEP_BETA_CODE"
 PER_IP_ENV = "SWEEP_BETA_DAILY_PER_IP"
 TOTAL_ENV = "SWEEP_BETA_DAILY_TOTAL"
+PROXIES_ENV = "SWEEP_TRUSTED_PROXIES"
+
+# How many proxies in front of us write X-Forwarded-For. Render documents
+# two: "All inbound traffic to Render web services passes through
+# Cloudflare's global network", and then Render's own load balancers.
+#
+# The count is the whole security property. ProxyFix reads the Nth entry
+# from the RIGHT, and every trusted proxy appends the address it received
+# from — so with N=2 we read what Cloudflare recorded, which is the real
+# visitor. A visitor who sends their own X-Forwarded-For only prepends to
+# the LEFT of that, where this never looks.
+#
+# Too low and every visitor reads as one Cloudflare edge IP and shares a
+# single quota; too high and a client-supplied entry becomes the identity.
+# Configurable because a different fronting setup is a different count.
+DEFAULT_TRUSTED_PROXIES = 2
 
 # What the public app is allowed to reach. Endpoint names, not paths, so a
 # renamed URL cannot quietly widen this. Everything else — /key, /run,
@@ -162,66 +179,121 @@ class SessionState(MutableMapping):
 
 
 class DailyLimit:
-    """Extractions per IP per day, and a ceiling for everyone together.
+    """Complete résumé derivations per IP per day, and a ceiling for
+    everyone together.
 
-    Both are needed: the per-IP limit stops one visitor burning the
-    budget, the total stops a hundred visitors doing it one call each.
+    The UNIT is one derivation, not one model call. A profile is two
+    inference calls — fields, then employment — and a quota counted per
+    call could let someone through the first and refuse them the second,
+    leaving them with a half-read résumé and one call's worth of GPU
+    spent for nothing. `metered` wraps the whole derivation, so both
+    calls happen inside one reserved slot.
+
+    Reserved, not counted afterwards: check-then-spend is a race, and
+    with eight gunicorn threads it is a race that a double-click wins.
+    A slot is taken BEFORE the model is asked and given back if the
+    derivation fails, so a visitor is never billed for an answer they
+    did not get — and two concurrent requests cannot both see the last
+    slot as free.
     """
 
     def __init__(self, per_ip=DEFAULT_PER_IP, total=DEFAULT_TOTAL,
                  clock=time.time, window=DAY):
         self.per_ip, self.total = per_ip, total
         self._clock, self._window = clock, window
-        self._spent = {}
+        self._lock = threading.Lock()
+        self._slots = {}
 
     def _prune(self, now):
-        for ip in list(self._spent):
-            kept = [t for t in self._spent[ip] if now - t < self._window]
+        for ip in list(self._slots):
+            kept = [at for at in self._slots[ip] if now - at < self._window]
             if kept:
-                self._spent[ip] = kept
+                self._slots[ip] = kept
             else:
-                del self._spent[ip]
+                del self._slots[ip]
 
-    def check(self, ip):
-        """Raises BetaLimited if this extraction may not happen."""
-        now = self._clock()
-        self._prune(now)
-        if sum(len(v) for v in self._spent.values()) >= self.total:
-            raise BetaLimited(
-                "Sweep's beta has read as many résumés as it can today. "
-                "Try again tomorrow.")
-        if len(self._spent.get(ip, ())) >= self.per_ip:
-            raise BetaLimited(
-                f"You have read {self.per_ip} résumés today, which is the "
-                f"beta limit. Try again tomorrow.")
+    def taken(self, ip=None):
+        """Slots in use — reserved or completed. For tests and /healthz."""
+        with self._lock:
+            self._prune(self._clock())
+            if ip is None:
+                return sum(len(v) for v in self._slots.values())
+            return len(self._slots.get(ip, ()))
 
-    def spend(self, ip):
-        self._spent.setdefault(ip, []).append(self._clock())
+    def reserve(self, ip):
+        """Take one derivation's worth of quota, or raise BetaLimited.
+
+        The whole decision happens under one lock: prune, count, and
+        take. Nothing between the count and the take, which is exactly
+        where a concurrent request would otherwise slip through.
+        """
+        with self._lock:
+            now = self._clock()
+            self._prune(now)
+            if sum(len(v) for v in self._slots.values()) >= self.total:
+                raise BetaLimited(
+                    "Sweep's beta has read as many résumés as it can today. "
+                    "Try again tomorrow.")
+            if len(self._slots.get(ip, ())) >= self.per_ip:
+                raise BetaLimited(
+                    f"You have read {self.per_ip} résumés today, which is "
+                    f"the beta limit. Try again tomorrow.")
+            self._slots.setdefault(ip, []).append(now)
+            return (ip, now)
+
+    def release(self, ticket):
+        """Give a reserved slot back, for a derivation that failed."""
+        ip, at = ticket
+        with self._lock:
+            held = self._slots.get(ip)
+            if held and at in held:
+                held.remove(at)
+                if not held:
+                    del self._slots[ip]
 
 
 def metered(derive, limit):
-    """The model call, behind the daily limit.
+    """One complete derivation, behind one slot of the daily limit.
 
-    Wrapping the call itself rather than the route: POST /derive is the
+    Wrapping the derivation rather than the route: POST /derive is the
     route that means to spend, but POST /review reaches the same function,
-    and a limit that a second route walks around is not a limit.
+    and a limit that a second route walks around is not a limit. Wrapping
+    it here also fixes the unit — everything inside, both model calls
+    included, is one beta usage.
     """
     def guarded(resume_text, prefs):
-        ip = client_ip()
-        limit.check(ip)
-        answer = derive(resume_text, prefs)
-        # Counted only when a model actually answered. A failed extraction
-        # spends GPU time but gives the visitor nothing, and charging them
-        # for it would end their beta on our bug.
-        limit.spend(ip)
-        return answer
+        ticket = limit.reserve(client_ip())
+        try:
+            return derive(resume_text, prefs)
+        except Exception:
+            # A failed derivation gives the slot back: the visitor has no
+            # profile to show for it, and ending someone's beta on our
+            # bug is the wrong trade. The GPU time it spent is bounded by
+            # the global ceiling and by Modal's own budget.
+            limit.release(ticket)
+            raise
     return guarded
 
 
 def client_ip():
-    """The visitor, as far as the proxy will say. ProxyFix has already
-    rewritten remote_addr from X-Forwarded-For by the time this runs."""
+    """The visitor, as the trusted proxies reported them.
+
+    ProxyFix has already rewritten remote_addr by the time this runs, and
+    it only ever reads entries written by the trusted hops — see
+    DEFAULT_TRUSTED_PROXIES. Nothing here reads a raw header.
+    """
     return request.remote_addr or "unknown"
+
+
+def trusted_proxies(env=None):
+    env = os.environ if env is None else env
+    raw = (env.get(PROXIES_ENV) or "").strip()
+    if not raw:
+        return DEFAULT_TRUSTED_PROXIES
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        raise NotConfigured(f"{PROXIES_ENV}={raw!r} is not a whole number") from None
 
 
 def looks_like_pdf(path):
@@ -287,10 +359,20 @@ def harden(app, env=None, store=None, limit=None):
     app.secret_key = secret_key(env)
     code = beta_code(env)
     app.config["PUBLIC_MODE"] = True
-    # Render terminates TLS and forwards one hop. Without this the app
-    # sees http:// and the proxy's own address instead of the visitor's,
-    # which would make the per-IP limit count everyone as one person.
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    # Without this the app sees Render's proxy instead of the visitor and
+    # http:// instead of https://.
+    #
+    # x_for counts the hops that WRITE the header (Cloudflare, then
+    # Render's load balancer): read the entry Cloudflare wrote, not the
+    # one a client can prepend. x_proto is 1 because the scheme header
+    # carries one value written by the nearest proxy.
+    #
+    # x_host is 0 deliberately: X-Forwarded-Host would let a client
+    # rewrite request.host, and request.host is what the cross-site check
+    # below compares an Origin against — trusting it would hand an
+    # attacker the means to match it. Render passes the real Host through.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=trusted_proxies(env),
+                            x_proto=1, x_host=0, x_port=0, x_prefix=0)
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SECURE=True,
