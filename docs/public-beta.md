@@ -22,6 +22,13 @@ and a route that spends real money.
 - **No disk.** The PDF is parsed from a temp file deleted in the same request;
   the profile is downloaded, never written into `profiles/`. Nothing depends
   on Render's ephemeral filesystem.
+- **A market to score against.** Skill weights are measured from scraped
+  listings in `output/`, which Render does not have — so every skill would
+  keep its neutral 3 and the downloaded profile could not tell a commodity
+  from a specialism. The repo ships one measured table
+  (`data/skill_market_frequencies.json`, 367 terms from 22,806 listings) used
+  only when there is no usable live corpus. `/healthz` reports which one
+  answered as `market_signal_source`.
 - **A door and a budget.** A beta code gates every screen, and a per-IP and
   global daily limit gates the GPU spend.
 - **The allowlist fails closed.** `PUBLIC_ENDPOINTS` names what is reachable,
@@ -108,7 +115,8 @@ entry becomes their identity.
 Public URL shape: `https://sweep-beta.onrender.com` (Render appends a suffix
 if the name is taken — the dashboard shows the real one).
 
-1. `GET /healthz` → `{"status": "ok", "mode": "public-beta", ...}`, no code needed.
+1. `GET /healthz` → `{"status": "ok", "mode": "public-beta", ...}`, no code
+   needed. `market_signal_source` should read `frozen` there.
 2. `GET /` → redirects to `/beta`.
 3. Wrong code → 403. Right code → the upload screen.
 4. Upload a PDF → the reading screen → the review screen with real skills.
