@@ -360,7 +360,12 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         Slot ordering and same-key dedupe stay in scraper.apify_tokens(),
         called on the file's contents, rather than being reimplemented here.
+
+        Empty in public mode: this file is the operator's, and no screen a
+        visitor can open may read, count or spend what is in it.
         """
+        if app.config.get("PUBLIC_MODE"):
+            return []
         from_file = {}
         if os.path.exists(env_path):
             with open(env_path) as fh:
@@ -404,7 +409,16 @@ def create_app(state=None, extract=None, resume_dir=None,
         A key that cannot be read is recorded as None rather than zero:
         sweep_budget() skips it, so one unreachable account cannot make the
         other three look spent.
+
+        Does nothing in public mode, and that is load-bearing. .env holds
+        the OPERATOR's keys; re-reading them for a visitor overwrites the
+        credit their own key reported with a stranger's — which is both the
+        wrong number and the operator's balance on a public page. A
+        visitor's cap comes from the one check_token call their own key got
+        at POST /key, and nothing else may touch it.
         """
+        if app.config.get("PUBLIC_MODE"):
+            return
         known = app.state.get("key_credit") or {}
         credits = {}
         for name, token in read_env_tokens():

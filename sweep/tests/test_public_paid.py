@@ -227,6 +227,79 @@ class TestWhereTheKeyIsAllowedToExist(unittest.TestCase):
                                              os.path.join(dirpath, name))
 
 
+class TestTheVisitorsCreditSurvivesTheFlow(unittest.TestCase):
+    """Reported from a real session: Configure showed the visitor's credit,
+    Confirm showed $0.00, and Run said "No key connected".
+
+    /confirm calls refresh_credits(), which re-reads .env — the OPERATOR's
+    keys. On a server whose keys are spent (or absent, as on Render) that
+    overwrote the visitor's own figure with zero, cap_usd went None, and
+    needs_key() bounced them out of their own paid sweep.
+    """
+
+    def operator_env(self):
+        """A .env holding the operator's key, as a real server has."""
+        import tempfile
+        path = os.path.join(tempfile.mkdtemp(), ".env")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(f"APIFY_TOKEN={OPERATOR_KEY}\n")
+        return path
+
+    def test_confirm_keeps_the_credit_the_visitors_own_key_reported(self):
+        with stack() as (url, store):
+            with apify(available=0.18) as (seen, check):
+                app = render_app(url, check_token=check,
+                                 env_path=self.operator_env())
+                client = paid_visitor(app, store)
+                with priced(app):
+                    configure = client.get("/configure").get_data(as_text=True)
+                    confirm = client.get("/confirm")
+
+            self.assertIn("Credit left $0.18", configure)
+            self.assertEqual(confirm.status_code, 200,
+                             "confirm bounced the visitor back to /key")
+            self.assertIn("Credit left $0.18",
+                          confirm.get_data(as_text=True))
+            # The operator's key was never verified on a visitor's behalf.
+            self.assertEqual(seen, [VISITOR_KEY])
+
+    def test_run_still_knows_the_key_is_connected(self):
+        with stack() as (url, store):
+            with apify(available=0.18) as (_seen, check):
+                app = render_app(url, check_token=check,
+                                 env_path=self.operator_env())
+                client = paid_visitor(app, store)
+                with priced(app):
+                    client.get("/configure")
+                    client.get("/confirm")
+                    # A plan costing more than this visitor's own credit is
+                    # refused until they say so — the console's guard, and
+                    # it is their money either way.
+                    refused = client.post("/run")
+                    self.assertEqual(refused.status_code, 400)
+                    self.assertIn("more than one key can fund",
+                                  refused.get_data(as_text=True))
+                    self.assertNotIn("No key connected",
+                                     refused.get_data(as_text=True))
+                    started = client.post("/run", data={"over_cap_ack": "1"})
+            self.assertEqual(started.status_code, 302, started.get_data(True))
+            self.assertIn("/running", started.headers["Location"])
+            self.assertFalse(store.read(only_run(store))["free_only"])
+
+    def test_the_operators_balance_never_reaches_a_public_page(self):
+        with stack() as (url, store):
+            with apify(available=0.18) as (_seen, check):
+                app = render_app(url, check_token=check,
+                                 env_path=self.operator_env())
+                client = paid_visitor(app, store)
+                with priced(app):
+                    pages = [client.get(p).get_data(as_text=True)
+                             for p in ("/key", "/configure", "/confirm")]
+            for body in pages:
+                self.assertNotIn(OPERATOR_KEY[-4:], body)
+                self.assertNotIn("keys attached", body.lower())
+
+
 class TestWhoseKeyPaysForWhat(unittest.TestCase):
 
     def test_the_visitors_key_reaches_only_their_own_child(self):
