@@ -164,6 +164,32 @@ def _checked(payload):
     return profile, prefs, bool(free_only), token, owner
 
 
+def paid_sites(checkout=None):
+    """The sites that bill. Read from the live config, never a list typed
+    here — a site added there must not quietly become free."""
+    _import_make_profile(checkout or CHECKOUT)
+    import config
+    return [site for site in config.SITES if site in config.SITE_RATES]
+
+
+def free_prefs(prefs, checkout=None):
+    """The caller's preferences with every paid board switched off.
+
+    Enforced here rather than trusted from Render, because this is the
+    boundary where money would actually be spent: the engine only reaches
+    for an Apify token when a paid plan exists (scraper.py: `if plans:`),
+    so a free run that leaves the paid sites enabled either dies asking
+    for a credential it must never have, or — if one were ever present on
+    this box — spends somebody else's.
+
+    Written through the renderer's own sites_enabled, so config._overlay
+    still receives each site's WHOLE dict; a hand-rolled SITES literal
+    would drop the actor and the rates with it.
+    """
+    return dict(prefs, sites_enabled={site: False
+                                      for site in paid_sites(checkout)})
+
+
 def render_profile(make_profile, name, profile, prefs, output_dir):
     """Rendered profile source for one run, proven to be data."""
     try:
@@ -543,8 +569,9 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
         output_dir = store.output_dir(run_id)
         os.makedirs(output_dir, exist_ok=True)
 
-        source = render_profile(make_profile, profile_name, profile, prefs,
-                                output_dir)
+        source = render_profile(make_profile, profile_name, profile,
+                                free_prefs(prefs, checkout) if free_only
+                                else prefs, output_dir)
         # Into the checkout's profiles/ package, because that is how the
         # engine selects one. Named by run id, so two visitors cannot
         # collide and neither can reach the operator's own profiles.

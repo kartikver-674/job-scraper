@@ -254,6 +254,36 @@ class TestTheApifyToken(Harness):
         self.assertTrue(records, "the worker logged nothing at all")
         self.assertNotIn(APIFY, " ".join(records))
 
+    def test_a_free_run_renders_every_paid_board_switched_off(self):
+        """Found in production: the engine only asks for a token when a
+        paid plan exists, so a free run with the boards left on died in
+        seconds asking for a credential it must never hold."""
+        app, _store, _queue = self.build()
+        run = self.post_run(app.test_client()).get_json()["run_id"]
+        source = open(os.path.join(self.runs, run, "profile.py"),
+                      encoding="utf-8").read()
+        for site in sweep_worker.paid_sites(REPO_ROOT):
+            self.assertRegex(source, rf'"{site}": {{[^}}]*"enabled": False',
+                             f"{site} is still enabled on a free run")
+
+    def test_it_does_not_take_the_callers_word_for_that(self):
+        app, _store, _queue = self.build()
+        greedy = dict(PREFS, sites_enabled={s: True for s
+                                            in sweep_worker.paid_sites(REPO_ROOT)})
+        run = self.post_run(app.test_client(), prefs=greedy
+                            ).get_json()["run_id"]
+        source = open(os.path.join(self.runs, run, "profile.py"),
+                      encoding="utf-8").read()
+        # The free FEEDS are enabled and should be; it is the billed
+        # boards that must come out off however they were asked for.
+        for site in sweep_worker.paid_sites(REPO_ROOT):
+            self.assertRegex(source, rf'"{site}": {{[^}}]*"enabled": False',
+                             f"the caller talked {site} back on")
+
+    def test_the_paid_sites_come_from_the_live_config(self):
+        self.assertTrue(set(sweep_worker.paid_sites(REPO_ROOT))
+                        >= {"linkedin", "indeed", "naukri"})
+
     def test_a_free_sweep_may_not_carry_one(self):
         app, _store, _queue = self.build()
         r = self.post_run(app.test_client(), free_only=True, apify_token=APIFY)
