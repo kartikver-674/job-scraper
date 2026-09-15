@@ -1377,6 +1377,218 @@ class TestNoSensitiveLogging(unittest.TestCase):
                 self.assertNotIn("result", stripped)
 
 
+# --------------------------------------------------------------------------
+# One retry, for transient absence only
+# --------------------------------------------------------------------------
+
+def scripted(*responses):
+    """A stub service that answers a SCRIPT and counts every attempt.
+
+    Each response is (status, body, extra headers). The last one repeats,
+    so a test that expects no retry fails loudly instead of running off
+    the end of the script.
+    """
+    attempts = []
+
+    def app(environ, start_response):
+        responded = responses[min(len(attempts), len(responses) - 1)]
+        attempts.append(environ.get("PATH_INFO"))
+        status, body, headers = responded
+        raw = json.dumps(body).encode()
+        start_response(f"{status} SCRIPTED",
+                       [("Content-Type", "application/json"),
+                        ("Content-Length", str(len(raw)))] + list(headers.items()))
+        return [raw]
+
+    app.attempts = attempts
+    return app
+
+
+@contextlib.contextmanager
+def dropping_server():
+    """Accepts a connection and drops it — a transport failure, not a
+    refusal. Counts the connections, which is what proves the retry."""
+    import socket
+
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(8)
+    connections = []
+    stop = threading.Event()
+
+    def serve():
+        while not stop.is_set():
+            try:
+                conn, _addr = listener.accept()
+            except OSError:
+                return
+            connections.append(1)
+            conn.close()
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{listener.getsockname()[1]}", connections
+    finally:
+        stop.set()
+        listener.close()
+        thread.join(timeout=5)
+
+
+ERROR_BODY = {"model_timeout": {"error": {"category": "model_timeout",
+                                          "message": "too slow"}},
+              "busy": {"error": {"category": "model_busy",
+                                 "message": "no slot"}},
+              "unauthorized": {"error": {"category": "unauthorized",
+                                         "message": "no"}},
+              "bad_request": {"error": {"category": "bad_request",
+                                        "message": "unknown field"}},
+              "too_large": {"error": {"category": "payload_too_large",
+                                      "message": "over the limit"}},
+              "bad_output": {"error": {"category": "bad_model_output",
+                                       "message": "not the JSON asked for"}}}
+OK_BODY = {"result": ANSWER}
+
+
+class TestTransientRetry(unittest.TestCase):
+    """The production scenario, stated once: Modal keeps one GPU snapshot
+    per machine type. A first request on a type with no snapshot pays a
+    ~150s boot; the next one restores in ~16s. So one retry, for absence
+    only — and emphatically not for a busy queue, a wrong token, a refused
+    request or an answer that came back malformed.
+    """
+
+    def ask(self, url, timeout=60):
+        return inference.RemoteService(url, TOKEN).generate(
+            "qwen3:8b", "prompt", SCHEMA, timeout)
+
+    # -- A: the scenario this exists for --------------------------------
+    def test_a_failed_first_call_then_a_working_second_returns_the_answer(self):
+        app = scripted((504, ERROR_BODY["model_timeout"], {}),
+                       (200, OK_BODY, {}))
+        with serving(app) as url:
+            self.assertEqual(self.ask(url), ANSWER)
+        self.assertEqual(len(app.attempts), 2, "the retry did not happen")
+
+    def test_the_same_thing_through_the_real_service_and_a_real_runtime(self):
+        """A: again, with nothing stubbed but the model itself — the real
+        Flask service turning ModelTimeout into a real 504 on a socket."""
+        class Flaky(FakeRuntime):
+            def generate(self, *a, **kw):
+                super().generate(*a, **kw)
+                if len(self.calls) == 1:
+                    raise inference.ModelTimeout("still booting")
+                return self.answer
+
+        with service(Flaky()) as (url, runtime):
+            self.assertEqual(self.ask(url), ANSWER)
+        self.assertEqual(len(runtime.calls), 2)
+
+    # -- B: it gives up cleanly -----------------------------------------
+    def test_two_failures_end_in_one_clean_error_not_a_third_attempt(self):
+        app = scripted((504, ERROR_BODY["model_timeout"], {}))
+        with serving(app) as url:
+            with self.assertRaises(inference.ModelUnavailable) as caught:
+                self.ask(url)
+        self.assertEqual(len(app.attempts), 2, "it must stop after one retry")
+        self.assertIn("too slow", str(caught.exception))
+        # Still the class every caller has always seen for an absent model.
+        self.assertNotIsInstance(caught.exception, inference.ModelBusy)
+
+    # -- C, D, E: configuration is never retried ------------------------
+    def test_configuration_failures_are_asked_exactly_once(self):
+        for label, status, body, expected in (
+                ("C: 401", 401, ERROR_BODY["unauthorized"],
+                 inference.RemoteServiceError),
+                ("D: 400", 400, ERROR_BODY["bad_request"],
+                 inference.RemoteServiceError),
+                ("E: 413", 413, ERROR_BODY["too_large"],
+                 inference.RemoteServiceError),
+                ("malformed answer", 502, ERROR_BODY["bad_output"],
+                 inference.ModelUnavailable)):
+            with self.subTest(label):
+                app = scripted((status, body, {}))
+                with serving(app) as url:
+                    with self.assertRaises(expected):
+                        self.ask(url)
+                self.assertEqual(len(app.attempts), 1,
+                                 f"{label} must not be retried")
+
+    def test_an_oversized_prompt_opens_no_socket_at_all(self):
+        """E, client-side: refused before any attempt is made."""
+        app = scripted((200, OK_BODY, {}))
+        with serving(app) as url:
+            with self.assertRaises(inference.RemoteServiceError):
+                inference.RemoteService(url, TOKEN).generate(
+                    "qwen3:8b", "x" * (inference.MAX_PROMPT_BYTES + 1),
+                    SCHEMA, 60)
+        self.assertEqual(app.attempts, [])
+
+    # -- F: the busy contract is untouched ------------------------------
+    def test_a_busy_queue_keeps_its_own_contract_and_is_not_retried(self):
+        app = scripted((429, ERROR_BODY["busy"], {"Retry-After": "30"}))
+        with serving(app) as url:
+            with self.assertRaises(inference.ModelBusy) as caught:
+                self.ask(url)
+        self.assertEqual(len(app.attempts), 1,
+                         "retrying a busy queue would spend it twice")
+        self.assertEqual(caught.exception.retry_after, 30)
+        # The distinction the whole taxonomy rests on.
+        self.assertNotIsInstance(caught.exception, inference.ModelUnavailable)
+
+    # -- G: a working call costs one request ----------------------------
+    def test_a_first_call_that_works_makes_no_second_request(self):
+        app = scripted((200, OK_BODY, {}))
+        with serving(app) as url:
+            self.assertEqual(self.ask(url), ANSWER)
+        self.assertEqual(len(app.attempts), 1)
+
+    # -- the transport case, and the deadline ---------------------------
+    def test_a_dropped_connection_is_retried_once(self):
+        with dropping_server() as (url, connections):
+            with self.assertRaises(inference.RemoteServiceError) as caught:
+                self.ask(url)
+        self.assertEqual(len(connections), 2)
+        self.assertIn("no local fallback", str(caught.exception))
+
+    def test_a_platform_5xx_that_is_not_our_contract_is_retried(self):
+        app = scripted((503, {"detail": "gateway"}, {}), (200, OK_BODY, {}))
+        with serving(app) as url:
+            self.assertEqual(self.ask(url), ANSWER)
+        self.assertEqual(len(app.attempts), 2)
+
+    def test_a_4xx_that_is_not_our_contract_is_not_retried(self):
+        app = scripted((403, {"detail": "proxy says no"}, {}))
+        with serving(app) as url:
+            with self.assertRaises(inference.RemoteServiceError):
+                self.ask(url)
+        self.assertEqual(len(app.attempts), 1)
+
+    def test_the_retry_runs_inside_the_callers_deadline_never_past_it(self):
+        """No second attempt when there is no time left to make it in —
+        the user must not wait longer than they already could."""
+        app = scripted((504, ERROR_BODY["model_timeout"], {}))
+        with serving(app) as url:
+            with self.assertRaises(inference.ModelUnavailable):
+                self.ask(url, timeout=inference.RETRY_FLOOR - 1)
+        self.assertEqual(len(app.attempts), 1)
+
+    def test_local_direct_is_not_touched_by_any_of_this(self):
+        """The retry lives in RemoteService alone. A local Ollama that
+        fails still fails once, exactly as it always did."""
+        calls = []
+
+        def refuse(*a, **kw):
+            calls.append(1)
+            raise urllib.error.URLError("connection refused")
+
+        with mock.patch.object(inference, "_post", refuse):
+            with self.assertRaises(inference.ModelUnavailable):
+                inference.LocalOllama("http://127.0.0.1:1/api/generate"
+                                      ).generate("m", "p", SCHEMA, 60)
+        self.assertEqual(len(calls), 1)
+
+
 SECRET_IN_EXC = "Ada Okonkwo ada.okonkwo@example.com"
 
 

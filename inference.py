@@ -49,7 +49,9 @@ that silently answers from the local one is a backend nobody can measure.
 """
 
 import json
+import logging
 import os
+import time
 import urllib.error
 import urllib.request
 
@@ -359,8 +361,60 @@ class LocalOllama:
 # absence, and it must not open the paid path.
 MODEL_CATEGORIES = ("model_unavailable", "model_timeout", "bad_model_output")
 
+# Not one of the service's categories: nothing arrived to carry one. This
+# is the socket itself failing, stamped by the client so the retry rule can
+# tell it apart from a service that answered with a refusal.
+TRANSPORT_CATEGORY = "transport"
+
 # Capacity, not absence and not misconfiguration. Its own class.
 BUSY_CATEGORY = "model_busy"
+
+# The service's own logger name, so `logging.getLogger("inference")`
+# silences both sides of the boundary in one line.
+log = logging.getLogger("inference")
+
+# ----- one retry, for transient absence only -------------------------------
+#
+# Measured, not assumed: a Modal container restoring from a GPU snapshot
+# answers in ~16s, but the first request on a machine type Modal has no
+# snapshot for yet pays a full boot of ~150s. Modal hands a request that
+# outlasts 150s to a result URL with a 303, which urllib follows and which
+# this client survives — a REAL 282s production request came back as its
+# proper 504 model_timeout, so the cap alone is not what breaks a call.
+# What does break one is the ordinary transient underneath: a dropped
+# transport, a gateway 5xx while a container moves, a model that was not
+# there yet. Those are worth exactly one more attempt, because the second
+# request lands on the snapshot the first one paid for.
+RETRY_CATEGORIES = ("model_unavailable", "model_timeout", TRANSPORT_CATEGORY)
+
+# A 5xx with a body that is not our contract at all is the PLATFORM's
+# gateway, not our service. Status-based on purpose: there is no category
+# to read, and 5xx only, so an HTML 401 from a proxy is never retried.
+RETRY_STATUSES = (502, 503, 504)
+
+# Below this many seconds left, a second attempt cannot finish anyway, so
+# it would only make the user wait longer for the same failure.
+RETRY_FLOOR = 10
+
+
+def _retryable(exc):
+    """Is an identical second attempt worth making?
+
+    Every "no" here is deliberate:
+
+      model_busy        has its own contract already (429 + Retry-After).
+                        Retrying inside it would spend the queue twice and
+                        hide the one failure a caller is meant to pace.
+      bad_model_output  the model answered, just not in the shape asked.
+                        A second identical prompt is a coin toss, not a fix.
+      unauthorized, bad_request, payload_too_large
+                        configuration. A second identical call fails
+                        identically and buries the real problem.
+    """
+    category = getattr(exc, "category", None)
+    if category in RETRY_CATEGORIES:
+        return True
+    return category is None and getattr(exc, "status", None) in RETRY_STATUSES
 
 
 class RemoteService:
@@ -382,8 +436,20 @@ class RemoteService:
         return (self._token if self._token is not None
                 else os.environ.get(TOKEN_ENV) or "")
 
+    # One retry, never two. A second attempt covers the transient this
+    # deployment actually has (see RETRY_CATEGORIES); a third would just
+    # be a slower way to show the user the same error.
+    ATTEMPTS = 2
+
     def generate(self, model, prompt, schema, timeout):
-        """One generation, through the service. Same return as local."""
+        """One generation, through the service. Same return as local.
+
+        Retried at most once, and only for a transient absence — see
+        _retryable, which lists what is deliberately NOT retried. The
+        retry runs inside the CALLER's deadline rather than extending it:
+        whatever is left of `timeout` is what the second attempt gets, so
+        a user can never wait longer than they already could.
+        """
         # Checked here as well as server-side so an oversized prompt costs
         # nothing to reject and fails the same way whichever backend is on.
         size = len(prompt.encode())
@@ -393,6 +459,26 @@ class RemoteService:
                 f"{MAX_PROMPT_BYTES}-byte limit the inference service "
                 f"accepts")
         url = self.endpoint()
+        deadline = time.monotonic() + timeout
+        for attempt in range(1, self.ATTEMPTS + 1):
+            left = timeout if attempt == 1 else deadline - time.monotonic()
+            try:
+                return self._attempt(url, model, prompt, schema, left)
+            except InferenceError as exc:
+                # ModelBusy lands here too and leaves untouched: it is not
+                # retryable, so it is re-raised with its Retry-After intact.
+                left = deadline - time.monotonic()
+                if (attempt == self.ATTEMPTS or not _retryable(exc)
+                        or left < RETRY_FLOOR):
+                    raise
+                # Category only. Never the prompt, the answer or the token.
+                log.warning(
+                    "inference attempt %d failed (%s); retrying once with "
+                    "%.0fs of the deadline left", attempt,
+                    getattr(exc, "category", None) or "unknown", left)
+
+    def _attempt(self, url, model, prompt, schema, timeout):
+        """Exactly one request. Unchanged from before the retry existed."""
         try:
             _status, payload = _post(
                 url, {"model": model, "prompt": prompt, "schema": schema,
@@ -405,10 +491,12 @@ class RemoteService:
                 f"the inference service at {self.describe()} answered with "
                 f"a body that is not JSON") from None
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise RemoteServiceError(
+            failed = RemoteServiceError(
                 f"the inference service at {self.describe()} did not "
                 f"answer ({type(exc).__name__}) — no local fallback was "
-                f"tried") from None
+                f"tried")
+            failed.category, failed.status = TRANSPORT_CATEGORY, None
+            raise failed from None
         if not isinstance(payload, dict) or "result" not in payload:
             raise RemoteServiceError(
                 "the inference service returned a body that is not the "
@@ -439,23 +527,39 @@ def _from_error(exc, model):
         error = body["error"]
         category, message = error["category"], error["message"]
     except (AttributeError, KeyError, TypeError, ValueError):
-        return RemoteServiceError(  # noqa: TRY300 -- closed in `finally`
+        return _stamp(RemoteServiceError(  # noqa: TRY300 -- closed in `finally`
             f"the inference service answered {exc.code} with a body that "
-            f"is not the agreed error shape")
+            f"is not the agreed error shape"), None, exc.code)
     finally:
         # An HTTPError holds an open response — a spooled temp file once
         # the body is big enough — and leaking it is a ResourceWarning
         # per failed request.
         exc.close()
     if category == BUSY_CATEGORY:
-        return ModelBusy(
+        return _stamp(ModelBusy(
             f"{message} (via the inference service)"
             + (f" — retry after {retry_after:g}s" if retry_after else ""),
-            retry_after)
+            retry_after), category, exc.code)
     if category in MODEL_CATEGORIES:
-        return ModelUnavailable(f"{message} (via the inference service)")
-    return RemoteServiceError(
-        f"the inference service refused the request [{category}]: {message}")
+        return _stamp(ModelUnavailable(
+            f"{message} (via the inference service)"), category, exc.code)
+    return _stamp(RemoteServiceError(
+        f"the inference service refused the request [{category}]: {message}"),
+        category, exc.code)
+
+
+def _stamp(error, category, status):
+    """What the service said, kept on the exception for _retryable.
+
+    The category is dropped from the message on purpose — three of them
+    collapse into ModelUnavailable, which is the routing every caller has
+    always seen and is not changed here. The retry rule needs them apart,
+    though: model_timeout is worth another attempt and bad_model_output
+    is not, and by the time a caller holds the exception that difference
+    is gone.
+    """
+    error.category, error.status = category, status
+    return error
 
 
 # --------------------------------------------------------------------------
