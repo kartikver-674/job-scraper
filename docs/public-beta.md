@@ -9,8 +9,8 @@ and a route that spends real money.
 
 | | |
 | --- | --- |
-| A visitor can | upload a PDF, have it read by qwen3:8b on Modal, edit the weights, download `<name>.py` |
-| A visitor cannot | reach `/key`, `/run`, `/results`, `/events`, or any other console route — all 404 |
+| A visitor can | upload a PDF, have it read by qwen3:8b on Modal, edit the weights, download `<name>.py`, **and run a free sweep**: configure → confirm → running → results → export |
+| A visitor cannot | reach `/key`, `/run`, `/results`, `/events`, or any other console route — all 404. The public sweep lives at `/sweep/*` and runs on Oracle, never here. |
 | Costs money | the model call: two GPU calls per résumé on the operator's Modal account |
 | Costs nothing | Render Free; no Apify credit is reachable from the public app |
 
@@ -77,10 +77,32 @@ Set in Render → Environment. Never commit values.
 | `SWEEP_BETA_DAILY_PER_IP` | `3` — complete derivations, not model calls |
 | `SWEEP_BETA_DAILY_TOTAL` | `60` — complete derivations, not model calls |
 | `SWEEP_TRUSTED_PROXIES` | `2` — Cloudflare, then Render's load balancer |
+| `SWEEP_WORKER_URL` | the Oracle worker behind Caddy (`docs/oracle-sweep-worker.md`) |
+| `SWEEP_WORKER_TOKEN` | the worker's bearer token — server-side only, never rendered |
 
 Public mode **refuses to start** without `SECRET_KEY` and `SWEEP_BETA_CODE`.
 That is deliberate: a public app with an unstable session key cannot isolate
 anyone, and one with no door spends GPU money for whoever finds the URL.
+
+## The sweep half runs somewhere else
+
+Render Free cannot host a sweep: it spins down after fifteen idle minutes
+and kills any child it started. So `/sweep/run` hands the job to the Oracle
+worker and keeps only the session:
+
+```
+browser ──► Render (/sweep/*) ──server-side, bearer──► Oracle worker ──► scraper.py
+```
+
+The browser polls Render (`/sweep/progress`, every 4s — not SSE, which would
+hold a gunicorn thread for the length of a sweep); Render polls Oracle. The
+worker's URL and token never reach a page.
+
+Which sweep is whose is decided by an HMAC of the signed cookie's session id
+under `SECRET_KEY`, so a visitor keeps their run across a redeploy and cannot
+touch anybody else's — holding the run id is not enough. Free sources only:
+no Apify key is asked for or sent, and the worker refuses a paid run that
+arrives without the caller's own token.
 
 ## The daily limit counts derivations, not model calls
 

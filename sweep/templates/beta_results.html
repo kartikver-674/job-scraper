@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Your shortlist — Sweep{% endblock %}
+{% block body %}
+<div class="working">
+  <h1>{{ total }} job{{ '' if total == 1 else 's' }} for you</h1>
+
+  {% if still_running %}
+    <p class="lede">The sweep is still going, so this list will grow.
+      <a href="{{ url_for('beta_running') }}">Watch it</a>.</p>
+  {% elif status.get('state') == 'failed' %}
+    <p class="error">That sweep did not finish. Nothing was charged to
+      anyone — you can start another from
+      <a href="{{ url_for('beta_configure') }}">Configure</a>.</p>
+  {% elif status.get('state') == 'interrupted' %}
+    <p class="error">That sweep was interrupted by a restart on our side.
+      Start it again from <a href="{{ url_for('beta_configure') }}">Configure</a>.</p>
+  {% endif %}
+
+  {# The same filters the local screen carries, on the same query-string
+     names, so the export links below hand back exactly what is on screen. #}
+  <form method="get" action="{{ url_for('beta_results') }}" class="filters">
+    <label><span class="label">Search</span>
+      <input type="search" name="q" value="{{ q }}" placeholder="title or company"></label>
+    <label><span class="label">Minimum score</span>
+      <input type="number" name="min_score" value="{{ min_score }}" min="0"></label>
+    <label><span class="label">Source</span>
+      <select name="source">
+        <option value="">Any</option>
+        {% for s in sources %}
+          <option value="{{ s }}" {% if s == source %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select></label>
+    <label><span class="label">Order</span>
+      <select name="sort">
+        {% for key, (label, _) in sorts.items() %}
+          <option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select></label>
+    <button class="secondary" type="submit">Apply</button>
+  </form>
+
+  <p class="meta">
+    Showing {{ total }} of {{ all_total }} found.
+    Download:
+    <a href="{{ url_for('beta_export', fmt='csv', **request.args) }}">CSV</a> ·
+    <a href="{{ url_for('beta_export', fmt='json', **request.args) }}">JSON</a> ·
+    <a href="{{ url_for('beta_export', fmt='xlsx', **request.args) }}">Excel</a>
+  </p>
+
+  {% for key, heading, blurb in sections %}
+    {% set rows = buckets.get(key) or [] %}
+    {% if rows %}
+      <section>
+        <h2>{{ heading }} <span class="meta">{{ rows|length }}</span></h2>
+        <p class="meta">{{ blurb }}</p>
+        <ol class="listings">
+          {% for row in rows[:section_cap if not full else rows|length] %}
+            <li>
+              <strong>{{ row.get('title') }}</strong> — {{ row.get('company') }}
+              <span class="meta">
+                score {{ row.get('score') }}
+                {%- if row.get('location') %} · {{ row.get('location') }}{% endif %}
+                {%- if row.get('source_site') %} · {{ row.get('source_site') }}{% endif %}
+                {%- set age = posted_age(row.get('date_posted')) %}{% if age %} · {{ age }}{% endif %}
+              </span>
+              {% if row.get('url') %}
+                <a href="{{ row.get('url') }}" rel="noopener noreferrer"
+                   target="_blank">Open</a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+        {% if not full and rows|length > section_cap %}
+          <p class="meta"><a href="{{ url_for('beta_results', full=1, **request.args) }}">Show
+            all {{ rows|length }}</a></p>
+        {% endif %}
+      </section>
+    {% endif %}
+  {% endfor %}
+
+  {% if not total %}
+    <p class="lede">Nothing matched those filters yet.
+      {% if all_total %}Loosen the score or clear the search.{% endif %}</p>
+  {% endif %}
+
+  <div class="actions">
+    <a class="secondary" href="{{ url_for('beta_configure') }}">Sweep again</a>
+    <a class="secondary" href="{{ url_for('profile_done') }}">My profile</a>
+  </div>
+</div>
+{% endblock %}

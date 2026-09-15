@@ -137,10 +137,18 @@ class TestWhatIsReachable(unittest.TestCase):
         """A step chip linking to a route that 404s is a lie the header
         tells on every screen."""
         body = unlocked(public_app()).get("/").get_data(as_text=True)
-        self.assertIn("of 3", body)
-        for gone in ("Free or paid", "Configure", "Confirm", "Running",
-                     "Results"):
+        # Upload, Review, Configure, Sweep, Results — the public journey,
+        # every step of it reachable.
+        self.assertIn("of 5", body)
+        for step in ("Upload", "Review", "Configure", "Sweep", "Results"):
+            self.assertIn(step, body)
+        # The console's own steps, which spend money, are not among them.
+        for gone in ("Free or paid", "Confirm"):
             self.assertNotIn(gone, body)
+        # And no chip points at a console route.
+        for console in ('href="/key"', 'href="/configure"', 'href="/run"',
+                        'href="/running"', 'href="/results"'):
+            self.assertNotIn(console, body)
 
 
 class TestSessionIsolation(unittest.TestCase):
@@ -242,7 +250,9 @@ class TestNoDisk(unittest.TestCase):
         client.post("/derive")
         r = client.post("/review", data={"name": "ada_beta"})
         self.assertEqual(r.status_code, 302)
-        self.assertIn("/profile", r.headers["Location"])
+        # "Looks right" now leads into the sweep; the profile itself is
+        # still a download away rather than a file on this disk.
+        self.assertIn("/sweep/configure", r.headers["Location"])
         self.assertFalse(os.path.exists(os.path.join(
             app_module.REPO_ROOT, "profiles", "ada_beta.py")))
         body = client.get("/profile.py").get_data(as_text=True)

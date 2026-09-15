@@ -38,9 +38,10 @@ CODE = "let-me-in"
 BETA_ENV = {public.PUBLIC_ENV: "1", public.SECRET_ENV: SECRET,
             public.CODE_ENV: CODE}
 
-# The two routes step 2 will add. Defined here so this test exercises the
-# production helpers — the cookie, the derived owner, the client — through
-# a real request/response cycle, without waiting for the UI around them.
+# A direct probe of the helpers the real screens sit on — the cookie, the
+# derived owner, the client — kept deliberately thin so that when a test in
+# test_public_sweep.py fails it is clear whether the flow broke or the
+# ownership mechanism underneath it did.
 STANDIN = frozenset({"t_run", "t_status", "t_stop"})
 
 

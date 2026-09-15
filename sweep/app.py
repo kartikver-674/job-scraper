@@ -904,6 +904,10 @@ def create_app(state=None, extract=None, resume_dir=None,
                     credit_total_usd=app.state.get("credit_total_usd"),
                     **kw)
 
+    # The public sweep screens (sweep/public_sweep.py) render the same
+    # chrome, and shell() is where "the same chrome" is defined.
+    app.shell = shell
+
     def spend_delta():
         """This sweep's own spend, or None when it cannot be known.
 

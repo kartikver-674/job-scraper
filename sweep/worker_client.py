@@ -99,5 +99,23 @@ def run_rows(run_id, since=0, **kw):
     return _call("GET", f"/v1/runs/{run_id}/rows?since={int(since)}", **kw)
 
 
+def all_rows(run_id, cap=5000, **kw):
+    """Every row the run has produced, paged.
+
+    The worker serves a window at a time so one request cannot be asked
+    for a whole sweep at once; the results screen wants the lot, so it
+    walks them. `cap` is the backstop against a pathological sweep.
+    """
+    out, since = [], 0
+    while len(out) < cap:
+        page = run_rows(run_id, since=since, **kw)
+        rows = page.get("rows") or []
+        out.extend(rows)
+        since += len(rows)
+        if not rows or since >= (page.get("total") or 0):
+            break
+    return out
+
+
 def stop_run(run_id, **kw):
     return _call("POST", f"/v1/runs/{run_id}/stop", **kw)

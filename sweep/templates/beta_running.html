@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_mark.html" import mark %}
+{% block title %}Sweeping — Sweep{% endblock %}
+{% block body %}
+<div class="working" id="sweep-running"
+     data-poll="{{ poll_seconds }}"
+     data-progress="{{ url_for('beta_progress') }}">
+  {{ mark(56) }}
+  <h1 id="sweep-heading">
+    {% if status.get('state') == 'queued' %}Waiting for a slot
+    {% elif status.get('state') in ('done', 'failed', 'stopped', 'interrupted') %}Sweep finished
+    {% else %}Sweeping{% endif %}
+  </h1>
+
+  <p class="lede" id="sweep-lede">
+    {% if status.get('state') == 'queued' %}
+      Someone else's sweep is running. Yours starts automatically —
+      you are number {{ status.get('queue_position') or 1 }} in the queue.
+    {% else %}
+      Searching the free sources and scoring what comes back against your
+      profile.
+    {% endif %}
+  </p>
+
+  {# Polling, not an event stream: a stream would hold a server thread open
+     for the whole sweep, and a sweep is minutes long. #}
+  <div class="working-bar"><span></span></div>
+  <p class="meta" id="sweep-found">Listings found so far: {{ status.get('found') or 0 }}</p>
+
+  <p class="meta">This runs on Sweep's own machine, so you can close the tab
+    and come back to it. Results are kept for 48 hours.</p>
+
+  <div class="actions">
+    <a class="secondary" id="sweep-results" href="{{ url_for('beta_results') }}">See what it has found</a>
+    <form method="post" action="{{ url_for('beta_stop') }}" style="display:inline">
+      <button class="secondary" type="submit">Stop this sweep</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var box = document.getElementById('sweep-running');
+    if (!box) return;
+    var every = (parseInt(box.dataset.poll, 10) || 4) * 1000;
+    var heading = document.getElementById('sweep-heading');
+    var found = document.getElementById('sweep-found');
+    var lede = document.getElementById('sweep-lede');
+
+    function tick() {
+      fetch(box.dataset.progress, {credentials: 'same-origin'})
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (p) {
+          if (!p) return;
+          if (typeof p.found === 'number') {
+            found.textContent = 'Listings found so far: ' + p.found;
+          }
+          if (p.state === 'queued') {
+            heading.textContent = 'Waiting for a slot';
+            lede.textContent = 'Someone else’s sweep is running. Yours '
+              + 'starts automatically — you are number '
+              + (p.queue_position || 1) + ' in the queue.';
+          } else if (p.finished) {
+            /* The results screen is the end of the flow, so go there rather
+               than leaving a finished sweep looking like a stuck one. */
+            window.location = p.results_url;
+            return;
+          } else if (p.state === 'running') {
+            heading.textContent = 'Sweeping';
+          }
+          setTimeout(tick, every);
+        })
+        .catch(function () { setTimeout(tick, every); });
+    }
+    setTimeout(tick, every);
+  })();
+</script>
+{% endblock %}

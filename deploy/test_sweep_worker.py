@@ -18,6 +18,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
@@ -141,6 +142,25 @@ class TestBearerAuth(Harness):
     def test_a_worker_with_no_token_configured_refuses_to_start(self):
         with self.assertRaises(SystemExit):
             sweep_worker.accepted_tokens({})
+
+    def test_a_worker_with_an_unusable_checkout_refuses_to_start(self):
+        """Found by a real two-process smoke: a checkout missing
+        auto-apply/ let the worker boot and then 500 on the first run."""
+        bare = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, bare, ignore_errors=True)
+        with self.assertRaises(SystemExit) as caught:
+            sweep_worker.check_checkout(bare)
+        self.assertIn("make_profile", str(caught.exception))
+
+        # A checkout carrying the renderer but with nowhere to write a
+        # profile is refused too.
+        os.makedirs(os.path.join(bare, "auto-apply"), exist_ok=True)
+        open(os.path.join(bare, "auto-apply", "make_profile.py"), "w").close()
+        with self.assertRaises(SystemExit) as caught:
+            sweep_worker.check_checkout(bare)
+        self.assertIn("profiles", str(caught.exception))
+        # The real repo satisfies both.
+        self.assertEqual(sweep_worker.check_checkout(REPO_ROOT), REPO_ROOT)
 
 
 class TestOwnership(Harness):
@@ -461,6 +481,25 @@ class TestCleanup(Harness):
         self.assertEqual(removed, [old])
         self.assertFalse(os.path.exists(os.path.join(self.runs, old)))
         self.assertTrue(os.path.exists(os.path.join(self.runs, fresh)))
+
+    def test_it_also_removes_the_rendered_profile_from_the_checkout(self):
+        """The profile has to live in the checkout's profiles/ package for
+        the engine to select it, so the runs directory is not the only
+        place a finished run leaves something behind."""
+        app, store, queue = self.build()
+        client = app.test_client()
+        run = self.post_run(client).get_json()["run_id"]
+        for _ in range(50):
+            if store.read(run)["state"] in sweep_worker.TERMINAL:
+                break
+            time.sleep(0.05)
+        profile_path = store.read(run)["profile_path"]
+        self.assertTrue(os.path.exists(profile_path))
+
+        self.now[0] += sweep_worker.TTL_SECONDS + 1
+        self.assertEqual(queue.cleanup(), [run])
+        self.assertFalse(os.path.exists(profile_path),
+                         "a stranger's profile outlived their run")
 
     def test_it_cannot_delete_a_running_or_queued_run(self):
         gate = threading.Event()

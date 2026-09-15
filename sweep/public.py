@@ -64,13 +64,13 @@ DEFAULT_TRUSTED_PROXIES = 2
 PUBLIC_ENDPOINTS = frozenset({
     "upload", "resume", "review", "derive_post", "review_post",
     "profile_done", "profile_download", "beta_gate", "healthz", "static",
+    # The sweep half, on the Oracle worker. The console's own /run,
+    # /running, /results and /export are NOT here and never will be:
+    # they drive a local subprocess and an Apify balance.
+    "beta_configure", "beta_configure_post", "beta_confirm", "beta_run",
+    "beta_running", "beta_progress", "beta_stop", "beta_results",
+    "beta_export",
 })
-
-# The public flow's own tracker. The console's seven steps end in a paid
-# sweep; four of them 404 here, and a tracker that offers them is a tracker
-# that lies. step_states() knows "profile_done" (sweep/logic.py).
-PUBLIC_STEPS = [("upload", "Upload"), ("review", "Review"),
-                ("profile_done", "Profile")]
 
 # A session is a browser that uploaded a résumé. Two hours is longer than
 # anyone spends on a three-screen flow and short enough that a shared
@@ -465,8 +465,13 @@ def harden(app, env=None, store=None, limit=None):
         return None
 
     app.write_profile = keep_profile
-    app.config["AFTER_REVIEW_ENDPOINT"] = "profile_done"
-    app.config["STEPS"] = PUBLIC_STEPS
+    # "Looks right" now leads into the sweep rather than stopping at the
+    # download — the profile stays one click away from every screen.
+    app.config["AFTER_REVIEW_ENDPOINT"] = "beta_configure"
+
+    from sweep import public_sweep
+    public_sweep.register(app)
+    app.config["STEPS"] = public_sweep.PUBLIC_STEPS
 
     @app.before_request
     def gate():

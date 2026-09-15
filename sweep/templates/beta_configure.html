@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Configure your sweep — Sweep{% endblock %}
+{% block body %}
+<div class="working">
+  <h1>Where should Sweep look?</h1>
+  <p class="lede">The beta searches the free sources only — company career
+    boards and the public remote job feeds. It costs you nothing, and no
+    account or card is involved.</p>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  <form method="post" action="{{ url_for('beta_configure_post') }}">
+    <fieldset>
+      <legend>Where you can work</legend>
+      {% for value, label in (('remote', 'Remote'),
+                              ('india', 'India'),
+                              ('global', 'Named countries')) %}
+        <label><input type="radio" name="scope" value="{{ value }}"
+                      {% if scope == value %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+    </fieldset>
+
+    <label><span class="label">Narrow to particular places (optional)</span>
+      {# Comma-separated, and validated against the verified geoId table —
+         an unknown name is refused rather than searched. #}
+      <input type="text" name="locations" value="{{ chosen|join(', ') }}"
+             placeholder="Remote, Bengaluru"></label>
+    <p class="meta">Leave it as it is to search everywhere the choice above
+      covers. Options:
+      {% for group, names in location_groups %}{{ group }} ({{ names|join(', ') }}){% if not loop.last %}; {% endif %}{% endfor %}.</p>
+
+    <label><span class="label">Only listings posted in the last N days</span>
+      <input type="number" name="max_age_days" min="1" max="365"
+             value="{{ max_age_days }}"></label>
+
+    <div class="actions">
+      <button class="primary" type="submit">Continue</button>
+      <a class="secondary" href="{{ url_for('profile_done') }}">Back to my profile</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

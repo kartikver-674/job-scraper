@@ -19,8 +19,14 @@ services:
     # GPU snapshot answers in ~20s, but one that has to CREATE a snapshot
     # takes ~150s, and a profile is two model calls. Gunicorn's 30s default
     # would kill exactly the request this whole stack was built to serve.
+    # --config /dev/null is load-bearing: gunicorn auto-loads
+    # ./gunicorn.conf.py from the repo root, and that file belongs to the
+    # INFERENCE service — it imports inference_service, names the process
+    # sweep-inference and computes a bind from the inference env. The CLI
+    # flags below override what matters, but the beta should not be
+    # running on another service's configuration by accident.
     startCommand: >-
-      gunicorn 'sweep.app:create_app()'
+      gunicorn 'sweep.app:create_app()' --config /dev/null
       --workers 1 --threads 8
       --timeout 600 --graceful-timeout 60
       --access-logfile - --bind 0.0.0.0:$PORT
@@ -52,6 +58,12 @@ services:
         value: "3"
       - key: SWEEP_BETA_DAILY_TOTAL
         value: "60"
+      # The Oracle sweep worker: where the sweeps actually run. Server
+      # side only — the browser never sees either value.
+      - key: SWEEP_WORKER_URL
+        sync: false
+      - key: SWEEP_WORKER_TOKEN
+        sync: false
       # Proxies that write X-Forwarded-For in front of this service:
       # Cloudflare, then Render's load balancer. The count is what makes
       # the visitor's address unspoofable — see sweep/public.py.

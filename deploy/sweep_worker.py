@@ -430,6 +430,15 @@ class Queue:
                     continue
                 stamp = status.get("finished_at") or status.get("created_at") or now
                 if now - stamp >= ttl:
+                    # The run's rendered profile lives in the checkout's
+                    # profiles/ package, because that is how the engine
+                    # selects one. Deleting the run directory alone would
+                    # leave it there for good, and a beta that ran for a
+                    # month would leave a month of strangers' profiles.
+                    profile_path = status.get("profile_path")
+                    if profile_path:
+                        with contextlib.suppress(OSError):
+                            os.remove(profile_path)
                     self.store.delete(run_id)
                     removed.append(run_id)
         return removed
@@ -598,9 +607,42 @@ def janitor(queue, every=3600, ttl=TTL_SECONDS, stop=None):
     return stop
 
 
+def check_checkout(checkout=None):
+    """Refuse to start against a checkout this cannot run a sweep from.
+
+    A worker that boots and then 500s on the first visitor is worse than
+    one that does not boot: the failure surfaces in front of somebody's
+    résumé rather than in the deploy that caused it.
+    """
+    checkout = checkout or CHECKOUT
+    # The FILE, not merely a successful import: once make_profile is in
+    # sys.modules an import proves nothing about this checkout, which is
+    # exactly how a bad one reached a live request the first time.
+    renderer = os.path.join(checkout, "auto-apply", "make_profile.py")
+    if not os.path.isfile(renderer):
+        raise SystemExit(
+            f"{renderer} is missing. The worker renders every run's profile "
+            f"with make_profile, so the checkout has to be the whole repo.")
+    profiles = os.path.join(checkout, "profiles")
+    if not os.path.isdir(profiles) or not os.access(profiles, os.W_OK):
+        raise SystemExit(
+            f"{profiles} must exist and be writable: the engine selects a "
+            f"profile by module name, so each run's profile is written "
+            f"there.")
+    # Last, because it has a side effect the checks above do not: it puts
+    # this checkout on sys.path for the life of the process.
+    try:
+        _import_make_profile(checkout)
+    except ImportError as exc:
+        raise SystemExit(f"the checkout at {checkout} has make_profile but "
+                         f"it will not import ({exc}).") from None
+    return checkout
+
+
 def main():
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
+    check_checkout()
     store = RunStore()
     queue = Queue(store)
     queue.recover()
