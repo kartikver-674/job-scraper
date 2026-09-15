@@ -16,11 +16,25 @@
        hms(s) { var m = Math.floor(s / 60); return (m ? m + "m " : "") + (s % 60) + "s" },
        ago(s) { return s > 59 ? Math.floor(s / 60) + "m ago"
                               : (s > 4 ? s + "s ago" : "just now") } }'
-     x-init="const es = new EventSource('{{ url_for('events') }}');
+     {# Public mode polls; the console streams. An event stream holds one
+        of eight gunicorn threads open for the whole sweep, which is fine
+        for the single operator this was built for and is not fine for a
+        page anyone can open. Same shape either way: `p` is whatever the
+        server last said, and the finish handler is identical. #}
+     x-init="{% if public_mode %}const tick = () =&gt; fetch('{{ url_for('progress') }}', { credentials: 'same-origin' })
+                 .then(r =&gt; r.ok ? r.json() : null)
+                 .then(j =&gt; { if (j) { p = j; drift = 0; }
+                              if (p.finished || p.interrupted) {
+                                if (p.finished &amp;&amp; waiting)
+                                  setTimeout(() =&gt; { location = '{{ url_for('results') }}' }, 1200);
+                                return; }
+                              setTimeout(tick, 4000); })
+                 .catch(() =&gt; setTimeout(tick, 4000));
+             setTimeout(tick, 4000);{% else %}const es = new EventSource('{{ url_for('events') }}');
              es.onmessage = e => { p = JSON.parse(e.data); drift = 0;
                                    if (p.finished || p.interrupted) es.close();
                                    if (p.finished &amp;&amp; waiting)
-                                     setTimeout(() =&gt; { location = '{{ url_for('results') }}' }, 1200); };
+                                     setTimeout(() =&gt; { location = '{{ url_for('results') }}' }, 1200); };{% endif %}
              setInterval(() => { if (!p.finished &amp;&amp; !p.interrupted) drift++ }, 1000)"{% endblock %}
 {# cap is carried in the single-quoted x-data above, never interpolated into
    these double-quoted attributes: {{ cap|tojson }} inside one of them is the
@@ -225,6 +239,12 @@
     <p class="muted" x-text="p.done + ' of ' + p.planned + ' finished'"></p>
     {% if plan.free_sources %}
       <p class="muted">{{ plan.free_sources }} free sources also run, at no cost.</p>
+      {# They run after the paid searches and have no tiles of their own, so
+         at this point the grid is full, "still to run" reads zero, and the
+         only sign of life is listings arriving. Say what it is doing. #}
+      <p class="muted" x-show="p.free_running" x-cloak>
+        <b>Now searching those free sources.</b> There is no grid for them —
+        new listings appear on the right as each one answers.</p>
     {% endif %}
   </div>
    </div>

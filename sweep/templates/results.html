@@ -36,7 +36,12 @@
              it, and one blank key would tick every other unkeyable row along
              with it. Rare enough to leave the cell empty rather than explain. #}
           <td class="did">
-            {%- if row['_key'] %}
+            {# The applied tick writes a file beside this profile's own
+               results, which is the operator's disk and their bookkeeping.
+               A public visitor has neither, and POST /applied is not
+               reachable for them — so the control is not drawn rather than
+               drawn and refused. #}
+            {%- if row['_key'] and not public_mode %}
               {# The key travels in a data attribute, not interpolated into the
                  JS below: a req-number or URL key is not normalized the way a
                  company+title one is, and a quote in it would end the string

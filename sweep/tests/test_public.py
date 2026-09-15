@@ -103,16 +103,29 @@ class TestTheDoor(unittest.TestCase):
 class TestWhatIsReachable(unittest.TestCase):
     """The allowlist, which fails closed."""
 
-    def test_every_money_and_operator_route_is_gone(self):
+    def test_every_operator_route_is_gone(self):
+        """The sweep screens are public now — they run on the Oracle
+        worker. What stays shut is everything that touches the OPERATOR's
+        keys, their disk, or their earlier sweeps."""
         client = unlocked(public_app())
-        for path in ("/key", "/configure", "/confirm", "/running", "/progress",
-                     "/events", "/results", "/export.csv"):
+        for path in ("/events",):
             with self.subTest(path):
                 self.assertEqual(client.get(path).status_code, 404)
-        for path in ("/key", "/key/free", "/key/remove", "/second-key", "/run",
-                     "/stop", "/merge", "/applied", "/rescore", "/estimate"):
+        # POST /key is NOT here: in public mode it takes the VISITOR's
+        # own key, validates it and hands it to the worker.
+        for path in ("/key/remove", "/second-key", "/merge",
+                     "/applied", "/rescore"):
             with self.subTest("POST " + path):
                 self.assertEqual(client.post(path).status_code, 404)
+
+    def test_the_sweep_screens_are_the_consoles_own(self):
+        client = unlocked(public_app())
+        for path in ("/key", "/configure", "/confirm", "/running",
+                     "/results"):
+            with self.subTest(path):
+                # Reachable: their own guards decide whether this visitor
+                # has got far enough, but they are not refused outright.
+                self.assertNotEqual(client.get(path).status_code, 404)
 
     def test_the_profile_flow_itself_is_reachable(self):
         client = unlocked(public_app())
@@ -128,19 +141,22 @@ class TestWhatIsReachable(unittest.TestCase):
         registered = {r.endpoint for r in app.url_map.iter_rules()}
         self.assertTrue(public.PUBLIC_ENDPOINTS <= registered,
                         public.PUBLIC_ENDPOINTS - registered)
-        for dangerous in ("run", "stop", "key", "key_remove", "results",
-                          "events", "rescore"):
-            self.assertIn(dangerous, registered)
-            self.assertNotIn(dangerous, public.PUBLIC_ENDPOINTS)
+        # The operator's own: their keys, their disk, their earlier
+        # sweeps, and the event stream public mode replaces with polling.
+        for dangerous in public.OPERATOR_ONLY:
+            self.assertIn(dangerous, registered, dangerous)
+            self.assertNotIn(dangerous, public.PUBLIC_ENDPOINTS, dangerous)
 
     def test_the_tracker_offers_only_the_public_steps(self):
         """A step chip linking to a route that 404s is a lie the header
         tells on every screen."""
         body = unlocked(public_app()).get("/").get_data(as_text=True)
-        self.assertIn("of 3", body)
-        for gone in ("Free or paid", "Configure", "Confirm", "Running",
-                     "Results"):
-            self.assertNotIn(gone, body)
+        # The console's own seven, because the public journey IS those
+        # steps now — the same tracker, reached the same way.
+        self.assertIn("of 7", body)
+        for step in ("Upload", "Review", "Free or paid", "Configure",
+                     "Confirm", "Running", "Results"):
+            self.assertIn(step, body)
 
 
 class TestSessionIsolation(unittest.TestCase):
@@ -242,7 +258,10 @@ class TestNoDisk(unittest.TestCase):
         client.post("/derive")
         r = client.post("/review", data={"name": "ada_beta"})
         self.assertEqual(r.status_code, 302)
-        self.assertIn("/profile", r.headers["Location"])
+        # "Looks right" leads to the console's own source-choice screen;
+        # the profile itself is still a download away, not a file on this
+        # disk.
+        self.assertIn("/key", r.headers["Location"])
         self.assertFalse(os.path.exists(os.path.join(
             app_module.REPO_ROOT, "profiles", "ada_beta.py")))
         body = client.get("/profile.py").get_data(as_text=True)

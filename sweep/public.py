@@ -25,6 +25,8 @@ The three things that make the subset safe:
              limit gates the spend.
 """
 
+import contextlib
+import hashlib
 import hmac
 import os
 import secrets
@@ -34,6 +36,8 @@ from collections.abc import MutableMapping
 
 from flask import (Response, redirect, render_template, request, session,
                    url_for)
+
+from sweep import worker_client
 
 PUBLIC_ENV = "SWEEP_PUBLIC_MODE"
 SECRET_ENV = "SECRET_KEY"
@@ -63,13 +67,29 @@ DEFAULT_TRUSTED_PROXIES = 2
 PUBLIC_ENDPOINTS = frozenset({
     "upload", "resume", "review", "derive_post", "review_post",
     "profile_done", "profile_download", "beta_gate", "healthz", "static",
+    # The console's own sweep screens. They are reachable here because in
+    # public mode they run against the Oracle worker (sweep/worker_link.py)
+    # rather than a local subprocess — same pages, same free_only branches
+    # they have always had.
+    "key", "key_free", "key_post", "configure", "estimate", "confirm",
+    "run", "running", "progress", "stop", "results", "export",
 })
 
-# The public flow's own tracker. The console's seven steps end in a paid
-# sweep; four of them 404 here, and a tracker that offers them is a tracker
-# that lies. step_states() knows "profile_done" (sweep/logic.py).
-PUBLIC_STEPS = [("upload", "Upload"), ("review", "Review"),
-                ("profile_done", "Profile")]
+# Reachable locally, never here. Each one either spends the OPERATOR's
+# money, edits their credentials, or reads their disk:
+#
+#   second_key, key_remove             the operator's Apify keys. POST
+#                                      /key is public — it takes the
+#                                      VISITOR's key, validates it, and
+#                                      hands it to the worker without ever
+#                                      writing it down.
+#   rescore                            re-scores paid Apify datasets
+#   merge                              folds this machine's earlier sweeps
+#   applied                            writes an applied-state file
+#   events                             SSE; public mode polls /progress
+#                                      instead, see running.html
+OPERATOR_ONLY = frozenset({"second_key", "key_remove", "rescore", "merge",
+                           "applied", "events"})
 
 # A session is a browser that uploaded a résumé. Two hours is longer than
 # anyone spends on a three-screen flow and short enough that a shared
@@ -103,6 +123,64 @@ def enabled(env=None):
     return (env.get(PUBLIC_ENV) or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def session_id():
+    """This browser's opaque id, in the SIGNED COOKIE.
+
+    The cookie is the only part of a visitor's session that survives a
+    Render restart — `SessionStore` below is process memory and does not.
+    So anything that must outlive a redeploy hangs off this.
+    """
+    sid = session.get("sid")
+    if not sid:
+        sid = secrets.token_urlsafe(18)
+        session["sid"] = sid
+    return sid
+
+
+def owner_for_session(secret=None):
+    """The capability that proves a worker run is this browser's.
+
+    Derived, not stored: HMAC of the cookie's own session id under
+    Render's SECRET_KEY. Two consequences, both deliberate —
+
+      * a new Render process re-derives it from the cookie alone, so a
+        restart or a redeploy does not orphan somebody's running sweep;
+      * Oracle never sees the raw session id, only a value that is
+        useless without the key that made it.
+
+    It is a capability, not a secret worth protecting on its own: holding
+    it still gets you nowhere without the worker's bearer token, which
+    never leaves Render. The Apify token has no business here or anywhere
+    near a cookie.
+    """
+    if secret is None:
+        from flask import current_app
+        secret = current_app.secret_key
+    if isinstance(secret, str):
+        secret = secret.encode()
+    return hmac.new(secret, b"sweep-run-owner|" + session_id().encode(),
+                    hashlib.sha256).hexdigest()
+
+
+def remember_run(run_id):
+    """Keep the run id where a restart cannot lose it: the cookie.
+
+    Opaque and not authority on its own — every worker call needs the
+    bearer token AND the owner above — which is what makes it safe to
+    hand to the browser.
+    """
+    session["run_id"] = run_id
+    return run_id
+
+
+def current_run_id():
+    return session.get("run_id")
+
+
+def forget_run():
+    session.pop("run_id", None)
+
+
 class SessionStore:
     """Per-session state, in memory, bounded and expiring.
 
@@ -118,11 +196,7 @@ class SessionStore:
         self._ttl, self._cap, self._clock = ttl, cap, clock
 
     def _sid(self):
-        sid = session.get("sid")
-        if not sid:
-            sid = secrets.token_urlsafe(18)
-            session["sid"] = sid
-        return sid
+        return session_id()
 
     def room(self):
         """This browser's own dict, created on first touch."""
@@ -410,8 +484,20 @@ def harden(app, env=None, store=None, limit=None):
         return None
 
     app.write_profile = keep_profile
-    app.config["AFTER_REVIEW_ENDPOINT"] = "profile_done"
-    app.config["STEPS"] = PUBLIC_STEPS
+    # "Looks right" leads to the console's own source-choice screen, which
+    # is where a visitor picks the free sweep. The step tracker is the
+    # console's too — the public journey IS those steps now.
+    app.config["AFTER_REVIEW_ENDPOINT"] = "key"
+
+    @app.before_request
+    def resume_a_running_sweep():
+        """Oracle keeps sweeping while Render redeploys; the cookie keeps
+        the run id. Put back what the screens need before they render."""
+        if request.endpoint in PUBLIC_ENDPOINTS and session.get("beta_ok"):
+            from sweep import worker_link
+            with contextlib.suppress(Exception):
+                worker_link.rehydrate(app)
+        return None
 
     @app.before_request
     def gate():
@@ -460,6 +546,30 @@ def harden(app, env=None, store=None, limit=None):
         return {"status": "ok", "mode": "public-beta",
                 "sessions": len(store),
                 "market_signal_source": app.config["MARKET_SIGNAL_SOURCE"]}
+
+    @app.errorhandler(worker_client.WorkerError)
+    def sweep_service_trouble(exc):
+        """The worker refused or could not be reached.
+
+        Almost always one thing: the visitor's Apify key is no longer held
+        — spent on a run, or aged out of the worker's memory — because it
+        was deliberately never written down. So this lands them back on the
+        screen where they choose free or paid, with the reason, rather than
+        on a 500 that tells them nothing.
+        """
+        from flask import render_template
+
+        from sweep.logic import paid_sites, site_label
+        needs_key = isinstance(exc, worker_client.NeedsKey)
+        message = (
+            "Your Apify key is not held any more — it is used for one sweep "
+            "and never saved. Paste it again to search the paid boards, or "
+            "take the free sources."
+            if needs_key else
+            f"The sweep service is not available just now: {exc}.")
+        return render_template("key.html", **app.shell(
+            "key", paid=[site_label(s) for s in paid_sites()],
+            error=message)), 400 if needs_key else 502
 
     @app.errorhandler(BetaLimited)
     def beta_limited(exc):

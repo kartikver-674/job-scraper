@@ -242,6 +242,22 @@ def create_app(state=None, extract=None, resume_dir=None,
             return make_profile.generate(
                 client, cfg.MODELS, resume_text, prefs, engine=engine)
 
+    # Public mode runs the console's OWN screens against the Oracle
+    # worker: same Configure, Confirm, Running and Results, which have
+    # carried a free_only branch since long before any of this. Only what
+    # they reach for changes. An explicitly injected one always wins, so
+    # a test still decides for itself.
+    if public.enabled():
+        from sweep import worker_link
+        remote = worker_link.injections(app)
+        fetch_plan = fetch_plan or remote["fetch_plan"]
+        start_sweep = start_sweep or remote["start_sweep"]
+        read_live = read_live or remote["read_live"]
+        read_rows = read_rows or remote["read_rows"]
+        read_done = read_done or remote["read_done"]
+        read_spend = read_spend or remote["read_spend"]
+        list_sweeps = list_sweeps or remote["list_sweeps"]
+
     # Public mode: every extraction is two GPU calls on the operator's
     # Modal account, so the daily limit wraps the CALL, not the route —
     # POST /derive means to spend, but POST /review reaches the same
@@ -344,7 +360,12 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         Slot ordering and same-key dedupe stay in scraper.apify_tokens(),
         called on the file's contents, rather than being reimplemented here.
+
+        Empty in public mode: this file is the operator's, and no screen a
+        visitor can open may read, count or spend what is in it.
         """
+        if app.config.get("PUBLIC_MODE"):
+            return []
         from_file = {}
         if os.path.exists(env_path):
             with open(env_path) as fh:
@@ -388,7 +409,16 @@ def create_app(state=None, extract=None, resume_dir=None,
         A key that cannot be read is recorded as None rather than zero:
         sweep_budget() skips it, so one unreachable account cannot make the
         other three look spent.
+
+        Does nothing in public mode, and that is load-bearing. .env holds
+        the OPERATOR's keys; re-reading them for a visitor overwrites the
+        credit their own key reported with a stranger's — which is both the
+        wrong number and the operator's balance on a public page. A
+        visitor's cap comes from the one check_token call their own key got
+        at POST /key, and nothing else may touch it.
         """
+        if app.config.get("PUBLIC_MODE"):
+            return
         known = app.state.get("key_credit") or {}
         credits = {}
         for name, token in read_env_tokens():
@@ -698,6 +728,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         running_now = proc is not None and proc.poll() is None
         p["finished"] = (not running_now) and p["outstanding"] == 0
         p["interrupted"] = (not running_now) and p["outstanding"] > 0
+        # The engine works through the free sources AFTER the paid searches,
+        # and they have no ledger and no tiles: at this point the grid is
+        # full, "still to run" reads zero, and listings go on arriving for
+        # minutes. Without saying so the screen looks stuck on a sweep that
+        # is busy — which is exactly how it read on a real run.
+        p["free_running"] = running_now and p["outstanding"] == 0
 
         # What the searches that never ran would cost, at the same effective
         # rates the plan was priced at. It is the figure the decision to
@@ -903,6 +939,10 @@ def create_app(state=None, extract=None, resume_dir=None,
                         app.state.get("resume_path") or ""),
                     credit_total_usd=app.state.get("credit_total_usd"),
                     **kw)
+
+    # The public sweep screens (sweep/public_sweep.py) render the same
+    # chrome, and shell() is where "the same chrome" is defined.
+    app.shell = shell
 
     def spend_delta():
         """This sweep's own spend, or None when it cannot be known.
@@ -1286,6 +1326,28 @@ def create_app(state=None, extract=None, resume_dir=None,
             # Never render the token back into the page.
             return key_screen(error=error), 400
 
+        if app.config.get("PUBLIC_MODE"):
+            # A visitor's own key funds their own sweep and nothing else.
+            # It is not written to .env, not put in os.environ, not kept on
+            # this session and not returned to the browser: it goes to the
+            # worker, which holds it in memory until their run starts, and
+            # this request forgets it. What stays here is the credit figure
+            # the screens show, which is a number, not a credential.
+            from sweep import worker_client
+            try:
+                worker_client.hold_token(token)
+            except worker_client.WorkerError as exc:
+                return key_screen(
+                    error=f"That key is fine, but the sweep service could "
+                          f"not take it just now: {exc}."), 502
+            del token
+            app.state["cap_usd"] = available
+            app.state["credit_total_usd"] = available
+            error = _apply_choice(free=False)
+            if error:
+                return key_screen(error=error), 500
+            return redirect(url_for("configure"))
+
         app.write_env("APIFY_TOKEN", token)
         os.environ["APIFY_TOKEN"] = token
         # Re-verified from the FILE rather than recorded from this one call:
@@ -1509,7 +1571,12 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state.pop("stopped_by_user", None)
             app.state.pop("interrupt_credit_read", None)
             app.state["proc"] = start_sweep(app.state["profile"])
-            _write_run_json(app.state, output_dir)
+            # The console's own crash-recovery note, for a child on THIS
+            # machine. A public run is recorded on the worker instead, and
+            # writing it here would put one visitor's state on a shared
+            # disk under a profile name another visitor can pick too.
+            if not app.config.get("PUBLIC_MODE"):
+                _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))
 
     # Where a removal may return to. An endpoint name off a form field
