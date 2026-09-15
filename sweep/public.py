@@ -37,6 +37,8 @@ from collections.abc import MutableMapping
 from flask import (Response, redirect, render_template, request, session,
                    url_for)
 
+from sweep import worker_client
+
 PUBLIC_ENV = "SWEEP_PUBLIC_MODE"
 SECRET_ENV = "SECRET_KEY"
 CODE_ENV = "SWEEP_BETA_CODE"
@@ -69,21 +71,25 @@ PUBLIC_ENDPOINTS = frozenset({
     # public mode they run against the Oracle worker (sweep/worker_link.py)
     # rather than a local subprocess — same pages, same free_only branches
     # they have always had.
-    "key", "key_free", "configure", "estimate", "confirm", "run",
-    "running", "progress", "stop", "results", "export",
+    "key", "key_free", "key_post", "configure", "estimate", "confirm",
+    "run", "running", "progress", "stop", "results", "export",
 })
 
 # Reachable locally, never here. Each one either spends the OPERATOR's
 # money, edits their credentials, or reads their disk:
 #
-#   key_post, second_key, key_remove   the operator's Apify keys
+#   second_key, key_remove             the operator's Apify keys. POST
+#                                      /key is public — it takes the
+#                                      VISITOR's key, validates it, and
+#                                      hands it to the worker without ever
+#                                      writing it down.
 #   rescore                            re-scores paid Apify datasets
 #   merge                              folds this machine's earlier sweeps
 #   applied                            writes an applied-state file
 #   events                             SSE; public mode polls /progress
 #                                      instead, see running.html
-OPERATOR_ONLY = frozenset({"key_post", "second_key", "key_remove",
-                           "rescore", "merge", "applied", "events"})
+OPERATOR_ONLY = frozenset({"second_key", "key_remove", "rescore", "merge",
+                           "applied", "events"})
 
 # A session is a browser that uploaded a résumé. Two hours is longer than
 # anyone spends on a three-screen flow and short enough that a shared
@@ -540,6 +546,30 @@ def harden(app, env=None, store=None, limit=None):
         return {"status": "ok", "mode": "public-beta",
                 "sessions": len(store),
                 "market_signal_source": app.config["MARKET_SIGNAL_SOURCE"]}
+
+    @app.errorhandler(worker_client.WorkerError)
+    def sweep_service_trouble(exc):
+        """The worker refused or could not be reached.
+
+        Almost always one thing: the visitor's Apify key is no longer held
+        — spent on a run, or aged out of the worker's memory — because it
+        was deliberately never written down. So this lands them back on the
+        screen where they choose free or paid, with the reason, rather than
+        on a 500 that tells them nothing.
+        """
+        from flask import render_template
+
+        from sweep.logic import paid_sites, site_label
+        needs_key = isinstance(exc, worker_client.NeedsKey)
+        message = (
+            "Your Apify key is not held any more — it is used for one sweep "
+            "and never saved. Paste it again to search the paid boards, or "
+            "take the free sources."
+            if needs_key else
+            f"The sweep service is not available just now: {exc}.")
+        return render_template("key.html", **app.shell(
+            "key", paid=[site_label(s) for s in paid_sites()],
+            error=message)), 400 if needs_key else 502
 
     @app.errorhandler(BetaLimited)
     def beta_limited(exc):

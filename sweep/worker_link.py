@@ -104,14 +104,27 @@ def injections(app):
     """
 
     def fetch_plan(profile):
-        # No subprocess: a free sweep has nothing to price, and Render has
-        # neither the corpus nor the CPU to spend on a dry run that can
-        # only ever answer zero.
-        return free_plan(profile)
+        # A free sweep has nothing to price, and Render has neither the
+        # engine's corpus nor the CPU to spend on a dry run that can only
+        # ever answer zero. A PAID one is different: that number is what a
+        # visitor approves before spending their own money, so it comes
+        # from the engine's own dry run, on the machine that has it.
+        if app.state.get("free_only") or not app.state.get("derived"):
+            return free_plan(profile)
+        raw = worker_client.plan(app.state["derived"], _prefs_of(app.state),
+                                 free_only=False)
+        # The worker names the plan after its own throwaway profile; the
+        # screens read this one back as the profile they are configuring.
+        raw["profile"] = profile
+        return raw
 
     def start_sweep(profile):
+        # The visitor's key, if they chose to use one, is already held by
+        # the worker — it never came back to Render to be kept.
+        free_only = bool(app.state.get("free_only"))
         run_id = worker_client.create_run(app.state.get("derived") or {},
-                                          _prefs_of(app.state), free_only=True)
+                                          _prefs_of(app.state),
+                                          free_only=free_only)
         public.remember_run(run_id)
         return RemoteRun(run_id)
 

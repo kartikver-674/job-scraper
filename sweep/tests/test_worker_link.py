@@ -75,18 +75,20 @@ def worker_on_a_socket():
         shutil.rmtree(checkout, ignore_errors=True)
 
 
-def render_app(worker_url):
+def render_app(worker_url, **injected):
     """A Render process: public mode, the shared SECRET_KEY, empty memory.
 
     Built fresh every call — a new Flask object, a new SessionStore — so
-    "restart" in these tests means what it means in production.
+    "restart" in these tests means what it means in production. Extra
+    keyword arguments go straight to create_app, which is how a test
+    supplies its own check_token without a network.
     """
     env = {**BETA_ENV, worker_client.URL_ENV: worker_url,
            worker_client.TOKEN_ENV: WORKER_TOKEN}
+    injected.setdefault("extract", lambda path: "Ada Okonkwo, React Native dev")
+    injected.setdefault("derive", lambda text, prefs: dict(DERIVED))
     with mock.patch.dict(os.environ, env, clear=False):
-        app = app_module.create_app(
-            extract=lambda path: "Ada Okonkwo, React Native dev",
-            derive=lambda text, prefs: dict(DERIVED))
+        app = app_module.create_app(**injected)
     app.config["TESTING"] = True
 
     # Step 2's routes, in miniature: create a run and remember it, then

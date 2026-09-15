@@ -47,7 +47,7 @@ ROWS = (
 # Every route that exists for the operator alone: their Apify keys, their
 # disk, their earlier sweeps, and the event stream public mode replaces
 # with polling.
-OPERATOR_POSTS = ("/key", "/second-key", "/key/remove", "/rescore",
+OPERATOR_POSTS = ("/second-key", "/key/remove", "/rescore",
                   "/merge", "/applied")
 OPERATOR_GETS = ("/events",)
 
@@ -260,8 +260,8 @@ class TestOperatorControlsAreNotPublic(unittest.TestCase):
             for path in ("/key", "/configure", "/confirm", "/running",
                          "/results"):
                 body = client.get(path).get_data(as_text=True)
-                for control in ('action="/key"', "/second-key", "/rescore",
-                                "/merge", "/applied", "/events"):
+                for control in ("/second-key", "/rescore", "/merge",
+                                "/applied", "/events"):
                     with self.subTest(path=path, control=control):
                         self.assertNotIn(control, body)
 

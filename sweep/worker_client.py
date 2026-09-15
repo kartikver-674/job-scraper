@@ -36,6 +36,12 @@ class WorkerError(RuntimeError):
     module composes the text, so it never carries urllib's URL."""
 
 
+class NeedsKey(WorkerError):
+    """A paid run was asked for and the worker is holding no key for this
+    visitor — spent on an earlier run, or aged out of its memory. It was
+    never written down, so the only way back is to ask for it again."""
+
+
 class RunNotFound(WorkerError):
     """No such run — or not this visitor's. The worker does not
     distinguish the two, and neither should anything here."""
@@ -71,6 +77,8 @@ def _call(method, path, body=None, url=None, token=None, owner=None):
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             raise RunNotFound("that sweep is not available") from None
+        if exc.code == 409:
+            raise NeedsKey("no Apify key is held for this visitor") from None
         raise WorkerError(f"the sweep worker refused the request "
                           f"({exc.code})") from None
     except (urllib.error.URLError, TimeoutError, OSError, ValueError):
@@ -89,6 +97,32 @@ def create_run(profile, prefs, free_only=True, apify_token=None, **kw):
         body["apify_token"] = apify_token
     answer = _call("POST", "/v1/runs", body, **kw)
     return answer["run_id"]
+
+
+def hold_token(apify_token, **kw):
+    """Hand a visitor's Apify key to the worker, for their next run only.
+
+    Render must not keep it between requests, so this is where it goes and
+    this call is the only place it exists here. The worker holds it in
+    memory against the same owner these calls already carry.
+    """
+    _call("POST", "/v1/tokens",
+          {"owner": kw.pop("owner", None) or public.owner_for_session(),
+           "apify_token": apify_token}, **kw)
+    return True
+
+
+def plan(profile, prefs, free_only=True, **kw):
+    """What this profile would search, priced by the engine's own dry run.
+
+    Costs nothing and runs nothing; it is the number a visitor approves
+    before spending their own money, so it comes from the engine rather
+    than from arithmetic repeated here.
+    """
+    return _call("POST", "/v1/plans",
+                 {"profile": profile, "prefs": prefs, "free_only": free_only,
+                  "owner": kw.pop("owner", None) or public.owner_for_session()},
+                 **kw)
 
 
 def run_status(run_id, **kw):

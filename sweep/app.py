@@ -1306,6 +1306,28 @@ def create_app(state=None, extract=None, resume_dir=None,
             # Never render the token back into the page.
             return key_screen(error=error), 400
 
+        if app.config.get("PUBLIC_MODE"):
+            # A visitor's own key funds their own sweep and nothing else.
+            # It is not written to .env, not put in os.environ, not kept on
+            # this session and not returned to the browser: it goes to the
+            # worker, which holds it in memory until their run starts, and
+            # this request forgets it. What stays here is the credit figure
+            # the screens show, which is a number, not a credential.
+            from sweep import worker_client
+            try:
+                worker_client.hold_token(token)
+            except worker_client.WorkerError as exc:
+                return key_screen(
+                    error=f"That key is fine, but the sweep service could "
+                          f"not take it just now: {exc}."), 502
+            del token
+            app.state["cap_usd"] = available
+            app.state["credit_total_usd"] = available
+            error = _apply_choice(free=False)
+            if error:
+                return key_screen(error=error), 500
+            return redirect(url_for("configure"))
+
         app.write_env("APIFY_TOKEN", token)
         os.environ["APIFY_TOKEN"] = token
         # Re-verified from the FILE rather than recorded from this one call:

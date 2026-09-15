@@ -62,6 +62,11 @@ CHECKOUT = os.environ.get("SWEEP_WORKER_CHECKOUT") or "/opt/sweep-worker/app"
 TOKEN_ENV = "SWEEP_WORKER_TOKEN"
 
 TTL_SECONDS = int(os.environ.get("SWEEP_WORKER_TTL") or 48 * 3600)
+# How long a visitor's Apify key waits in memory between "I'll use my own
+# key" and "start the sweep". Long enough to read the Configure screen
+# properly, short enough that a browser closed at that moment does not
+# leave a credential sitting in a process for the afternoon.
+HOLD_SECONDS = int(os.environ.get("SWEEP_WORKER_HOLD") or 45 * 60)
 # One sweep at a time. The A1 has room for several, but a queue of one is
 # the honest starting point: two sweeps on one box compete for the same
 # network and the same inference service beside them.
@@ -157,10 +162,6 @@ def _checked(payload):
         raise Refused(400, "apify_token must be a non-empty string when given")
     if free_only and token:
         raise Refused(400, "a free sweep must not carry an Apify token")
-    if not free_only and not token:
-        # Never this worker's own key, and never the operator's: a paid run
-        # is funded by whoever asked for it or it does not happen.
-        raise Refused(400, "a paid sweep needs the caller's own Apify token")
     return profile, prefs, bool(free_only), token, owner
 
 
@@ -319,6 +320,13 @@ class Queue:
         # run_id -> the caller's Apify token, held ONLY until the child has
         # it. Never written anywhere, and gone the moment the run ends.
         self._tokens = {}
+        # owner -> (token, when). A visitor pastes their key on one request
+        # and starts the run on a later one, and Render is not allowed to
+        # keep it in between — so it waits here, in memory, for as long as
+        # it takes them to configure. A restart drops the lot, which is the
+        # documented behaviour: a queued paid run is interrupted and its
+        # owner asked for the key again rather than it being persisted.
+        self._held = {}
         self._children = {}
         self._waiting = []
 
@@ -356,6 +364,28 @@ class Queue:
             self._pump()
 
     # -- submission -------------------------------------------------------
+
+    def hold_token(self, owner, token, ttl=HOLD_SECONDS):
+        """Keep one visitor's Apify key until they start their run."""
+        with self._lock:
+            self._forget_stale(ttl)
+            self._held[owner] = (token, self.clock())
+
+    def held_token(self, owner, ttl=HOLD_SECONDS):
+        with self._lock:
+            self._forget_stale(ttl)
+            entry = self._held.get(owner)
+            return entry[0] if entry else None
+
+    def release_token(self, owner):
+        with self._lock:
+            self._held.pop(owner, None)
+
+    def _forget_stale(self, ttl):
+        now = self.clock()
+        for owner in [o for o, (_t, at) in self._held.items()
+                      if now - at > ttl]:
+            del self._held[owner]
 
     def submit(self, run_id, token=None):
         with self._lock:
@@ -558,10 +588,80 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
         return jsonify({"status": "ok", "running": running, "queued": waiting,
                         "max_active": queue.max_active})
 
+    @app.post("/v1/tokens")
+    def hold_token():
+        """Take one visitor's Apify key and keep it in memory for them.
+
+        Render is not allowed to hold it between requests, and it is not
+        written here either: not to status, not to a log, not to disk. It
+        waits in this process until that owner starts a run, and a restart
+        loses it on purpose — see Queue.recover.
+        """
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict):
+            raise Refused(400, "the request body must be an object")
+        owner, token = body.get("owner"), body.get("apify_token")
+        if not isinstance(owner, str) or not 1 <= len(owner) <= MAX_OWNER:
+            raise Refused(400, "owner must be a short opaque string")
+        if not isinstance(token, str) or not token.strip():
+            raise Refused(400, "apify_token must be a non-empty string")
+        queue.hold_token(owner, token.strip())
+        del token
+        # No token, no owner, no length: nothing here that could narrow a
+        # search for one.
+        log.info("a caller's key is held for one run")
+        return jsonify({"held": True}), 201
+
+    @app.post("/v1/plans")
+    def price_plan():
+        """What this profile would search, from the engine's own dry run.
+
+        Public mode cannot price a paid sweep by guessing: the estimate is
+        the number a visitor approves before spending their money, so it
+        comes from the same --dry-run the console uses. Nothing is run and
+        nothing is billed.
+        """
+        profile, prefs, free_only, _token, _owner = _checked(
+            request.get_json(silent=True))
+        make_profile = _import_make_profile(checkout)
+        name = f"plan_{secrets.token_hex(8)}"
+        path = os.path.join(checkout, "profiles", f"{name}.py")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(render_profile(
+                make_profile, name, profile,
+                free_prefs(prefs, checkout) if free_only else prefs,
+                os.path.join(store.root, "_plans", name)))
+        try:
+            out = subprocess.run(
+                [sys.executable, "scraper.py", "--profile", name,
+                 "--dry-run", "--json"],
+                cwd=checkout, capture_output=True, text=True, timeout=120,
+                # A dry run prices; it must not be able to reach an account.
+                env={k: v for k, v in os.environ.items()
+                     if not k.startswith("APIFY_TOKEN")})
+            if out.returncode != 0:
+                raise Refused(502, "the engine could not price that plan")
+            return jsonify(json.loads(out.stdout))
+        except (ValueError, subprocess.SubprocessError) as exc:
+            raise Refused(502, f"the engine could not price that plan "
+                               f"({type(exc).__name__})") from None
+        finally:
+            with contextlib.suppress(OSError):
+                os.remove(path)
+
     @app.post("/v1/runs")
     def create_run():
         profile, prefs, free_only, token, owner = _checked(
             request.get_json(silent=True))
+        if not free_only and not token:
+            # The key the visitor pasted on an earlier request, waiting in
+            # memory. Never this worker's own and never the operator's: a
+            # paid run is funded by whoever asked for it or it does not
+            # happen.
+            token = queue.held_token(owner)
+        if not free_only and not token:
+            raise Refused(409, "no Apify key is held for this visitor — "
+                               "ask them for it again")
         make_profile = _import_make_profile(checkout)
         run_id = secrets.token_hex(RUN_ID_BYTES)
         profile_name = f"beta_{run_id}"
@@ -590,6 +690,10 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
         })
         queue.submit(run_id, token)
         del token
+        if not free_only:
+            # Used once. A second run needs the key pasted again, which is
+            # the same rule a restart enforces.
+            queue.release_token(owner)
         # The id is opaque and is not, on its own, authority: every read
         # still needs this worker's bearer token AND the owner string.
         log.info("run=%s created free_only=%s", run_id, free_only)

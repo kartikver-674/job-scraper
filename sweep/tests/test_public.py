@@ -111,7 +111,9 @@ class TestWhatIsReachable(unittest.TestCase):
         for path in ("/events",):
             with self.subTest(path):
                 self.assertEqual(client.get(path).status_code, 404)
-        for path in ("/key", "/key/remove", "/second-key", "/merge",
+        # POST /key is NOT here: in public mode it takes the VISITOR's
+        # own key, validates it and hands it to the worker.
+        for path in ("/key/remove", "/second-key", "/merge",
                      "/applied", "/rescore"):
             with self.subTest("POST " + path):
                 self.assertEqual(client.post(path).status_code, 404)

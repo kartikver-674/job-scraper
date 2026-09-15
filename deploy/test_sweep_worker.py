@@ -290,13 +290,88 @@ class TestTheApifyToken(Harness):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(self.spawned, [])
 
-    def test_a_paid_sweep_without_one_is_refused_rather_than_borrowing(self):
+    def test_a_paid_sweep_with_no_key_held_is_refused_not_borrowed(self):
         """Never the operator's key: a paid run is funded by whoever asked
         for it or it does not happen."""
         app, _store, _queue = self.build()
         r = self.post_run(app.test_client(), free_only=False)
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("own Apify token", r.get_json()["error"]["message"])
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("no Apify key is held", r.get_json()["error"]["message"])
+        self.assertEqual(self.spawned, [])
+
+    def test_a_held_key_reaches_that_visitors_child_and_no_other(self):
+        app, _store, queue = self.build()
+        client = app.test_client()
+        auth = {"Authorization": f"Bearer {TOKEN}"}
+        held = client.post("/v1/tokens", json={"owner": "ada",
+                                               "apify_token": APIFY},
+                           headers=auth)
+        self.assertEqual(held.status_code, 201)
+
+        # Somebody else's run does not get it.
+        refused = self.post_run(client, owner="ben", free_only=False)
+        self.assertEqual(refused.status_code, 409)
+        # Ada's does.
+        ok = self.post_run(client, owner="ada", free_only=False)
+        self.assertEqual(ok.status_code, 201)
+        self.assertEqual(self.spawned[-1]["token"], APIFY)
+        # And it is spent: a second run needs it pasted again.
+        self.assertIsNone(queue.held_token("ada"))
+        self.assertEqual(self.post_run(client, owner="ada",
+                                       free_only=False).status_code, 409)
+
+    def test_a_held_key_is_written_nowhere_and_logged_nowhere(self):
+        import logging
+        records = []
+
+        class Sink(logging.Handler):
+            def emit(self, record):
+                records.append(record.getMessage())
+
+        logger = sweep_worker.log
+        handler = Sink()
+        logger.addHandler(handler)
+        previous = logger.level
+        logger.setLevel(logging.INFO)
+        self.addCleanup(logger.setLevel, previous)
+        self.addCleanup(logger.removeHandler, handler)
+
+        app, _store, _queue = self.build()
+        client = app.test_client()
+        client.post("/v1/tokens", json={"owner": "ada", "apify_token": APIFY},
+                    headers={"Authorization": f"Bearer {TOKEN}"})
+        self.post_run(client, owner="ada", free_only=False)
+
+        self.assertNotIn(APIFY, " ".join(records))
+        for root in (self.runs, self.checkout):
+            for dirpath, _dirs, files in os.walk(root):
+                for name in files:
+                    with open(os.path.join(dirpath, name), "rb") as fh:
+                        self.assertNotIn(APIFY.encode(), fh.read(),
+                                         os.path.join(dirpath, name))
+
+    def test_a_key_held_for_too_long_is_forgotten(self):
+        app, _store, queue = self.build()
+        client = app.test_client()
+        client.post("/v1/tokens", json={"owner": "ada", "apify_token": APIFY},
+                    headers={"Authorization": f"Bearer {TOKEN}"})
+        self.assertEqual(queue.held_token("ada"), APIFY)
+        self.now[0] += sweep_worker.HOLD_SECONDS + 1
+        self.assertIsNone(queue.held_token("ada"))
+
+    def test_a_restart_drops_every_held_key(self):
+        """It was never written down, which is the point: a queued paid run
+        is interrupted and its owner asked again."""
+        app, _store, queue = self.build()
+        client = app.test_client()
+        client.post("/v1/tokens", json={"owner": "ada", "apify_token": APIFY},
+                    headers={"Authorization": f"Bearer {TOKEN}"})
+        after = sweep_worker.Queue(sweep_worker.RunStore(self.runs),
+                                   spawn=self.spawn(),
+                                   checkout=self.checkout,
+                                   clock=lambda: self.now[0])
+        after.recover()
+        self.assertIsNone(after.held_token("ada"))
 
     def test_the_child_environment_is_scrubbed_of_the_operators_keys(self):
         """default_spawn builds the env; a free run must not inherit an
