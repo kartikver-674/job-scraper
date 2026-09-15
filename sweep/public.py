@@ -25,6 +25,7 @@ The three things that make the subset safe:
              limit gates the spend.
 """
 
+import hashlib
 import hmac
 import os
 import secrets
@@ -103,6 +104,64 @@ def enabled(env=None):
     return (env.get(PUBLIC_ENV) or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def session_id():
+    """This browser's opaque id, in the SIGNED COOKIE.
+
+    The cookie is the only part of a visitor's session that survives a
+    Render restart — `SessionStore` below is process memory and does not.
+    So anything that must outlive a redeploy hangs off this.
+    """
+    sid = session.get("sid")
+    if not sid:
+        sid = secrets.token_urlsafe(18)
+        session["sid"] = sid
+    return sid
+
+
+def owner_for_session(secret=None):
+    """The capability that proves a worker run is this browser's.
+
+    Derived, not stored: HMAC of the cookie's own session id under
+    Render's SECRET_KEY. Two consequences, both deliberate —
+
+      * a new Render process re-derives it from the cookie alone, so a
+        restart or a redeploy does not orphan somebody's running sweep;
+      * Oracle never sees the raw session id, only a value that is
+        useless without the key that made it.
+
+    It is a capability, not a secret worth protecting on its own: holding
+    it still gets you nowhere without the worker's bearer token, which
+    never leaves Render. The Apify token has no business here or anywhere
+    near a cookie.
+    """
+    if secret is None:
+        from flask import current_app
+        secret = current_app.secret_key
+    if isinstance(secret, str):
+        secret = secret.encode()
+    return hmac.new(secret, b"sweep-run-owner|" + session_id().encode(),
+                    hashlib.sha256).hexdigest()
+
+
+def remember_run(run_id):
+    """Keep the run id where a restart cannot lose it: the cookie.
+
+    Opaque and not authority on its own — every worker call needs the
+    bearer token AND the owner above — which is what makes it safe to
+    hand to the browser.
+    """
+    session["run_id"] = run_id
+    return run_id
+
+
+def current_run_id():
+    return session.get("run_id")
+
+
+def forget_run():
+    session.pop("run_id", None)
+
+
 class SessionStore:
     """Per-session state, in memory, bounded and expiring.
 
@@ -118,11 +177,7 @@ class SessionStore:
         self._ttl, self._cap, self._clock = ttl, cap, clock
 
     def _sid(self):
-        sid = session.get("sid")
-        if not sid:
-            sid = secrets.token_urlsafe(18)
-            session["sid"] = sid
-        return sid
+        return session_id()
 
     def room(self):
         """This browser's own dict, created on first touch."""
