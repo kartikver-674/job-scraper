@@ -61,16 +61,50 @@ container-hours. One cold use costs about 16 s restore + the work + 60 s idle.
 to the public URL — a scanner, a typo — wakes the GPU before it gets its 401.
 The budget caps what that can cost; the URL is unguessable but not secret.
 
-## Known risk — a first request can take ~150 s
+## A first request can take ~150 s — measured, and survivable
 
 Modal keeps one GPU snapshot per worker type. A cold request that lands on a
 worker type with no snapshot yet pays a full boot plus snapshot creation
 (~150 s) instead of a ~16 s restore. It happened once on this rollout: the
-first cold request after priming. Modal's web endpoints hand anything over
-150 s off as a 303 redirect; whether Sweep's client gets its answer or a
-timeout in that case is **unverified**. If it errors, retrying hits the
-snapshot that request just created. Watch for it in real use before changing
-anything.
+first cold request after priming.
+
+**The 150 s web cap does not break the client.** Measured against production,
+not assumed: a real request kept busy for **282 s** came back correctly.
+Modal hands anything past 150 s to a result URL with a 303, `urllib` follows
+it — converting the POST to a GET, with the `Authorization` header intact —
+and both results and contract errors arrive whole (that 282 s request
+returned its proper 504 `model_timeout`; a stub confirms 429 `model_busy`
+keeps its class and `Retry-After` across the hand-off too). urllib allows 4
+repeats of one URL, so ~12.5 minutes of hand-off before it gives up.
+
+What can still reach the user is the ordinary transient underneath — a
+dropped transport, a gateway 5xx, a model not there yet. `RemoteService`
+retries those **once**, inside the caller's existing deadline; `model_busy`,
+malformed output and 401/400/413 are never retried. See `_retryable` in
+`inference.py`.
+
+## What a failure looks like to the user
+
+Every `InferenceError` — a 504 `model_timeout`, a transport failure, a
+temporary 5xx, a 429 `model_busy` — renders the "Reading your résumé" screen
+with **HTTP 502** and the message "The local model could not be reached:
+…", plus a button that re-POSTs `/derive` on the same résumé. The résumé
+stays in session state, so that button is a one-click manual retry. There is
+no Gemini fallback on any of these paths: `SWEEP_PROFILE_ENGINE=local`
+re-raises an escalation instead of spending an API call.
+
+Two model calls make a profile (fields, then employment), so with the
+one-shot retry a profile costs at most four requests.
+
+## The deployed image vs. this checkout
+
+The container ships `inference.py`, and the retry above changed it, so
+`prime.sources` no longer matches the working tree. Nothing about production
+behaviour differs — the service runs `LocalOllama` and the error classes,
+neither of which changed — but the benchmark driver's source-hash guard will
+refuse to run until production is redeployed (`modal deploy`, then prime and
+smoke, per the commands below). Do that when convenient; it is not needed for
+the cutover.
 
 ## Using it from Sweep
 
