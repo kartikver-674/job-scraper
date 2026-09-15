@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Your profile — Sweep{% endblock %}
+{% block body %}
+<div class="working">
+  <h1>Your profile is ready</h1>
+  <p class="lede">This is what Sweep read from your résumé and how it will
+    weight your skills: the titles to search for, the experience it counted,
+    and the terms that matter. Take it with you — the beta keeps nothing
+    after you close this tab.</p>
+
+  <div class="actions">
+    <a class="primary" href="{{ url_for('profile_download') }}"
+       download>Download {{ name }}.py</a>
+    <a class="secondary" href="{{ url_for('upload') }}">Read another résumé</a>
+  </div>
+
+  {# The generated source, shown rather than merely offered: it is a config
+     file a person is meant to read and edit, and a download you cannot see
+     first is a download you have to trust blindly. #}
+  <pre class="profile-source"><code>{{ source }}</code></pre>
+</div>
+{% endblock %}
