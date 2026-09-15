@@ -205,14 +205,7 @@ def step_states(steps, state, current):
              # Public mode's last step: the profile is downloaded, not
              # written to disk. Unknown to the local flow, which never
              # puts it in STEPS.
-             "profile_done": has_profile,
-             # The public sweep, which runs on the Oracle worker rather
-             # than a child process. Its screens open once there is a
-             # profile to sweep with; the run itself lives in the cookie,
-             # not in this state, so nothing here can answer for it.
-             "beta_configure": has_profile,
-             "beta_running": has_profile,
-             "beta_results": has_profile}
+             "profile_done": has_profile}
     done = {"upload": has_resume,
             "review": has_profile,
             "key": has_access,
@@ -221,10 +214,7 @@ def step_states(steps, state, current):
             "running": launched,
             # The last step. Nothing is downstream of it to prove it finished.
             "results": False,
-            "profile_done": False,
-            "beta_configure": has_plan,
-            "beta_running": False,
-            "beta_results": False}
+            "profile_done": False}
 
     slugs = [slug for slug, _ in steps]
     at = slugs.index(current) if current in slugs else None

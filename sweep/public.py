@@ -25,6 +25,7 @@ The three things that make the subset safe:
              limit gates the spend.
 """
 
+import contextlib
 import hashlib
 import hmac
 import os
@@ -64,13 +65,25 @@ DEFAULT_TRUSTED_PROXIES = 2
 PUBLIC_ENDPOINTS = frozenset({
     "upload", "resume", "review", "derive_post", "review_post",
     "profile_done", "profile_download", "beta_gate", "healthz", "static",
-    # The sweep half, on the Oracle worker. The console's own /run,
-    # /running, /results and /export are NOT here and never will be:
-    # they drive a local subprocess and an Apify balance.
-    "beta_configure", "beta_configure_post", "beta_confirm", "beta_run",
-    "beta_running", "beta_progress", "beta_stop", "beta_results",
-    "beta_export",
+    # The console's own sweep screens. They are reachable here because in
+    # public mode they run against the Oracle worker (sweep/worker_link.py)
+    # rather than a local subprocess — same pages, same free_only branches
+    # they have always had.
+    "key", "key_free", "configure", "estimate", "confirm", "run",
+    "running", "progress", "stop", "results", "export",
 })
+
+# Reachable locally, never here. Each one either spends the OPERATOR's
+# money, edits their credentials, or reads their disk:
+#
+#   key_post, second_key, key_remove   the operator's Apify keys
+#   rescore                            re-scores paid Apify datasets
+#   merge                              folds this machine's earlier sweeps
+#   applied                            writes an applied-state file
+#   events                             SSE; public mode polls /progress
+#                                      instead, see running.html
+OPERATOR_ONLY = frozenset({"key_post", "second_key", "key_remove",
+                           "rescore", "merge", "applied", "events"})
 
 # A session is a browser that uploaded a résumé. Two hours is longer than
 # anyone spends on a three-screen flow and short enough that a shared
@@ -465,13 +478,20 @@ def harden(app, env=None, store=None, limit=None):
         return None
 
     app.write_profile = keep_profile
-    # "Looks right" now leads into the sweep rather than stopping at the
-    # download — the profile stays one click away from every screen.
-    app.config["AFTER_REVIEW_ENDPOINT"] = "beta_configure"
+    # "Looks right" leads to the console's own source-choice screen, which
+    # is where a visitor picks the free sweep. The step tracker is the
+    # console's too — the public journey IS those steps now.
+    app.config["AFTER_REVIEW_ENDPOINT"] = "key"
 
-    from sweep import public_sweep
-    public_sweep.register(app)
-    app.config["STEPS"] = public_sweep.PUBLIC_STEPS
+    @app.before_request
+    def resume_a_running_sweep():
+        """Oracle keeps sweeping while Render redeploys; the cookie keeps
+        the run id. Put back what the screens need before they render."""
+        if request.endpoint in PUBLIC_ENDPOINTS and session.get("beta_ok"):
+            from sweep import worker_link
+            with contextlib.suppress(Exception):
+                worker_link.rehydrate(app)
+        return None
 
     @app.before_request
     def gate():

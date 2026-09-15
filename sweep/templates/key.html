@@ -28,6 +28,13 @@
       <button class="primary" type="submit">Search the free sources</button>
     </form>
 
+    {# The paid boards need an Apify key. Locally that key is the
+       operator's own, written to .env on their machine — which is exactly
+       why this form is not offered to a stranger: there is no .env of
+       theirs to write, and there is no circumstance in which a visitor
+       should be spending the operator's credit. The public paid path
+       gives a visitor's OWN key to their own run, and arrives next. #}
+    {% if not public_mode %}
     <form class="panel" method="post" action="{{ url_for('key') }}">
       <div class="panel-head">
         <h2>Free sources and the paid boards</h2>
@@ -44,6 +51,17 @@
       <p class="meta">Verifying reads your credit balance, which is free.</p>
       <button class="primary" type="submit">Verify key</button>
     </form>
+    {% else %}
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Free sources and the paid boards</h2>
+        <span class="chip">not in the beta yet</span>
+      </div>
+      <p>{{ paid|join(', ') }} bill per search against an Apify account.
+        Searching them with a key of your own is coming; the free sources
+        are ranked against your résumé exactly the same way.</p>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

@@ -242,6 +242,22 @@ def create_app(state=None, extract=None, resume_dir=None,
             return make_profile.generate(
                 client, cfg.MODELS, resume_text, prefs, engine=engine)
 
+    # Public mode runs the console's OWN screens against the Oracle
+    # worker: same Configure, Confirm, Running and Results, which have
+    # carried a free_only branch since long before any of this. Only what
+    # they reach for changes. An explicitly injected one always wins, so
+    # a test still decides for itself.
+    if public.enabled():
+        from sweep import worker_link
+        remote = worker_link.injections(app)
+        fetch_plan = fetch_plan or remote["fetch_plan"]
+        start_sweep = start_sweep or remote["start_sweep"]
+        read_live = read_live or remote["read_live"]
+        read_rows = read_rows or remote["read_rows"]
+        read_done = read_done or remote["read_done"]
+        read_spend = read_spend or remote["read_spend"]
+        list_sweeps = list_sweeps or remote["list_sweeps"]
+
     # Public mode: every extraction is two GPU calls on the operator's
     # Modal account, so the daily limit wraps the CALL, not the route —
     # POST /derive means to spend, but POST /review reaches the same
@@ -1513,7 +1529,12 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state.pop("stopped_by_user", None)
             app.state.pop("interrupt_credit_read", None)
             app.state["proc"] = start_sweep(app.state["profile"])
-            _write_run_json(app.state, output_dir)
+            # The console's own crash-recovery note, for a child on THIS
+            # machine. A public run is recorded on the worker instead, and
+            # writing it here would put one visitor's state on a shared
+            # disk under a profile name another visitor can pick too.
+            if not app.config.get("PUBLIC_MODE"):
+                _write_run_json(app.state, output_dir)
         return redirect(url_for("running"))
 
     # Where a removal may return to. An endpoint name off a form field
