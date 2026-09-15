@@ -12,6 +12,8 @@ public mode is what it exposes, not what qwen3 answers.
 
 import io
 import os
+import shutil
+import tempfile
 import threading
 import unittest
 from unittest import mock
@@ -613,6 +615,65 @@ class TestCrossSite(unittest.TestCase):
         self.assertTrue(app.config["SESSION_COOKIE_HTTPONLY"])
         self.assertTrue(app.config["SESSION_COOKIE_SECURE"])
         self.assertEqual(app.config["SESSION_COOKIE_SAMESITE"], "Strict")
+
+
+class TestTheMarketOnRender(unittest.TestCase):
+    """Render's disk is ephemeral and output/ is git-ignored, so the beta
+    has no corpus of its own. Without the shipped frequency table every
+    skill keeps its neutral 3 and the profile a visitor downloads cannot
+    tell their specialism from a commodity."""
+
+    def setUp(self):
+        self.empty = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.empty, ignore_errors=True)
+
+    def real_pipeline_app(self):
+        """Public mode with the REAL finishing pipeline behind derive —
+        widen_skills and reweight_from_corpus — against no corpus at all,
+        which is exactly what Render runs."""
+        import sys
+        for path in (os.path.join(app_module.REPO_ROOT, "auto-apply"),
+                     app_module.REPO_ROOT):
+            if path not in sys.path:
+                sys.path.insert(0, path)
+        import make_profile
+        from local_profile import NEUTRAL_WEIGHT
+
+        parsed = dict(DERIVED, skill_weights=[
+            {"term": t, "weight": NEUTRAL_WEIGHT} for t in
+            ("react native", "javascript", "react", "maven", "spring security",
+             "gradle", "docker", "java", "postgresql", "tailwind css")])
+
+        def derive(resume_text, prefs):
+            return make_profile._finish(parsed, resume_text, self.empty,
+                                        lambda *a: None)
+
+        return public_app(derive=derive, output_dir=self.empty)
+
+    def test_the_health_check_says_which_market_answered(self):
+        app = self.real_pipeline_app()
+        body = app.test_client().get("/healthz").get_json()
+        self.assertEqual(body["market_signal_source"], "frozen")
+
+    def test_a_beta_visitors_profile_is_not_a_flat_wall_of_threes(self):
+        app = self.real_pipeline_app()
+        client = unlocked(app)
+        upload(client)
+        client.post("/derive")
+        self.assertEqual(client.post("/review", data={"name": "beta_user"}
+                                     ).status_code, 302)
+        source = client.get("/profile.py").get_data(as_text=True)
+
+        import re
+        block = source.split('"skill_weights": {', 1)[1].split("}", 1)[0]
+        weights = {int(n) for n in re.findall(r":\s*(\d+)", block)}
+        self.assertNotEqual(weights, {3},
+                            "the downloaded profile is still flat")
+        self.assertTrue({2, 4} <= weights, sorted(weights))
+        # The commodity and the specialism land on different numbers,
+        # which is the whole point of shipping the table.
+        self.assertIn("'javascript': 2", block)
+        self.assertIn("'maven': 4", block)
 
 
 class TestLocalModeIsUntouched(unittest.TestCase):

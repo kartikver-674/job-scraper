@@ -383,6 +383,14 @@ def harden(app, env=None, store=None, limit=None):
         PERMANENT_SESSION_LIFETIME=SESSION_TTL,
     )
 
+    # Which market decides skill weights here, read ONCE at start-up: on
+    # a fresh clone or Render there is no output/, so the shipped table
+    # answers, and a health check should be able to say so. Reading it per
+    # request would rescan every CSV a real corpus holds.
+    import corpus_signal
+    app.config["MARKET_SIGNAL_SOURCE"] = corpus_signal.market_signal(
+        app.config.get("OUTPUT_DIR"))[1]
+
     store = store if store is not None else SessionStore()
     app.session_store = store
     app.state = SessionState(store)
@@ -450,7 +458,8 @@ def harden(app, env=None, store=None, limit=None):
         no session and no disk, so a health probe can never wake the GPU
         or cost anything."""
         return {"status": "ok", "mode": "public-beta",
-                "sessions": len(store)}
+                "sessions": len(store),
+                "market_signal_source": app.config["MARKET_SIGNAL_SOURCE"]}
 
     @app.errorhandler(BetaLimited)
     def beta_limited(exc):

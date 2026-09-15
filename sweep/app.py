@@ -194,6 +194,9 @@ def create_app(state=None, extract=None, resume_dir=None,
     # with one — output/ holds real paid-sweep results with no git history
     # to fall back on.
     output_dir = output_dir if output_dir is not None else os.path.join(REPO_ROOT, "output")
+    # Stashed so public mode can report WHICH market answered its skill
+    # weights without re-deriving where output/ is.
+    app.config["OUTPUT_DIR"] = output_dir
     # Injected so a test can advance the spend-poll throttle (SPEND_POLL_SECONDS
     # below) without a real sleep — a sleeping test is a slow test forever.
     import time as _time_mod

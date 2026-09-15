@@ -308,7 +308,7 @@ def reweight_from_corpus(data, output_dir=None, log=print):
                for e in data.get("skill_weights") or () if e["term"].strip()}
     if not weights:
         return data
-    freqs = corpus_signal.frequencies(output_dir)
+    freqs, source = corpus_signal.market_signal(output_dir)
     blended, moved = corpus_signal.reweight(weights, freqs)
     if not moved:
         return data
@@ -319,8 +319,13 @@ def reweight_from_corpus(data, output_dir=None, log=print):
         for e in data["skill_weights"]])
     # Said out loud, not applied in silence: these are the numbers that
     # decide which jobs reach the top of a shortlist.
+    # Which market answered is part of what was done to these numbers: a
+    # weight from the shipped table is a weight from somebody else's
+    # sweeps, and a reader deserves to know that without reading the code.
+    where = ("measured in output/" if source == "live"
+             else f"from {corpus_signal.FROZEN_NAME}")
     log(f"  re-scored {len(moved)} weight(s) against {len(freqs)} terms"
-        f" measured in output/:")
+        f" {where}:")
     for term, before, after, share in moved[:10]:
         pct = f"{share:.1%}" if share is not None else "n/a"
         log(f"    {before} -> {after}  {term:<24} in {pct} of listings")

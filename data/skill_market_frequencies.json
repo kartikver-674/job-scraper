@@ -1,0 +1,1485 @@
+{
+ "schema": 1,
+ "generated": "2026-09-15",
+ "generated_by": "python -m corpus_signal --freeze",
+ "what": "Document frequency of each skill term across every job listing scraped into output/, as {term: [listings containing it, listings scored for it]}. Read by corpus_signal.market_signal() only when the machine has no usable corpus of its own.",
+ "corpus": {
+  "listings": 22806,
+  "csv_files": 105,
+  "sweeps": 57,
+  "source": "output/ on the maintainer's machine (git-ignored); real paid sweeps, not synthetic data",
+  "min_listings_at_generation": 200
+ },
+ "terms": 367,
+ "measurable_terms": 344,
+ "frequencies": {
+  ".net": [
+   18,
+   1397
+  ],
+  "acceptance criteria": [
+   70,
+   2384
+  ],
+  "accessibility": [
+   429,
+   3133
+  ],
+  "account executive": [
+   356,
+   1324
+  ],
+  "account management": [
+   208,
+   1324
+  ],
+  "account manager": [
+   78,
+   1324
+  ],
+  "admission": [
+   4,
+   1324
+  ],
+  "admissions": [
+   8,
+   1324
+  ],
+  "agentic": [
+   1883,
+   11605
+  ],
+  "agile": [
+   3656,
+   14622
+  ],
+  "ai agent": [
+   250,
+   10934
+  ],
+  "ai agents": [
+   1080,
+   11074
+  ],
+  "ai assisted": [
+   4,
+   3133
+  ],
+  "ai-assisted": [
+   535,
+   4913
+  ],
+  "android": [
+   377,
+   7051
+  ],
+  "android development": [
+   9,
+   117
+  ],
+  "android studio": [
+   121,
+   6216
+  ],
+  "apex": [
+   451,
+   7214
+  ],
+  "apex code": [
+   1,
+   65
+  ],
+  "api design": [
+   86,
+   1368
+  ],
+  "app center": [
+   8,
+   3133
+  ],
+  "approval process": [
+   41,
+   857
+  ],
+  "approval processes": [
+   33,
+   2476
+  ],
+  "approval workflow": [
+   7,
+   537
+  ],
+  "artificial intelligence": [
+   1128,
+   10141
+  ],
+  "aura": [
+   53,
+   1959
+  ],
+  "authentication": [
+   1258,
+   13385
+  ],
+  "aws": [
+   729,
+   3605
+  ],
+  "axios": [
+   3,
+   2132
+  ],
+  "azure": [
+   723,
+   3605
+  ],
+  "azure devops": [
+   287,
+   8992
+  ],
+  "b2b": [
+   366,
+   1324
+  ],
+  "b2c": [
+   23,
+   1324
+  ],
+  "backlog": [
+   52,
+   1488
+  ],
+  "backlog management": [
+   9,
+   1805
+  ],
+  "batch apex": [
+   3,
+   2131
+  ],
+  "bazel": [
+   16,
+   2132
+  ],
+  "bdr": [
+   215,
+   1324
+  ],
+  "biotech": [
+   6,
+   1324
+  ],
+  "brd": [
+   16,
+   2081
+  ],
+  "bundle size": [
+   42,
+   3133
+  ],
+  "business analysis": [
+   97,
+   2446
+  ],
+  "business analyst": [
+   327,
+   2878
+  ],
+  "business development": [
+   552,
+   1324
+  ],
+  "c#": [
+   103,
+   2666
+  ],
+  "c++": [
+   1277,
+   12139
+  ],
+  "caching": [
+   231,
+   3133
+  ],
+  "certified administrator": [
+   31,
+   1210
+  ],
+  "change request": [
+   22,
+   813
+  ],
+  "change requests": [
+   8,
+   276
+  ],
+  "ci/cd": [
+   3886,
+   13391
+  ],
+  "claude": [
+   347,
+   3152
+  ],
+  "claude code": [
+   383,
+   4954
+  ],
+  "client relationship": [
+   32,
+   1324
+  ],
+  "client servicing": [
+   2,
+   1324
+  ],
+  "closing": [
+   264,
+   1324
+  ],
+  "code review": [
+   213,
+   3133
+  ],
+  "code reviews": [
+   859,
+   3133
+  ],
+  "code splitting": [
+   21,
+   3133
+  ],
+  "cold calling": [
+   203,
+   1324
+  ],
+  "communication": [
+   984,
+   1324
+  ],
+  "community cloud": [
+   2,
+   102
+  ],
+  "component library": [
+   19,
+   3133
+  ],
+  "concurrency": [
+   397,
+   11555
+  ],
+  "consultative sales": [
+   52,
+   1324
+  ],
+  "consultative selling": [
+   56,
+   1324
+  ],
+  "context api": [
+   101,
+   5265
+  ],
+  "conversion": [
+   205,
+   1324
+  ],
+  "copilot": [
+   134,
+   3269
+  ],
+  "counseling": [
+   13,
+   1324
+  ],
+  "counselling": [
+   6,
+   1324
+  ],
+  "counselor": [
+   2,
+   1324
+  ],
+  "crm": [
+   969,
+   6644
+  ],
+  "crm management": [
+   22,
+   1324
+  ],
+  "cross platform": [
+   15,
+   3133
+  ],
+  "cross-browser": [
+   92,
+   3133
+  ],
+  "cross-platform": [
+   213,
+   5036
+  ],
+  "cross-sell": [
+   74,
+   1324
+  ],
+  "css": [
+   1340,
+   11588
+  ],
+  "css3": [
+   193,
+   5274
+  ],
+  "cursor": [
+   300,
+   3133
+  ],
+  "custom metadata": [
+   5,
+   1697
+  ],
+  "custom object": [
+   42,
+   537
+  ],
+  "customer acquisition": [
+   43,
+   1324
+  ],
+  "customer engagement": [
+   61,
+   1324
+  ],
+  "customer service": [
+   158,
+   1324
+  ],
+  "customer success": [
+   291,
+   1324
+  ],
+  "dart": [
+   85,
+   2693
+  ],
+  "dashboard": [
+   182,
+   537
+  ],
+  "dashboards": [
+   150,
+   1368
+  ],
+  "data analysis": [
+   9,
+   146
+  ],
+  "data loader": [
+   23,
+   537
+  ],
+  "data migration": [
+   61,
+   537
+  ],
+  "data visualization": [
+   11,
+   1421
+  ],
+  "deep learning": [
+   304,
+   11544
+  ],
+  "deep linking": [
+   29,
+   3133
+  ],
+  "design system": [
+   42,
+   3133
+  ],
+  "design systems": [
+   122,
+   3133
+  ],
+  "detox": [
+   13,
+   3133
+  ],
+  "diagnostics": [
+   6,
+   1324
+  ],
+  "dms": [
+   2,
+   3133
+  ],
+  "docker": [
+   1637,
+   11451
+  ],
+  "e-commerce": [
+   75,
+   5265
+  ],
+  "e2e": [
+   26,
+   3133
+  ],
+  "eas build": [
+   6,
+   3133
+  ],
+  "eclipse": [
+   2,
+   666
+  ],
+  "ecommerce": [
+   30,
+   3133
+  ],
+  "ed-tech": [
+   2,
+   1324
+  ],
+  "edtech": [
+   26,
+   1324
+  ],
+  "elicitation": [
+   15,
+   2081
+  ],
+  "embeddings": [
+   351,
+   11550
+  ],
+  "enrollment": [
+   16,
+   1324
+  ],
+  "enrolment": [
+   12,
+   1324
+  ],
+  "erp": [
+   33,
+   3133
+  ],
+  "es6": [
+   362,
+   11645
+  ],
+  "es6+": [
+   10,
+   136
+  ],
+  "excel": [
+   294,
+   2692
+  ],
+  "experience cloud": [
+   55,
+   2374
+  ],
+  "expo": [
+   146,
+   10978
+  ],
+  "express": [
+   663,
+   13060
+  ],
+  "fabric": [
+   21,
+   3133
+  ],
+  "fastapi": [
+   61,
+   1453
+  ],
+  "fastlane": [
+   32,
+   3133
+  ],
+  "fcm": [
+   22,
+   5420
+  ],
+  "field sales": [
+   4,
+   3133
+  ],
+  "figma": [
+   5,
+   666
+  ],
+  "fine-tuning": [
+   23,
+   922
+  ],
+  "firebase": [
+   349,
+   14773
+  ],
+  "flatlist": [
+   6,
+   3133
+  ],
+  "flow builder": [
+   6,
+   378
+  ],
+  "flows": [
+   253,
+   1980
+  ],
+  "flutter": [
+   128,
+   2693
+  ],
+  "follow up": [
+   121,
+   1324
+  ],
+  "follow-up": [
+   212,
+   1324
+  ],
+  "frd": [
+   13,
+   2081
+  ],
+  "functional consultant": [
+   5,
+   102
+  ],
+  "gap analysis": [
+   33,
+   2720
+  ],
+  "gcp": [
+   223,
+   1464
+  ],
+  "gen ai": [
+   133,
+   11550
+  ],
+  "genai": [
+   175,
+   1453
+  ],
+  "generative ai": [
+   368,
+   4597
+  ],
+  "geospatial": [
+   53,
+   10097
+  ],
+  "git": [
+   957,
+   8290
+  ],
+  "github": [
+   233,
+   4139
+  ],
+  "github copilot": [
+   150,
+   5125
+  ],
+  "go-live": [
+   3,
+   102
+  ],
+  "google play console": [
+   21,
+   3526
+  ],
+  "governor limits": [
+   4,
+   102
+  ],
+  "gradle": [
+   50,
+   5296
+  ],
+  "graphql": [
+   53,
+   1458
+  ],
+  "healthcare": [
+   157,
+   1324
+  ],
+  "hermes": [
+   9,
+   3133
+  ],
+  "hibernate": [
+   10,
+   2154
+  ],
+  "hooks": [
+   122,
+   3133
+  ],
+  "html": [
+   1138,
+   11588
+  ],
+  "html5": [
+   228,
+   5274
+  ],
+  "hubspot": [
+   206,
+   1324
+  ],
+  "hugging face": [
+   122,
+   11013
+  ],
+  "huggingface": [
+   24,
+   10097
+  ],
+  "impact analysis": [
+   15,
+   2081
+  ],
+  "inside sales": [
+   217,
+   1324
+  ],
+  "integration testing": [
+   2,
+   102
+  ],
+  "interpersonal": [
+   166,
+   1324
+  ],
+  "ios": [
+   324,
+   7051
+  ],
+  "java": [
+   1023,
+   4840
+  ],
+  "javascript": [
+   4377,
+   16588
+  ],
+  "javascript (es6+)": [
+   22,
+   1856
+  ],
+  "jest": [
+   491,
+   11057
+  ],
+  "jpa": [
+   2,
+   2132
+  ],
+  "js": [
+   81,
+   796
+  ],
+  "jsi": [
+   12,
+   3133
+  ],
+  "jwt": [
+   296,
+   11509
+  ],
+  "kafka": [
+   165,
+   1447
+  ],
+  "keras": [
+   4,
+   916
+  ],
+  "key account": [
+   10,
+   1324
+  ],
+  "kotlin": [
+   202,
+   3133
+  ],
+  "kubernetes": [
+   385,
+   1464
+  ],
+  "langchain": [
+   694,
+   11561
+  ],
+  "langgraph": [
+   82,
+   1464
+  ],
+  "lazy loading": [
+   36,
+   3133
+  ],
+  "lead generation": [
+   217,
+   1324
+  ],
+  "lead qualification": [
+   57,
+   1324
+  ],
+  "learner": [
+   57,
+   1324
+  ],
+  "life sciences": [
+   23,
+   1324
+  ],
+  "lightning": [
+   39,
+   128
+  ],
+  "lightning app builder": [
+   2,
+   102
+  ],
+  "lightning experience": [
+   5,
+   102
+  ],
+  "lightning web component": [
+   2,
+   276
+  ],
+  "lightning web components": [
+   176,
+   2693
+  ],
+  "llamaindex": [
+   6,
+   933
+  ],
+  "llm": [
+   1672,
+   11643
+  ],
+  "llms": [
+   1233,
+   11643
+  ],
+  "lwc": [
+   130,
+   2856
+  ],
+  "machine learning": [
+   1343,
+   11653
+  ],
+  "market research": [
+   58,
+   1324
+  ],
+  "marketplace": [
+   66,
+   3133
+  ],
+  "maven": [
+   11,
+   2132
+  ],
+  "mba": [
+   27,
+   537
+  ],
+  "mcp": [
+   681,
+   11599
+  ],
+  "medical device": [
+   2,
+   1324
+  ],
+  "memoization": [
+   12,
+   3133
+  ],
+  "microservices": [
+   390,
+   1464
+  ],
+  "mobile architecture": [
+   18,
+   1897
+  ],
+  "modularization": [
+   5,
+   1621
+  ],
+  "mongodb": [
+   1641,
+   13591
+  ],
+  "mongoose": [
+   26,
+   11013
+  ],
+  "ms excel": [
+   1,
+   384
+  ],
+  "mysql": [
+   1313,
+   16444
+  ],
+  "native modules": [
+   38,
+   3133
+  ],
+  "natural language processing": [
+   36,
+   916
+  ],
+  "negotiation": [
+   152,
+   1324
+  ],
+  "new business": [
+   366,
+   1324
+  ],
+  "next.js": [
+   757,
+   10672
+  ],
+  "nlp": [
+   274,
+   11019
+  ],
+  "node": [
+   2769,
+   12512
+  ],
+  "node.js": [
+   2827,
+   16290
+  ],
+  "nodejs": [
+   3,
+   808
+  ],
+  "oauth": [
+   422,
+   11555
+  ],
+  "offline-first": [
+   46,
+   4229
+  ],
+  "openai": [
+   775,
+   11561
+  ],
+  "opencv": [
+   25,
+   10628
+  ],
+  "outbound": [
+   642,
+   1324
+  ],
+  "page layout": [
+   49,
+   537
+  ],
+  "page layouts": [
+   18,
+   230
+  ],
+  "pagination": [
+   18,
+   3133
+  ],
+  "performance optimization": [
+   371,
+   3288
+  ],
+  "performance profiling": [
+   27,
+   3133
+  ],
+  "permission set": [
+   6,
+   320
+  ],
+  "permission sets": [
+   77,
+   2486
+  ],
+  "pharma": [
+   8,
+   1324
+  ],
+  "pharmaceutical": [
+   9,
+   1324
+  ],
+  "pipeline management": [
+   68,
+   1324
+  ],
+  "play store": [
+   82,
+   3133
+  ],
+  "postgres": [
+   34,
+   2912
+  ],
+  "postgresql": [
+   704,
+   6314
+  ],
+  "postman": [
+   68,
+   5179
+  ],
+  "power bi": [
+   45,
+   2309
+  ],
+  "powerbi": [
+   1,
+   384
+  ],
+  "powerpoint": [
+   6,
+   102
+  ],
+  "presentation": [
+   126,
+   1324
+  ],
+  "process mapping": [
+   9,
+   276
+  ],
+  "procurement": [
+   10,
+   102
+  ],
+  "production support": [
+   6,
+   102
+  ],
+  "profiles": [
+   66,
+   1980
+  ],
+  "prompt engineering": [
+   911,
+   11605
+  ],
+  "prospecting": [
+   585,
+   1324
+  ],
+  "push notifications": [
+   77,
+   3133
+  ],
+  "python": [
+   5153,
+   14298
+  ],
+  "pytorch": [
+   120,
+   1447
+  ],
+  "quota": [
+   185,
+   1324
+  ],
+  "rag": [
+   1111,
+   11605
+  ],
+  "rate limiting": [
+   114,
+   10141
+  ],
+  "react": [
+   5068,
+   16591
+  ],
+  "react hook form": [
+   11,
+   6964
+  ],
+  "react hooks": [
+   37,
+   3133
+  ],
+  "react native": [
+   1006,
+   15670
+  ],
+  "react navigation": [
+   20,
+   5265
+  ],
+  "react router": [
+   10,
+   3133
+  ],
+  "react testing library": [
+   67,
+   3133
+  ],
+  "react-native": [
+   2,
+   2132
+  ],
+  "react.js": [
+   703,
+   16550
+  ],
+  "reactjs": [
+   6,
+   790
+  ],
+  "record types": [
+   24,
+   934
+  ],
+  "redis": [
+   691,
+   11588
+  ],
+  "redux": [
+   596,
+   13672
+  ],
+  "redux toolkit": [
+   53,
+   5287
+  ],
+  "regression testing": [
+   4,
+   102
+  ],
+  "relationship management": [
+   89,
+   1324
+  ],
+  "reports": [
+   145,
+   1368
+  ],
+  "reports & dashboards": [
+   1,
+   724
+  ],
+  "requirement elicitation": [
+   7,
+   537
+  ],
+  "requirement gathering": [
+   71,
+   813
+  ],
+  "requirements elicitation": [
+   2,
+   384
+  ],
+  "requirements gathering": [
+   62,
+   2298
+  ],
+  "responsive": [
+   481,
+   5265
+  ],
+  "responsive design": [
+   133,
+   3133
+  ],
+  "rest": [
+   583,
+   2647
+  ],
+  "rest api": [
+   465,
+   14629
+  ],
+  "rest api integrations": [
+   8,
+   2083
+  ],
+  "rest apis": [
+   464,
+   4691
+  ],
+  "restful": [
+   1682,
+   11588
+  ],
+  "restful api": [
+   3,
+   666
+  ],
+  "restful apis": [
+   43,
+   2807
+  ],
+  "retention": [
+   164,
+   1324
+  ],
+  "reusable components": [
+   71,
+   3171
+  ],
+  "revenue growth": [
+   115,
+   1324
+  ],
+  "rntl": [
+   2,
+   3133
+  ],
+  "role and profile": [
+   4,
+   537
+  ],
+  "saas": [
+   498,
+   1324
+  ],
+  "sales cloud": [
+   277,
+   3067
+  ],
+  "sales development representative": [
+   281,
+   1324
+  ],
+  "sales executive": [
+   61,
+   1324
+  ],
+  "sales pipeline": [
+   172,
+   1324
+  ],
+  "sales presentation": [
+   8,
+   1324
+  ],
+  "sales presentations": [
+   18,
+   1324
+  ],
+  "sales strategy": [
+   30,
+   1324
+  ],
+  "sales target": [
+   6,
+   1324
+  ],
+  "salesforce": [
+   1801,
+   9173
+  ],
+  "salesforce admin": [
+   3,
+   128
+  ],
+  "salesforce administrator": [
+   38,
+   506
+  ],
+  "salesforce certified": [
+   68,
+   1644
+  ],
+  "salesforce certified administrator": [
+   32,
+   1081
+  ],
+  "salesforce crm": [
+   10,
+   128
+  ],
+  "salesforce flow": [
+   2,
+   102
+  ],
+  "salesforce inspector": [
+   1,
+   537
+  ],
+  "salesforce integration": [
+   2,
+   102
+  ],
+  "salesforce.com": [
+   5,
+   384
+  ],
+  "sca": [
+   2,
+   1081
+  ],
+  "scikit-learn": [
+   45,
+   1447
+  ],
+  "scrum": [
+   376,
+   6433
+  ],
+  "sdlc": [
+   73,
+   2358
+  ],
+  "sdr": [
+   313,
+   1324
+  ],
+  "semantic kernel": [
+   42,
+   922
+  ],
+  "service cloud": [
+   299,
+   3023
+  ],
+  "sfdc": [
+   8,
+   384
+  ],
+  "sharing rules": [
+   2,
+   102
+  ],
+  "socket.io": [
+   33,
+   10097
+  ],
+  "soql": [
+   109,
+   5190
+  ],
+  "sosl": [
+   30,
+   2666
+  ],
+  "spring": [
+   44,
+   2132
+  ],
+  "spring boot": [
+   24,
+   2163
+  ],
+  "spring data jpa": [
+   1,
+   2132
+  ],
+  "spring security": [
+   1,
+   2132
+  ],
+  "springboot": [
+   2,
+   2132
+  ],
+  "sprint planning": [
+   64,
+   2374
+  ],
+  "sql": [
+   1862,
+   11859
+  ],
+  "stakeholder engagement": [
+   4,
+   1324
+  ],
+  "stakeholder management": [
+   229,
+   3023
+  ],
+  "state management": [
+   107,
+   1903
+  ],
+  "student": [
+   37,
+   1324
+  ],
+  "swift": [
+   135,
+   3133
+  ],
+  "tailwind": [
+   178,
+   7008
+  ],
+  "tailwind css": [
+   4,
+   2132
+  ],
+  "target achievement": [
+   2,
+   1324
+  ],
+  "targets": [
+   522,
+   1324
+  ],
+  "team collaboration": [
+   27,
+   1324
+  ],
+  "tensorflow": [
+   427,
+   11544
+  ],
+  "test case": [
+   27,
+   639
+  ],
+  "test cases": [
+   2,
+   102
+  ],
+  "transactions": [
+   273,
+   10097
+  ],
+  "transformers": [
+   124,
+   11013
+  ],
+  "turbo modules": [
+   3,
+   3133
+  ],
+  "turbomodules": [
+   9,
+   3133
+  ],
+  "typescript": [
+   3747,
+   11605
+  ],
+  "uat": [
+   207,
+   2844
+  ],
+  "unit testing": [
+   171,
+   4580
+  ],
+  "unit tests": [
+   86,
+   3133
+  ],
+  "upsell": [
+   83,
+   1324
+  ],
+  "user acceptance testing": [
+   64,
+   813
+  ],
+  "user management": [
+   3,
+   102
+  ],
+  "user stories": [
+   116,
+   2384
+  ],
+  "user story": [
+   3,
+   384
+  ],
+  "validation rule": [
+   84,
+   813
+  ],
+  "validation rules": [
+   99,
+   2530
+  ],
+  "vector database": [
+   73,
+   11544
+  ],
+  "virtualization": [
+   17,
+   3133
+  ],
+  "virtualized": [
+   2,
+   3133
+  ],
+  "visualforce": [
+   129,
+   2693
+  ],
+  "vite": [
+   67,
+   3133
+  ],
+  "vs code": [
+   5,
+   2131
+  ],
+  "waterfall": [
+   2,
+   537
+  ],
+  "web vitals": [
+   55,
+   3133
+  ],
+  "websocket": [
+   107,
+   10141
+  ],
+  "websockets": [
+   235,
+   10672
+  ],
+  "xcode": [
+   93,
+   5131
+  ],
+  "zod": [
+   38,
+   6964
+  ],
+  "zoho": [
+   18,
+   1324
+  ]
+ }
+}
