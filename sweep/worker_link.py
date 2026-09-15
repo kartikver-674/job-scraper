@@ -56,7 +56,7 @@ class RemoteRun:
         if self._code is not None:
             return self._code
         try:
-            status = worker_client.run_status(self.run_id)
+            status = _status(self.run_id)
         except worker_client.RunNotFound:
             self._code = 1
             return self._code
@@ -83,6 +83,24 @@ class RemoteRun:
     # The console calls this on a child it has already terminated.
     def wait(self, timeout=None):
         return self.poll()
+
+
+def _status(run_id):
+    """This run's status, once per request.
+
+    The running screen polls, and one poll asks three questions — is it
+    alive, what has finished, what has arrived. Without this they would be
+    three round trips to Oracle every few seconds per watcher.
+    """
+    from flask import g, has_request_context
+    if not has_request_context():
+        return worker_client.run_status(run_id)
+    cache = getattr(g, "_sweep_status", None)
+    if cache is None:
+        cache = g._sweep_status = {}
+    if run_id not in cache:
+        cache[run_id] = worker_client.run_status(run_id)
+    return cache[run_id]
 
 
 def _rows(run_id):
@@ -135,10 +153,23 @@ def injections(app):
         return _rows(public.current_run_id())
 
     def read_done(profile, day):
-        # Combos are paid searches. A free sweep runs none, so the ledger
-        # is empty and the progress tiles are empty with it — which is
-        # what the free path already renders locally.
-        return []
+        """Which searches have finished, from the run's own ledger.
+
+        A free sweep runs no billable combos, so this is empty and the
+        grid stays empty with it — the same as locally. A PAID sweep's
+        grid is exactly this, which is why it comes over the wire rather
+        than being assumed empty.
+        """
+        run_id = public.current_run_id()
+        if not run_id:
+            return set()
+        try:
+            done = _status(run_id).get("done") or []
+        except worker_client.WorkerError:
+            return set()
+        # Today's only, the same filter runs.done_keys applies: the engine
+        # re-runs and re-bills yesterday's, so they are not progress.
+        return {line for line in done if line.startswith(day)}
 
     def read_spend():
         # Never called on the free path (snapshot() returns early), and

@@ -300,6 +300,107 @@ class TestTheVisitorsCreditSurvivesTheFlow(unittest.TestCase):
                 self.assertNotIn("keys attached", body.lower())
 
 
+class TestTheProgressGrid(unittest.TestCase):
+    """Reported from a real paid run: listings were arriving, but
+    "searches finished" stayed at 0 and every tile stayed unrun.
+
+    The grid is built from the engine's .done_combos ledger. Public mode
+    was answering "no combos" — true for a free sweep, which runs none,
+    and wrong for a paid one, where those combos ARE the grid.
+    """
+
+    def finished(self, store, run_id, site, search):
+        from sweep import runs as runs_mod
+        out = store.output_dir(run_id)
+        os.makedirs(out, exist_ok=True)
+        with open(os.path.join(out, ".done_combos"), "a",
+                  encoding="utf-8") as fh:
+            fh.write(runs_mod.combo_key(runs_mod.today(), site, search) + "\n")
+
+    def test_a_finished_search_reaches_the_grid(self):
+        with stack() as (url, store):
+            with apify() as (_seen, check):
+                app = render_app(url, check_token=check)
+                client = paid_visitor(app, store)
+                with priced(app):
+                    client.get("/configure")
+                    client.post("/run", data={"over_cap_ack": "1"})
+                    run_id = only_run(store)
+
+                    before = client.get("/progress").get_json()
+                    self.assertEqual((before["done"], before["planned"]),
+                                     (0, 2))
+
+                    self.finished(store, run_id, "linkedin", SEARCH)
+                    after = client.get("/progress").get_json()
+
+        self.assertEqual(after["done"], 1, "the grid never filled in")
+        self.assertEqual(after["planned"], 2)
+        self.assertGreater(after["fraction"], 0)
+        # One tile — one search — is now coloured done, and it is the
+        # paid site's, which is what the legend distinguishes.
+        done_tiles = [t for t in after["tiles"] if t["state"] == "done"]
+        self.assertEqual(len(done_tiles), 1)
+        self.assertEqual(done_tiles[0]["site"], "linkedin")
+        self.assertFalse(done_tiles[0]["free"], "linkedin bills")
+        self.assertEqual({t["state"] for t in after["tiles"]},
+                         {"done", "pending"})
+
+    def test_it_knows_when_the_sweep_has_finished(self):
+        """The second half of the same bug: with the grid stuck at 0 of 12,
+        outstanding never reached zero, so a finished sweep was reported as
+        INTERRUPTED — no hand-off to the results screen, and a Stop button
+        still offered for a run that had already ended."""
+        with stack() as (url, store):
+            with apify() as (_seen, check):
+                app = render_app(url, check_token=check)
+                client = paid_visitor(app, store)
+                with priced(app):
+                    client.get("/configure")
+                    client.post("/run", data={"over_cap_ack": "1"})
+                    run_id = only_run(store)
+                    for site in ("linkedin", "indeed"):
+                        self.finished(store, run_id, site, SEARCH)
+                    # The engine exits; the worker records it.
+                    client.post("/stop")
+                    answer = client.get("/progress").get_json()
+
+        self.assertEqual(answer["outstanding"], 0)
+        self.assertTrue(answer["finished"], "a finished sweep looked stuck")
+        self.assertFalse(answer["interrupted"])
+        self.assertEqual(answer["fraction"], 1.0)
+
+    def test_yesterdays_ledger_is_not_progress(self):
+        """The engine re-runs and re-bills yesterday's combos, so counting
+        them would promise work that is about to happen again."""
+        with stack() as (url, store):
+            with apify() as (_seen, check):
+                app = render_app(url, check_token=check)
+                client = paid_visitor(app, store)
+                with priced(app):
+                    client.get("/configure")
+                    client.post("/run", data={"over_cap_ack": "1"})
+                    out = store.output_dir(only_run(store))
+                    os.makedirs(out, exist_ok=True)
+                    with open(os.path.join(out, ".done_combos"), "w",
+                              encoding="utf-8") as fh:
+                        fh.write("2020-01-01|linkedin|react native developer"
+                                 "|Remote|\n")
+                    answer = client.get("/progress").get_json()
+        self.assertEqual(answer["done"], 0)
+
+    def test_a_free_sweep_still_shows_an_empty_grid(self):
+        with stack() as (url, store):
+            app = render_app(url)
+            client = reviewed(app)
+            client.post("/key/free")
+            client.get("/configure")
+            client.post("/run")
+            answer = client.get("/progress").get_json()
+        self.assertEqual((answer["done"], answer["planned"]), (0, 0))
+        self.assertEqual(answer["tiles"], [])
+
+
 class TestWhoseKeyPaysForWhat(unittest.TestCase):
 
     def test_the_visitors_key_reaches_only_their_own_child(self):

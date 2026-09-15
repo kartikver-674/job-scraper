@@ -504,6 +504,21 @@ class Queue:
 # Results
 # --------------------------------------------------------------------------
 
+def done_combos(output_dir):
+    """The engine's own ledger of finished searches, as written.
+
+    scraper.py appends one line per completed search to .done_combos, and
+    that file — not its stdout — is what the progress grid is built from.
+    A run on another machine has to hand it over for the grid to fill in.
+    """
+    path = os.path.join(output_dir, ".done_combos")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return [line.strip() for line in fh if line.strip()]
+    except OSError:
+        return []
+
+
 def rows_since(output_dir, since=0, limit=500):
     """Rows the engine has written so far, newest file first.
 
@@ -570,7 +585,10 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
         """What Render may see. No token — there is none to leak here,
         because one was never written to this file."""
         return {k: v for k, v in status.items() if k != "owner"} | {
-            "queue_position": queue.position(status["run_id"])}
+            "queue_position": queue.position(status["run_id"]),
+            # The finished-search ledger, so the progress grid on the other
+            # side can fill in as each search completes.
+            "done": done_combos(store.output_dir(status["run_id"]))}
 
     @app.errorhandler(Refused)
     def refused(exc):
