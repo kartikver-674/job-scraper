@@ -155,16 +155,34 @@
     </div>
     <div class="tile">
       <span class="label paid">Priced per search</span>
+      {# No step number: the journey is renumbered per mode, and prose that
+         names "step 3" is wrong the moment it is. #}
       <p>{{ paid|join(', ') }} bill per search against your own
-        Apify credit. All of them start on, and step 3 can skip them entirely —
-        a free-sources-only sweep needs no key at all.</p>
+        Apify credit. You choose whether to use them at all — a free sweep
+        needs no key.</p>
     </div>
+    {# Two different true statements, not one statement that is true in one
+       mode. Locally Sweep really does serve this page from the operator's
+       own terminal and write into their folder; on Render it does neither,
+       and the tile claimed both to every beta visitor. #}
+    {% if public_mode %}
+    <div class="tile">
+      <span class="label">Nothing is kept</span>
+      {# Both halves are facts about public.py: the PDF is parsed from a temp
+         file deleted in the same request, and SessionStore's TTL is two
+         hours. Neither is a promise this cannot keep. #}
+      <p>Your résumé is read once to work out what to search for. The PDF
+        itself is never saved, and everything Sweep read from it is forgotten
+        within two hours.</p>
+    </div>
+    {% else %}
     <div class="tile">
       <span class="label">Runs on this machine</span>
       <p>Sweep serves this page from your own terminal. Your résumé
         goes to one model to derive search terms; the plan and the results stay
         in this folder.</p>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

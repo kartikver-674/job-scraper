@@ -233,11 +233,41 @@ def step_states(steps, state, current):
 # reader notices. A key with no entry falls back to itself, so a paid site
 # added to config appears in the sentence (lowercase) rather than vanishing
 # from it.
-SITE_LABELS = {"linkedin": "LinkedIn", "indeed": "Indeed", "naukri": "Naukri"}
+#
+# The free half is here too, because a row's source_site reaches the results
+# screen as a user-facing column and "remoteok" in a table of job listings is
+# the engine's key, not a board's name.
+#
+# Taken from the adapters, not guessed: sources.ats.ATS, sources.feeds'
+# Source= literals, sources.enterprise.EMPLOYERS, plus optum's own module and
+# the three paid boards. Cross-checked against every source_site prefix in
+# output/'s jobs_*.csv. An unlisted key still falls through to itself, so a
+# board added later appears lowercase rather than vanishing.
+SITE_LABELS = {"linkedin": "LinkedIn", "indeed": "Indeed", "naukri": "Naukri",
+               # sources.ats.ATS
+               "greenhouse": "Greenhouse", "lever": "Lever", "ashby": "Ashby",
+               "breezy": "Breezy", "smartrecruiters": "SmartRecruiters",
+               # sources.feeds
+               "himalayas": "Himalayas", "jobicy": "Jobicy",
+               "remoteok": "RemoteOK", "remotive": "Remotive",
+               "wwr": "We Work Remotely",
+               # sources.enterprise.EMPLOYERS, and optum's own module
+               "accenture": "Accenture", "amazon": "Amazon",
+               "jpmorgan": "J.P. Morgan", "sap": "SAP", "oracle": "Oracle",
+               "optum": "Optum"}
 
 
 def site_label(name):
-    return SITE_LABELS.get(name, name)
+    """A board's own spelling of its name.
+
+    The free adapters write `platform:company` ("greenhouse:sumup"), so the
+    platform is taken from the left of the colon — the company already has a
+    column of its own on every screen that shows this, and repeating it here
+    made the narrowest column the widest.
+    """
+    # `or ""` on the way out as well as in: a None reaches a template as the
+    # four characters "None", which is worse than an empty cell.
+    return SITE_LABELS.get((name or "").split(":")[0], name) or ""
 
 
 # The orders /results offers, and the label each one wears. A key returns a
@@ -443,7 +473,13 @@ def shortlist(all_rows, min_score=0, source="", q="", sort=DEFAULT_SORT):
     """
     rows = [r for r in all_rows if _as_int(r.get("score")) >= min_score]
     if source:
-        rows = [r for r in rows if r.get("source_site") == source]
+        # On the PLATFORM, not the whole key. The free adapters write
+        # `platform:company`, so an exact match made "Greenhouse" thirty-odd
+        # separate filter options — one per company board — none of which
+        # selected the others. The paid keys carry no colon, so they are
+        # their own platform and match exactly as before.
+        rows = [r for r in rows
+                if (r.get("source_site") or "").split(":")[0] == source]
     if q:
         needle = q.lower()
         rows = [r for r in rows if needle in

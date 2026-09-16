@@ -1,29 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Can't price this profile — Sweep{% endblock %}
+{% block title %}{% if public_mode %}Sweep could not plan this search{% else %}Can't price this profile{% endif %} — Sweep{% endblock %}
 {% block body %}
 <div class="stack">
-  <div class="stack-tight">
-    <h1>This profile can't be priced</h1>
-    <p class="lede">The engine couldn't read
-      <code>profiles/{{ profile }}.py</code>, so there is no plan to cost —
-      and nothing has been spent.</p>
-  </div>
-
-  <div class="panel">
-    <span class="label">What to do</span>
-    <ul>
-      <li>Go back to Review and save the profile again under a new name.</li>
-      <li>Or check the file directly:
-        <code>python scraper.py --profile {{ profile }} --dry-run</code>
-        prints the reason and costs nothing.</li>
-    </ul>
-    <p class="muted">The detail is in the terminal running Sweep. It isn't
-      shown here because engine output is unbounded and this shell is also
-      the screen where your key gets pasted.</p>
-    <div class="actions">
-      <a class="primary" href="{{ url_for('review') }}">Back to Review</a>
-      <a class="secondary" href="{{ url_for('upload') }}">Start over</a>
+  {# Two audiences. The operator owns the file and the terminal, so they get
+     the path and the command. A beta visitor owns neither: naming
+     profiles/<name>.py and a python invocation told them to go and fix
+     something they cannot see, on the screen that was meant to help. #}
+  {% if public_mode %}
+    <div class="stack-tight">
+      <h1>Sweep could not plan this search</h1>
+      <p class="lede">Something went wrong working out what to search for, so
+        nothing has run and nothing has been charged.</p>
     </div>
-  </div>
+
+    <div class="panel">
+      <span class="label">What to do</span>
+      <ul>
+        <li>Go back and check your profile — a small change is often enough.</li>
+        <li>Or upload your résumé again to read it fresh.</li>
+      </ul>
+      <p class="muted">Your Apify key, if you gave one, has not been used.</p>
+      <div class="actions">
+        <a class="primary" href="{{ url_for('review') }}">Back to my profile</a>
+        <a class="secondary" href="{{ url_for('upload') }}">Start over</a>
+      </div>
+    </div>
+  {% else %}
+    <div class="stack-tight">
+      <h1>This profile can't be priced</h1>
+      <p class="lede">The engine couldn't read
+        <code>profiles/{{ profile }}.py</code>, so there is no plan to cost —
+        and nothing has been spent.</p>
+    </div>
+
+    <div class="panel">
+      <span class="label">What to do</span>
+      <ul>
+        <li>Go back to Review and save the profile again under a new name.</li>
+        <li>Or check the file directly:
+          <code>python scraper.py --profile {{ profile }} --dry-run</code>
+          prints the reason and costs nothing.</li>
+      </ul>
+      <p class="muted">The detail is in the terminal running Sweep. It isn't
+        shown here because engine output is unbounded and this shell is also
+        the screen where your key gets pasted.</p>
+      <div class="actions">
+        <a class="primary" href="{{ url_for('review') }}">Back to Review</a>
+        <a class="secondary" href="{{ url_for('upload') }}">Start over</a>
+      </div>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

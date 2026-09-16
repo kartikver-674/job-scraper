@@ -154,8 +154,8 @@ header {
 .step.current .marker {
   background: var(--paid); border-color: var(--paid); color: var(--ground);
 }
-.step.locked > a { color: var(--dim); cursor: default; }
-.step.locked .marker { border-color: var(--dim); color: var(--dim); }
+.step.locked > a { color: var(--slate); cursor: default; }
+.step.locked .marker { border-color: var(--slate); color: var(--slate); }
 
 /* Narrow: only where you are and what comes next, plus the count. Seven
    steps cannot fit, and a sideways-scrolling tracker hides the very thing
@@ -290,7 +290,10 @@ select, textarea {
   color: var(--chalk); background: var(--well);
   border: 1px solid var(--rule); border-radius: var(--radius);
 }
-input::placeholder { color: var(--dim); }
+/* --dim is 1.97:1 on --ground and 1.75:1 on --surface — below AA for any
+   text. It stays the token for HAIRLINES (dashed borders, empty tiles), which
+   are not text, and text that used it moves to --slate at 5.84:1. */
+input::placeholder { color: var(--slate); opacity: 1; }
 select {
   appearance: none;
   /* Chevron drawn in CSS: an icon font would be one more network dependency

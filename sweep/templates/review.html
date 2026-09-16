@@ -114,12 +114,21 @@
           </div>
         {% endif %}
 
+        {# Public mode writes no file — public.harden replaces write_profile
+           with one that keeps the source in memory — so the helper text below
+           described a filesystem the visitor does not have. The FIELD stays
+           in both modes for now (POST /review requires a name); only the
+           claim about where it lands is mode-specific. #}
         <div class="panel">
           <label><span class="label">Name this profile</span>
             <input name="name" value="{{ suggested_name }}" required>
           </label>
+          {% if public_mode %}
+            <p class="muted">Used to label the files you export at the end.</p>
+          {% else %}
           <p class="muted">Saved as profiles/&lt;name&gt;.py, so you can re-run it later.
             An existing profile of the same name is never replaced without asking.</p>
+          {% endif %}
           {% if clash %}
             {# With no error beside it this is a heads-up on arrival, not a
                rejection: say so plainly rather than leaving a bare checkbox

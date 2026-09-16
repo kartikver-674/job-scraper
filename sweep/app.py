@@ -806,6 +806,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         priced, already_done = runs_mod.remaining_plan(
             raw, set(read_done(profile, day)), day)
         out = plan_mod.cost(priced, config.SITE_RATES, config.SITE_RATE_BASIS)
+        # The board's own spelling, added here rather than in plan.cost():
+        # that function is the pricing contract and knows nothing about
+        # screens, but every consumer of a line — /confirm server-side and
+        # /configure's live JSON — is showing it to a person.
+        for line in out.get("lines") or ():
+            line["label"] = site_label(line["site"])
         out["already_done"] = already_done
         cap = app.state.get("cap_usd")
         out["over_cap"] = bool(cap is not None and out["total"] > cap)
@@ -909,6 +915,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         return dict(steps=step_states(app.config.get("STEPS", STEPS),
                                       app.state, step),
                     public_mode=public_mode,
+                    # Every screen that names a board names it the way the
+                    # board spells it. Here rather than per-render because
+                    # five templates print a site key and they were not
+                    # agreeing: /configure and /confirm showed "linkedin"
+                    # while the prose beside them said "LinkedIn".
+                    site_label=site_label,
                     step=step, spend=spend, cap_usd=cap,
                     credit_left=left,
                     free_only=free_only(),
@@ -1126,7 +1138,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.logger.warning("derive failed: %s", exc)
             return render_template("deriving.html", **shell(
                 "review",
-                error=f"The local model could not be reached: {exc}")), 502
+                error=("Sweep could not reach the service that reads résumés. "
+                       "Nothing was charged. Try again in a minute."
+                       if app.config.get("PUBLIC_MODE") else
+                       f"The local model could not be reached: {exc}"))), 502
         except NotConfigured as exc:
             # Safe to show in full: this app composed it. A 500, not a 502
             # — nothing upstream was reached, and nothing upstream is at
@@ -1146,10 +1161,18 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.logger.warning("derive failed: %s", exc)
             return render_template("deriving.html", **shell(
                 "review",
-                error="The model call failed. The reason is in the terminal "
-                      "running Sweep — an exhausted API quota, a key that no "
-                      "longer works, or a scanned PDF with no text layer are "
-                      "the usual causes.")), 502
+                # Two audiences, two true sentences. The operator can read
+                # their own terminal; a beta visitor has none, no key of
+                # their own in this call, and nothing to fix but the PDF.
+                error=("Sweep could not read your résumé just now. Nothing "
+                       "was charged. Try again in a minute — or, if it keeps "
+                       "failing, export your résumé as a text-based PDF "
+                       "rather than a scan and upload it again."
+                       if app.config.get("PUBLIC_MODE") else
+                       "The model call failed. The reason is in the terminal "
+                       "running Sweep — an exhausted API quota, a key that no "
+                       "longer works, or a scanned PDF with no text layer are "
+                       "the usual causes."))), 502
         # A falsy derivation is indistinguishable from "not derived yet" on
         # state, so GET /review would hand back the working screen — which
         # submits ITSELF, calling the model again, once per lap, forever.
@@ -1387,6 +1410,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             # Rendering a state the profile does not have is how the first
             # change to any other field posts that lie back as an instruction.
             sites=[{"name": site,
+                    # `name` stays the engine's key — it is the form field
+                    # name POST /estimate and POST /run parse. `label` is the
+                    # only thing a person reads.
+                    "label": site_label(site),
                     "on": chosen.get(site, config.SITES[site].get("enabled", True)),
                     # A site bills per run when config.py pins its depth —
                     # the reason the depth control cannot move naukri.
@@ -1772,8 +1799,12 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         rows = shortlist(all_rows, min_score, source, q, sort)
 
-        sources = sorted({r.get("source_site") for r in all_rows
-                           if r.get("source_site")})
+        # One option per PLATFORM, not per company board: the free adapters
+        # write `platform:company`, so this used to offer "greenhouse:stripe"
+        # and "greenhouse:sumup" as separate, differently-named sources. The
+        # filter matches on the same prefix (logic.shortlist).
+        sources = sorted({(r.get("source_site") or "").split(":")[0]
+                          for r in all_rows if r.get("source_site")})
 
         return render_template("results.html", **shell(
             # What this sweep actually cost, or None when no run recorded a
@@ -2020,9 +2051,13 @@ def create_app(state=None, extract=None, resume_dir=None,
                 # A fresh clone that has not reinstalled. Say what to run
                 # rather than 500 — CSV and JSON still work meanwhile.
                 return _results_page(
-                    error="Excel export needs the openpyxl package. Run "
-                          "pip install -r requirements.txt and try again — "
-                          "CSV and JSON work without it."), 503
+                    error=("Excel export is not available right now. Your "
+                           "jobs are all still here — use CSV, JSON or the "
+                           "web page instead."
+                           if app.config.get("PUBLIC_MODE") else
+                           "Excel export needs the openpyxl package. Run "
+                           "pip install -r requirements.txt and try again — "
+                           "CSV and JSON work without it.")), 503
         else:
             body = build(tagged)
 

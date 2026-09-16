@@ -90,7 +90,7 @@
               <label class="choice">
                 <input type="checkbox" name="site_{{ site.name }}"
                        {{ 'checked' if site.on }}>
-                <span><b>{{ site.name }}</b>
+                <span><b>{{ site.label }}</b>
                   <span class="why">
                     {%- if site.per_run %}Charged per run at its own fixed depth,
                       so the depth control does not move it.
@@ -313,7 +313,7 @@
           <template x-for="line in est.lines" :key="line.site">
             <tr :class="line.free && 'free'">
               <td>
-                <b x-text="line.site"></b><br>
+                <b x-text="line.label || line.site"></b><br>
                 {# The count and rate stay unaccented so each row carries one
                    amber figure — the subtotal — rather than three. #}
                 <span class="meta" x-text="line.searches + ' searches · $'

@@ -56,8 +56,8 @@
         <table class="lines">
           {% for line in plan.lines %}
             <tr class="{{ 'free' if line.free }}">
-              <td>{{ line.site }}</td>
-              <td>{{ line.searches }} searches</td>
+              <td>{{ line.label or site_label(line.site) }}</td>
+              <td>{{ line.searches }} search{{ '' if line.searches == 1 else 'es' }}</td>
               <td class="{{ 'paid' if not line.free }}">${{ '%.3f'|format(line.rate) }} each at {{ line.results }} results</td>
               <td class="{{ 'paid' if not line.free }}">${{ '%.2f'|format(line.subtotal) }}</td>
             </tr>
@@ -88,6 +88,7 @@
               them — but a sweep can only spend from one at a time.</p>
           {% endif %}
 
+          {% if not public_mode %}
           <h3>Add another key</h3>
           {# Accurate about what the engine does: scraper._require_token()
              builds one ApifyClient for the whole run from the account with
@@ -107,11 +108,12 @@
             </label>
             <button class="primary" type="submit">Verify and attach</button>
           </form>
+          {% endif %}
 
-          <h3>Or spend less</h3>
+          <h3>{% if public_mode %}Spend less{% else %}Or spend less{% endif %}</h3>
           <ul>
             {% for line in plan.lines if not line.free %}
-              <li>Drop {{ line.site }} — saves ${{ '%.2f'|format(line.subtotal) }}</li>
+              <li>Drop {{ line.label or site_label(line.site) }} — saves ${{ '%.2f'|format(line.subtotal) }}</li>
             {% endfor %}
           </ul>
           <a class="secondary" href="{{ url_for('configure') }}">Narrow the search instead</a>

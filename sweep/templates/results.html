@@ -65,7 +65,7 @@
             {%- endif %}</td>
           {# Same rule plan.cost() and the running screen's tiles use: a site
              listed at a $0.00 rate is free either way. #}
-          <td class="{{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">{{ row['source_site'] }}</td>
+          <td class="{{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">{{ site_label(row['source_site']) }}</td>
           <td class="score">{{ row['score'] }}</td>
           <td><b>{{ row['title'] }}</b><br><span class="muted">{{ row['company'] }}</span></td>
           <td>{{ row['location'] }}</td>
@@ -147,8 +147,11 @@
     <h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
     {# Re-ranking is not offered on the free path, so the lede must not
        promise it there. #}
+    {# Re-ranking is operator-only, so the public lede must not promise it on
+       either path — only the local paid screen actually offers the control. #}
     <p class="lede">
       {%- if free_only %}This sweep cost nothing, and filtering these costs nothing either.
+      {%- elif public_mode %}Filtering and sorting these costs nothing — the searching is already done.
       {%- else %}Filtering and re-ranking these is free and costs no extra credit.{% endif %}</p>
   </div>
 
@@ -209,8 +212,10 @@
       <label><span class="label">Source</span>
         <select name="source">
           <option value="">All sources</option>
+          {# The VALUE stays the engine's key, which is what the filter
+             compares; only the text is the board's own spelling. #}
           {% for s in sources %}
-            <option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>
+            <option value="{{ s }}" {{ 'selected' if s == source }}>{{ site_label(s) }}</option>
           {% endfor %}
         </select>
       </label>
@@ -249,13 +254,19 @@
              now with no network and no app. #}
           {{ export_link('html', 'Web page', 'secondary') }}
         </div>
-        <p class="meta">Reads the shortlist already on your disk and writes
-          the file here. No API calls, no credit, nothing uploaded.</p>
+        <p class="meta">{% if public_mode %}Built from the jobs already
+          found in this sweep. No new searches, and nothing is charged.{% else
+          %}Reads the shortlist already on your disk and writes the file here.
+          No API calls, no credit, nothing uploaded.{% endif %}</p>
       </div>
     {% endif %}
   </form>
 
-  {% if free_only %}
+  {% if public_mode %}
+    {# POST /rescore is operator-only (public.OPERATOR_ONLY), so neither the
+       editor nor the explanation of it belongs on a public results screen:
+       one posts to a 404, the other describes a control that is not there. #}
+  {% elif free_only %}
     <div class="panel">
       <div class="panel-head">
         <h2>Re-ranking needs a paid sweep</h2>
