@@ -45,9 +45,9 @@ from sweep.logic import (  # noqa: E402,F401
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
-    experience_parts, experience_text, run_banner, run_phase,
-    scope_label, site_label, sort_rows, step_states, sweep_dates,
-    sweep_state,
+    experience_parts, experience_text, parse_banner, pick_activity,
+    run_banner, run_phase, scope_label, site_label, sort_rows, step_states,
+    sweep_dates, sweep_state,
     with_experience, worst_filter, applied_path, read_applied, set_applied)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
@@ -84,6 +84,17 @@ SPEND_CAP_FLOOR_USD = 0.50
 def spend_cap_for(estimate_usd):
     """The hard stop to write into the profile for a plan estimated at this."""
     return round(max(SPEND_CAP_FLOOR_USD, estimate_usd * SPEND_CAP_HEADROOM), 2)
+
+
+class ParseInFlight(Exception):
+    """This browser already has a résumé being read.
+
+    Not an error the visitor caused and not one they can fix: the answer is
+    to show them the reading screen for the parse that IS running, rather
+    than start a second one. Raised rather than returned because
+    derived_for_state() is reached from four routes and every one of them
+    has to stop doing what it was about to do.
+    """
 
 
 class PlanUnavailable(Exception):
@@ -928,7 +939,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         return no_key_yet() and not free_only()
 
-    def owned_run_banner(step):
+    def owned_run_banner(step, live=False):
         """The persistent status strip, or None.
 
         Public mode only, and only for a browser whose SIGNED COOKIE holds a
@@ -952,6 +963,20 @@ def create_app(state=None, extract=None, resume_dir=None,
         from sweep import worker_link
         if not public.current_run_id():
             return None
+        # The POLL may pay for the fuller reading — it is the same call
+        # /running makes, and it is where the jobs-found count comes from.
+        # A page RENDER may not: snapshot() pages every row the run has
+        # produced, which is far too much to draw one line on /review.
+        if live and app.state.get("raw_plan"):
+            try:
+                said = snapshot()["banner"]
+            except Exception:
+                said = None
+            if said:
+                # on_results is the render's business, not snapshot's.
+                if step == "results" and said["to"] == "results":
+                    return None
+                return said
         try:
             status = worker_link.owned_status()
         except Exception:
@@ -969,6 +994,29 @@ def create_app(state=None, extract=None, resume_dir=None,
             # A "Sweep complete" strip above the jobs it is pointing at is
             # one line of chrome telling the reader to go where they are.
             on_results=(step == "results"))
+
+    def owned_activity(step, live=False):
+        """The ONE strip: whichever of the two things Sweep can be doing for
+        this browser is the one worth saying.
+
+        Public only, like the sweep half — the console operator is watching
+        their own terminal and a strip telling them a model is running would
+        be repeating it.
+        """
+        if not app.config.get("PUBLIC_MODE"):
+            return None
+        said = parse_banner(parse_phase(),
+                            # Same stand-down rule the sweep half has:
+                            # "ready" says nothing on the screen it points at.
+                            on_review=(step == "review"))
+        # ...and it is behind you entirely once a sweep exists. Checked on
+        # the run id rather than on the sweep banner, because that banner has
+        # already stood itself down on /results — and "Your profile is ready"
+        # sliding into the gap it left is how the jobs screen ended up
+        # pointing back at the profile.
+        if said and said["phase"] == "ready" and public.current_run_id():
+            said = None
+        return pick_activity(owned_run_banner(step, live=live), said)
 
     def shell(step, spend=0.0, spend_is_this_sweep=True,
               spend_is_estimate=False, **kw):
@@ -1025,7 +1073,7 @@ def create_app(state=None, extract=None, resume_dir=None,
             left = total
             if spend and spend_is_this_sweep and not spend_is_estimate:
                 left = round(max(0.0, total - spend), 2)
-        banner = owned_run_banner(step)
+        banner = owned_activity(step)
         return dict(steps=step_states(app.config.get("STEPS", STEPS),
                                       app.state, step,
                                       # While a sweep is live, the Search
@@ -1191,13 +1239,68 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     COMMODITY_WEIGHT = 2
 
+    # How long a "reading" marker is believed. The parse is two model calls
+    # and gunicorn kills the worker at MAX_TIMEOUT+60, so anything older than
+    # this is a request that died without reaching its own `finally` — and a
+    # strip still claiming to be reading a résumé nobody is reading is the
+    # exact dishonesty this whole component exists to remove.
+    PARSE_STALE_SECONDS = 20 * 60
+
+    def parse_phase():
+        """reading / ready / failed / None, for THIS browser.
+
+        Read from the session room, which is where the parse already writes
+        its result — so the marker and the thing it describes cannot drift,
+        and both die together if the process does. That last part is the
+        honest half: a Render restart loses the résumé text as well, so
+        there is nothing to resume and the strip correctly says nothing.
+        """
+        if app.state.get("derived") is not None:
+            return "ready"
+        mark = app.state.get("parse")
+        if not mark:
+            return None
+        if mark.get("state") == "reading":
+            if wall_now() - mark.get("at", 0) > PARSE_STALE_SECONDS:
+                return "failed"
+            return "reading"
+        return mark.get("state")
+
+    def parse_in_flight():
+        return parse_phase() == "reading"
+
     def derived_for_state():
         """The model call is made once per résumé and cached on state — a
-        cost, so never repeated just because the review screen reloads."""
+        cost, so never repeated just because the review screen reloads.
+
+        The cache was the only guard, and it is only set AFTER the call
+        returns: during the twenty-to-a-hundred-and-fifty seconds the model
+        takes, `derived` is still None, so a refresh — which deriving.html
+        auto-submits — started a SECOND parse. Measured: two model calls,
+        four GPU calls, and two of a visitor's three daily slots for one
+        résumé. The marker closes that window.
+        """
         derived = app.state.get("derived")
-        if derived is None:
+        if derived is not None:
+            return derived
+        with _parse_lock:
+            # Re-read under the lock: two requests that both saw None above
+            # would otherwise both spend.
+            if app.state.get("derived") is not None:
+                return app.state["derived"]
+            if parse_in_flight():
+                raise ParseInFlight
+            app.state["parse"] = {"state": "reading", "at": wall_now()}
+        try:
             derived = derive(app.state["resume_text"], _prefs(app.state))
-            app.state["derived"] = derived
+        except Exception:
+            # Marked, not cleared: "we tried and it did not work" is a state
+            # the visitor can act on, and an absent marker would send them
+            # round the auto-submitting screen again.
+            app.state["parse"] = {"state": "failed", "at": wall_now()}
+            raise
+        app.state["derived"] = derived
+        app.state.pop("parse", None)
         return derived
 
     @app.get("/review")
@@ -1211,7 +1314,18 @@ def create_app(state=None, extract=None, resume_dir=None,
         # screen instead and let POST /derive make the call: a form POST keeps
         # that screen on display until the redirect lands.
         if app.state.get("derived") is None:
-            return render_template("deriving.html", **shell("review"))
+            phase = parse_phase()
+            if phase == "failed":
+                return render_template("deriving.html", **shell(
+                    "review",
+                    error="Sweep could not read that résumé. Nothing was "
+                          "charged. Try uploading it again — a text-based "
+                          "PDF rather than a scan works best.")), 502
+            # `waiting` is the whole fix for the duplicate: the screen starts
+            # a parse only when there is not one already running, and watches
+            # instead when there is.
+            return render_template("deriving.html", **shell(
+                "review", waiting=(phase == "reading")))
         derived = derived_for_state()
         commodity = [w["term"] for w in derived["skill_weights"]
                      if w["weight"] <= COMMODITY_WEIGHT]
@@ -1243,6 +1357,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             return redirect(url_for("upload"))
         try:
             derived = derived_for_state()
+        except ParseInFlight:
+            # A refresh, a second tab, or a double-submit. The parse that is
+            # already running is the one to watch.
+            return redirect(url_for("review"))
         except public.BetaLimited:
             # Not a model failure and not this app's error page: the beta
             # budget has its own 429 handler, and the catch-all below would
@@ -1336,6 +1454,11 @@ def create_app(state=None, extract=None, resume_dir=None,
     def review_post():
         if not app.state.get("resume_text"):
             return redirect(url_for("upload"))
+        # Approving a profile that is still being read would reach
+        # derived_for_state() and start a second parse — the same window the
+        # marker closes for GET, through the other door.
+        if parse_in_flight():
+            return redirect(url_for("review"))
         derived_now = app.state.get("derived")
         if app.config.get("PUBLIC_MODE"):
             # No field to read: the public screen does not render one.
@@ -1884,6 +2007,23 @@ def create_app(state=None, extract=None, resume_dir=None,
             spend_is_this_sweep=progress_now["baseline_known"],
             progress=progress_now, plan=app.state["plan"]))
 
+    @app.get("/activity")
+    def activity():
+        """What Sweep is doing for this browser, as the strip says it.
+
+        ONE endpoint for the one component, so the résumé half and the sweep
+        half cannot drift into two poll loops with two opinions. It answers
+        the same function the page was rendered from, so a poll can only ever
+        replace the strip with a newer version of itself.
+
+        No run and no parse is `{"banner": null}` and a 200: "nothing is
+        happening" is an answer, not an error, and the script hides the strip
+        on it.
+        """
+        from flask import jsonify
+        return jsonify({"banner": owned_activity(
+            request.args.get("on") or "", live=True)})
+
     @app.get("/progress")
     def progress():
         from flask import jsonify
@@ -2038,6 +2178,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             spans_midnight=_spans_midnight(), error=error)), status
 
     _run_lock = threading.Lock()
+    # Held only across the check-and-mark, never across the model call: two
+    # concurrent requests must not both decide to spend, but one visitor's
+    # parse must not block anybody else's.
+    _parse_lock = threading.Lock()
     _rescore_lock = threading.Lock()
     _merge_lock = threading.Lock()
 

@@ -73,6 +73,10 @@ PUBLIC_ENDPOINTS = frozenset({
     # they have always had.
     "key", "key_free", "key_post", "configure", "estimate", "confirm",
     "run", "running", "progress", "stop", "results", "export",
+    # The one status endpoint the global activity strip polls, for the
+    # résumé half and the sweep half alike. Read-only, and answers only
+    # about the caller's own session and their own run.
+    "activity",
 })
 
 # Reachable locally, never here. Each one either spends the OPERATOR's

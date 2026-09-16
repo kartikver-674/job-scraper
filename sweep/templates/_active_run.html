@@ -10,13 +10,16 @@
    a browser that was closed and reopened sees its sweep before any script
    runs. The poll below then follows it live.
 
-   `to` is an endpoint name decided in logic.run_banner, not a URL built
-   here: while a sweep is live the action is the sweep, and once it is over
-   the action is the jobs. #}
+   `to` is an endpoint name decided in logic.run_banner / logic.parse_banner,
+   not a URL built here: while a sweep is live the action is the sweep, once
+   it is over the action is the jobs, and while a résumé is being read the
+   action is that. #}
 <div class="runbar {{ active_run.tone }}" id="runbar"
-     data-poll="{{ url_for('progress') }}"
+     data-poll="{{ url_for('activity', on=step or '') }}"
      data-running="{{ url_for('running') }}"
      data-results="{{ url_for('results') }}"
+     data-review="{{ url_for('review') }}"
+     data-upload="{{ url_for('upload') }}"
      {# Polite, not assertive: a sweep finishing while someone is reading
         their profile is worth announcing and not worth interrupting. #}
      role="status" aria-live="polite">

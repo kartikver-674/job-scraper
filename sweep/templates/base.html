@@ -117,7 +117,7 @@
    journey on every screen and above whatever that screen is about. Not on
    /running itself: the whole page is the sweep there, and a strip saying so
    above it would be the same sentence twice. #}
-{% if active_run and step != 'running' %}
+{% if active_run and not (active_run.kind == 'sweep' and step == 'running') %}
   {% include "_active_run.html" %}
 {% endif %}
 
@@ -147,15 +147,17 @@
   <main>{% block body %}{% endblock %}</main>
 </div>
 
-{% if active_run and step != 'running' %}
+{% if active_run and not (active_run.kind == 'sweep' and step == 'running') %}
 {# Plain script, not Alpine: Alpine is deferred and a deferred script also
    waits on the render-blocking font stylesheet, and the one thing this strip
    must not do is take a slow network to tell someone their sweep is alive.
    The server already painted the truth; this only follows it.
 
-   /progress is the same endpoint /running polls — one source of run truth,
-   and it carries the strip's own wording (snapshot -> logic.run_banner) so
-   nothing about the phrasing is re-decided here. #}
+   /activity is the one endpoint for the one strip — the résumé half and the
+   sweep half both — so there is never a second poll loop with a second
+   opinion. It answers the same function the page was rendered from, so a
+   poll can only replace the strip with a newer version of itself; nothing
+   about the phrasing is re-decided here. #}
 <script>
   (function () {
     var bar = document.getElementById("runbar");
@@ -169,15 +171,26 @@
         EVERY = 8000,
         /* Nothing transitions out of these, so polling past one is asking a
            question whose answer cannot change. */
-        DONE = { finished: 1, stopped: 1, failed: 1 };
+        /* Nothing transitions out of these, so polling past one is asking
+           a question whose answer cannot change. "ready" is terminal for the
+           résumé half in the same way "finished" is for the sweep — the next
+           thing that happens is the visitor starting a sweep, which is a
+           navigation, not a poll. */
+        DONE = { finished: 1, stopped: 1, failed: 1, ready: 1 };
+
+    var WHERE = { running: "running", results: "results",
+                  review: "review", upload: "upload" };
 
     function paint(b) {
-      if (!b) { bar.hidden = true; return; }
+      /* Nothing happening is an answer: the sweep was cleared, or the
+         profile was opened and "ready" stood down. */
+      if (!b) { bar.hidden = true; return true; }
+      bar.hidden = false;
       bar.className = "runbar " + b.tone;
       head.textContent = b.headline;
       detail.textContent = b.detail;
       cta.textContent = b.cta;
-      cta.href = b.to === "results" ? bar.dataset.results : bar.dataset.running;
+      cta.href = bar.dataset[WHERE[b.to] || "running"];
       return DONE[b.phase];
     }
 

@@ -11,6 +11,10 @@
 
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
+  {# `waiting` means a parse is ALREADY open for this browser — a refresh, a
+     second tab, or a return after closing the first. The screen watches it
+     instead of starting another: that window cost two model calls, four GPU
+     calls and two of a visitor's three daily slots for one résumé. #}
   <form id="derive-now" method="post" action="{{ url_for('derive_post') }}">
     {% if error %}
       <div class="actions">
@@ -23,20 +27,28 @@
          "Continue" button with no sign that anything was happening — which
          is what it looked like whenever Alpine was slow to boot. #}
       <div class="working-bar"><span></span></div>
+      {% if waiting %}
+        <p class="muted">You can leave this page — Sweep keeps reading, and
+          your profile will be here when you come back.</p>
+      {% endif %}
       {# No button here on purpose: this screen is already working, and a
          control that does nothing is worse than no control. <noscript> keeps
-         one because without a script nothing else moves. #}
+         one because without a script nothing else moves — except when a
+         parse is already running, where pressing it would only land back
+         here. #}
+      {% if not waiting %}
       <noscript>
         <div class="actions">
           <button class="primary" type="submit">Read my résumé</button>
           <span class="meta">JavaScript is off, so this step needs the button.</span>
         </div>
       </noscript>
+      {% endif %}
     {% endif %}
   </form>
 </div>
 
-{% if not error %}
+{% if not error and not waiting %}
   {# A plain script rather than Alpine's x-init. Alpine is deferred, and a
      deferred script's execution also waits on the render-blocking font
      stylesheet — so on a slow network this screen sat with only its fallback
@@ -44,7 +56,9 @@
      The one screen with no other way forward must not wait for a library.
 
      Omitted entirely when there is an error: a résumé the model keeps
-     refusing would otherwise retry forever, paying for a call each lap. #}
+     refusing would otherwise retry forever, paying for a call each lap.
+     Omitted when `waiting` for the same reason pointing the other way: a
+     parse is already open, and submitting would start a second. #}
   <script>
     (function () {
       var form = document.getElementById('derive-now'), sent = false;
@@ -60,6 +74,33 @@
          frames do not fire at all. */
       requestAnimationFrame(function () { requestAnimationFrame(go); });
       setTimeout(go, 400);
+    })();
+  </script>
+{% endif %}
+
+{% if waiting %}
+  {# Watching, not working: this screen did not start the parse and must not
+     start one. It asks the same /activity endpoint the strip does — one
+     source of truth for "is Sweep still reading" — and reloads onto the
+     profile when the answer stops being "reading". #}
+  <script>
+    (function () {
+      var EVERY = 3000;
+      function look() {
+        fetch("{{ url_for('activity', on='review') }}",
+              { credentials: "same-origin" })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            var phase = d && d.banner && d.banner.phase;
+            /* Anything but "reading" means this screen is out of date —
+               the profile is ready, or the parse failed and /review will
+               render the error. */
+            if (d && phase !== "reading") { location.reload(); return; }
+            setTimeout(look, EVERY);
+          })
+          .catch(function () { setTimeout(look, EVERY); });
+      }
+      setTimeout(look, EVERY);
     })();
   </script>
 {% endif %}

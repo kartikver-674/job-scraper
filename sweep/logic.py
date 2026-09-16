@@ -486,11 +486,13 @@ def run_banner(phase, queue_position=0, found=None, on_results=False):
             detail = f"{queue_position} sweeps ahead"
         else:
             detail = "Waiting to start"
-        return {"phase": phase, "tone": "wait", "headline": "Sweep queued",
+        return {"phase": phase, "kind": "sweep", "tone": "wait",
+                "headline": "Sweep queued",
                 "detail": detail, "cta": "View progress", "to": "running"}
 
     if phase == "running":
-        return {"phase": phase, "tone": "live", "headline": "Sweep in progress",
+        return {"phase": phase, "kind": "sweep", "tone": "live",
+                "headline": "Sweep in progress",
                 "detail": (f"{jobs} found so far" if jobs
                            else "Searching for jobs"),
                 "cta": "View progress", "to": "running"}
@@ -501,18 +503,77 @@ def run_banner(phase, queue_position=0, found=None, on_results=False):
     if on_results:
         return None
     if phase == "finished":
-        return {"phase": phase, "tone": "done", "headline": "Sweep complete",
+        return {"phase": phase, "kind": "sweep", "tone": "done",
+                "headline": "Sweep complete",
                 "detail": (f"{jobs} found" if jobs else "Your jobs are ready"),
                 "cta": "View jobs", "to": "results"}
     if phase == "stopped":
-        return {"phase": phase, "tone": "warn", "headline": "Sweep stopped",
+        return {"phase": phase, "kind": "sweep", "tone": "warn",
+                "headline": "Sweep stopped",
                 "detail": (f"{jobs} found before it stopped" if jobs
                            else "Everything it found is saved"),
                 "cta": "View jobs", "to": "results"}
-    return {"phase": phase, "tone": "warn", "headline": "Sweep stopped early",
+    return {"phase": phase, "kind": "sweep", "tone": "warn",
+            "headline": "Sweep stopped early",
             "detail": (f"{jobs} found before it stopped" if jobs
                        else "Everything it found is saved"),
             "cta": "View jobs", "to": "results"}
+
+
+# The other thing Sweep does for you that outlives the page you started it
+# on. The parse is synchronous — the request that asks the model is the one
+# that blocks — but a gthread worker does not abort a handler when the
+# browser goes away, so the parse finishes and its result lands in the
+# session room either way. What was missing was any way for a LATER request
+# to know one was open, which is why a refresh mid-parse started a second.
+PARSE_PHASES = ("reading", "ready", "failed")
+
+
+def parse_banner(phase, on_review=False):
+    """The profile half of the activity strip, or None.
+
+    Same shape as run_banner so one component renders either, and the same
+    stand-down rule: "ready" says nothing on the screen it is pointing at.
+    """
+    if phase == "reading":
+        return {"phase": phase, "kind": "profile", "tone": "live",
+                "headline": "Reading your résumé",
+                "detail": "Sweep is building your job-search profile.",
+                "cta": "View progress", "to": "review"}
+    if phase == "failed":
+        return {"phase": phase, "kind": "profile", "tone": "warn",
+                "headline": "Sweep couldn't read your résumé",
+                "detail": "Nothing was charged.",
+                "cta": "Try again", "to": "upload"}
+    if phase == "ready" and not on_review:
+        return {"phase": phase, "kind": "profile", "tone": "done",
+                "headline": "Your profile is ready",
+                "detail": "Check what Sweep understood before searching.",
+                "cta": "Review profile", "to": "review"}
+    return None
+
+
+# What is HAPPENING outranks what has finished. A queued or running sweep is
+# the story whatever else is true; after that, a résumé being read or a parse
+# that failed is something the visitor has to act on; a finished sweep and a
+# ready profile are destinations rather than activity, and the sweep is the
+# later one so it wins between them.
+_ACTIVE = ("queued", "running", "reading", "failed")
+
+
+def pick_activity(sweep, parse):
+    """One strip, deterministic, from the two things that can be going on.
+
+    Deliberately not "sweep always wins": a visitor whose sweep finished and
+    who has since uploaded a new résumé is having their résumé read, and
+    "Sweep complete" over that would point at yesterday's news while the
+    thing actually in progress went unmentioned.
+    """
+    if sweep and sweep["phase"] in ("queued", "running"):
+        return sweep
+    if parse and parse["phase"] in _ACTIVE:
+        return parse
+    return sweep or parse
 
 
 def remaining_cost(tiles, rates):
