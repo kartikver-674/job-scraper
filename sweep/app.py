@@ -45,8 +45,8 @@ from sweep.logic import (  # noqa: E402,F401
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
-    scope_label, site_label, sort_rows, step_states, sweep_dates,
-    sweep_state,
+    run_banner, run_phase, scope_label, site_label, sort_rows,
+    step_states, sweep_dates, sweep_state,
     with_experience, worst_filter, applied_path, read_applied, set_applied)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
@@ -794,6 +794,16 @@ def create_app(state=None, extract=None, resume_dir=None,
              "stopped": "stopped by you",
              "out_of_credit": "out of credit",
              "halted": "stopped early"}[p["state"]])
+
+        # The persistent status strip, built by the SAME function the server
+        # render uses (logic.run_banner) and carried in the poll payload —
+        # so the strip a page was served with and the strip its first poll
+        # replaces cannot word the same run differently.
+        p["banner"] = run_banner(
+            run_phase(p["state"], queued=p.get("queued")),
+            queue_position=p.get("queue_position") or 0,
+            found=p.get("found") or None)
+
         return p
 
     def current_scope():
@@ -917,6 +927,48 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         return no_key_yet() and not free_only()
 
+    def owned_run_banner(step):
+        """The persistent status strip, or None.
+
+        Public mode only, and only for a browser whose SIGNED COOKIE holds a
+        run id — so a visitor without one costs no worker call at all, and a
+        visitor with somebody else's id gets nothing, because the worker
+        checks the owner capability and answers 404 to a stranger exactly as
+        it does for /running.
+
+        Deliberately the CHEAP reading: the worker's own status, which
+        worker_link caches on `g` and which the rehydrate hook has usually
+        already fetched this request. snapshot() is the fuller picture and it
+        pages every row the run has produced — fine for /running and for the
+        poll, far too much to pay on /review just to draw a strip.
+
+        `found` therefore comes from whatever the last live reading left on
+        state, and is absent rather than invented on a fresh process. The
+        poll fills it in.
+        """
+        if not app.config.get("PUBLIC_MODE"):
+            return None
+        from sweep import worker_link
+        if not public.current_run_id():
+            return None
+        try:
+            status = worker_link.owned_status()
+        except Exception:
+            # Unreachable, expired, or not this visitor's. All three mean
+            # the same thing to the strip: nothing to show. They are never
+            # distinguished here — that is the ownership boundary.
+            return None
+        if not status:
+            return None
+        return run_banner(
+            run_phase(status.get("state"),
+                      queued=bool(status.get("queue_position"))),
+            queue_position=status.get("queue_position") or 0,
+            found=app.state.get("live_found") or None,
+            # A "Sweep complete" strip above the jobs it is pointing at is
+            # one line of chrome telling the reader to go where they are.
+            on_results=(step == "results"))
+
     def shell(step, spend=0.0, spend_is_this_sweep=True,
               spend_is_estimate=False, **kw):
         """Every screen gets the meter reflecting ITS OWN state, never a
@@ -972,8 +1024,15 @@ def create_app(state=None, extract=None, resume_dir=None,
             left = total
             if spend and spend_is_this_sweep and not spend_is_estimate:
                 left = round(max(0.0, total - spend), 2)
+        banner = owned_run_banner(step)
         return dict(steps=step_states(app.config.get("STEPS", STEPS),
-                                      app.state, step),
+                                      app.state, step,
+                                      # While a sweep is live, the Search
+                                      # stage is that sweep — not the form
+                                      # that configures a new one.
+                                      links={"key": "running"}
+                                      if banner and banner["to"] == "running"
+                                      else None),
                     public_mode=public_mode,
                     # Every screen that names a board names it the way the
                     # board spells it. Here rather than per-render because
@@ -981,6 +1040,11 @@ def create_app(state=None, extract=None, resume_dir=None,
                     # agreeing: /configure and /confirm showed "linkedin"
                     # while the prose beside them said "LinkedIn".
                     site_label=site_label,
+                    # The sweep this browser owns, on every screen it has.
+                    # A run that outlives the page it was started from is
+                    # the promise "you can close this tab" makes, and the
+                    # UI had no way to keep it.
+                    active_run=banner,
                     step=step, spend=spend, cap_usd=cap,
                     credit_left=left,
                     free_only=free_only(),
@@ -1659,6 +1723,18 @@ def create_app(state=None, extract=None, resume_dir=None,
         # child starts.
         with _run_lock:
             if _sweep_in_flight():
+                # The existing run wins. It is the one the worker is
+                # actually executing and the one whose rows exist, and
+                # replacing it would orphan a sweep this process can no
+                # longer stop — POST /stop signals the child it can see.
+                #
+                # Publicly that refusal cannot be the confirm screen: the
+                # free path never visits /confirm, so a second click on
+                # "Start Free Sweep" would land on a page the visitor has
+                # never seen, explaining a state the strip already shows.
+                # Send them to their sweep instead.
+                if app.config.get("PUBLIC_MODE"):
+                    return redirect(url_for("running"))
                 return _confirm_page(
                     error="A sweep is already running. Watch it on the "
                           "running screen, or stop it before starting "

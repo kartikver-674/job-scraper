@@ -418,6 +418,16 @@
              this screen — the summary above is what /confirm would have
              carried. POST /run is unchanged and still refuses a plan it never
              priced; /configure's own render is what prices it. #}
+          {# A start button while a sweep is already running is an
+             invitation to a conflict the worker would refuse anyway. The
+             run in progress is the one that matters, so that is what this
+             offers — and the strip above is already saying so. #}
+          {% if sweep_running %}
+            <p class="muted">You already have a Sweep in progress. Starting
+              another would not run until that one finishes.</p>
+            <a class="primary big" href="{{ url_for('running') }}"
+               >View my Sweep<span class="go" aria-hidden="true">&rarr;</span></a>
+          {% else %}
           <p class="muted">Free — no account needed and nothing to pay.</p>
           <form method="post" action="{{ url_for('run') }}"
                 x-data="{ sent: false }" @submit="sent = true">
@@ -427,6 +437,7 @@
             <span class="meta sending" x-show="sent" x-cloak
                   aria-live="polite">Starting your sweep…</span>
           </form>
+          {% endif %}
         {% endif %}
       </div>
       {% endif %}
@@ -481,10 +492,15 @@
           {% endif %}
           <p class="muted">Nothing is charged until you start the sweep.</p>
         {% endif %}
+        {% if public_mode and sweep_running %}
+          <a class="primary big" href="{{ url_for('running') }}"
+             >View my Sweep<span class="go" aria-hidden="true">&rarr;</span></a>
+        {% else %}
         <a class="primary{{ ' big' if public_mode }}" href="{{ url_for('confirm') }}">
           {%- if public_mode %}Review and start<span class="go"
             aria-hidden="true">&rarr;</span>
           {%- elif free_only %}Review the sweep{% else %}Review spend plan{% endif %}</a>
+        {% endif %}
       </div>
       {% endif %}
     </aside>

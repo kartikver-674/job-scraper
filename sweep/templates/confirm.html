@@ -218,6 +218,14 @@
            sweep that stops partway loses nothing — but it must not be one
            click that looks like the funded case. The box is what /run
            requires, so an unticked submit is refused rather than started. #}
+        {% if public_mode and sweep_running %}
+          <p class="muted">You already have a Sweep in progress. Starting
+            another would not run until that one finishes.</p>
+          <div class="actions">
+            <a class="primary big" href="{{ url_for('running') }}"
+               >View my Sweep<span class="go" aria-hidden="true">&rarr;</span></a>
+          </div>
+        {% else %}
         <form method="post" action="{{ url_for('run') }}"
               x-data="{ sent: false, ack: false }" @submit="sent = true">
           {% if plan.over_cap %}
@@ -242,6 +250,7 @@
           <span class="meta sending" x-show="sent" x-cloak>Starting the
             sweep…</span>
         </form>
+        {% endif %}
       </div>
     </aside>
   </div>

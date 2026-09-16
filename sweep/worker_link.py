@@ -217,6 +217,30 @@ def injections(app):
             "read_queue": read_queue, "list_sweeps": list_sweeps}
 
 
+def owned_status():
+    """This browser's run, as the worker sees it — or None.
+
+    The one call the persistent status strip is allowed to make. Cheap by
+    construction: `_status` caches on `g`, so the rehydrate hook that runs
+    before every public request has usually already paid for it and this is
+    free.
+
+    None for every reason a strip should stay silent, and deliberately
+    without distinguishing them: no run in the cookie, the worker refusing
+    a run that is not this owner's (RunNotFound, which is what a stranger
+    holding a real id gets), a run aged past its TTL, or the worker simply
+    not answering. Telling those apart on screen is how an ownership
+    boundary leaks.
+    """
+    run_id = public.current_run_id()
+    if not run_id:
+        return None
+    try:
+        return _status(run_id)
+    except worker_client.WorkerError:
+        return None
+
+
 def _prefs_of(state):
     from sweep.app import _prefs
     return _prefs(state)

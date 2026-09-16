@@ -181,7 +181,7 @@ PUBLIC_STAGES = [
 ]
 
 
-def step_states(steps, state, current):
+def step_states(steps, state, current, links=None):
     """Each step's number, whether it can be opened, and whether it is done.
 
     The rule is asymmetric on purpose. A step is never offered when its
@@ -256,7 +256,11 @@ def step_states(steps, state, current):
 
     at = next((i for i, (_, _, members, _) in enumerate(rows)
                if current in members), None)
-    return [{"slug": link, "label": label, "n": i + 1,
+    # A stage can point somewhere other than its usual route when the
+    # session says so — the Search stage becomes the running sweep while one
+    # is live, rather than the form that would configure a second.
+    links = links or {}
+    return [{"slug": links.get(link, link), "label": label, "n": i + 1,
              "current": current in members,
              # Never mark the step being viewed as done, whatever state says:
              # you are standing on it, which is the more useful fact.
@@ -425,6 +429,90 @@ def sweep_state(running, outstanding, stopped_by_user=False,
             and credit_left < cheapest_search):
         return "out_of_credit"
     return "halted"
+
+
+# Two vocabularies describe one sweep. The WORKER says queued / running /
+# done / failed / stopped / interrupted; snapshot() says running / finished /
+# stopped / out_of_credit / halted plus a `queued` flag. The status strip has
+# to read the same on a page rendered from the cheap worker status as on one
+# updated from a /progress poll, so both are folded to these five first.
+RUN_PHASES = ("queued", "running", "finished", "stopped", "failed")
+
+_WORKER_PHASE = {"queued": "queued", "running": "running", "done": "finished",
+                 "stopped": "stopped", "failed": "failed",
+                 "interrupted": "failed"}
+_SNAPSHOT_PHASE = {"running": "running", "finished": "finished",
+                   "stopped": "stopped", "out_of_credit": "failed",
+                   "halted": "failed"}
+
+
+def run_phase(state, queued=False):
+    """One of RUN_PHASES, from either vocabulary.
+
+    `queued` wins: snapshot() reports state="running" for a run the worker
+    has accepted but not started, because the child it asks about is the
+    one it would have — and "Sweep in progress" over a run that is still
+    waiting is the claim this whole component exists to stop making.
+    """
+    if queued:
+        return "queued"
+    return _WORKER_PHASE.get(state) or _SNAPSHOT_PHASE.get(state) or "running"
+
+
+def run_banner(phase, queue_position=0, found=None, on_results=False):
+    """What the persistent status strip says, or None when it says nothing.
+
+    ONE function for both callers — the server render on every public page
+    and the /progress payload the poll reads — because a strip that
+    re-derived its own wording in JavaScript would drift from the wording
+    the same page was served with, and the drift would show as a flicker on
+    the first poll.
+
+    `found` is only ever shown when it is a real count. A free sweep emits
+    no rows until the end (scraper.py calls fetch_free() once), so "0 jobs
+    found so far" would be a fabricated figure on exactly the screen that
+    exists to be trusted about a run nobody can see.
+    """
+    if phase not in RUN_PHASES:
+        return None
+    jobs = None
+    if found:
+        jobs = f"{found} job{'' if found == 1 else 's'}"
+
+    if phase == "queued":
+        if queue_position == 1:
+            detail = "You're next"
+        elif queue_position > 1:
+            detail = f"{queue_position} sweeps ahead"
+        else:
+            detail = "Waiting to start"
+        return {"phase": phase, "tone": "wait", "headline": "Sweep queued",
+                "detail": detail, "cta": "View progress", "to": "running"}
+
+    if phase == "running":
+        return {"phase": phase, "tone": "live", "headline": "Sweep in progress",
+                "detail": (f"{jobs} found so far" if jobs
+                           else "Searching for jobs"),
+                "cta": "View progress", "to": "running"}
+
+    # Terminal. The destination is the jobs, not the progress screen — there
+    # is no progress left to watch — and the strip stands down once the
+    # reader is actually looking at them.
+    if on_results:
+        return None
+    if phase == "finished":
+        return {"phase": phase, "tone": "done", "headline": "Sweep complete",
+                "detail": (f"{jobs} found" if jobs else "Your jobs are ready"),
+                "cta": "View jobs", "to": "results"}
+    if phase == "stopped":
+        return {"phase": phase, "tone": "warn", "headline": "Sweep stopped",
+                "detail": (f"{jobs} found before it stopped" if jobs
+                           else "Everything it found is saved"),
+                "cta": "View jobs", "to": "results"}
+    return {"phase": phase, "tone": "warn", "headline": "Sweep stopped early",
+            "detail": (f"{jobs} found before it stopped" if jobs
+                       else "Everything it found is saved"),
+            "cta": "View jobs", "to": "results"}
 
 
 def remaining_cost(tiles, rates):
