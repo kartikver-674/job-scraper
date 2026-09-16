@@ -1,0 +1,172 @@
+1. Normal code change → push to main
+From your Mac, inside the repo:
+git status
+git add .
+git commit -m "your commit message"
+
+git checkout main
+git pull origin main
+
+# if you developed on another branch:
+git merge --no-ff your-feature-branch
+
+git push origin main
+Or if you directly work on main:
+git add .
+git commit -m "your commit message"
+git pull --rebase origin main
+git push origin main
+Once main is pushed, decide which service actually uses the changed code.
+2. Render — public Sweep website
+Render is now pointed at:
+main
+So normally:
+git push origin main
+is all you need.
+Render should auto-deploy the new commit.
+Then check:
+Render → sweep-beta → Deploys
+and make sure the deployed commit matches your latest main.
+Health check:
+curl -s https://sweep-beta.onrender.com/healthz
+If auto-deploy doesn't trigger:
+Render
+→ sweep-beta
+→ Manual Deploy
+→ Deploy latest commit
+Update Render when you changed
+Flask/web routes
+templates
+public-mode logic
+profile/review flow
+worker client
+scoring code used by Render
+render.yaml
+dependencies
+3. Oracle Sweep Worker
+If your commit changes:
+scraper logic
+free sources
+Apify sources
+scoring used by the worker
+worker API
+queue/runs
+worker-side profile handling
+then update Oracle too.
+SSH:
+ssh -i ~/.ssh/sweep-oracle.key ubuntu@140.245.7.224
+Then:
+sudo -u sweepworker git -C /opt/sweep-worker/app fetch origin
+
+sudo -u sweepworker git -C /opt/sweep-worker/app checkout main
+
+sudo -u sweepworker git -C /opt/sweep-worker/app reset --hard origin/main
+Check commit:
+sudo -u sweepworker git -C /opt/sweep-worker/app log -1 --oneline
+Restart only the Sweep worker:
+sudo systemctl restart sweep-worker
+sleep 2
+
+systemctl status sweep-worker --no-pager
+Health check:
+TOKEN=$(sudo sed -n 's/^SWEEP_WORKER_TOKEN=//p' /etc/sweep-worker/env)
+
+curl -s \
+  -H "Authorization: Bearer $TOKEN" \
+  https://sweep-inference.duckdns.org/worker/healthz
+Expected:
+{"max_active":1,"queued":0,"running":0,"status":"ok"}
+And make sure inference wasn't affected:
+curl -s https://sweep-inference.duckdns.org/healthz
+4. Modal — Qwen résumé inference
+Do not redeploy Modal for normal Sweep/web/scraper changes.
+Only touch Modal if you changed things related to:
+inference request/response logic
+inference.py
+inference_service.py
+Modal serving code
+Qwen/Ollama configuration
+model/container/snapshot configuration
+From your Mac/repo:
+modal deploy deploy/modal_production.py
+Then run the same production smoke/health check you already use against the Modal production URL.
+The important distinction is:
+Website change
+→ Render only
+
+Scraper/worker change
+→ Render + Oracle worker, if Render also uses changed code
+
+Inference change
+→ Modal
+→ possibly Oracle inference fallback too
+5. Oracle inference fallback
+This is separate from sweep-worker.
+Do not run:
+sudo systemctl restart sweep-inference
+just because you updated the scraper.
+Your Oracle services are:
+sweep-inference :8811   ← Qwen fallback
+sweep-worker    :8812   ← job searches
+Only update/restart sweep-inference when you've intentionally changed the inference service.
+For ordinary Sweep releases:
+sudo systemctl restart sweep-worker
+not inference.
+Your most common release sequence
+For probably 80% of future updates:
+1. Test locally
+2. Commit
+3. Push main
+4. Render auto-deploys
+5. Update Oracle worker
+6. Restart sweep-worker
+7. Check both health endpoints
+8. Smoke-test sweep-beta.onrender.com
+Commands:
+# Mac
+git add .
+git commit -m "fix: whatever changed"
+git push origin main
+Then Oracle:
+ssh -i ~/.ssh/sweep-oracle.key ubuntu@140.245.7.224
+sudo -u sweepworker git -C /opt/sweep-worker/app fetch origin
+sudo -u sweepworker git -C /opt/sweep-worker/app reset --hard origin/main
+
+sudo systemctl restart sweep-worker
+sleep 2
+
+systemctl status sweep-worker --no-pager
+Then verify:
+curl -s https://sweep-beta.onrender.com/healthz
+TOKEN=$(sudo sed -n 's/^SWEEP_WORKER_TOKEN=//p' /etc/sweep-worker/env)
+
+curl -s \
+  -H "Authorization: Bearer $TOKEN" \
+  https://sweep-inference.duckdns.org/worker/healthz
+
+curl -s https://sweep-inference.duckdns.org/healthz
+Simple rule to remember
+                    CHANGE TYPE
+                        │
+        ┌───────────────┼────────────────┐
+        ▼               ▼                ▼
+      WEB/UI          SCRAPER         INFERENCE
+        │               │                │
+      Render       Oracle Worker        Modal
+                        │                │
+                   + Render if       + Oracle
+                   shared code       fallback if
+                                     applicable
+And never rotate/recreate your tokens during normal deployments. These stay in their respective environment files/dashboards:
+Render:
+SECRET_KEY
+SWEEP_BETA_CODE
+SWEEP_INFERENCE_TOKEN
+SWEEP_WORKER_TOKEN
+
+Oracle worker:
+/etc/sweep-worker/env
+
+Oracle inference:
+/etc/sweep-inference/env
+Your Git deployment should update code, not credentials.
