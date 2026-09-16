@@ -61,7 +61,10 @@
           estimated cost before anything runs, and nothing is charged until
           you start the sweep.</p>
 
-        <form method="post" action="{{ url_for('key') }}"
+        {# A flex column, because p and label both carry margin: 0 in this
+           system — without it the guide's closing note and the submit button
+           below it sat on the same pixels. #}
+        <form class="stack-tight" method="post" action="{{ url_for('key') }}"
               x-data="{ sent: false }" @submit="sent = true">
           <label><span class="label">Your Apify API token</span>
             <input type="password" name="token" autocomplete="off" required
@@ -71,9 +74,78 @@
             Sweep and is never saved.</b> It is checked with Apify, held only
             while your sweep runs, and never written to a file, a cookie or a
             log. Starting another sweep later means pasting it again.</p>
-          <p class="meta" id="key-where">To find it: sign in at
-            console.apify.com, then Settings, then Integrations. Checking your
-            balance costs nothing.</p>
+          {# The old version of this was one sentence naming three places
+             ("sign in at console.apify.com, then Settings, then
+              Integrations") for a service most readers have never used. It
+             is a guide now, and it is nested: somebody who already has a key
+             never opens it, and somebody who does not gets the steps rather
+             than a sentence to decode.
+
+             The links do the real work — step 2 lands on the exact page the
+             token is on, which no screenshot can do. The pictures only
+             confirm you are in the right place, so the guide reads correctly
+             with none of them present. #}
+          <details class="howto" id="key-where">
+            <summary>
+              <h3>Don't have an Apify key yet?</h3>
+              <span class="meta">3 steps, about a minute</span>
+            </summary>
+            <ol class="howto-steps">
+              <li>
+                <b>Create a free Apify account.</b>
+                <p class="muted">Apify is the service that runs the
+                  {{ paid|join(', ') }} searches. Signing up is free and takes
+                  an email address.</p>
+                <a class="secondary" href="https://apify.com/sign-up"
+                   target="_blank" rel="noopener noreferrer">Sign up at
+                  apify.com<span class="go" aria-hidden="true">&nearr;</span></a>
+                {% if apify_guide['1-signup'] %}
+                  <figure class="shot">
+                    <img src="{{ url_for('static', filename=apify_guide['1-signup']) }}"
+                         loading="lazy" decoding="async" width="1200"
+                         alt="The apify.com home page. Log in and Get started
+                              are at the top right.">
+                  </figure>
+                {% endif %}
+              </li>
+              <li>
+                <b>Open your API token page.</b>
+                <p class="muted">Once you are signed in, this link goes
+                  straight there — it is under Settings, then API &amp;
+                  Integrations.</p>
+                <a class="secondary"
+                   href="https://console.apify.com/settings/integrations"
+                   target="_blank" rel="noopener noreferrer">Open my Apify
+                  tokens<span class="go" aria-hidden="true">&nearr;</span></a>
+                {% if apify_guide['2-console'] %}
+                  <figure class="shot">
+                    <img src="{{ url_for('static', filename=apify_guide['2-console']) }}"
+                         loading="lazy" decoding="async" width="1200"
+                         alt="The apify.com home page once signed in, with Go
+                              to Console at the top right.">
+                  </figure>
+                {% endif %}
+              </li>
+              <li>
+                <b>Copy your Personal API token</b> and paste it in the box
+                above.
+                <p class="muted">Use the copy button beside it. Apify calls
+                  this the token created on sign-up — that is the one.</p>
+                {% if apify_guide['3-token'] %}
+                  <figure class="shot">
+                    <img src="{{ url_for('static', filename=apify_guide['3-token']) }}"
+                         loading="lazy" decoding="async" width="1200"
+                         alt="The Apify console under Settings, API and
+                              Integrations, showing the Personal API tokens
+                              section with a copy button beside the token.">
+                  </figure>
+                {% endif %}
+              </li>
+            </ol>
+            <p class="meta">Checking your key costs nothing — Sweep only reads
+              the balance. You will see the estimated cost of the search
+              before anything runs.</p>
+          </details>
           <div class="actions">
             <button class="secondary" type="submit"
                     :disabled="sent">Check my key and continue</button>

@@ -442,3 +442,74 @@ class TestExperienceReadsAsYearsAndMonths(unittest.TestCase):
         self.assertIn('name="experience_years"', card)
         self.assertIn('name="experience_months"', card)
         self.assertNotIn('id="exp-label">Years of experience<', card)
+
+
+class TestGettingAnApifyKey(unittest.TestCase):
+    """The key screen asks a stranger for a credential to a service most of
+    them have never used. It used to explain where to find it in one
+    sentence naming three places; it is a guide now, nested so that somebody
+    who already has a key never opens it.
+
+    The links do the work a screenshot cannot — step 2 lands on the exact
+    page the token is on — which is why the guide has to read correctly with
+    no pictures present at all.
+    """
+
+    def _key_screen(self):
+        with public_screens(free=True) as pages:
+            return " ".join(pages["/key"].split())
+
+    def test_the_steps_are_there_without_any_screenshots(self):
+        body = self._key_screen()
+        self.assertIn("Don't have an Apify key yet?", body)
+        for step in ("Create a free Apify account",
+                     "Open your API token page",
+                     "Copy your Personal API token"):
+            with self.subTest(step=step):
+                self.assertIn(step, body)
+
+    def test_it_links_to_apify_rather_than_describing_a_path(self):
+        body = self._key_screen()
+        self.assertIn("https://apify.com/sign-up", body)
+        # The deep link is the point: "Settings, then API & Integrations" is
+        # a sentence, this is the page.
+        self.assertIn("https://console.apify.com/settings/integrations", body)
+
+    def test_every_outbound_link_is_safe_to_open(self):
+        """target=_blank without rel=noopener hands the opened page a handle
+        on this one — on the screen where an API key is typed."""
+        import re
+        body = self._key_screen()
+        for tag in re.findall(r"<a [^>]*https://[^>]*>", body):
+            with self.subTest(tag=tag[:60]):
+                self.assertIn('target="_blank"', tag)
+                self.assertIn("noopener", tag)
+                self.assertIn("noreferrer", tag)
+
+    def test_no_broken_images_when_the_shots_are_not_there(self):
+        body = self._key_screen()
+        self.assertNotIn('class="shot"', body)
+        self.assertNotIn("apify/1-signup.png", body)
+
+    def test_a_shot_appears_only_when_its_file_does(self):
+        """The guide is wired to a directory listing read once at start-up,
+        so adding a picture is adding a file — and a missing one is a quieter
+        guide rather than a broken image."""
+        app = app_module.create_app(derive=lambda t, p: dict(DERIVED))
+        self.assertEqual(app.config["APIFY_GUIDE"], {})
+
+        import os
+        import pathlib
+        folder = (pathlib.Path(app_module.__file__).parent
+                  / "static" / "apify")
+        folder.mkdir(parents=True, exist_ok=True)
+        planted = folder / "1-signup.png"
+        planted.write_bytes(b"\x89PNG\r\n\x1a\n")
+        try:
+            again = app_module.create_app(derive=lambda t, p: dict(DERIVED))
+            self.assertEqual(again.config["APIFY_GUIDE"],
+                             {"1-signup": "apify/1-signup.png"})
+        finally:
+            planted.unlink()
+            with contextlib.suppress(OSError):
+                os.rmdir(folder)

@@ -530,6 +530,51 @@ button.big, a.big {
   padding: var(--s5) var(--s7); font-size: 15px; line-height: 1.1;
 }
 
+/* ---- Getting an Apify key ----------------------------------------------- */
+
+/* A guide nested inside the Apify disclosure: someone who already has a key
+   never opens it. Flatter than the panel around it for the same reason the
+   Advanced sections are — a closed disclosure that looks like a card reads
+   as another thing to deal with. */
+/* Its own breathing room at both ends: this sits between a field and a
+   submit button, and a disclosure that opens into either of them is a
+   section with no edges. */
+.howto { margin: var(--s3) 0; }
+.howto > summary > h3 { margin: 0; margin-right: auto; font-size: 13px; }
+.howto > summary > .meta { font-size: 11px; }
+
+.howto-steps {
+  margin: var(--s5) 0 0; padding: 0; list-style: none; counter-reset: step;
+  display: flex; flex-direction: column; gap: var(--s6);
+}
+.howto-steps > li {
+  position: relative; padding-left: var(--s7);
+  display: flex; flex-direction: column; gap: var(--s3);
+  align-items: flex-start;
+}
+/* Numbered by the counter so the figure sits on the first line of a wrapped
+   step rather than beside the bullet's own box. */
+.howto-steps > li::before {
+  counter-increment: step; content: counter(step);
+  position: absolute; left: 0; top: -1px;
+  display: grid; place-items: center; width: 20px; height: 20px;
+  border-radius: 50%; border: 1px solid var(--slate);
+  font-size: 10px; font-weight: 700; color: var(--slate);
+  font-variant-numeric: tabular-nums;
+}
+.howto-steps > li > b { color: var(--chalk); }
+
+/* The screenshots. Capped rather than full-bleed: they are confirmation
+   that you are in the right place, not the instruction — the steps and the
+   links are that — and a 1200px console screenshot dominating the screen
+   where somebody is deciding whether to trust us with an API key gets the
+   emphasis exactly backwards. */
+.shot { margin: var(--s2) 0 0; width: 100%; max-width: 30rem; }
+.shot img {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+
 /* ---- The sweep you own, wherever you are -------------------------------- */
 
 /* A strip under the header, not a banner in the page: it belongs to the

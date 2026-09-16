@@ -1089,6 +1089,7 @@ def create_app(state=None, extract=None, resume_dir=None,
                     # agreeing: /configure and /confirm showed "linkedin"
                     # while the prose beside them said "LinkedIn".
                     site_label=site_label,
+                    apify_guide=app.config.get("APIFY_GUIDE") or {},
                     # Experience is a total number of months on state and a
                     # "N years M months" on screen, and four templates were
                     # each about to do that division themselves.
@@ -1158,6 +1159,27 @@ def create_app(state=None, extract=None, resume_dir=None,
         if spend_now is None or baseline is None:
             return None
         return round(max(0.0, spend_now - baseline), 4)
+
+    # Which steps of the "where do I find my key" guide have a picture.
+    # Read ONCE at start-up, not per render: it is a directory listing, and
+    # the answer only changes when somebody adds a file and redeploys.
+    #
+    # The guide works without any of them — the steps are the instruction and
+    # the screenshots only confirm it — so a missing file is a quieter guide
+    # rather than a broken image on the screen where a stranger is deciding
+    # whether to trust us with an API key.
+    def _guide_shots():
+        folder = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "static", "apify")
+        try:
+            have = set(os.listdir(folder))
+        except OSError:
+            return {}
+        return {step: f"apify/{step}.png" for step in
+                ("1-signup", "2-console", "3-token")
+                if f"{step}.png" in have}
+
+    app.config["APIFY_GUIDE"] = _guide_shots()
 
     limit_mb = max_upload_bytes / (1024 * 1024)
 
