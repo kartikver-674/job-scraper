@@ -1977,7 +1977,13 @@ def create_app(state=None, extract=None, resume_dir=None,
         "json": ("application/json; charset=utf-8", exports.as_json),
         "xlsx": ("application/vnd.openxmlformats-officedocument"
                  ".spreadsheetml.sheet", exports.as_xlsx),
+        # The shortlist to read rather than to process: one self-contained
+        # page, styled, grouped as the screen groups it, and asking the
+        # internet for nothing when it is opened later.
+        "html": ("text/html; charset=utf-8", exports.as_html),
     }
+    # Formats that describe the sweep as well as listing it.
+    EXPORTS_WITH_ABOUT = ("xlsx", "html")
 
     @app.get("/export.<fmt>")
     def export(fmt):
@@ -2000,7 +2006,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         tagged = exports.rows_for_export(bucket_rows(rows), SECTIONS)
 
         mimetype, build = EXPORTS[fmt]
-        if fmt == "xlsx":
+        if fmt in EXPORTS_WITH_ABOUT:
             try:
                 body = build(tagged, about=[
                     ("Profile", profile),

@@ -244,6 +244,10 @@
           {{ export_link('xlsx', 'Excel', 'primary') }}
           {{ export_link('csv', 'CSV', 'secondary') }}
           {{ export_link('json', 'JSON', 'secondary') }}
+          {# A page rather than a spreadsheet: the same listings, grouped as
+             they are here, in one file that opens in any browser years from
+             now with no network and no app. #}
+          {{ export_link('html', 'Web page', 'secondary') }}
         </div>
         <p class="meta">Reads the shortlist already on your disk and writes
           the file here. No API calls, no credit, nothing uploaded.</p>

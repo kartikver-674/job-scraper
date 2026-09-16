@@ -215,7 +215,7 @@ class TestWhereTheKeyIsAllowedToExist(unittest.TestCase):
                 run_id = only_run(store)
                 give_rows(store, run_id)
                 exports = [client.get(f"/export.{fmt}").get_data(as_text=True)
-                           for fmt in ("csv", "json")]
+                           for fmt in ("csv", "json", "html")]
 
             self.assertNotIn(VISITOR_KEY, json.dumps(store.read(run_id)))
             self.assertNotIn(VISITOR_KEY, " ".join(exports))

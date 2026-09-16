@@ -11,6 +11,7 @@ the tests that check what lands in a cell never start a server.
 """
 
 import csv
+import html
 import io
 import json
 import re
@@ -145,6 +146,125 @@ def as_json(rows):
     return json.dumps(out, indent=2, ensure_ascii=False).encode("utf-8")
 
 
+# One file, openable from a Downloads folder in five years with no network.
+# Every other format here is data for another tool; this one is the
+# shortlist as something a person reads, so it carries its own styling and
+# asks the internet for nothing — no font, no script, no tracker. The
+# module docstring's rule about not handing these listings to a third party
+# would be a strange thing to keep for the .xlsx and drop here.
+_PAGE = """<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+  :root {{ color-scheme: light dark;
+    --ink: #16191d; --dim: #5b6572; --rule: #e3e6ea; --bg: #fff;
+    --card: #fff; --accent: #b45309; --good: #0f766e; }}
+  @media (prefers-color-scheme: dark) {{
+    :root {{ --ink: #e8eaed; --dim: #9aa4b2; --rule: #2a3039; --bg: #101317;
+      --card: #161a20; --accent: #f0a868; --good: #5eead4; }} }}
+  * {{ box-sizing: border-box; }}
+  body {{ margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg);
+    color: var(--ink); font: 15px/1.55 ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
+  main {{ max-width: 60rem; margin: 0 auto; }}
+  h1 {{ font-size: 1.6rem; margin: 0 0 .25rem; }}
+  h2 {{ font-size: 1.05rem; margin: 2.5rem 0 .25rem;
+    padding-bottom: .4rem; border-bottom: 1px solid var(--rule); }}
+  .meta {{ color: var(--dim); font-size: .85rem; }}
+  .about {{ margin: 1rem 0 0; padding: 0; list-style: none;
+    display: flex; flex-wrap: wrap; gap: .35rem 1.25rem; }}
+  .about li {{ color: var(--dim); font-size: .85rem; }}
+  .about b {{ color: var(--ink); font-weight: 600; }}
+  .job {{ border-bottom: 1px solid var(--rule); padding: .9rem 0;
+    display: grid; grid-template-columns: 3.2rem 1fr; gap: 0 1rem; }}
+  .score {{ font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--accent); }}
+  .role {{ font-weight: 600; }}
+  .role a {{ color: inherit; }}
+  .facts {{ color: var(--dim); font-size: .87rem; margin-top: .15rem; }}
+  .facts span:not(:last-child)::after {{ content: " · "; }}
+  .skills {{ font-size: .82rem; color: var(--dim); margin-top: .3rem; }}
+  .applied {{ color: var(--good); font-weight: 600; }}
+  .empty {{ color: var(--dim); font-style: italic; }}
+  @media print {{
+    body {{ padding: 0; }} .job {{ break-inside: avoid; }}
+    h2 {{ break-after: avoid; }} a {{ text-decoration: none; }} }}
+</style>
+<main>
+<h1>{heading}</h1>
+<p class="meta">{count}</p>
+{about}
+{sections}
+</main>
+</html>
+"""
+
+
+def _esc(value):
+    return html.escape(str(value or ""))
+
+
+def _job_html(row):
+    """One listing. Everything the other formats carry, arranged to read."""
+    title = _esc(row.get("title") or "(no title)")
+    url = (row.get("apply_url") or "").strip()
+    # Only http(s) becomes a link: these URLs come from job boards, and
+    # javascript: in an href is the one thing a saved page should not carry.
+    if url.lower().startswith(("http://", "https://")):
+        title = f'<a href="{_esc(url)}" rel="noopener noreferrer">{title}</a>'
+
+    facts = [row.get("company"), row.get("location"), row.get("remote_scope"),
+             row.get("salary"), row.get("experience_required"),
+             row.get("source_site"), row.get("date_posted"),
+             row.get("visa"), row.get("hr_email"), row.get("hr_phone")]
+    shown = "".join(f"<span>{_esc(f)}</span>" for f in facts if f)
+    skills = row.get("matched_skills")
+    applied = ('<span class="applied">applied</span>'
+               if row.get("_applied") else "")
+    return (f'<div class="job"><div class="score">{_esc(row.get("score"))}</div>'
+            f'<div><div class="role">{title} {applied}</div>'
+            f'<div class="facts">{shown}</div>'
+            + (f'<div class="skills">{_esc(skills)}</div>' if skills else "")
+            + "</div></div>")
+
+
+def as_html(rows, about=()):
+    """The shortlist as a page: one file, no network, grouped as on screen.
+
+    Sections come from the rows' own _bucket tag rather than being
+    re-derived, for the same reason rows_for_export exists — a listing
+    filed under one heading on the screen must not appear under another in
+    the file.
+    """
+    sections, order = {}, []
+    for row in rows:
+        bucket = row.get("_bucket") or "Listings"
+        if bucket not in sections:
+            sections[bucket] = []
+            order.append(bucket)
+        sections[bucket].append(row)
+
+    body = "".join(
+        f"<h2>{_esc(name)} <span class=\"meta\">{len(sections[name])}</span></h2>"
+        + "".join(_job_html(row) for row in sections[name])
+        for name in order)
+    if not rows:
+        body = '<p class="empty">No listings matched those filters.</p>'
+
+    about_html = ""
+    if about:
+        about_html = ('<ul class="about">'
+                      + "".join(f"<li>{_esc(label)}: <b>{_esc(value)}</b></li>"
+                                for label, value in about)
+                      + "</ul>")
+    count = (f"{len(rows)} listing{'' if len(rows) == 1 else 's'}, "
+             f"grouped the way the results screen groups them.")
+    return _PAGE.format(title="Sweep shortlist", heading="Your shortlist",
+                        count=_esc(count), about=about_html,
+                        sections=body).encode("utf-8")
+
+
 def as_xlsx(rows, about=()):
     """A workbook laid out to be worked in, not just opened.
 
@@ -237,6 +357,20 @@ def demo():
     applied_csv = as_csv(tagged).decode("utf-8-sig").splitlines()
     assert applied_csv[1].startswith("Yes,") and applied_csv[2].startswith(",")
     assert json.loads(as_json(tagged))[0]["Applied"] == "Yes"
+
+    page = as_html(tagged, about=[("Profile", "kanav")]).decode()
+    assert page.startswith("<!doctype html>") and page.rstrip().endswith("</html>")
+    assert "In India" in page and "Profile: <b>kanav</b>" in page
+    # One file, no network: a saved page must not phone anywhere.
+    for outside in ("http://fonts", "https://fonts", "cdn.", "<script"):
+        assert outside not in page, outside
+    # A javascript: apply URL is text, never an href.
+    live = as_html([{"title": "X", "apply_url": "javascript:alert(1)"}]).decode()
+    assert "javascript:" not in live.replace("&#x27;", "")
+    assert "<a href=" not in live
+    marked = as_html([{"title": "<b>bold</b>", "apply_url": "https://x/1"}]).decode()
+    assert "&lt;b&gt;bold&lt;/b&gt;" in marked, "a title must not become markup"
+    assert as_html([]).decode().count("No listings matched") == 1
 
     try:
         from openpyxl import load_workbook

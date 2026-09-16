@@ -234,9 +234,26 @@ class TestResultsAndExports(unittest.TestCase):
             self.assertEqual(len(client.get("/export.json").get_json()), 3)
             self.assertTrue(client.get("/export.xlsx").get_data()
                             .startswith(b"PK"))
-            # The filter on screen is the filter in the file.
+
+            page = client.get("/export.html")
+            self.assertEqual(page.status_code, 200)
+            self.assertIn("text/html", page.headers["Content-Type"])
+            self.assertIn("attachment", page.headers["Content-Disposition"])
+            body = page.get_data(as_text=True)
+            for title in ("React Native Developer", "Mobile Engineer",
+                          "Backend Engineer"):
+                self.assertIn(title, body)
+            # One file: it must open in five years with no network.
+            for outside in ("http://fonts", "https://fonts", "cdn.",
+                            "<script"):
+                self.assertNotIn(outside, body)
+            # The filter on screen is the filter in the file — in every
+            # format, the page included.
             self.assertEqual(
                 len(client.get("/export.json?min=30").get_json()), 2)
+            filtered = client.get("/export.html?min=30").get_data(as_text=True)
+            self.assertIn("React Native Developer", filtered)
+            self.assertNotIn("Backend Engineer", filtered)
 
 
 class TestOperatorControlsAreNotPublic(unittest.TestCase):
