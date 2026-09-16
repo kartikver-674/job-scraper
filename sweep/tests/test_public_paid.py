@@ -135,7 +135,12 @@ class TestTheSourcesAVisitorCanChoose(unittest.TestCase):
             client.post("/key/free")
             body = client.get("/configure").get_data(as_text=True)
         self.assertNotIn('name="site_linkedin"', body)
-        self.assertIn("Nothing on this screen costs anything", body)
+        # No paid toggles, and no spend machinery either: a Free Sweep has
+        # nothing to price, so the cost panel is not drawn at all rather
+        # than drawn reading $0.00 beside "no paid sources selected".
+        self.assertIn("This is a Free Sweep", body)
+        self.assertNotIn("Estimated cost", body)
+        self.assertIn("Start Free Sweep", body)
 
     def test_a_paid_visitor_can_re_price_from_the_same_screen(self):
         with stack() as (url, store):

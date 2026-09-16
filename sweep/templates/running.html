@@ -65,6 +65,76 @@
 
   {% if key_notice %}<p class="error">{{ key_notice }}</p>{% endif %}
 
+  {% if public_mode %}
+    {# ---- Searching -----------------------------------------------------
+       The free path — the DEFAULT public journey — showed an indeterminate
+       bar and a panel saying "there is no per-search progress to show", for
+       as long as the sweep took. It was indistinguishable from a hang, and
+       with the worker at MAX_ACTIVE=1 it was often not even running yet.
+
+       Three things fix that and all three are already in `p`: the queue
+       position (new, from the worker's own status), the count of jobs found,
+       and a stage derived from what the run has actually done. #}
+    <div class="stack-tight">
+      <h1 x-text="p.queued ? 'You are in the queue'
+                  : (p.state === 'running' ? 'Sweep is searching for you'
+                     : (p.state === 'finished' ? 'Your jobs are ready'
+                                               : 'Sweep stopped early'))">{%
+        if progress.queued %}You are in the queue{%
+        elif progress.state == 'running' %}Sweep is searching for you{%
+        elif progress.state == 'finished' %}Your jobs are ready{%
+        else %}Sweep stopped early{% endif %}</h1>
+
+      {# The queue, said plainly. position 1 is "next"; beyond that the
+         ordinal is the only honest thing to report, because how long each
+         sweep ahead takes is not known. #}
+      <p class="lede" x-show="p.queued" x-cloak
+         x-text="p.queue_position === 1
+                 ? 'Another Sweep is running right now. Yours is next, and it '
+                   + 'starts automatically.'
+                 : 'There are ' + p.queue_position + ' sweeps ahead of yours. '
+                   + 'It starts automatically when they finish.'"
+         {% if not progress.queued %}style="display:none"{% endif %}></p>
+
+      {# Six stages, and each one is EVIDENCED: queued and finished come from
+         the run's state, "ranking" from having every planned search done,
+         and the two searching stages from whether anything has arrived yet.
+         Nothing here is a timer pretending to be progress. #}
+      <p class="lede" x-show="!p.queued" x-cloak
+         x-text="p.state === 'finished' ? 'Sweep searched, scored and ranked every job it found.'
+                 : (p.state !== 'running' ? 'Stopped early. Everything Sweep already found is saved.'
+                 : (p.elapsed === null || p.elapsed < 20 ? 'Preparing your search.'
+                    : (p.free_running ? 'Searching job boards. Results are scored and ranked as they arrive.'
+                                      : 'Searching job boards and scoring what it finds.')))"
+         {% if progress.queued %}style="display:none"{% endif %}></p>
+
+      {# The one number a job seeker cares about, at the size that says so —
+         but ONLY once there is one.
+
+         A free sweep produces no rows until the end: scraper.py calls
+         fetch_free() once and emits a single checkpoint after it
+         (scraper.py, "--- Free sources ---"), which is why live_feed()
+         returns early on that path. So a permanent "0 jobs found so far"
+         would be a counter pretending to be progress, which is the same
+         defect as the bar it replaced, only with a number on it. The stage
+         line above carries the free path; this appears when it is true. #}
+      <div class="headline-figure" x-show="!p.queued && p.found" x-cloak
+           {% if progress.queued or not progress.found %}style="display:none"{% endif %}>
+        <p class="numeral" x-text="p.found"></p>
+        <span class="label" x-text="p.found === 1 ? 'job found so far'
+                                    : 'jobs found so far'"></span>
+      </div>
+
+      {# True, and never said before: worker_link.rehydrate exists precisely
+         so a returning browser finds its sweep, and the run id lives in the
+         signed cookie rather than in this process. No duration figure — it
+         is titles x locations x depth and nobody has measured it per sweep. #}
+      <p class="muted" x-show="p.state === 'running' || p.queued" x-cloak>
+        This can take a few minutes to a few tens of minutes, depending on how
+        wide your search is. <b>You can close this tab</b> — Sweep keeps
+        searching, and your jobs will be here when you come back.</p>
+    </div>
+  {% else %}
   <div class="stack-tight">
     {# The heading says WHAT happened, the banner below says why and what
        to do about it. Left as "Running the sweep", it contradicted the
@@ -95,6 +165,7 @@
                  + ' of ${{ '%.2f'|format(plan.total) }} planned, ' + p.remaining_text"></p>
     {% endif %}
   </div>
+  {% endif %}
 
   {# ---- How it ended ---------------------------------------------------
 
@@ -147,16 +218,50 @@
       {# Not "it ran out of credit": the balance says otherwise, and naming
          a cause we cannot evidence is how someone tops up a key that was
          never the problem. #}
+      {# Two whole strings chosen by Jinja rather than a Jinja boolean spliced
+         into a JS ternary: `a + cond ? x : y` does not parse the way it
+         reads, and this is the banner for the ending nobody can explain. #}
       <span x-text="p.outstanding + ' of ' + p.planned
               + ' searches did not run, and the reason is not recorded — the '
-              + 'credit is not spent. The terminal running Sweep will say '
-              + 'more. Everything already fetched is saved.'"></span>
+              + 'credit is not spent. '
+              + '{% if public_mode %}Everything already fetched is saved, so your results are still there.{% else %}The terminal running Sweep will say more. Everything already fetched is saved.{% endif %}'"></span>
     </div>
   </div>
 
 
-  {% if free_only %}
+  {% if free_only and not public_mode %}
     <div class="working-bar" x-show="!p.finished"><span></span></div>
+  {% elif free_only %}
+    {# The free public path. It had an indeterminate bar and a panel saying
+       there was nothing to show — while read_live() was working the whole
+       time and the feed below was gated out with the paid grid it sits
+       beside. The bar stays as the sign of life between batches. #}
+    <div class="working-bar" x-show="!p.finished && !p.queued" x-cloak
+         {% if progress.queued %}style="display:none"{% endif %}><span></span></div>
+    <div class="panel" x-show="!p.queued && p.latest.length" x-cloak
+         {% if progress.queued or not progress.latest %}style="display:none"{% endif %}>
+      <div class="panel-head">
+        <h2>Latest matches</h2>
+        <span class="meta"><b x-text="p.found"></b> found</span>
+      </div>
+      <ul class="feed" aria-live="polite" aria-relevant="additions">
+        <template x-for="job in p.latest" :key="job.key">
+          <li>
+            <span>
+              <b x-text="job.title"></b>
+              <span class="meta" x-text="job.company
+                      + (job.site ? ' · ' + job.site : '')"></span>
+            </span>
+            <span class="feed-score"
+                  :title="'Match score ' + job.score"
+                  x-text="job.score"></span>
+          </li>
+        </template>
+      </ul>
+      <p class="meta" x-show="p.since !== null" x-cloak>Last job
+        <span x-text="ago(p.since)"></span>. They arrive in batches, as each
+        board answers.</p>
+    </div>
   {% else %}
   <div class="split">
    <div class="stack">
@@ -185,7 +290,10 @@
   </div>
   {% endif %}
 
-  {% if free_only %}
+  {% if free_only and public_mode %}
+    {# Said, and then contradicted, by the feed above: there IS progress to
+       show, it was just never rendered on this path. #}
+  {% elif free_only %}
     <div class="panel">
       <h2>Free sources</h2>
       <p class="muted">{% if plan.free_sources %}{{ plan.free_sources }} boards
@@ -202,7 +310,7 @@
         <span class="key">not run yet</span><span
           class="key parked" x-show="p.state !== 'running'"
           x-cloak>did not run</span></span>
-    </div>
+    </{{ 'summary' if public_mode else 'div' }}>
     {# Server-correct and live, the same pattern the cost sidebar uses: a
        free-feeds-only sweep has no paid searches to tile, and an empty grid
        reads as "nothing is happening" rather than "nothing is billed". #}
@@ -246,7 +354,7 @@
         <b>Now searching those free sources.</b> There is no grid for them —
         new listings appear on the right as each one answers.</p>
     {% endif %}
-  </div>
+  </{{ 'details' if public_mode else 'div' }}>
    </div>
 
    {# The reason this panel exists: a paid sweep takes about 40 minutes, and
@@ -257,10 +365,10 @@
    <aside class="aside">
      <div class="panel">
        <div class="panel-head">
-         <h2>Listings arriving</h2>
+         <h2>{% if public_mode %}Latest matches{% else %}Listings arriving{% endif %}</h2>
          <span class="meta"><b x-text="p.found"></b> found</span>
        </div>
-       <ul class="feed">
+       <ul class="feed" aria-live="polite" aria-relevant="additions">
          {# Keyed on the engine's own row identity, so Alpine MOVES a row it
             has already rendered instead of rebuilding it: the dulling is a
             transition on that element, and a rebuilt one would re-run the
@@ -272,7 +380,9 @@
                <span class="meta" x-text="job.company
                        + (job.site ? ' · ' + job.site : '')"></span>
              </span>
-             <span class="feed-score" x-text="job.score"></span>
+             <span class="feed-score"
+                   :title="'Match score ' + job.score"
+                   x-text="job.score"></span>
            </li>
          </template>
        </ul>
@@ -321,6 +431,19 @@
       {# Which keys those are, and what is left on each. A key the sweep has
          just emptied is the one most worth detaching. #}
       {{ key_pills_row(key_pills, 'running') }}
+      {# POST /second-key is operator-only (public.OPERATOR_ONLY): publicly it
+         answers a plain-text 404 with no way back, so the form is not drawn
+         rather than drawn and refused. A visitor starts a fresh sweep with
+         their key instead, which is the only thing that can actually work —
+         the worker holds a key for one run and never writes it down. #}
+      {% if public_mode %}
+        <p class="muted">To search the paid boards again, start a new sweep and
+          paste your Apify key then. It is held for one sweep and never saved,
+          so there is nothing here to top up.</p>
+        <div class="actions">
+          <a class="secondary" href="{{ url_for('key') }}">Start a new sweep</a>
+        </div>
+      {% else %}
       <form method="post" action="{{ url_for('second_key') }}">
         <label><span class="label">Another Apify token</span>
           <input type="password" name="token" autocomplete="off" required></label>
@@ -332,6 +455,7 @@
                           secondary: p.state !== 'out_of_credit' }">Add
           this key and continue</button>
       </form>
+      {% endif %}
     </div>
 
     <aside class="aside stack">

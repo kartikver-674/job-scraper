@@ -113,6 +113,14 @@
   {% endif %}
 </header>
 
+{# Between the header and the page, so it is the first thing under the
+   journey on every screen and above whatever that screen is about. Not on
+   /running itself: the whole page is the sweep there, and a strip saying so
+   above it would be the same sentence twice. #}
+{% if active_run and step != 'running' %}
+  {% include "_active_run.html" %}
+{% endif %}
+
 <div{% block meter_scope %}{% endblock %}>
   {% if not public_mode %}
   {# over-cap red is for a sweep that outran its credit, so it is gated on
@@ -138,3 +146,54 @@
 
   <main>{% block body %}{% endblock %}</main>
 </div>
+
+{% if active_run and step != 'running' %}
+{# Plain script, not Alpine: Alpine is deferred and a deferred script also
+   waits on the render-blocking font stylesheet, and the one thing this strip
+   must not do is take a slow network to tell someone their sweep is alive.
+   The server already painted the truth; this only follows it.
+
+   /progress is the same endpoint /running polls — one source of run truth,
+   and it carries the strip's own wording (snapshot -> logic.run_banner) so
+   nothing about the phrasing is re-decided here. #}
+<script>
+  (function () {
+    var bar = document.getElementById("runbar");
+    if (!bar) return;
+    var head = bar.querySelector("[data-run-headline]"),
+        detail = bar.querySelector("[data-run-detail]"),
+        cta = bar.querySelector("[data-run-cta]"),
+        /* Slower than the running screen's 4s. Nobody on another page is
+           watching this the way they watch a progress bar, and the sweep is
+           minutes long. */
+        EVERY = 8000,
+        /* Nothing transitions out of these, so polling past one is asking a
+           question whose answer cannot change. */
+        DONE = { finished: 1, stopped: 1, failed: 1 };
+
+    function paint(b) {
+      if (!b) { bar.hidden = true; return; }
+      bar.className = "runbar " + b.tone;
+      head.textContent = b.headline;
+      detail.textContent = b.detail;
+      cta.textContent = b.cta;
+      cta.href = b.to === "results" ? bar.dataset.results : bar.dataset.running;
+      return DONE[b.phase];
+    }
+
+    function tick() {
+      fetch(bar.dataset.poll, { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (p) {
+          /* A 409 (no sweep) or a run the worker no longer owns to us: leave
+             what the server rendered alone rather than blanking the strip on
+             one bad answer. */
+          if (!p) { setTimeout(tick, EVERY); return; }
+          if (!paint(p.banner)) setTimeout(tick, EVERY);
+        })
+        .catch(function () { setTimeout(tick, EVERY); });
+    }
+    if (!DONE[{{ active_run.phase|tojson }}]) setTimeout(tick, EVERY);
+  })();
+</script>
+{% endif %}

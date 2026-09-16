@@ -45,7 +45,9 @@ from sweep.logic import (  # noqa: E402,F401
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
-    site_label, sort_rows, step_states, sweep_dates, sweep_state,
+    experience_parts, experience_text, run_banner, run_phase,
+    scope_label, site_label, sort_rows, step_states, sweep_dates,
+    sweep_state,
     with_experience, worst_filter, applied_path, read_applied, set_applied)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
@@ -182,7 +184,8 @@ def create_app(state=None, extract=None, resume_dir=None,
                start_sweep=None, read_spend=None, output_dir=None,
                read_done=None, now=None, read_rows=None, read_live=None,
                start_rescore=None, hour_now=None, profile_exists=None,
-               wall_now=None, list_sweeps=None, start_merge=None):
+               wall_now=None, list_sweeps=None, start_merge=None,
+               read_queue=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -257,6 +260,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         read_done = read_done or remote["read_done"]
         read_spend = read_spend or remote["read_spend"]
         list_sweeps = list_sweeps or remote["list_sweeps"]
+        read_queue = read_queue or remote["read_queue"]
 
     # Public mode: every extraction is two GPU calls on the operator's
     # Modal account, so the daily limit wraps the CALL, not the route —
@@ -265,6 +269,13 @@ def create_app(state=None, extract=None, resume_dir=None,
     if public.enabled():
         app.beta_limit = public.limit_from_env()
         derive = public.metered(derive, app.beta_limit)
+
+    if read_queue is None:
+        # A local sweep is a subprocess started directly by POST /run: there
+        # is nothing in front of it and nothing to wait behind, so "no queue"
+        # is a fact here rather than a missing reading.
+        def read_queue():
+            return None
 
     if profile_exists is None:
         def profile_exists(name):
@@ -676,6 +687,15 @@ def create_app(state=None, extract=None, resume_dir=None,
         done = read_done(app.state["profile"], runs_mod.today())
         p = runs_mod.progress(planned, done)
 
+        # Where this run is in the worker's queue, if it is in one at all.
+        # MAX_ACTIVE is 1 on the worker, so waiting behind somebody else is
+        # the NORMAL state for a public beta with more than one visitor —
+        # and until now it was indistinguishable from a hang: the screen
+        # showed an indeterminate bar and said nothing.
+        waiting = read_queue()
+        p["queued"] = bool(waiting)
+        p["queue_position"] = waiting or 0
+
         for tile in p["tiles"]:
             # Same rule plan.cost() already uses (a site listed at a $0.00
             # rate is free either way) rather than a second implementation
@@ -775,7 +795,58 @@ def create_app(state=None, extract=None, resume_dir=None,
              "stopped": "stopped by you",
              "out_of_credit": "out of credit",
              "halted": "stopped early"}[p["state"]])
+
+        # The persistent status strip, built by the SAME function the server
+        # render uses (logic.run_banner) and carried in the poll payload —
+        # so the strip a page was served with and the strip its first poll
+        # replaces cannot word the same run differently.
+        p["banner"] = run_banner(
+            run_phase(p["state"], queued=p.get("queued")),
+            queue_position=p.get("queue_position") or 0,
+            found=p.get("found") or None)
+
         return p
+
+    def current_scope():
+        """Which of the three scopes this session is actually on.
+
+        Unset until the Configure form posts one — and the form's own radio
+        was hardcoded `checked` on "india" while _prefs() defaults
+        `locations` to ["Remote"], so before anyone touched the control the
+        screen claimed India and the profile said Remote. Two answers to one
+        question, and the summary would have printed the wrong one.
+
+        "remote" is the honest default because it is what _prefs() produces,
+        not because it is the nicer option.
+        """
+        return app.state.get("scope") or "remote"
+
+    def search_facts():
+        """Roles, scope, locations and sources — what the sweep will DO.
+
+        Read from the same state the engine is handed, never recomputed: the
+        roles are the derivation's own keywords, the locations are what the
+        Configure form posted, and the sources come off the costed plan. A
+        second opinion about any of them would be a summary that disagrees
+        with the sweep it is summarising.
+        """
+        derived = app.state.get("derived") or {}
+        plan_now = app.state.get("plan") or {}
+        # See current_scope(): the form and the summary must not disagree
+        # about a choice nobody has made yet.
+        paid_on = [site_label(line["site"]) for line in plan_now.get("lines") or ()
+                   if not line.get("free")]
+        return {
+            "roles": derived.get("role_keywords") or [],
+            "scope_label": scope_label(current_scope()),
+            # Only an explicit pick. The scope's own expansion is six city
+            # names the user never chose, and listing them as "Where" would
+            # read as six decisions rather than one.
+            "locations": (app.state.get("locations")
+                          if app.state.get("linkedin_locations") else None),
+            "paid_labels": paid_on,
+            "free_sources": (app.state.get("raw_plan") or {}).get("free_sources"),
+        }
 
     def costed(profile):
         """Cost the plan and say whether it exceeds the key's credit. The
@@ -806,6 +877,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         priced, already_done = runs_mod.remaining_plan(
             raw, set(read_done(profile, day)), day)
         out = plan_mod.cost(priced, config.SITE_RATES, config.SITE_RATE_BASIS)
+        # The board's own spelling, added here rather than in plan.cost():
+        # that function is the pricing contract and knows nothing about
+        # screens, but every consumer of a line — /confirm server-side and
+        # /configure's live JSON — is showing it to a person.
+        for line in out.get("lines") or ():
+            line["label"] = site_label(line["site"])
         out["already_done"] = already_done
         cap = app.state.get("cap_usd")
         out["over_cap"] = bool(cap is not None and out["total"] > cap)
@@ -850,6 +927,48 @@ def create_app(state=None, extract=None, resume_dir=None,
         enabled is refused rather than trusted to have chosen well.
         """
         return no_key_yet() and not free_only()
+
+    def owned_run_banner(step):
+        """The persistent status strip, or None.
+
+        Public mode only, and only for a browser whose SIGNED COOKIE holds a
+        run id — so a visitor without one costs no worker call at all, and a
+        visitor with somebody else's id gets nothing, because the worker
+        checks the owner capability and answers 404 to a stranger exactly as
+        it does for /running.
+
+        Deliberately the CHEAP reading: the worker's own status, which
+        worker_link caches on `g` and which the rehydrate hook has usually
+        already fetched this request. snapshot() is the fuller picture and it
+        pages every row the run has produced — fine for /running and for the
+        poll, far too much to pay on /review just to draw a strip.
+
+        `found` therefore comes from whatever the last live reading left on
+        state, and is absent rather than invented on a fresh process. The
+        poll fills it in.
+        """
+        if not app.config.get("PUBLIC_MODE"):
+            return None
+        from sweep import worker_link
+        if not public.current_run_id():
+            return None
+        try:
+            status = worker_link.owned_status()
+        except Exception:
+            # Unreachable, expired, or not this visitor's. All three mean
+            # the same thing to the strip: nothing to show. They are never
+            # distinguished here — that is the ownership boundary.
+            return None
+        if not status:
+            return None
+        return run_banner(
+            run_phase(status.get("state"),
+                      queued=bool(status.get("queue_position"))),
+            queue_position=status.get("queue_position") or 0,
+            found=app.state.get("live_found") or None,
+            # A "Sweep complete" strip above the jobs it is pointing at is
+            # one line of chrome telling the reader to go where they are.
+            on_results=(step == "results"))
 
     def shell(step, spend=0.0, spend_is_this_sweep=True,
               spend_is_estimate=False, **kw):
@@ -906,9 +1025,32 @@ def create_app(state=None, extract=None, resume_dir=None,
             left = total
             if spend and spend_is_this_sweep and not spend_is_estimate:
                 left = round(max(0.0, total - spend), 2)
+        banner = owned_run_banner(step)
         return dict(steps=step_states(app.config.get("STEPS", STEPS),
-                                      app.state, step),
+                                      app.state, step,
+                                      # While a sweep is live, the Search
+                                      # stage is that sweep — not the form
+                                      # that configures a new one.
+                                      links={"key": "running"}
+                                      if banner and banner["to"] == "running"
+                                      else None),
                     public_mode=public_mode,
+                    # Every screen that names a board names it the way the
+                    # board spells it. Here rather than per-render because
+                    # five templates print a site key and they were not
+                    # agreeing: /configure and /confirm showed "linkedin"
+                    # while the prose beside them said "LinkedIn".
+                    site_label=site_label,
+                    # Experience is a total number of months on state and a
+                    # "N years M months" on screen, and four templates were
+                    # each about to do that division themselves.
+                    experience_parts=experience_parts,
+                    experience_text=experience_text,
+                    # The sweep this browser owns, on every screen it has.
+                    # A run that outlives the page it was started from is
+                    # the promise "you can close this tab" makes, and the
+                    # UI had no way to keep it.
+                    active_run=banner,
                     step=step, spend=spend, cap_usd=cap,
                     credit_left=left,
                     free_only=free_only(),
@@ -1126,7 +1268,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.logger.warning("derive failed: %s", exc)
             return render_template("deriving.html", **shell(
                 "review",
-                error=f"The local model could not be reached: {exc}")), 502
+                error=("Sweep could not reach the service that reads résumés. "
+                       "Nothing was charged. Try again in a minute."
+                       if app.config.get("PUBLIC_MODE") else
+                       f"The local model could not be reached: {exc}"))), 502
         except NotConfigured as exc:
             # Safe to show in full: this app composed it. A 500, not a 502
             # — nothing upstream was reached, and nothing upstream is at
@@ -1146,10 +1291,18 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.logger.warning("derive failed: %s", exc)
             return render_template("deriving.html", **shell(
                 "review",
-                error="The model call failed. The reason is in the terminal "
-                      "running Sweep — an exhausted API quota, a key that no "
-                      "longer works, or a scanned PDF with no text layer are "
-                      "the usual causes.")), 502
+                # Two audiences, two true sentences. The operator can read
+                # their own terminal; a beta visitor has none, no key of
+                # their own in this call, and nothing to fix but the PDF.
+                error=("Sweep could not read your résumé just now. Nothing "
+                       "was charged. Try again in a minute — or, if it keeps "
+                       "failing, export your résumé as a text-based PDF "
+                       "rather than a scan and upload it again."
+                       if app.config.get("PUBLIC_MODE") else
+                       "The model call failed. The reason is in the terminal "
+                       "running Sweep — an exhausted API quota, a key that no "
+                       "longer works, or a scanned PDF with no text layer are "
+                       "the usual causes."))), 502
         # A falsy derivation is indistinguishable from "not derived yet" on
         # state, so GET /review would hand back the working screen — which
         # submits ITSELF, calling the model again, once per lap, forever.
@@ -1163,11 +1316,33 @@ def create_app(state=None, extract=None, resume_dir=None,
                       "text-based PDF export.")), 502
         return redirect(url_for("review"))
 
+    def auto_profile_name(derived):
+        """A name nobody had to type.
+
+        Public mode writes no file — `public.harden` replaces write_profile
+        with one that keeps the source in memory — so the name only labels
+        the exports at the end. Asking a job seeker to invent one, in a
+        required field, beside a sentence about Python filenames, was a step
+        with nothing on the other side of it.
+
+        `profile_name_for` returns "" for a résumé whose name does not
+        transliterate, which locally means "type one yourself" and here has
+        to mean something. "sweep" is what worker_link.rehydrate already
+        falls back to for the same reason.
+        """
+        return make_profile.profile_name_for(derived) or "sweep"
+
     @app.post("/review")
     def review_post():
         if not app.state.get("resume_text"):
             return redirect(url_for("upload"))
-        name = (request.form.get("name") or "").strip()
+        derived_now = app.state.get("derived")
+        if app.config.get("PUBLIC_MODE"):
+            # No field to read: the public screen does not render one.
+            name = (app.state.get("profile")
+                    or auto_profile_name(derived_now or {}))
+        else:
+            name = (request.form.get("name") or "").strip()
         derived = derived_for_state()
         commodity = [w["term"] for w in derived["skill_weights"]
                      if w["weight"] <= COMMODITY_WEIGHT]
@@ -1201,7 +1376,13 @@ def create_app(state=None, extract=None, resume_dir=None,
         # file on every configure change, and a profile can carry weeks of
         # hand-tuning — profiles/kartik_reachable.py exists precisely because
         # someone tuned it against a real sweep.
-        if profile_exists(name) and not request.form.get("overwrite"):
+        # Public mode never writes into profiles/, so there is nothing of the
+        # visitor's to protect — and the directory it would be consulting is
+        # the OPERATOR's, checked into the repo. A visitor called Kartik
+        # would otherwise collide with profiles/kartik_reachable.py and be
+        # shown a clash they cannot understand or resolve.
+        if (not app.config.get("PUBLIC_MODE")
+                and profile_exists(name) and not request.form.get("overwrite")):
             return render_template("review.html", **shell(
                 "review", derived=derived, suggested_name=name,
                 clash=name,
@@ -1387,6 +1568,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             # Rendering a state the profile does not have is how the first
             # change to any other field posts that lie back as an instruction.
             sites=[{"name": site,
+                    # `name` stays the engine's key — it is the form field
+                    # name POST /estimate and POST /run parse. `label` is the
+                    # only thing a person reads.
+                    "label": site_label(site),
                     "on": chosen.get(site, config.SITES[site].get("enabled", True)),
                     # A site bills per run when config.py pins its depth —
                     # the reason the depth control cannot move naukri.
@@ -1401,7 +1586,8 @@ def create_app(state=None, extract=None, resume_dir=None,
             # would render as an explicit choice they did not make and post
             # itself back as one.
             picked_locations=app.state.get("locations")
-            if app.state.get("linkedin_locations") else []))
+            if app.state.get("linkedin_locations") else [],
+            scope=current_scope(), facts=search_facts()))
 
     @app.post("/estimate")
     def estimate():
@@ -1490,7 +1676,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         plan = costed(app.state["profile"])
         return render_template("confirm.html", **shell(
             "confirm", spend=plan["total"], spend_is_estimate=True, plan=plan,
-            spans_midnight=_spans_midnight()))
+            facts=search_facts(), spans_midnight=_spans_midnight()))
 
     @app.post("/run")
     def run():
@@ -1543,6 +1729,18 @@ def create_app(state=None, extract=None, resume_dir=None,
         # child starts.
         with _run_lock:
             if _sweep_in_flight():
+                # The existing run wins. It is the one the worker is
+                # actually executing and the one whose rows exist, and
+                # replacing it would orphan a sweep this process can no
+                # longer stop — POST /stop signals the child it can see.
+                #
+                # Publicly that refusal cannot be the confirm screen: the
+                # free path never visits /confirm, so a second click on
+                # "Start Free Sweep" would land on a page the visitor has
+                # never seen, explaining a state the strip already shows.
+                # Send them to their sweep instead.
+                if app.config.get("PUBLIC_MODE"):
+                    return redirect(url_for("running"))
                 return _confirm_page(
                     error="A sweep is already running. Watch it on the "
                           "running screen, or stop it before starting "
@@ -1772,8 +1970,12 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         rows = shortlist(all_rows, min_score, source, q, sort)
 
-        sources = sorted({r.get("source_site") for r in all_rows
-                           if r.get("source_site")})
+        # One option per PLATFORM, not per company board: the free adapters
+        # write `platform:company`, so this used to offer "greenhouse:stripe"
+        # and "greenhouse:sumup" as separate, differently-named sources. The
+        # filter matches on the same prefix (logic.shortlist).
+        sources = sorted({(r.get("source_site") or "").split(":")[0]
+                          for r in all_rows if r.get("source_site")})
 
         return render_template("results.html", **shell(
             # What this sweep actually cost, or None when no run recorded a
@@ -1832,7 +2034,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         plan_now = app.state.get("plan")
         return render_template("confirm.html", **shell(
             "confirm", spend=plan_now["total"], spend_is_estimate=True,
-            plan=plan_now,
+            plan=plan_now, facts=search_facts(),
             spans_midnight=_spans_midnight(), error=error)), status
 
     _run_lock = threading.Lock()
@@ -2020,9 +2222,13 @@ def create_app(state=None, extract=None, resume_dir=None,
                 # A fresh clone that has not reinstalled. Say what to run
                 # rather than 500 — CSV and JSON still work meanwhile.
                 return _results_page(
-                    error="Excel export needs the openpyxl package. Run "
-                          "pip install -r requirements.txt and try again — "
-                          "CSV and JSON work without it."), 503
+                    error=("Excel export is not available right now. Your "
+                           "jobs are all still here — use CSV, JSON or the "
+                           "web page instead."
+                           if app.config.get("PUBLIC_MODE") else
+                           "Excel export needs the openpyxl package. Run "
+                           "pip install -r requirements.txt and try again — "
+                           "CSV and JSON work without it.")), 503
         else:
             body = build(tagged)
 

@@ -33,14 +33,25 @@
 <span class="costs" aria-hidden="true">*</span><span class="visually-hidden">
   (changes the cost)</span>
 {%- endmacro %}
+{% from "_search_summary.html" import search_summary %}
 {% block body %}
 <div class="stack">
+  {# "Configure" is what the operator does to an engine. A job seeker is
+     setting preferences, all of which Sweep has already filled in — the
+     screen has to say that, because the old heading read as nine required
+     decisions between them and their jobs. #}
   <div class="stack-tight">
-    <h1>Configure the sweep</h1>
-    <p class="lede">{% if free_only %}Nothing on this screen costs anything —
-      this sweep is set to the free sources. Narrow it to change what lands on
-      the results screen.{% else %}Every change updates the cost above before
-      anything is spent.{% endif %}</p>
+    {% if public_mode %}
+      <h1>Search preferences</h1>
+      <p class="lede">Sweep has set these up from your résumé already. Change
+        anything you like, or go straight to searching.</p>
+    {% else %}
+      <h1>Configure the sweep</h1>
+      <p class="lede">{% if free_only %}Nothing on this screen costs anything —
+        this sweep is set to the free sources. Narrow it to change what lands on
+        the results screen.{% else %}Every change updates the cost above before
+        anything is spent.{% endif %}</p>
+    {% endif %}
   </div>
 
   <div class="split">
@@ -64,7 +75,9 @@
          the screen and the one control a user reaches for when the estimate
          is too high. #}
       <div class="panel">
-        <h2>Sources{{ costs() }}</h2>
+        <h2>{% if public_mode %}Where Sweep searches{% else %}Sources{% endif %}{%
+          if not public_mode %}{{ costs() }}{% elif not free_only %} <span
+          class="affects">affects cost</span>{% endif %}</h2>
         {# In free mode the toggles are not rendered at all, rather than
            rendered disabled: the sites_present marker below is what makes a
            posted form authoritative about every site, and a disabled
@@ -73,7 +86,13 @@
            as a control the user never touched. POST /estimate drops
            sites_enabled in free mode for the same reason, and /run refuses a
            priced plan whatever the form said. #}
-        {% if free_only %}
+        {% if free_only and public_mode %}
+          <p class="muted">This is a Free Sweep, so Sweep searches company
+            career pages and public job boards. There is nothing to choose
+            here.</p>
+          <a class="secondary" href="{{ url_for('key') }}">Add
+            {{ paid|join(', ') }} instead</a>
+        {% elif free_only %}
           <p class="empty"><b>Free sources only</b>
             {{ paid|join(', ') }} are switched off for this sweep, so there is
             nothing metered to narrow here. The free boards and feeds always
@@ -81,21 +100,29 @@
           <a class="secondary" href="{{ url_for('key') }}">Connect a key to add
             the paid boards</a>
         {% else %}
+          {% if public_mode %}
+            <p class="muted">Company career pages and public job boards are
+              always searched, at no cost. These paid boards are extra — switch
+              one off and it leaves the search and the price.</p>
+          {% else %}
           <p class="muted">Switch one off and it leaves the plan and the cost
             above. Free feeds always run and cost nothing, so they have no
             switch here.</p>
+          {% endif %}
           <input type="hidden" name="sites_present" value="1">
           <div class="stack-tight">
             {% for site in sites %}
               <label class="choice">
                 <input type="checkbox" name="site_{{ site.name }}"
                        {{ 'checked' if site.on }}>
-                <span><b>{{ site.name }}</b>
+                <span><b>{{ site.label }}</b>
+                  {%- if not public_mode %}
                   <span class="why">
                     {%- if site.per_run %}Charged per run at its own fixed depth,
                       so the depth control does not move it.
                     {%- else %}Charged per result, so the depth control moves it.
-                    {%- endif %}</span></span>
+                    {%- endif %}</span>
+                  {%- endif %}</span>
               </label>
             {% endfor %}
           </div>
@@ -103,20 +130,30 @@
       </div>
 
       <div class="panel">
-        <h2>Where you can work{{ costs() }}</h2>
+        <h2>Where you can work{% if not public_mode %}{{ costs() }}{% endif %}</h2>
         <div class="stack-tight">
-          <label class="choice"><input type="radio" name="scope" value="india" checked>
-            <span><b>India only, onsite and hybrid</b></span></label>
-          <label class="choice"><input type="radio" name="scope" value="remote">
-            <span><b>Genuinely remote from anywhere</b></span></label>
-          <label class="choice"><input type="radio" name="scope" value="global">
-            <span><b>Global onsite</b>
+          {# Checked from state, not hardcoded: "india" was marked selected on
+             every load while _prefs() was defaulting locations to ["Remote"],
+             so the control disagreed with the profile it was editing. #}
+          <label class="choice"><input type="radio" name="scope" value="remote"
+                 {{ 'checked' if scope == 'remote' }}>
+            <span><b>{% if public_mode %}Remote, from anywhere{% else %}Genuinely remote from anywhere{% endif %}</b></span></label>
+          <label class="choice"><input type="radio" name="scope" value="india"
+                 {{ 'checked' if scope == 'india' }}>
+            <span><b>{% if public_mode %}In India — onsite or hybrid{% else %}India only, onsite and hybrid{% endif %}</b></span></label>
+          <label class="choice"><input type="radio" name="scope" value="global"
+                 {{ 'checked' if scope == 'global' }}>
+            <span><b>{% if public_mode %}Onsite, anywhere in the world{% else %}Global onsite{% endif %}</b>
               <span class="why">Most of these need visa sponsorship.</span></span></label>
         </div>
-        {% if free_only %}
-          {# The same fact, minus the half of it about a board that is not
-             running: worldwide remote was always the free feeds' contribution,
-             and on this path they are all there is. #}
+        {% if public_mode %}
+          {# One line instead of four. The 27-of-480 measurement is a real and
+             useful fact about why LinkedIn's remote search is constrained —
+             and it is a fact about our scraping, not about this person's job
+             search. #}
+          <p class="muted">Worldwide remote roles come from the free job
+            boards, at no cost.</p>
+        {% elif free_only %}
           <p class="muted">Worldwide remote comes from the free feeds, which is
             what this sweep is made of. A past sweep found just 27 of 480
             remote-labelled rows on the paid boards were actually reachable
@@ -140,13 +177,31 @@
          once, and a radio group cannot. They sit on the left of each row the
          same way the scope choices above them do. #}
       <div class="panel">
-        <h2>Locations{{ costs() }}</h2>
+        <h2>Locations{% if not public_mode %}{{ costs() }}{% elif not free_only %} <span
+          class="affects">affects cost</span>{% endif %}</h2>
+        {% if public_mode %}
+          <p class="muted">Leave this empty to search everywhere the choice
+            above covers{% if not free_only %}, or pick cities to narrow it.
+            Each city is searched separately, so the price moves with the
+            count{% endif %}.</p>
+        {% else %}
         <p class="muted">Empty means every location the choice above covers.
           Pick some to narrow it — each one is a separate paid search on
           LinkedIn and Indeed, so the cost beside this moves with the
           count.</p>
+        {% endif %}
         {# Single-quoted for the |tojson rule at the top of this file. #}
+        {# The control is a disclosure over a group of checkboxes, and it is
+           marked up as one now. It used to be a <div role="button"> with real
+           <button> chips inside it — interactive descendants of a role=button
+           are invalid and a screen-reader trap — and it had no Escape, no
+           focus return, and no way out for a keyboard except tabbing through
+           every option in the list.
+
+           aria-expanded moves to the toggle, the menu is a labelled group,
+           and the chips sit OUTSIDE the toggle rather than inside it. #}
         <div class="picker" @click.outside="open = false"
+             @keydown.escape="if (open) { open = false; $refs.toggle.focus() }"
              x-data='{ open: false, picked: {{ picked_locations|tojson }},
                has(name) { return this.picked.indexOf(name) !== -1 },
                toggle(name) {
@@ -161,11 +216,20 @@
                  this.$nextTick(() =&gt; this.$dispatch("change"));
                } }'>
           <input type="hidden" name="locations" :value="picked.join(&#39;, &#39;)">
-          <div class="picker-box" tabindex="0" role="button"
-               :aria-expanded="open ? &#39;true&#39; : &#39;false&#39;"
-               @click="open = !open" @keydown.enter.prevent="open = !open"
-               @keydown.space.prevent="open = !open">
-            <span class="muted" x-show="!picked.length">All locations</span>
+          <div class="picker-box">
+            <button type="button" class="picker-toggle" x-ref="toggle"
+                    :aria-expanded="open ? &#39;true&#39; : &#39;false&#39;"
+                    aria-controls="location-menu"
+                    @click="open = !open">
+              <span class="visually-hidden">Choose locations</span>
+              <span class="muted" x-show="!picked.length">All locations</span>
+              <span class="meta" x-show="picked.length" x-cloak
+                    x-text="picked.length + (picked.length === 1
+                            ? &#39; location&#39; : &#39; locations&#39;)"></span>
+              <span class="picker-caret" aria-hidden="true">&#9662;</span>
+            </button>
+            {# Outside the toggle: a <button> may not contain another one, and
+               these have to be real buttons to be reachable by keyboard. #}
             <template x-for="name in picked" :key="name">
               <span class="tag pick">
                 <span x-text="name"></span>
@@ -173,9 +237,9 @@
                         :aria-label="&#39;Remove &#39; + name">&times;</button>
               </span>
             </template>
-            <span class="picker-caret" aria-hidden="true">&#9662;</span>
           </div>
-          <div class="picker-menu" x-show="open" x-cloak>
+          <div class="picker-menu" id="location-menu" role="group"
+               aria-label="Locations to search" x-show="open" x-cloak>
             {# Not a checkbox of its own: "all" is the state of having picked
                nothing, so it cannot disagree with the list below it. #}
             <label class="choice">
@@ -199,6 +263,25 @@
         </div>
       </div>
 
+      {# ---- Advanced ------------------------------------------------------
+         Four controls that a good sweep does not need: recency, depth, a pay
+         floor and terms to avoid. Every one of them has a sensible default,
+         and three of the four carry more explanation than control. Behind one
+         door publicly; always open for the operator, who tunes depth on every
+         run and would pay a click for it each time.
+
+         <details> rather than hiding with CSS: the fields stay in the form
+         either way, so a collapsed section still posts its defaults and the
+         estimate still prices them. #}
+      {% if public_mode %}
+      <details class="panel disclosure">
+        <summary>
+          <h2>Advanced search settings</h2>
+          <span class="meta">using defaults</span>
+        </summary>
+        <div class="disclosure-body stack">
+      {% endif %}
+
       <div class="panel">
         <div class="grid2">
           <label><span class="label">How recent</span>
@@ -208,7 +291,9 @@
               <option value="30">30 days</option>
             </select>
           </label>
-          <label><span class="label">Results per search{{ costs() }}</span>
+          <label><span class="label">{% if public_mode %}Jobs per search{%
+            else %}Results per search{% endif %}{% if not public_mode %}{{ costs() }}{%
+            elif not free_only %} <span class="affects">affects cost</span>{% endif %}</span>
             {# The stepper fires the form's change handler ITSELF. A value set
                by script raises no event, and the cost above is recomputed on
                change — so a depth moved by these buttons would otherwise leave
@@ -241,6 +326,13 @@
             </div>
           </label>
         </div>
+        {% if public_mode %}
+          <p class="muted">A wider window finds more jobs at the same price.
+            Results per search is how many jobs each single search brings
+            back{% if not free_only %} — raising it finds more, and costs
+            proportionally more{% endif %}. Leave it empty for Sweep's own
+            default.</p>
+        {% else %}
         <p class="muted">A wider window buys more listings at the same price.</p>
         <p class="muted">Results per search is how deep each single search
           digs: one search is one title in one location, and this is how many
@@ -260,39 +352,99 @@
             well; raise it to go deeper on searches that already work, not to
             rescue ones that do not.</p>
         {% endif %}
+        {% endif %}
       </div>
 
       <div class="panel">
-        <h2>Pay floor</h2>
+        <h2>{% if public_mode %}Minimum salary{% else %}Pay floor{% endif %}</h2>
         <label><span class="label">Minimum yearly pay, USD</span>
-          <input type="number" name="min_comp_usd" min="0" placeholder="No floor"></label>
-        <p class="muted">Listings that don't state pay are kept either way — most
+          <input type="number" name="min_comp_usd" min="0" placeholder="No floor"
+                 aria-describedby="pay-why"></label>
+        {% if public_mode %}
+          <p class="muted" id="pay-why">Most jobs do not state a salary, and
+            those are always kept. This only drops jobs that state one below
+            your figure.</p>
+        {% else %}
+        <p class="muted" id="pay-why">Listings that don't state pay are kept either way — most
           don't state it, and dropping them would discard the majority of a
           sweep. The floor only removes listings that state a figure below it.</p>
+        {% endif %}
       </div>
 
       <div class="panel">
-        <h2>Skip these</h2>
-        <label><span class="label">Stacks or domains to down-rank, comma-separated</span>
-          <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"></label>
-        <p class="muted">Letters, digits, spaces and . + # / - only.</p>
+        <h2>{% if public_mode %}Skills or industries to avoid{% else %}Skip these{% endif %}</h2>
+        {% if public_mode %}
+          <label><span class="label">Rank these lower, separated by commas</span>
+            <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"
+                   aria-describedby="skip-why"></label>
+          <p class="muted" id="skip-why">Jobs asking for these rank lower.
+            Nothing is removed outright.</p>
+        {% else %}
+          <label><span class="label">Stacks or domains to down-rank, comma-separated</span>
+            <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"></label>
+          <p class="muted">Letters, digits, spaces and . + # / - only.</p>
+        {% endif %}
       </div>
+
+      {% if public_mode %}
+        </div>
+      </details>
+      {% endif %}
 
       {# The other half of the marker. Says WHY those four and not the rest,
          because "these cost money" without the rule invites the guess that
-         everything might. #}
+         everything might. Public mode marks the cost-bearing controls inline
+         instead — a footnote 2,400px below the first asterisk is a footnote
+         nobody reads. #}
+      {% if not public_mode %}
       <p class="muted footnote"><span class="costs">*</span> Changes what this
         sweep costs. Only three things reach the price: which sources run, how
         many locations each one searches — that is what the scope and the
         location picker set — and how many results each search pulls. The rest
         of this screen filters and re-ranks what has already been fetched, so
         it can move the shortlist but never the estimate.</p>
+      {% endif %}
     </form>
 
     <aside class="aside">
+      {% if public_mode %}
+      <div class="panel">
+        <h2>What Sweep will search</h2>
+        {{ search_summary(facts.roles, facts.scope_label, facts.locations,
+                          facts.paid_labels, facts.free_sources, compact=true) }}
+        {% if free_only %}
+          {# The free public path ends here. /confirm would be a cost table
+             with no costs in it and a second button, so the sweep starts from
+             this screen — the summary above is what /confirm would have
+             carried. POST /run is unchanged and still refuses a plan it never
+             priced; /configure's own render is what prices it. #}
+          {# A start button while a sweep is already running is an
+             invitation to a conflict the worker would refuse anyway. The
+             run in progress is the one that matters, so that is what this
+             offers — and the strip above is already saying so. #}
+          {% if sweep_running %}
+            <p class="muted">You already have a Sweep in progress. Starting
+              another would not run until that one finishes.</p>
+            <a class="primary big" href="{{ url_for('running') }}"
+               >View my Sweep<span class="go" aria-hidden="true">&rarr;</span></a>
+          {% else %}
+          <p class="muted">Free — no account needed and nothing to pay.</p>
+          <form method="post" action="{{ url_for('run') }}"
+                x-data="{ sent: false }" @submit="sent = true">
+            <button class="primary big" type="submit"
+                    :disabled="sent">Start Free Sweep<span class="go"
+                    aria-hidden="true">&rarr;</span></button>
+            <span class="meta sending" x-show="sent" x-cloak
+                  aria-live="polite">Starting your sweep…</span>
+          </form>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if not (public_mode and free_only) %}
       <div class="panel">
         <div class="panel-head">
-          <h2>What this will cost</h2>
+          <h2>{% if public_mode %}Estimated cost{% else %}What this will cost{% endif %}</h2>
           <span class="meta sending" x-show="busy" x-cloak>re-pricing</span>
         </div>
         <p class="error" x-show="err" x-cloak x-text="err"></p>
@@ -313,7 +465,7 @@
           <template x-for="line in est.lines" :key="line.site">
             <tr :class="line.free && 'free'">
               <td>
-                <b x-text="line.site"></b><br>
+                <b x-text="line.label || line.site"></b><br>
                 {# The count and rate stay unaccented so each row carries one
                    amber figure — the subtotal — rather than three. #}
                 <span class="meta" x-text="line.searches + ' searches · $'
@@ -332,15 +484,25 @@
         </div>
 
         {% if not free_only %}
+          {% if not public_mode %}
           <p class="muted">Each rate is scaled from the depth it was measured at to
             the depth you choose, because a pay-per-event actor bills per result.
             Naukri is the exception — its charge is a per-run minimum at a fixed
             depth of its own, so this control does not move it.</p>
-          <p class="muted">Nothing is committed or billed until you confirm.</p>
+          {% endif %}
+          <p class="muted">Nothing is charged until you start the sweep.</p>
         {% endif %}
-        <a class="primary" href="{{ url_for('confirm') }}">
-          {%- if free_only %}Review the sweep{% else %}Review spend plan{% endif %}</a>
+        {% if public_mode and sweep_running %}
+          <a class="primary big" href="{{ url_for('running') }}"
+             >View my Sweep<span class="go" aria-hidden="true">&rarr;</span></a>
+        {% else %}
+        <a class="primary{{ ' big' if public_mode }}" href="{{ url_for('confirm') }}">
+          {%- if public_mode %}Review and start<span class="go"
+            aria-hidden="true">&rarr;</span>
+          {%- elif free_only %}Review the sweep{% else %}Review spend plan{% endif %}</a>
+        {% endif %}
       </div>
+      {% endif %}
     </aside>
   </div>
 </div>

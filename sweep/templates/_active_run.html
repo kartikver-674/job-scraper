@@ -1,0 +1,30 @@
+{# The sweep this browser owns, on every screen it has.
+
+   A run outlives the page it was started from — that is what the Oracle
+   worker is for, and what "you can close this tab" promises. Until now the
+   UI had no way to keep that promise: leaving /running was indistinguishable
+   from losing the sweep, and the jobs simply turned up under /results later
+   with nothing having said they were coming.
+
+   Server-rendered first, from the owner capability in the signed cookie, so
+   a browser that was closed and reopened sees its sweep before any script
+   runs. The poll below then follows it live.
+
+   `to` is an endpoint name decided in logic.run_banner, not a URL built
+   here: while a sweep is live the action is the sweep, and once it is over
+   the action is the jobs. #}
+<div class="runbar {{ active_run.tone }}" id="runbar"
+     data-poll="{{ url_for('progress') }}"
+     data-running="{{ url_for('running') }}"
+     data-results="{{ url_for('results') }}"
+     {# Polite, not assertive: a sweep finishing while someone is reading
+        their profile is worth announcing and not worth interrupting. #}
+     role="status" aria-live="polite">
+  <span class="runbar-dot" aria-hidden="true"></span>
+  <span class="runbar-said">
+    <b data-run-headline>{{ active_run.headline }}</b>
+    <span class="runbar-detail" data-run-detail>{{ active_run.detail }}</span>
+  </span>
+  <a class="secondary runbar-go" data-run-cta
+     href="{{ url_for(active_run.to) }}">{{ active_run.cta }}</a>
+</div>

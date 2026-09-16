@@ -1,80 +1,134 @@
 {% extends "base.html" %}
-{% block title %}Free or paid — Sweep{% endblock %}
+{% block title %}{% if public_mode %}How should Sweep search?{% else %}Free or paid{% endif %} — Sweep{% endblock %}
 {% block body %}
 <div class="stack">
-  <div class="stack-tight">
-    <h1>How far should this sweep go?</h1>
-    <p class="lede">Sweep searches company boards and public job feeds for
-      nothing. The paid boards — {{ paid|join(', ') }} — bill per search
-      against your own Apify credit.</p>
-  </div>
+  {% if public_mode %}
+    {# ---- The public fork ------------------------------------------------
+       Two cards of equal weight with two identically-styled buttons, and the
+       Apify token field already expanded, is what this was. It offered no
+       recommendation and put the highest-friction thing in the product — a
+       credential for a service the reader has never heard of — on screen
+       before anyone had asked for it.
 
-  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+       Now: one obvious answer, and the other one behind a door. #}
+    <div class="stack-tight">
+      <h1>How should Sweep search?</h1>
+      <p class="lede">Sweep always searches company career pages and public
+        job boards. You can add the big paid boards if you want a wider
+        search.</p>
+    </div>
 
-  {# The free answer comes first, and takes one click: this screen used to
-     demand a token before it would let anyone reach Configure, so a person
-     with no Apify account had no way past step 3 at all. #}
-  <div class="grid2 choices">
-    <form class="panel" method="post" action="{{ url_for('key_free') }}">
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <form class="panel hero-choice" method="post" action="{{ url_for('key_free') }}"
+          x-data="{ sent: false }" @submit="sent = true">
       <div class="panel-head">
-        <h2>Free sources only</h2>
-        <span class="chip free">$0.00</span>
+        <h2>Free Sweep</h2>
+        <span class="chip free">Recommended</span>
       </div>
-      <p>Company ATS boards and public remote feeds, ranked against your
-        résumé the same way. No key, no credit, nothing to approve.</p>
-      <p class="meta">The paid boards stay switched off. You can come back to
-        this step and connect a key later — nothing you have done so far is
-        lost.</p>
-      <button class="primary" type="submit">Search the free sources</button>
+      <ul class="ticks">
+        <li>No account or API key needed</li>
+        <li>Searches company career pages and public job boards</li>
+        <li>Ranked against your résumé exactly the same way</li>
+        <li>Nothing to pay</li>
+      </ul>
+      <div class="actions">
+        <button class="primary big" type="submit"
+                :disabled="sent">Start Free Sweep<span class="go"
+                aria-hidden="true">&rarr;</span></button>
+        <span class="meta sending" x-show="sent" x-cloak aria-live="polite">Setting
+          up your search…</span>
+      </div>
     </form>
 
-    {# The paid boards need an Apify key. Locally that key is the
-       operator's own, written to .env on their machine — which is exactly
-       why this form is not offered to a stranger: there is no .env of
-       theirs to write, and there is no circumstance in which a visitor
-       should be spending the operator's credit. The public paid path
-       gives a visitor's OWN key to their own run, and arrives next. #}
-    {% if not public_mode %}
-    <form class="panel" method="post" action="{{ url_for('key') }}">
-      <div class="panel-head">
-        <h2>Free sources and the paid boards</h2>
-        <span class="chip">needs a key</span>
+    {# The paid option: one quiet line, and the explanation only once someone
+       has said they want it. `open` when there is an error, so a rejected key
+       does not hide the field it was rejected from. #}
+    <details class="panel disclosure"{% if error %} open{% endif %}>
+      <summary>
+        <h2>Want {{ paid|join(', ') }} too?</h2>
+        <span class="meta">use my Apify key</span>
+      </summary>
+      <div class="disclosure-body stack-tight">
+        {# Four facts and no more: what Apify is, whose account pays, roughly
+           what it costs, and that the cost is shown first. No actors, no
+           credits, no rate basis, no per-event billing. #}
+        <p>Sweep can also search {{ paid|join(', ') }}. Those boards are read
+          through <b>Apify</b>, a service that runs the searches for you and
+          charges per search.</p>
+        <p class="muted">Sweep uses <b>your own</b> Apify account, so the
+          searches are billed to you and never to us. You will see the
+          estimated cost before anything runs, and nothing is charged until
+          you start the sweep.</p>
+
+        <form method="post" action="{{ url_for('key') }}"
+              x-data="{ sent: false }" @submit="sent = true">
+          <label><span class="label">Your Apify API token</span>
+            <input type="password" name="token" autocomplete="off" required
+                   aria-describedby="key-privacy key-where">
+          </label>
+          <p class="meta" id="key-privacy"><b>Your Apify key is used for this
+            Sweep and is never saved.</b> It is checked with Apify, held only
+            while your sweep runs, and never written to a file, a cookie or a
+            log. Starting another sweep later means pasting it again.</p>
+          <p class="meta" id="key-where">To find it: sign in at
+            console.apify.com, then Settings, then Integrations. Checking your
+            balance costs nothing.</p>
+          <div class="actions">
+            <button class="secondary" type="submit"
+                    :disabled="sent">Check my key and continue</button>
+            <span class="meta sending" x-show="sent" x-cloak
+                  aria-live="polite">Checking your key…</span>
+          </div>
+        </form>
       </div>
-      <p>Everything above, plus {{ paid|join(', ') }}. Sweep prices the
-        search before it runs and spends nothing until you approve the plan.</p>
-      <label><span class="label">Apify API token</span>
-        <input type="password" name="token" autocomplete="off" required>
-      </label>
-      <p class="meta">Written to the .env file in this folder, on your own
-        machine. Sweep runs locally and has no server to send it to. Find it at
-        console.apify.com under Settings, then Integrations.</p>
-      <p class="meta">Verifying reads your credit balance, which is free.</p>
-      <button class="primary" type="submit">Verify key</button>
-    </form>
-    {% else %}
-    {# The public twin of the form above, and the copy is the difference
-       that matters: locally the key is the operator's own and lives in
-       their .env, here it is the visitor's and is never written down. #}
-    <form class="panel" method="post" action="{{ url_for('key') }}">
-      <div class="panel-head">
-        <h2>Free sources and the paid boards</h2>
-        <span class="chip">needs your own key</span>
-      </div>
-      <p>Everything above, plus {{ paid|join(', ') }}. Sweep prices the
-        search before it runs and spends nothing until you approve the plan.
-        The searches are billed to your own Apify account, never to ours.</p>
-      <label><span class="label">Your Apify API token</span>
-        <input type="password" name="token" autocomplete="off" required>
-      </label>
-      <p class="meta"><b>Used for your sweep, and not saved.</b> It is
-        checked against Apify, held only while your sweep runs, and never
-        written to a file, a cookie, or a log. Starting another sweep later
-        means pasting it again.</p>
-      <p class="meta">Find it at console.apify.com under Settings, then
-        Integrations. Verifying reads your credit balance, which is free.</p>
-      <button class="primary" type="submit">Verify key</button>
-    </form>
-    {% endif %}
-  </div>
+    </details>
+
+  {% else %}
+    {# ---- The operator's console, unchanged --------------------------------
+       Two equal cards is the right shape here: the operator has a key in
+       .env already and is choosing between two things they can both do. #}
+    <div class="stack-tight">
+      <h1>How far should this sweep go?</h1>
+      <p class="lede">Sweep searches company boards and public job feeds for
+        nothing. The paid boards — {{ paid|join(', ') }} — bill per search
+        against your own Apify credit.</p>
+    </div>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <div class="grid2 choices">
+      <form class="panel" method="post" action="{{ url_for('key_free') }}">
+        <div class="panel-head">
+          <h2>Free sources only</h2>
+          <span class="chip free">$0.00</span>
+        </div>
+        <p>Company ATS boards and public remote feeds, ranked against your
+          résumé the same way. No key, no credit, nothing to approve.</p>
+        <p class="meta">The paid boards stay switched off. You can come back to
+          this step and connect a key later — nothing you have done so far is
+          lost.</p>
+        <button class="primary" type="submit">Search the free sources</button>
+      </form>
+
+      <form class="panel" method="post" action="{{ url_for('key') }}">
+        <div class="panel-head">
+          <h2>Free sources and the paid boards</h2>
+          <span class="chip">needs a key</span>
+        </div>
+        <p>Everything above, plus {{ paid|join(', ') }}. Sweep prices the
+          search before it runs and spends nothing until you approve the plan.</p>
+        <label><span class="label">Apify API token</span>
+          <input type="password" name="token" autocomplete="off" required
+                 aria-describedby="env-note">
+        </label>
+        <p class="meta" id="env-note">Written to the .env file in this folder, on your own
+          machine. Sweep runs locally and has no server to send it to. Find it at
+          console.apify.com under Settings, then Integrations.</p>
+        <p class="meta">Verifying reads your credit balance, which is free.</p>
+        <button class="primary" type="submit">Verify key</button>
+      </form>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

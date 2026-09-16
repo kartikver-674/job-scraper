@@ -11,7 +11,8 @@
     <table>
       <tr class="muted">
         <th scope="col"><span class="visually-hidden">Applied</span></th>
-        <th scope="col">Source</th><th scope="col">Score</th>
+        <th scope="col">Source</th>
+        <th scope="col">{% if public_mode %}Match{% else %}Score{% endif %}</th>
         <th scope="col">Role</th><th scope="col">Location</th>
         <th scope="col">Pay</th><th scope="col">Experience</th>
         <th scope="col">Matched skills</th><th scope="col"><span class="visually-hidden">Apply</span></th>
@@ -65,12 +66,12 @@
             {%- endif %}</td>
           {# Same rule plan.cost() and the running screen's tiles use: a site
              listed at a $0.00 rate is free either way. #}
-          <td class="{{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">{{ row['source_site'] }}</td>
-          <td class="score">{{ row['score'] }}</td>
-          <td><b>{{ row['title'] }}</b><br><span class="muted">{{ row['company'] }}</span></td>
-          <td>{{ row['location'] }}</td>
-          <td>{{ row['salary'] or 'Not stated' }}</td>
-          <td>{{ row['experience_required'] or 'Not stated' }}</td>
+          <td class="src {{ 'free' if rates.get(row['source_site'], 0.0) == 0.0 }}">{{ site_label(row['source_site']) }}</td>
+          <td class="score"{% if public_mode %} title="Match score {{ row['score'] }} — how much of your résumé this job asks for"{% endif %}>{{ row['score'] }}</td>
+          <td class="role"><b>{{ row['title'] }}</b><br><span class="muted">{{ row['company'] }}</span></td>
+          <td class="loc">{{ row['location'] }}</td>
+          <td class="pay">{{ row['salary'] or 'Not stated' }}</td>
+          <td class="exp">{{ row['experience_required'] or 'Not stated' }}</td>
           {# Split into tags: the column is a comma-joined string, and at four
              or five terms it reads as one run-on cell otherwise.
 
@@ -79,7 +80,7 @@
              you compare listings by scanning down it. The rest are on the
              hover, and the count says they exist. #}
           {%- set terms = (row['matched_skills'] or '').split(',')|map('trim')|select|list %}
-          <td>{% for s in terms[:6] %}<span class="tag">{{ s }}</span>{% endfor %}
+          <td class="skills">{% for s in terms[:6] %}<span class="tag">{{ s }}</span>{% endfor %}
             {%- if terms|length > 6 %}<span class="tag more"
               title="{{ terms[6:]|join(', ') }}">+{{ terms|length - 6 }}</span>{% endif %}</td>
           <td class="act">
@@ -144,11 +145,25 @@
 {% block body %}
 <div class="stack">
   <div class="stack-tight">
-    <h1>{% if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}</h1>
+    {# One text node per phrase: HTML collapses a newline inside a heading,
+       but a sentence broken across template lines is one nobody can grep
+       for — including the tests that assert what the screen says. #}
+    <h1>{% if public_mode %}
+      {%- if total == all_total %}{{ total }} job{{ '' if total == 1 else 's' }} matched your profile
+      {%- else %}{{ total }} of {{ all_total }} jobs shown{% endif %}
+    {%- else %}
+      {%- if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}
+    {%- endif %}</h1>
     {# Re-ranking is not offered on the free path, so the lede must not
        promise it there. #}
+    {# Re-ranking is operator-only, so the public lede must not promise it on
+       either path — only the local paid screen actually offers the control. #}
     <p class="lede">
-      {%- if free_only %}This sweep cost nothing, and filtering these costs nothing either.
+      {%- if public_mode %}Best matches first.
+        <span class="score-help">Match score is how much of your résumé —
+        skills and experience — a job actually asks for, so a higher score
+        means more of what you have.</span>
+      {%- elif free_only %}This sweep cost nothing, and filtering these costs nothing either.
       {%- else %}Filtering and re-ranking these is free and costs no extra credit.{% endif %}</p>
   </div>
 
@@ -158,6 +173,10 @@
   {% if merging %}
     <p class="panel muted">Merging now. Reload in a moment — the shortlist
       below is still the most recent sweep on its own.</p>
+  {% elif public_mode %}
+    {# Local mode says which FILE this is, which is bookkeeping about a disk
+       the visitor does not have. Publicly there is exactly one sweep and
+       nothing to disambiguate. #}
   {% elif not merged and not earlier %}
     {# Which file this is, said even when every row is filtered out — that is
        exactly when a user needs to know what was read. #}
@@ -202,15 +221,29 @@
       ranking — the shortlist below is still the old one.</p>
   {% endif %}
 
-  <form class="panel" method="get">
+  <form class="{{ 'toolbar' if public_mode else 'panel' }}" method="get">
+    {% if public_mode %}
+    {# Collapsed by default: a first-time visitor came for the jobs, and four
+       filter controls plus four export links above them is 400px of
+       administration before the payoff. `open` whenever a filter is applied,
+       so the state that produced the list is never hidden from it. #}
+    <details{% if min_score or source or q or sort != 'score' %} open{% endif %}>
+      <summary>
+        <h2>Filter and sort</h2>
+        <span class="meta">{% if min_score or source or q %}filtered{%
+          else %}{{ all_total }} job{{ '' if all_total == 1 else 's' }}{% endif %}</span>
+      </summary>
+    {% endif %}
     <div class="row">
       <label><span class="label">Minimum score</span>
         <input type="number" name="min" value="{{ min_score }}"></label>
       <label><span class="label">Source</span>
         <select name="source">
           <option value="">All sources</option>
+          {# The VALUE stays the engine's key, which is what the filter
+             compares; only the text is the board's own spelling. #}
           {% for s in sources %}
-            <option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>
+            <option value="{{ s }}" {{ 'selected' if s == source }}>{{ site_label(s) }}</option>
           {% endfor %}
         </select>
       </label>
@@ -227,7 +260,8 @@
         </select>
       </label>
     </div>
-    <button class="secondary" type="submit">Update the list</button>
+    <button class="secondary" type="submit">{% if public_mode %}Apply filters{%
+      else %}Update the list{% endif %}</button>
 
     {# The exports carry the filters that are APPLIED, not what the fields
        above happen to say — they are links, and the query string is the
@@ -249,13 +283,20 @@
              now with no network and no app. #}
           {{ export_link('html', 'Web page', 'secondary') }}
         </div>
-        <p class="meta">Reads the shortlist already on your disk and writes
-          the file here. No API calls, no credit, nothing uploaded.</p>
+        <p class="meta">{% if public_mode %}Built from the jobs already
+          found in this sweep. No new searches, and nothing is charged.{% else
+          %}Reads the shortlist already on your disk and writes the file here.
+          No API calls, no credit, nothing uploaded.{% endif %}</p>
       </div>
     {% endif %}
+    {% if public_mode %}</details>{% endif %}
   </form>
 
-  {% if free_only %}
+  {% if public_mode %}
+    {# POST /rescore is operator-only (public.OPERATOR_ONLY), so neither the
+       editor nor the explanation of it belongs on a public results screen:
+       one posts to a 404, the other describes a control that is not there. #}
+  {% elif free_only %}
     <div class="panel">
       <div class="panel-head">
         <h2>Re-ranking needs a paid sweep</h2>
@@ -331,7 +372,7 @@
 
   {% if total == 0 %}
     <div class="panel">
-      <h2>0 listings match</h2>
+      <h2>{% if public_mode %}No jobs to show{% else %}0 listings match{% endif %}</h2>
       {% if worst %}
         <p>The {{ worst[0] }} filter removed the most —
           {{ worst[1] }} of {{ all_total }}. Loosen it to see more.</p>
@@ -344,6 +385,18 @@
           <a class="secondary" href="{{ url_for('results', min=min_score or none, source=source or none) }}">Clear the search text</a>
         {% endif %}
           <a class="secondary" href="{{ url_for('results') }}">Clear every filter</a>
+        </div>
+      {% elif public_mode %}
+        {# No filters are applied, so there is nothing to clear: this sweep
+           genuinely found nothing. The two things that actually widen a
+           search are where you can work and which job titles to look for. #}
+        <p>This sweep didn't find any jobs matching your profile. That usually
+          means the search was too narrow.</p>
+        <div class="actions">
+          <a class="primary" href="{{ url_for('configure') }}">Widen the
+            search</a>
+          <a class="secondary" href="{{ url_for('review') }}">Change my job
+            titles</a>
         </div>
       {% else %}
         <p>Nothing was found for this profile yet.</p>

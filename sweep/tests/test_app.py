@@ -469,14 +469,28 @@ class TestFixesThatHadNoTest(Isolated):
         # overflow-x alone let a 989-row shortlist scroll the page body.
         body = self._results_app().test_client().get("/results").get_data(as_text=True)
         self.assertIn('<div class="listings">', body)
-        # The cap lives in the stylesheet now, so that is where it is checked.
-        # Matching "max-height" anywhere in the HTML passed for any unrelated
-        # inline style; this pins the rule that actually bounds the box.
+        # The property being defended is that the PAGE never scrolls
+        # sideways because of this table — not any particular way of
+        # achieving it. The max-height is gone deliberately: a 70vh scroll
+        # box inside a scrolling page is two scrolls under one thumb, and on
+        # touch the inner one wins wherever the finger lands.
         css = (pathlib.Path(app_module.__file__).parent
                / "static" / "sweep.css").read_text()
-        rule = re.search(r"\.listings\s*\{([^}]*)\}", css).group(1)
-        self.assertIn("max-height", rule)
+        rule = re.search(r"^\.listings \{([^}]*)\}", css, re.M).group(1)
         self.assertIn("overflow", rule)
+        self.assertIn("contain", rule)
+        self.assertNotIn("max-height", rule,
+                         "a nested scroll box traps the thumb on touch")
+        # ...and below 48rem the wide table stops existing: the row becomes a
+        # card, so there is nothing to scroll sideways in the first place.
+        phone = re.search(r"@media \(max-width: 47\.99rem\) \{(.*?)\n\}\n",
+                          css, re.S).group(1)
+        self.assertIn(".listings tr {", phone)
+        self.assertIn("grid-template-areas", phone)
+        # Source order decides between equal-specificity rules, so the reflow
+        # has to come after the base rule it overrides.
+        self.assertGreater(css.index("@media (max-width: 47.99rem)"),
+                           css.index("\n.listings { overflow"))
         # And the page itself must not scroll sideways. Clipping the box is
         # not enough: Chrome propagates a min-width table's layout overflow to
         # the viewport anyway (measured: documentElement.scrollWidth 951 on a
@@ -785,8 +799,20 @@ class TestFrontDoor(Isolated):
 
     # ---- what the next screen will get ----------------------------------
     def test_nothing_read_yet_reads_as_absent_not_as_zero(self):
+        """The rule is that a figure nobody has produced is never printed as
+        a zero. Locally the panel says "not read yet" three times; publicly
+        the panel is not drawn at all, which satisfies the same rule and
+        stops a first-time visitor meeting three unfamiliar nouns with no
+        values beside them."""
         body = self.body()
         self.assertEqual(body.count("not read yet"), 3)
+        self.assertNotIn(">0<", body)
+
+    def test_the_public_front_door_omits_the_panel_until_it_has_an_answer(self):
+        from sweep.tests.test_public import public_app, unlocked
+        body = unlocked(public_app()).get("/").get_data(as_text=True)
+        self.assertNotIn("not read yet", body)
+        self.assertNotIn("What Sweep read last time", body)
         self.assertNotIn(">0<", body)
 
     def test_a_cached_derivation_is_shown_without_a_model_call(self):
@@ -797,14 +823,39 @@ class TestFrontDoor(Isolated):
         facts = " ".join(body.split())
         self.assertIn("Titles it will search for</dt> <dd>2</dd>", facts)
         self.assertIn("Skill weights</dt> <dd>4</dd>", facts)
-        self.assertIn("Years of experience</dt> <dd>2</dd>", facts)
+        # Years AND months, under a label wide enough to hold both.
+        self.assertIn("Experience</dt> <dd>2 years</dd>", facts)
 
     def test_zero_years_of_experience_is_still_a_figure(self):
         # A graduate's résumé derives 0, which is a value, not a blank —
         # the same defect the meter refuses on money, pointing the other way.
+        # It reads as words rather than as "0" now that the row holds years
+        # and months: "0 years" beside a colleague's "1 year 10 months" is a
+        # figure pretending the parse was more precise than it was.
         body = self.body({"resume_text": "x",
                           "derived": dict(DERIVED, years_experience=0)})
-        self.assertIn("<dd>0</dd>", " ".join(body.split()))
+        facts = " ".join(body.split())
+        self.assertIn("<dd>Less than a year</dd>", facts)
+        self.assertNotIn("not read yet", facts)
+
+    def test_months_are_shown_beside_the_years(self):
+        """experience_months is a TOTAL, so a 22-month résumé has
+        years_experience 1 — and showing "1 year" for one year and ten
+        months reads as a misparse of the field the review screen exists to
+        let people correct."""
+        body = self.body({"resume_text": "x",
+                          "derived": dict(DERIVED, years_experience=1,
+                                          experience_months=22)})
+        self.assertIn("Experience</dt> <dd>1 year 10 months</dd>",
+                      " ".join(body.split()))
+
+    def test_under_a_year_is_months_alone(self):
+        body = self.body({"resume_text": "x",
+                          "derived": dict(DERIVED, years_experience=0,
+                                          experience_months=7)})
+        facts = " ".join(body.split())
+        self.assertIn("<dd>7 months</dd>", facts)
+        self.assertNotIn("0 years", facts)
 
     # ---- the metering strip ---------------------------------------------
     def test_the_paid_boards_are_named_the_way_the_boards_spell_them(self):
@@ -5547,7 +5598,8 @@ class TestResultsScreen(Isolated):
         app = self._app(rows=[dict(ROWS[0], source_site="freebie")])
         with mock.patch.dict(app_module.config.SITE_RATES, {"freebie": 0.0}):
             body = app.test_client().get("/results").get_data(as_text=True)
-        self.assertIn('class="free"', body)
+        # The cell carries its grid-area class too, for the phone reflow.
+        self.assertIn('class="src free"', body)
 
     def test_the_source_filter_keeps_only_that_source(self):
         body = self._app().test_client().get(

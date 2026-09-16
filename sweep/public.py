@@ -484,10 +484,16 @@ def harden(app, env=None, store=None, limit=None):
         return None
 
     app.write_profile = keep_profile
-    # "Looks right" leads to the console's own source-choice screen, which
-    # is where a visitor picks the free sweep. The step tracker is the
-    # console's too — the public journey IS those steps now.
+    # "Continue to job search" leads to the console's own source-choice
+    # screen, which is where a visitor picks the free sweep.
     app.config["AFTER_REVIEW_ENDPOINT"] = "key"
+    # The journey a VISITOR is walking, which is not the one the routes
+    # describe. Seven numbered steps is the operator's decomposition —
+    # "Free or paid", "Configure", "Confirm" and "Running" are four
+    # announcements of a single thing a job seeker calls "searching". The
+    # routes are untouched; only what the header says about them changes.
+    from sweep.logic import PUBLIC_STAGES
+    app.config["STEPS"] = PUBLIC_STAGES
 
     @app.before_request
     def resume_a_running_sweep():
@@ -561,12 +567,26 @@ def harden(app, env=None, store=None, limit=None):
 
         from sweep.logic import paid_sites, site_label
         needs_key = isinstance(exc, worker_client.NeedsKey)
-        message = (
-            "Your Apify key is not held any more — it is used for one sweep "
-            "and never saved. Paste it again to search the paid boards, or "
-            "take the free sources."
-            if needs_key else
-            f"The sweep service is not available just now: {exc}.")
+        gone = isinstance(exc, worker_client.RunNotFound)
+        if needs_key:
+            message = (
+                "Your Apify key is not held any more — it is used for one "
+                "sweep and never saved. Paste it again to search the paid "
+                "boards, or take the free sources.")
+        elif gone:
+            # The worker deliberately does not distinguish "expired" from
+            # "not yours" (worker_client.RunNotFound), so this must cover
+            # both without claiming either. The TTL is the honest reason to
+            # name, because it is the one a visitor can act on.
+            message = (
+                "That sweep is no longer available — sweeps are kept for "
+                "48 hours. Nothing has been charged. Start a new one below.")
+        else:
+            # Never str(exc) here: the client's messages name "the sweep
+            # worker", which is our infrastructure and not a visitor's
+            # concern.
+            message = ("Sweep's search service is not responding just now. "
+                       "Nothing has been charged. Try again in a minute.")
         return render_template("key.html", **app.shell(
             "key", paid=[site_label(s) for s in paid_sites()],
             error=message)), 400 if needs_key else 502

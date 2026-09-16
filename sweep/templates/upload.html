@@ -8,6 +8,27 @@
      cold — and nothing on it said what Sweep is, only what to do next. No
      timed splash: this runs on your own machine and is ready immediately, so
      a delay would be friction on every single run. #}
+  {# Two audiences, two propositions. Metering is what the OPERATOR built this
+     for and it is the right first sentence for them. A job seeker did not
+     come to meter anything — they came to find jobs, and the landing screen
+     has to say so before it says anything about cost. #}
+  {% if public_mode %}
+  <div class="hero">
+    {{ mark() }}
+    <div>
+      <h1>Find jobs that match your résumé</h1>
+      <p>Upload your résumé. Sweep reads it, works out what you should be
+        searching for, and searches job boards for you — then ranks what it
+        finds, best matches first.</p>
+    </div>
+  </div>
+
+  <div class="stack-tight">
+    <h2>Start with your résumé</h2>
+    <p class="lede">Everything Sweep searches for comes from it, so this is the
+      only thing you have to provide.</p>
+  </div>
+  {% else %}
   <div class="hero">
     {{ mark() }}
     <div>
@@ -21,6 +42,7 @@
     <h2>Point it at your résumé</h2>
     <p class="lede">Your résumé decides which jobs get searched for and how they are ranked.</p>
   </div>
+  {% endif %}
 
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
@@ -92,9 +114,15 @@
       </div>
 
       <div class="panel-foot">
+        {% if public_mode %}
+        <p class="free-note"><b>Free, and nothing is charged.</b> Sweep reads
+          your résumé with an AI model to work out what to search for. You
+          choose how to search on the next screens.</p>
+        {% else %}
         <p class="free-note"><b>Nothing is charged yet.</b> Your résumé is sent to
           a model to derive your search terms. No scraping credit is spent until
           you approve the plan.</p>
+        {% endif %}
         <div class="actions">
           <span class="meta sending" x-show="sent" x-cloak>Reading your résumé —
             this takes a few seconds.</span>
@@ -105,39 +133,66 @@
 
     <aside class="aside stack">
       {# What this screen hands the next one. `read` is the CACHED derivation
-         and never a fresh model call, so coming back to step 1 with a résumé
-         already read shows what the model found instead of claiming nothing
-         has been. #}
+         and never a fresh model call, so coming back with a résumé already
+         read shows what the model found instead of claiming nothing has been.
+
+         On a FIRST visit there is nothing to report, and the panel used to
+         render three rows of "not read yet" — an empty table introducing
+         three unfamiliar nouns to someone who has not uploaded anything.
+         It appears only once it has something to say. #}
+      {% set has_read = read and (read.role_keywords or read.skill_weights
+                                  or read.years_experience is not none) %}
+      {% if has_read or not public_mode %}
       <div class="panel">
-        <span class="label">What the model reads out</span>
+        <span class="label">{% if public_mode %}What Sweep read last time{%
+          else %}What the model reads out{% endif %}</span>
         <dl class="facts">
           <div>
-            <dt>Titles it will search for</dt>
+            <dt>{% if public_mode %}Job titles to search{% else %}Titles it will search for{% endif %}</dt>
             {% if read and read.role_keywords %}
               <dd>{{ read.role_keywords|length }}</dd>
             {% else %}<dd class="pending">not read yet</dd>{% endif %}
           </div>
           <div>
-            <dt>Skill weights</dt>
+            <dt>{% if public_mode %}Skills found{% else %}Skill weights{% endif %}</dt>
             {% if read and read.skill_weights %}
               <dd>{{ read.skill_weights|length }}</dd>
             {% else %}<dd class="pending">not read yet</dd>{% endif %}
           </div>
           <div>
-            <dt>Years of experience</dt>
-            {% if read and read.years_experience is not none %}
-              <dd>{{ read.years_experience }}</dd>
+            {# "Years of experience" over a figure that is years AND months
+               is a label narrower than what it labels. #}
+            <dt>Experience</dt>
+            {# experience_text is None when nothing was read, which is the
+               same guard the `read and` used to carry here: with read None,
+               Jinja resolves read.years_experience to Undefined and
+               `Undefined is not none` is TRUE, so this took the "we have a
+               figure" branch and printed an empty <dd> on a screen whose
+               rule is that a figure nobody produced is never printed. #}
+            {% set said = experience_text(read) %}
+            {% if said %}
+              <dd>{{ said }}</dd>
             {% else %}<dd class="pending">not read yet</dd>{% endif %}
           </div>
         </dl>
-        <p class="meta">You correct all three on the next screen, before anything
-          is priced.</p>
+        <p class="meta">{% if public_mode %}Uploading a new résumé replaces
+          all of it.{% else %}You correct all three on the next screen, before
+          anything is priced.{% endif %}</p>
       </div>
+      {% endif %}
       <div class="panel">
         <span class="label">What happens next</span>
+        {% if public_mode %}
+          <ol class="next-steps">
+            <li>Sweep reads your résumé and shows you what it understood.</li>
+            <li>You choose how wide to search.</li>
+            <li>Sweep searches, and ranks what it finds against your skills.</li>
+          </ol>
+        {% else %}
         <p class="muted">You check the titles and skill weights it derived, connect
           your Apify key, and see a costed plan. The sweep starts only when you
           confirm that plan.</p>
+        {% endif %}
       </div>
     </aside>
   </div>
@@ -149,22 +204,45 @@
   <div class="strip">
     <div class="tile">
       <span class="label free">Free every run</span>
+      {% if public_mode %}
+      <p>Company career pages and public job boards are searched every time,
+        at no cost. This is what a Free Sweep uses.</p>
+      {% else %}
       <p>Company ATS boards and job feeds are searched on every sweep
         and cost nothing. There is no switch for them because switching one off
         would not save a cent.</p>
+      {% endif %}
     </div>
     <div class="tile">
       <span class="label paid">Priced per search</span>
+      {# No step number: the journey is renumbered per mode, and prose that
+         names "step 3" is wrong the moment it is. #}
       <p>{{ paid|join(', ') }} bill per search against your own
-        Apify credit. All of them start on, and step 3 can skip them entirely —
-        a free-sources-only sweep needs no key at all.</p>
+        Apify credit. You choose whether to use them at all — a free sweep
+        needs no key.</p>
     </div>
+    {# Two different true statements, not one statement that is true in one
+       mode. Locally Sweep really does serve this page from the operator's
+       own terminal and write into their folder; on Render it does neither,
+       and the tile claimed both to every beta visitor. #}
+    {% if public_mode %}
+    <div class="tile">
+      <span class="label">Nothing is kept</span>
+      {# Both halves are facts about public.py: the PDF is parsed from a temp
+         file deleted in the same request, and SessionStore's TTL is two
+         hours. Neither is a promise this cannot keep. #}
+      <p>Your résumé is read once to work out what to search for. The PDF
+        itself is never saved, and everything Sweep read from it is forgotten
+        within two hours.</p>
+    </div>
+    {% else %}
     <div class="tile">
       <span class="label">Runs on this machine</span>
       <p>Sweep serves this page from your own terminal. Your résumé
         goes to one model to derive search terms; the plan and the results stay
         in this folder.</p>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

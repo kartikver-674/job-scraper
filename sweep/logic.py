@@ -159,7 +159,29 @@ def _parse_chips(raw, label):
     return terms
 
 
-def step_states(steps, state, current):
+# The PUBLIC journey. Four stages, not the seven routes behind them: the
+# routes are a correct engineering decomposition and a poor mental model, and
+# "Free or paid", "Configure", "Confirm" and "Running" are four separate
+# announcements of one decision a job seeker thinks of as "how should this
+# search work".
+#
+# Each entry is (link, label, members, facts). `link` is the endpoint the
+# chip navigates to; `members` are the routes that light it up; `facts` is
+# which entry of the opens/done tables below decides it. A plain step is all
+# four of those at once, which is why the local STEPS list can stay 2-tuples.
+PUBLIC_STAGES = [
+    ("upload", "Résumé", ("upload",), "upload"),
+    ("review", "Profile", ("review",), "review"),
+    # Links to /key because that is where the stage begins. Gated on
+    # "search" rather than on /key's own guard: /key renders with no profile
+    # and then both of its buttons redirect to /review, which is exactly the
+    # "offers a step that bounces" failure this function exists to prevent.
+    ("key", "Search", ("key", "configure", "confirm", "running"), "search"),
+    ("results", "Jobs", ("results",), "results"),
+]
+
+
+def step_states(steps, state, current, links=None):
     """Each step's number, whether it can be opened, and whether it is done.
 
     The rule is asymmetric on purpose. A step is never offered when its
@@ -202,6 +224,10 @@ def step_states(steps, state, current):
              # launched, not has_plan: see the docstring.
              "running": launched,
              "results": has_profile,
+             # The public Search STAGE, which is four routes wide. It opens
+             # on the profile: that is what /key/free and POST /key both
+             # require before they will do anything but redirect.
+             "search": has_profile,
              # Public mode's last step: the profile is downloaded, not
              # written to disk. Unknown to the local flow, which never
              # puts it in STEPS.
@@ -212,20 +238,36 @@ def step_states(steps, state, current):
             "configure": has_plan,
             "confirm": launched,
             "running": launched,
+            # The whole Search stage is behind you once a sweep is away —
+            # the same fact its last member reports, because the stage ends
+            # where /running does.
+            "search": launched,
             # The last step. Nothing is downstream of it to prove it finished.
             "results": False,
             "profile_done": False}
 
-    slugs = [slug for slug, _ in steps]
-    at = slugs.index(current) if current in slugs else None
-    return [{"slug": slug, "label": label, "n": i + 1,
-             "current": slug == current,
+    # A 2-tuple is a step that is its own stage: one member, and its own
+    # entry in the tables above. Unpacked here so the local STEPS list never
+    # had to grow two columns it has no use for.
+    rows = [(entry + (None, None))[:4] if len(entry) < 4 else entry
+            for entry in steps]
+    rows = [(link, label, members or (link,), facts or link)
+            for link, label, members, facts in rows]
+
+    at = next((i for i, (_, _, members, _) in enumerate(rows)
+               if current in members), None)
+    # A stage can point somewhere other than its usual route when the
+    # session says so — the Search stage becomes the running sweep while one
+    # is live, rather than the form that would configure a second.
+    links = links or {}
+    return [{"slug": links.get(link, link), "label": label, "n": i + 1,
+             "current": current in members,
              # Never mark the step being viewed as done, whatever state says:
              # you are standing on it, which is the more useful fact.
-             "done": done.get(slug, False) and slug != current,
-             "open": opens.get(slug, False),
+             "done": done.get(facts, False) and current not in members,
+             "open": opens.get(facts, False),
              "next": at is not None and i == at + 1}
-            for i, (slug, label) in enumerate(steps)]
+            for i, (link, label, members, facts) in enumerate(rows)]
 
 
 # config keys are lowercase, and prose that names a job board should spell it
@@ -233,11 +275,53 @@ def step_states(steps, state, current):
 # reader notices. A key with no entry falls back to itself, so a paid site
 # added to config appears in the sentence (lowercase) rather than vanishing
 # from it.
-SITE_LABELS = {"linkedin": "LinkedIn", "indeed": "Indeed", "naukri": "Naukri"}
+#
+# The free half is here too, because a row's source_site reaches the results
+# screen as a user-facing column and "remoteok" in a table of job listings is
+# the engine's key, not a board's name.
+#
+# Taken from the adapters, not guessed: sources.ats.ATS, sources.feeds'
+# Source= literals, sources.enterprise.EMPLOYERS, plus optum's own module and
+# the three paid boards. Cross-checked against every source_site prefix in
+# output/'s jobs_*.csv. An unlisted key still falls through to itself, so a
+# board added later appears lowercase rather than vanishing.
+# How each scope reads on a summary. The keys are _SCOPE's, so a scope added
+# there without a phrase here falls back to the key rather than vanishing from
+# the one screen that says what is about to be searched.
+SCOPE_LABELS = {"india": "Across India",
+                "remote": "Remote, anywhere",
+                "global": "Onsite, worldwide"}
+
+
+def scope_label(scope):
+    return SCOPE_LABELS.get(scope, scope or "")
+
+
+SITE_LABELS = {"linkedin": "LinkedIn", "indeed": "Indeed", "naukri": "Naukri",
+               # sources.ats.ATS
+               "greenhouse": "Greenhouse", "lever": "Lever", "ashby": "Ashby",
+               "breezy": "Breezy", "smartrecruiters": "SmartRecruiters",
+               # sources.feeds
+               "himalayas": "Himalayas", "jobicy": "Jobicy",
+               "remoteok": "RemoteOK", "remotive": "Remotive",
+               "wwr": "We Work Remotely",
+               # sources.enterprise.EMPLOYERS, and optum's own module
+               "accenture": "Accenture", "amazon": "Amazon",
+               "jpmorgan": "J.P. Morgan", "sap": "SAP", "oracle": "Oracle",
+               "optum": "Optum"}
 
 
 def site_label(name):
-    return SITE_LABELS.get(name, name)
+    """A board's own spelling of its name.
+
+    The free adapters write `platform:company` ("greenhouse:sumup"), so the
+    platform is taken from the left of the colon — the company already has a
+    column of its own on every screen that shows this, and repeating it here
+    made the narrowest column the widest.
+    """
+    # `or ""` on the way out as well as in: a None reaches a template as the
+    # four characters "None", which is worse than an empty cell.
+    return SITE_LABELS.get((name or "").split(":")[0], name) or ""
 
 
 # The orders /results offers, and the label each one wears. A key returns a
@@ -347,6 +431,90 @@ def sweep_state(running, outstanding, stopped_by_user=False,
     return "halted"
 
 
+# Two vocabularies describe one sweep. The WORKER says queued / running /
+# done / failed / stopped / interrupted; snapshot() says running / finished /
+# stopped / out_of_credit / halted plus a `queued` flag. The status strip has
+# to read the same on a page rendered from the cheap worker status as on one
+# updated from a /progress poll, so both are folded to these five first.
+RUN_PHASES = ("queued", "running", "finished", "stopped", "failed")
+
+_WORKER_PHASE = {"queued": "queued", "running": "running", "done": "finished",
+                 "stopped": "stopped", "failed": "failed",
+                 "interrupted": "failed"}
+_SNAPSHOT_PHASE = {"running": "running", "finished": "finished",
+                   "stopped": "stopped", "out_of_credit": "failed",
+                   "halted": "failed"}
+
+
+def run_phase(state, queued=False):
+    """One of RUN_PHASES, from either vocabulary.
+
+    `queued` wins: snapshot() reports state="running" for a run the worker
+    has accepted but not started, because the child it asks about is the
+    one it would have — and "Sweep in progress" over a run that is still
+    waiting is the claim this whole component exists to stop making.
+    """
+    if queued:
+        return "queued"
+    return _WORKER_PHASE.get(state) or _SNAPSHOT_PHASE.get(state) or "running"
+
+
+def run_banner(phase, queue_position=0, found=None, on_results=False):
+    """What the persistent status strip says, or None when it says nothing.
+
+    ONE function for both callers — the server render on every public page
+    and the /progress payload the poll reads — because a strip that
+    re-derived its own wording in JavaScript would drift from the wording
+    the same page was served with, and the drift would show as a flicker on
+    the first poll.
+
+    `found` is only ever shown when it is a real count. A free sweep emits
+    no rows until the end (scraper.py calls fetch_free() once), so "0 jobs
+    found so far" would be a fabricated figure on exactly the screen that
+    exists to be trusted about a run nobody can see.
+    """
+    if phase not in RUN_PHASES:
+        return None
+    jobs = None
+    if found:
+        jobs = f"{found} job{'' if found == 1 else 's'}"
+
+    if phase == "queued":
+        if queue_position == 1:
+            detail = "You're next"
+        elif queue_position > 1:
+            detail = f"{queue_position} sweeps ahead"
+        else:
+            detail = "Waiting to start"
+        return {"phase": phase, "tone": "wait", "headline": "Sweep queued",
+                "detail": detail, "cta": "View progress", "to": "running"}
+
+    if phase == "running":
+        return {"phase": phase, "tone": "live", "headline": "Sweep in progress",
+                "detail": (f"{jobs} found so far" if jobs
+                           else "Searching for jobs"),
+                "cta": "View progress", "to": "running"}
+
+    # Terminal. The destination is the jobs, not the progress screen — there
+    # is no progress left to watch — and the strip stands down once the
+    # reader is actually looking at them.
+    if on_results:
+        return None
+    if phase == "finished":
+        return {"phase": phase, "tone": "done", "headline": "Sweep complete",
+                "detail": (f"{jobs} found" if jobs else "Your jobs are ready"),
+                "cta": "View jobs", "to": "results"}
+    if phase == "stopped":
+        return {"phase": phase, "tone": "warn", "headline": "Sweep stopped",
+                "detail": (f"{jobs} found before it stopped" if jobs
+                           else "Everything it found is saved"),
+                "cta": "View jobs", "to": "results"}
+    return {"phase": phase, "tone": "warn", "headline": "Sweep stopped early",
+            "detail": (f"{jobs} found before it stopped" if jobs
+                       else "Everything it found is saved"),
+            "cta": "View jobs", "to": "results"}
+
+
 def remaining_cost(tiles, rates):
     """What the searches that have NOT run would cost, at plan rates.
 
@@ -443,7 +611,13 @@ def shortlist(all_rows, min_score=0, source="", q="", sort=DEFAULT_SORT):
     """
     rows = [r for r in all_rows if _as_int(r.get("score")) >= min_score]
     if source:
-        rows = [r for r in rows if r.get("source_site") == source]
+        # On the PLATFORM, not the whole key. The free adapters write
+        # `platform:company`, so an exact match made "Greenhouse" thirty-odd
+        # separate filter options — one per company board — none of which
+        # selected the others. The paid keys carry no colon, so they are
+        # their own platform and match exactly as before.
+        rows = [r for r in rows
+                if (r.get("source_site") or "").split(":")[0] == source]
     if q:
         needle = q.lower()
         rows = [r for r in rows if needle in
@@ -527,6 +701,49 @@ def reweighted(derived, terms, weights, dropped, add_raw="", add_weight=""):
                               for term, weight in added.items()
                               if term not in known]
     return kept
+
+
+def experience_parts(derived):
+    """(whole years, leftover months) for a derivation, or (None, 0).
+
+    `experience_months` is a TOTAL — local_extract writes years * 12 +
+    months, and with_experience below rebuilds it the same way — so every
+    screen that shows experience has to divide it, and three of them were
+    each doing their own `// 12` and `% 12`. A fourth was about to.
+
+    `years_experience` is the fallback and is only ever whole years, which
+    is why it cannot be the primary: a 22-month résumé has
+    years_experience 1, and showing "1 year" for someone with one year and
+    ten months reads as a misparse of exactly the field the review screen
+    exists to let people correct.
+    """
+    months = derived.get("experience_months") if derived else None
+    if months is not None:
+        return months // 12, months % 12
+    years = derived.get("years_experience") if derived else None
+    return years, 0
+
+
+def experience_text(derived):
+    """"1 year 10 months", or None when nothing was read.
+
+    Months are omitted at zero rather than printed as "0 months": a flat
+    two years is two years, and padding it implies a precision the parse
+    did not have.
+    """
+    years, months = experience_parts(derived)
+    if years is None:
+        return None
+    if not years:
+        # Under a year is months, not "0 years 7 months" — and a flat zero
+        # with no months is a real reading (a new graduate), so it still
+        # says something rather than going blank.
+        return (f"{months} month{'' if months == 1 else 's'}" if months
+                else "Less than a year")
+    said = f"{years} year{'' if years == 1 else 's'}"
+    if months:
+        said += f" {months} month{'' if months == 1 else 's'}"
+    return said
 
 
 def with_experience(derived, years_raw, months_raw):
@@ -660,6 +877,12 @@ def _configure_overrides(form):
         if scope not in _SCOPE:
             raise _FormError("Choose where you can work.")
         out.update(_SCOPE[scope])
+        # The CHOICE as well as what it expands to. _SCOPE's fields are what
+        # the engine needs; the summary screens need to say which of the
+        # three the user picked, and "Delhi, Gurgaon, Bengaluru, Hyderabad,
+        # Pune, Mumbai" is not how anyone describes having chosen "India".
+        # Ignored by _prefs(), so it reaches no profile and no engine.
+        out["scope"] = scope
 
     # Locations, when the picker sent any. Applied AFTER the scope above, so
     # an empty box means "whatever the scope covers" and picking narrows it —

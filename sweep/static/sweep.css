@@ -154,8 +154,8 @@ header {
 .step.current .marker {
   background: var(--paid); border-color: var(--paid); color: var(--ground);
 }
-.step.locked > a { color: var(--dim); cursor: default; }
-.step.locked .marker { border-color: var(--dim); color: var(--dim); }
+.step.locked > a { color: var(--slate); cursor: default; }
+.step.locked .marker { border-color: var(--slate); color: var(--slate); }
 
 /* Narrow: only where you are and what comes next, plus the count. Seven
    steps cannot fit, and a sideways-scrolling tracker hides the very thing
@@ -232,6 +232,25 @@ main {
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
+/* The summary cards on the public review screen. Same auto-fit rule as
+   .tiles, at a wider floor: a card holds a sentence and a row of chips, and
+   at 12rem the chips wrapped one per line. */
+.cards {
+  display: grid; gap: var(--s4);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+.cards > .card { margin-bottom: 0; gap: var(--s3); }
+/* The one line of each card that is the answer. Display face, because this
+   is what the reader is checking — everything else on the card supports it. */
+.card-figure {
+  font-family: var(--display); font-size: 16px; line-height: 1.3;
+  font-weight: 600; color: var(--chalk);
+}
+/* Pinned to the foot of the card, so the three notes sit on one line across
+   the row however tall each card's own content is. A ragged row of notes
+   reads as three unrelated panels rather than one summary. */
+.card-note { margin-top: auto; }
+
 /* ---- Panels ------------------------------------------------------------- */
 
 .panel {
@@ -290,7 +309,20 @@ select, textarea {
   color: var(--chalk); background: var(--well);
   border: 1px solid var(--rule); border-radius: var(--radius);
 }
-input::placeholder { color: var(--dim); }
+/* --dim is 1.97:1 on --ground and 1.75:1 on --surface — below AA for any
+   text. It stays the token for HAIRLINES (dashed borders, empty tiles), which
+   are not text, and text that used it moves to --slate at 5.84:1. */
+input::placeholder { color: var(--slate); opacity: 1; }
+
+/* 16px on a touch device. Below that, iOS Safari zooms the whole page when a
+   field takes focus and does not zoom back out — which on /key meant pasting
+   an API token into a page you then had to pinch to read. Scoped to a coarse
+   pointer so the 13px density the rest of the system is built on survives
+   everywhere it is being read with a mouse. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]),
+  select, textarea { font-size: 16px; line-height: 20px; }
+}
 select {
   appearance: none;
   /* Chevron drawn in CSS: an icon font would be one more network dependency
@@ -451,6 +483,162 @@ details[open] > summary::before { transform: rotate(90deg); }
 details > summary:hover::before { border-left-color: var(--chalk); }
 details > *:not(summary) { margin-top: var(--s4); }
 
+/* A disclosure that holds a whole section rather than a paragraph.
+   Deliberately FLATTER than the cards above it — recessed rather than raised,
+   and no heavier border — because a closed disclosure styled as a panel reads
+   as a fourth card of equal importance, which is the opposite of what putting
+   it behind a click was for. */
+.disclosure {
+  background: var(--surface-low); padding: var(--s4) var(--s5);
+}
+.disclosure > summary > h2 { margin-right: auto; font-size: 15px; }
+.disclosure > summary > .meta {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--slate);
+}
+.disclosure-body { margin-top: var(--s5); }
+/* The arrow on a primary action. Nudged with margin rather than a gap so it
+   travels with the last word instead of being a second column. */
+.primary .go { margin-left: var(--s3); }
+
+/* ---- The one obvious answer --------------------------------------------- */
+
+/* A panel that IS the recommendation, rather than one of two equal options.
+   The lift is a 1px accent edge, not a fill or a glow: the design system
+   spends colour on cost and state only, and this is neither. */
+.hero-choice { border-color: var(--free); }
+.hero-choice > .panel-head > h2 { font-size: 20px; }
+
+/* A list that reads as "what you get" rather than as prose. The marker is
+   drawn, not a bullet glyph, so it aligns on the text's first line. */
+.ticks { margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: var(--s3); }
+.ticks > li {
+  position: relative; padding-left: var(--s6); color: var(--warm);
+}
+.ticks > li::before {
+  content: ""; position: absolute; left: 2px; top: 0.35em;
+  width: 9px; height: 5px;
+  border-left: 1.5px solid var(--free); border-bottom: 1.5px solid var(--free);
+  transform: rotate(-45deg);
+}
+
+/* The dominant action on a screen whose whole job is one decision. Bigger
+   than .primary rather than a different colour — the system has one primary
+   fill, and two of them would be two primaries. */
+button.big, a.big {
+  padding: var(--s5) var(--s7); font-size: 15px; line-height: 1.1;
+}
+
+/* ---- The sweep you own, wherever you are -------------------------------- */
+
+/* A strip under the header, not a banner in the page: it belongs to the
+   shell rather than to whatever screen is showing, and it has to be
+   noticeable without competing with that screen's own primary action. */
+.runbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5);
+  padding: var(--s3) var(--s5);
+  background: var(--surface-low);
+  border-bottom: 1px solid var(--rule);
+}
+.runbar-said { display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: var(--s2) var(--s3); min-width: 0; }
+.runbar-said > b { font-size: 13px; font-weight: 600; color: var(--chalk); }
+.runbar-detail { font-size: 12px; color: var(--slate); }
+.runbar-go { margin-left: auto; flex: none; }
+
+/* One dot, coloured by state, because the strip is read at a glance from
+   the corner of the eye. The palette's own meanings hold: teal is the
+   free/healthy tone this app already uses, amber is attention-now, and the
+   over-cap pink stays reserved for something that went wrong. */
+.runbar-dot {
+  flex: none; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--slate);
+}
+.runbar.live .runbar-dot { background: var(--paid); }
+.runbar.wait .runbar-dot { background: var(--slate); }
+.runbar.done .runbar-dot { background: var(--free); }
+.runbar.warn .runbar-dot { background: var(--over); }
+.runbar.done .runbar-said > b { color: var(--free); }
+.runbar.warn .runbar-said > b { color: var(--over); }
+
+/* The live one breathes, so "in progress" is legible without reading it.
+   Reduced-motion turns it into a plain dot rather than removing the signal. */
+.runbar.live .runbar-dot { animation: runpulse 2s ease-in-out infinite; }
+@keyframes runpulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) {
+  .runbar.live .runbar-dot { animation: none; }
+}
+
+/* On a phone the action drops to its own full-width row rather than being
+   squeezed against the text it belongs to. */
+@media (max-width: 30rem) {
+  .runbar-go { margin-left: 0; width: 100%; text-align: center; }
+}
+
+/* ---- The results toolbar ------------------------------------------------ */
+
+/* Filters and exports as one quiet strip rather than two full panels. The
+   jobs are the payoff and they were starting 730px down a phone screen,
+   below four filter controls, four export links and an explanation of a
+   feature the reader could not use. */
+.toolbar {
+  background: var(--surface-low); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: var(--s4) var(--s5);
+  margin: 0;
+}
+.toolbar > details > summary > h2 { font-size: 15px; margin-right: auto; }
+.toolbar .row { margin-top: var(--s5); }
+/* The score legend rides in the lede, so it must not read as loudly as the
+   sentence it qualifies. */
+.score-help { color: var(--slate); }
+
+/* ---- What Sweep is about to do ------------------------------------------ */
+
+/* A definition list read as label-over-answer, not as a table: the answers
+   are chip rows of wildly different widths, and two columns left the Sources
+   row starting three inches from its own label. */
+.summary { margin: 0; display: flex; flex-direction: column; gap: var(--s5); }
+.summary.compact { gap: var(--s4); }
+.summary > div { display: flex; flex-direction: column; gap: var(--s3); }
+.summary dt {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  font-weight: 600; color: var(--slate);
+}
+.summary dd {
+  margin: 0; display: flex; flex-wrap: wrap; gap: var(--s2);
+  align-items: center;
+}
+/* The paid boards are the ones being paid for, so they carry the money
+   colour the rest of the app reserves for exactly that. */
+.summary .paid-tag { color: var(--paid-lift); border-color: var(--paid); }
+.summary .free-tag { color: var(--free); border-color: var(--free); }
+.summary .pending { color: var(--slate); }
+
+/* Replaces the asterisk footnote: the fact travels with the control instead
+   of living 2,400px below the first mark it explains. */
+.affects {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  font-weight: 600; color: var(--paid); margin-left: var(--s3);
+  white-space: nowrap;
+}
+
+/* "What happens next", as three steps rather than a paragraph. Numbered by
+   the counter rather than by <ol>'s own marker so the figure can carry the
+   label face and sit on the first line of a wrapped item. */
+.next-steps {
+  margin: 0; padding: 0; list-style: none; counter-reset: nxt;
+  display: flex; flex-direction: column; gap: var(--s3);
+  color: var(--slate);
+}
+.next-steps > li { position: relative; padding-left: var(--s6); }
+.next-steps > li::before {
+  counter-increment: nxt; content: counter(nxt);
+  position: absolute; left: 0; top: 0;
+  font-size: 10px; font-weight: 700; line-height: 18px;
+  color: var(--paid); font-variant-numeric: tabular-nums;
+}
+
 ul, ol { margin: 0; padding-left: var(--s6); color: var(--warm); }
 li { margin-bottom: var(--s2); }
 code {
@@ -509,6 +697,15 @@ select:focus-visible, summary:focus-visible,
 
 /* Fixed-size tiles that reflow to the width available, rather than eight
    columns stretched across whatever the panel happens to be. */
+/* auto-fill needs a constrained container to know how many columns fit, and
+   a flex column gives its children min-width:auto — so inside the <details>
+   the public screen now wraps this in, the grid sized to its content and
+   pushed the page to 485px at a 390px viewport. Contained here, the same way
+   .listings and .scroll-x are, rather than relying on an ancestor: this is a
+   wide glance and it may scroll sideways in its own box, but the page may
+   not. */
+.grid-groups { min-width: 0; overflow-x: auto; contain: paint; }
+details.panel { min-width: 0; }
 .search-grid {
   display: grid; gap: 4px; justify-content: start;
   grid-template-columns: repeat(auto-fill, minmax(2.6rem, 3rem));
@@ -594,7 +791,12 @@ select:focus-visible, summary:focus-visible,
    scroll the page body, which is the defect
    test_the_results_table_scrolls_inside_its_own_box pins: that test reads
    these two declarations, so do not move them inline or drop either one. */
-.listings { max-height: 70vh; overflow: auto; min-width: 0; contain: paint; }
+/* No max-height any more. A 70vh scroll box inside a scrolling page is two
+   scrolls fighting each other under one thumb, and on a phone the inner one
+   wins wherever the finger lands — so the page could not be scrolled past
+   the job list at all without finding its edge. The page scrolls once; below
+   48rem this stops being a scroll container entirely (see the reflow). */
+.listings { overflow: auto; min-width: 0; contain: paint; }
 .listings table { min-width: 60rem; }
 .listings td { font-size: 12px; line-height: 1.35; }
 /* The dot is drawn, not typed, so a wrapping source name cannot orphan it.
@@ -725,6 +927,15 @@ td.score {
   border-radius: var(--radius); cursor: pointer;
 }
 .picker-box:hover { border-color: var(--slate); }
+/* The toggle is the whole field until a chip is in it: a real <button>, so
+   Enter and Space work without a keydown handler reimplementing them, and it
+   stretches so the click target is the box rather than the caret. */
+.picker-toggle {
+  flex: 1 1 8rem; min-width: 0; display: flex; align-items: center;
+  gap: var(--s2); padding: 0; margin: 0;
+  background: none; border: 0; cursor: pointer;
+  font: inherit; color: inherit; text-align: left;
+}
 .picker-caret { margin-left: auto; color: var(--slate); font-size: 11px; }
 .tag.pick {
   display: inline-flex; align-items: center; gap: var(--s2); margin: 0;
@@ -970,6 +1181,82 @@ td.score {
 .listings td.act { white-space: nowrap; text-align: right; }
 .listings .posted { display: block; margin-top: 2px; color: var(--slate); font-size: 11px; }
 
+/* ---- Jobs as cards, on a phone ------------------------------------------ */
+
+/* Below 48rem the nine-column shortlist becomes one card per job. Same DOM:
+   the <tr> turns into a grid and each cell is placed by name, rather than a
+   second copy of every row in the template that could drift from the first.
+
+   The score sits top-left at display size, so a thumb scrolling the stack
+   reads the match strength down one edge — which is the whole reason the
+   list is sorted the way it is. */
+@media (max-width: 47.99rem) {
+  .listings { overflow: visible; contain: none; }
+  .listings table { min-width: 0; display: block; }
+  .listings tbody { display: block; }
+  /* The header row has nowhere to go on a card, and every cell that needs a
+     label carries its own. */
+  .listings tr.muted { display: none; }
+
+  .listings tr {
+    display: grid; gap: var(--s2) var(--s4);
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "score role   src"
+      "score loc    loc"
+      "pay   pay    exp"
+      "skill skill  skill"
+      "act   act    act";
+    align-items: start;
+    padding: var(--s5);
+    border: 1px solid var(--rule); border-radius: var(--radius);
+    background: var(--surface);
+    margin-bottom: var(--s4);
+  }
+  .listings td { display: block; border: 0; padding: 0; }
+  .listings td:first-child::before { content: none; }
+
+  .listings td.did { display: none; }
+  .listings td.score {
+    grid-area: score; align-self: start;
+    font-family: var(--display); font-size: 28px; line-height: 1;
+    font-weight: 700; letter-spacing: -0.02em; padding-right: var(--s3);
+  }
+  .listings td.role { grid-area: role; }
+  .listings td.src {
+    grid-area: src; justify-self: end; font-size: 11px; white-space: nowrap;
+  }
+  .listings td.loc { grid-area: loc; color: var(--slate); }
+  .listings td.pay { grid-area: pay; color: var(--slate); }
+  .listings td.exp {
+    grid-area: exp; justify-self: end; color: var(--slate);
+    white-space: nowrap;
+  }
+  .listings td.skills { grid-area: skill; max-width: none; margin-top: var(--s2); }
+  .listings td.act {
+    grid-area: act; display: flex; align-items: center;
+    justify-content: space-between; gap: var(--s4);
+    margin-top: var(--s3); padding-top: var(--s3);
+    border-top: 1px solid var(--rule); text-align: left;
+  }
+  /* 44px of height for the one control on the card that is actually a
+     control. The row itself is tappable, but Apply is the keyboard and
+     screen-reader path and has to be reachable by thumb too. */
+  .listings td.act .apply {
+    display: inline-flex; align-items: center; min-height: 44px;
+    padding-right: var(--s4);
+  }
+  .listings .posted { display: inline; margin: 0; }
+
+  /* The dominant action goes full width. `align-self: flex-start` is right on
+     a desktop actions row and wrong in a 390px column, where it leaves the
+     one button the screen exists for floating in the left third. Only .big —
+     the button a screen was designed around — not every secondary control. */
+  button.big, a.big { align-self: stretch; width: 100%; text-align: center; }
+  .actions > button.big, .actions > a.big { flex: 1 1 100%; }
+}
+
+
 /* The section's own description, on the heading's line rather than a
    paragraph below it. Capped so it stays a caption: at full width it reads
    as body copy and competes with the heading. */
@@ -1169,4 +1456,32 @@ td.score {
 .keyx:hover { color: var(--ground); background: var(--over); }
 .keyx[disabled], .keyx[disabled]:hover {
   color: var(--dim); background: transparent; cursor: default;
+}
+
+/* ---- Touch --------------------------------------------------------------
+   Measured, not guessed: .stepper button was 32x34, .remove 28x28, .pick-x
+   about 13x13 and .keyx similar. Applied on a COARSE pointer rather than at
+   a width, because the thing that decides this is the finger, not the
+   viewport — a touch laptop needs it and a narrow desktop window does not. */
+@media (pointer: coarse) {
+  .stepper button { min-width: 44px; min-height: 44px; }
+  .stepper input[type="number"] { min-height: 44px; width: 3.5rem; }
+  /* The brand lockup and the journey chips are navigation, and they were
+     26-31px tall. */
+  .lockup, .step > a { min-height: 44px; }
+  .listings td.act .apply, .section-foot a, .actionbar a.muted {
+    min-height: 44px; min-width: 44px;
+    display: inline-flex; align-items: center;
+  }
+  .remove > span[aria-hidden] { width: 44px; height: 44px; }
+  /* Padding rather than width: these sit inside a chip, so growing the box
+     would break the chip's own shape. The hit area grows, the ink does not. */
+  .pick-x, .keyx {
+    min-width: 44px; min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin: calc(var(--s3) * -1) calc(var(--s2) * -1);
+  }
+  button, .primary, .secondary, a.primary, a.secondary { min-height: 44px; }
+  summary { min-height: 44px; display: flex; align-items: center; }
+  .tick { min-width: 44px; min-height: 44px; }
 }
