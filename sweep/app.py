@@ -45,8 +45,9 @@ from sweep.logic import (  # noqa: E402,F401
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
-    run_banner, run_phase, scope_label, site_label, sort_rows,
-    step_states, sweep_dates, sweep_state,
+    experience_parts, experience_text, run_banner, run_phase,
+    scope_label, site_label, sort_rows, step_states, sweep_dates,
+    sweep_state,
     with_experience, worst_filter, applied_path, read_applied, set_applied)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
@@ -1040,6 +1041,11 @@ def create_app(state=None, extract=None, resume_dir=None,
                     # agreeing: /configure and /confirm showed "linkedin"
                     # while the prose beside them said "LinkedIn".
                     site_label=site_label,
+                    # Experience is a total number of months on state and a
+                    # "N years M months" on screen, and four templates were
+                    # each about to do that division themselves.
+                    experience_parts=experience_parts,
+                    experience_text=experience_text,
                     # The sweep this browser owns, on every screen it has.
                     # A run that outlives the page it was started from is
                     # the promise "you can close this tab" makes, and the

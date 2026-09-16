@@ -823,14 +823,39 @@ class TestFrontDoor(Isolated):
         facts = " ".join(body.split())
         self.assertIn("Titles it will search for</dt> <dd>2</dd>", facts)
         self.assertIn("Skill weights</dt> <dd>4</dd>", facts)
-        self.assertIn("Years of experience</dt> <dd>2</dd>", facts)
+        # Years AND months, under a label wide enough to hold both.
+        self.assertIn("Experience</dt> <dd>2 years</dd>", facts)
 
     def test_zero_years_of_experience_is_still_a_figure(self):
         # A graduate's résumé derives 0, which is a value, not a blank —
         # the same defect the meter refuses on money, pointing the other way.
+        # It reads as words rather than as "0" now that the row holds years
+        # and months: "0 years" beside a colleague's "1 year 10 months" is a
+        # figure pretending the parse was more precise than it was.
         body = self.body({"resume_text": "x",
                           "derived": dict(DERIVED, years_experience=0)})
-        self.assertIn("<dd>0</dd>", " ".join(body.split()))
+        facts = " ".join(body.split())
+        self.assertIn("<dd>Less than a year</dd>", facts)
+        self.assertNotIn("not read yet", facts)
+
+    def test_months_are_shown_beside_the_years(self):
+        """experience_months is a TOTAL, so a 22-month résumé has
+        years_experience 1 — and showing "1 year" for one year and ten
+        months reads as a misparse of the field the review screen exists to
+        let people correct."""
+        body = self.body({"resume_text": "x",
+                          "derived": dict(DERIVED, years_experience=1,
+                                          experience_months=22)})
+        self.assertIn("Experience</dt> <dd>1 year 10 months</dd>",
+                      " ".join(body.split()))
+
+    def test_under_a_year_is_months_alone(self):
+        body = self.body({"resume_text": "x",
+                          "derived": dict(DERIVED, years_experience=0,
+                                          experience_months=7)})
+        facts = " ".join(body.split())
+        self.assertIn("<dd>7 months</dd>", facts)
+        self.assertNotIn("0 years", facts)
 
     # ---- the metering strip ---------------------------------------------
     def test_the_paid_boards_are_named_the_way_the_boards_spell_them(self):

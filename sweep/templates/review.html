@@ -41,14 +41,9 @@
         <div class="panel card">
           <span class="label">You</span>
           <p class="card-figure">{{ derived.field_summary }}</p>
-          {% if derived.years_experience is not none %}
-            {% set months = derived.get('experience_months') %}
-            {% set whole = months // 12 if months is not none
-                           else derived.years_experience %}
-            {% set extra = months % 12 if months is not none else 0 %}
-            <p class="muted card-note">{{ whole }} year{{ '' if whole == 1 else 's' }}
-              {%- if extra %} {{ extra }} month{{ '' if extra == 1 else 's' }}{% endif %}
-              of experience</p>
+          {% set said = experience_text(derived) %}
+          {% if said %}
+            <p class="muted card-note">{{ said }} of experience</p>
           {% endif %}
         </div>
 
@@ -110,13 +105,12 @@
           <p class="muted">Sweep already filled all of this in from your
             résumé. Change anything that looks wrong.</p>
 
-          {% if derived.years_experience is not none %}
-            {% set months = derived.get('experience_months') %}
-            {% set whole = months // 12 if months is not none
-                           else derived.years_experience %}
-            {% set extra = months % 12 if months is not none else 0 %}
+          {% set whole, extra = experience_parts(derived) %}
+          {% if whole is not none %}
             <div class="read-out">
-              <span class="label" id="exp-label">Years of experience</span>
+              {# The group holds two controls, and each carries its own unit
+                 below — so the heading names the fact, not one of them. #}
+              <span class="label" id="exp-label">Experience</span>
               <div class="row">
                 <label class="narrow"><span class="label">Years</span>
                   <div class="stepper" x-data='{ n: {{ whole|tojson }} }'>
@@ -186,13 +180,10 @@
               <span class="label">The field it inferred</span>
               <p class="inset">{{ derived.field_summary }}</p>
             </div>
-            {% if derived.years_experience is not none %}
-              {% set months = derived.get('experience_months') %}
-              {% set whole = months // 12 if months is not none
-                             else derived.years_experience %}
-              {% set extra = months % 12 if months is not none else 0 %}
+            {% set whole, extra = experience_parts(derived) %}
+            {% if whole is not none %}
               <div class="read-out">
-                <span class="label">Years of experience</span>
+                <span class="label">Experience</span>
                 <div class="row">
                   <label class="narrow"><span class="label">Years</span>
                     <div class="stepper" x-data='{ n: {{ whole|tojson }} }'>

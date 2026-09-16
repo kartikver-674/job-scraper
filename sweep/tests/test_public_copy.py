@@ -382,3 +382,63 @@ class TestTheShortlistSurvivesAPhone(unittest.TestCase):
                                 "button.primary, a.primary {"):
             with self.subTest(rule=defined_earlier):
                 self.assertLess(css.index(defined_earlier), touch)
+
+
+class TestExperienceReadsAsYearsAndMonths(unittest.TestCase):
+    """`experience_months` is a TOTAL — local_extract and with_experience
+    both write years * 12 + months — so every screen showing experience has
+    to divide it, and `years_experience` alone is only ever whole years.
+
+    A 22-month résumé therefore has years_experience 1, and "1 year" for
+    someone with one year and ten months reads as a misparse of exactly the
+    field the review screen exists to let people correct.
+    """
+
+    def test_the_split_comes_from_the_total_not_the_whole_years(self):
+        from sweep.logic import experience_parts
+        self.assertEqual(
+            experience_parts({"years_experience": 1, "experience_months": 22}),
+            (1, 10))
+
+    def test_whole_years_are_the_fallback_when_there_is_no_total(self):
+        from sweep.logic import experience_parts
+        self.assertEqual(experience_parts({"years_experience": 3}), (3, 0))
+
+    def test_nothing_read_is_not_a_zero(self):
+        from sweep.logic import experience_parts, experience_text
+        self.assertEqual(experience_parts({}), (None, 0))
+        self.assertIsNone(experience_text({}))
+        self.assertIsNone(experience_text(None))
+
+    def test_the_wording(self):
+        from sweep.logic import experience_text
+        for derived, said in (
+                ({"experience_months": 22}, "1 year 10 months"),
+                ({"experience_months": 13}, "1 year 1 month"),
+                ({"experience_months": 12}, "1 year"),
+                ({"experience_months": 24}, "2 years"),
+                ({"experience_months": 7}, "7 months"),
+                ({"experience_months": 1}, "1 month"),
+                ({"experience_months": 0}, "Less than a year"),
+                ({"years_experience": 2}, "2 years"),
+                ({"years_experience": 1}, "1 year")):
+            with self.subTest(derived=derived):
+                self.assertEqual(experience_text(derived), said)
+
+    def test_the_profile_card_says_both(self):
+        with public_screens(free=True) as pages:
+            card = pages["/review"]
+        # DERIVED carries whole years only, so this is the fallback path —
+        # the months path is covered by the unit cases above and by
+        # test_app's front-door rows.
+        self.assertIn("of experience", card)
+
+    def test_the_stepper_pair_is_labelled_for_what_it_holds(self):
+        """Two controls, each with its own unit underneath, so the group
+        heading names the fact rather than one of them."""
+        with public_screens(free=True) as pages:
+            card = " ".join(pages["/review"].split())
+        self.assertIn('id="exp-label">Experience<', card)
+        self.assertIn('name="experience_years"', card)
+        self.assertIn('name="experience_months"', card)
+        self.assertNotIn('id="exp-label">Years of experience<', card)

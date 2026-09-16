@@ -160,14 +160,18 @@
             {% else %}<dd class="pending">not read yet</dd>{% endif %}
           </div>
           <div>
-            <dt>Years of experience</dt>
-            {# `read and` is load-bearing: with read None, Jinja resolves
-               read.years_experience to Undefined, and `Undefined is not none`
-               is TRUE — so this took the "we have a figure" branch and
-               printed an empty <dd> on a screen whose rule is that a figure
-               nobody produced is never printed. #}
-            {% if read and read.years_experience is not none %}
-              <dd>{{ read.years_experience }}</dd>
+            {# "Years of experience" over a figure that is years AND months
+               is a label narrower than what it labels. #}
+            <dt>Experience</dt>
+            {# experience_text is None when nothing was read, which is the
+               same guard the `read and` used to carry here: with read None,
+               Jinja resolves read.years_experience to Undefined and
+               `Undefined is not none` is TRUE, so this took the "we have a
+               figure" branch and printed an empty <dd> on a screen whose
+               rule is that a figure nobody produced is never printed. #}
+            {% set said = experience_text(read) %}
+            {% if said %}
+              <dd>{{ said }}</dd>
             {% else %}<dd class="pending">not read yet</dd>{% endif %}
           </div>
         </dl>

@@ -703,6 +703,49 @@ def reweighted(derived, terms, weights, dropped, add_raw="", add_weight=""):
     return kept
 
 
+def experience_parts(derived):
+    """(whole years, leftover months) for a derivation, or (None, 0).
+
+    `experience_months` is a TOTAL — local_extract writes years * 12 +
+    months, and with_experience below rebuilds it the same way — so every
+    screen that shows experience has to divide it, and three of them were
+    each doing their own `// 12` and `% 12`. A fourth was about to.
+
+    `years_experience` is the fallback and is only ever whole years, which
+    is why it cannot be the primary: a 22-month résumé has
+    years_experience 1, and showing "1 year" for someone with one year and
+    ten months reads as a misparse of exactly the field the review screen
+    exists to let people correct.
+    """
+    months = derived.get("experience_months") if derived else None
+    if months is not None:
+        return months // 12, months % 12
+    years = derived.get("years_experience") if derived else None
+    return years, 0
+
+
+def experience_text(derived):
+    """"1 year 10 months", or None when nothing was read.
+
+    Months are omitted at zero rather than printed as "0 months": a flat
+    two years is two years, and padding it implies a precision the parse
+    did not have.
+    """
+    years, months = experience_parts(derived)
+    if years is None:
+        return None
+    if not years:
+        # Under a year is months, not "0 years 7 months" — and a flat zero
+        # with no months is a real reading (a new graduate), so it still
+        # says something rather than going blank.
+        return (f"{months} month{'' if months == 1 else 's'}" if months
+                else "Less than a year")
+    said = f"{years} year{'' if years == 1 else 's'}"
+    if months:
+        said += f" {months} month{'' if months == 1 else 's'}"
+    return said
+
+
 def with_experience(derived, years_raw, months_raw):
     """`derived` with the experience the user corrected on the review screen.
 
