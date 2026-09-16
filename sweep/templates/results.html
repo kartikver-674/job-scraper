@@ -145,9 +145,11 @@
 {% block body %}
 <div class="stack">
   <div class="stack-tight">
+    {# One text node per phrase: HTML collapses a newline inside a heading,
+       but a sentence broken across template lines is one nobody can grep
+       for — including the tests that assert what the screen says. #}
     <h1>{% if public_mode %}
-      {%- if total == all_total %}{{ total }} job{{ '' if total == 1 else 's' }}
-        matched your profile
+      {%- if total == all_total %}{{ total }} job{{ '' if total == 1 else 's' }} matched your profile
       {%- else %}{{ total }} of {{ all_total }} jobs shown{% endif %}
     {%- else %}
       {%- if total == all_total %}{{ total }} listings kept{% else %}{{ total }} of {{ all_total }} listings{% endif %}
