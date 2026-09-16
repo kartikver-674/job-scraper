@@ -1,7 +1,13 @@
 # Sweep public beta — UX audit and redesign proposal
 
 Written for: you, as the product owner deciding what to change before the next
-beta cohort. Nothing in here has been implemented.
+beta cohort.
+
+> **Status: implemented on `feat/public-ux-redesign`,** in five commits
+> (`69fe679`, `2bc1549`, `e3d3ce0`, `8c037b4`, `f3bfbd5`). Where the build
+> departed from this audit, the audit is annotated inline — search for
+> **CORRECTED**. Two proposals were deliberately not shipped; see
+> "What was not implemented" at the end.
 
 ## How this was audited
 
@@ -692,11 +698,19 @@ The tab-closing reassurance appears before the wait, not during it.
 ### `/running` — Searching
 
 **Current problem (free path — the default public journey).** One indeterminate
-bar and a panel reading "there is no per-search progress to show", for up to 40
-minutes. The "Listings arriving" feed exists, works, and is gated out by
-`{% if free_only %}` — the honest reasoning about per-search progress was
-applied to the whole right-hand column, including the one panel that would have
-worked. **Nothing about queue position, and nothing about closing the tab.**
+bar and a panel reading "there is no per-search progress to show". **Nothing
+about queue position, and nothing about closing the tab.**
+
+> **CORRECTED.** This audit originally said the "Listings arriving" feed was
+> gated out by a template accident and "works" on the free path. It does not.
+> `scraper.py` calls `fetch_free()` once and emits a single checkpoint after
+> it, so a free sweep produces no rows until the end — which is exactly why
+> `live_feed()` returns early on that path. A live feed there would sit empty
+> for the whole run and then flash the lot, and a "0 jobs found so far"
+> headline would be the bar's own dishonesty with a number on it. What
+> shipped instead: the queue position, an evidenced stage line, the
+> tab-closing reassurance, and the count and feed only once there is
+> something to count.
 
 **Current problem (paid path).** The dominant element is a grid of cells reading
 `BEN GUR RI` under `LINKEDIN` / `INDEED` — a backend job matrix.
@@ -762,6 +776,13 @@ and never exceeds one row.
 | 30–49 | **Strong match** |
 | 15–29 | **Good match** |
 | < 15 | **Possible match** |
+
+> **CORRECTED — not shipped.** Those thresholds were eyeballed from one
+> sample shortlist, and a band is a claim about a distribution. The screen
+> ships the raw number, the column header `Match`, a legend in the lede and
+> a title on every cell. `docs/match-bands.md` records the analysis that
+> would earn the bands — including the real possibility that the answer is a
+> percentile of each sweep rather than an absolute table, or no bands at all.
 
 with the raw number kept as a small secondary figure and a one-line legend:
 "Match strength is how well the job's requirements line up with the skills and
@@ -970,3 +991,23 @@ Phases 1–4 need your approval on:
 3. the match-band thresholds, which should be set from real sweep data rather
    than the placeholders above;
 4. whether the public profile-name field goes away entirely.
+
+---
+
+# What was not implemented, and why
+
+| Proposed | Outcome |
+|---|---|
+| Match bands (Excellent / Strong / Good / Possible) | **Not shipped.** Thresholds were not measured. Raw score plus a legend shipped instead; `docs/match-bands.md` holds the analysis task. |
+| Merging `/review` and `/key` into one screen | **Not shipped, by decision.** Keeping them apart finishes one mental task ("did Sweep understand me?") before starting another ("how should it search?"). |
+| Moving locations/scope into the Profile summary | **Not shipped, by decision.** Where you want to work describes *this search*, not the candidate — it stays in Search preferences. |
+| Extracting `_journey`, `_match`, `_job_card`, `_state` partials | **Partly.** `_search_summary.html` was extracted and `site_label()` centralised. The job card is CSS over the existing row rather than a second template, which is less markup and cannot drift. The journey is a config table (`PUBLIC_STAGES`), not a partial. |
+| A coarse worker-reported phase (`preparing`/`searching`/`ranking`) | **Not shipped.** The stage line is derived from facts already in `snapshot()`; asking the worker for a phase is a backend change that has not proved necessary. |
+
+## Known remainder
+
+- The weight-number inputs inside the skills table measure 26px wide on a
+  phone (44px tall, with 44×44 steppers either side). They sit inside a
+  horizontally-scrolling table, behind a disclosure, on the public path.
+- `auto_profile_name` falls back to `"sweep"` when the résumé's name does not
+  transliterate, so an export is then `sweep-sweep-<date>.csv`.
