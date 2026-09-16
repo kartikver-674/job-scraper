@@ -228,3 +228,116 @@ class TestBoardsAreNamedTheWayBoardsSpellThem(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheQueueIsVisible(unittest.TestCase):
+    """The worker runs MAX_ACTIVE=1, so waiting behind somebody else is the
+    NORMAL state for a beta with more than one visitor — and it used to be
+    indistinguishable from a hang: an indeterminate bar, and a panel saying
+    there was no progress to show.
+
+    `queue_position` has been in the worker's status since it was written
+    and nothing on Render read it. These drive the whole chain: worker
+    status -> worker_link.read_queue -> snapshot() -> the screen.
+    """
+
+    def _running(self, position):
+        """A public app whose sweep is at `position` in the queue."""
+        app = app_module.create_app(
+            state={"resume_text": "x", "derived": dict(DERIVED),
+                   "profile": "beta_user", "free_only": True,
+                   "raw_plan": {"profile": "beta_user", "sites": {},
+                                "max_results": {}, "free_sources": 6},
+                   "proc": _Alive(), "run_started_at": 0},
+            derive=lambda text, prefs: dict(DERIVED),
+            read_rows=lambda profile: [dict(ROW)],
+            read_live=lambda profile, since: [dict(ROW)],
+            read_done=lambda profile, day: set(),
+            read_queue=lambda: position)
+        app.config["TESTING"] = True
+        # The template branches on public_mode, which harden() sets; this
+        # test wants the public screen without a worker behind it.
+        app.config["PUBLIC_MODE"] = True
+        from sweep.logic import PUBLIC_STAGES
+        app.config["STEPS"] = PUBLIC_STAGES
+        app.state["plan"] = {"lines": [], "total": 0.0, "spend_cap": 0.0,
+                             "free_sources": 6, "already_done": 0,
+                             "over_cap": False, "total_searches": 0}
+        return app
+
+    def test_position_one_says_you_are_next(self):
+        app = self._running(1)
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn("You are in the queue", body)
+        self.assertIn("Yours is next", body)
+        # The progress JSON the poll reads carries it too, or the screen
+        # would be right once and wrong four seconds later.
+        live = app.test_client().get("/progress").get_json()
+        self.assertTrue(live["queued"])
+        self.assertEqual(live["queue_position"], 1)
+
+    def test_a_later_position_is_counted_not_guessed_at(self):
+        app = self._running(4)
+        live = app.test_client().get("/progress").get_json()
+        self.assertEqual(live["queue_position"], 4)
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn("sweeps ahead of yours", body)
+        # No duration promised for a queue whose length nobody can time.
+        self.assertNotIn("40 minutes", body)
+
+    def test_not_queued_reads_as_searching_not_as_position_zero(self):
+        app = self._running(None)
+        live = app.test_client().get("/progress").get_json()
+        self.assertFalse(live["queued"])
+        self.assertEqual(live["queue_position"], 0)
+        body = app.test_client().get("/running").get_data(as_text=True)
+        self.assertIn("Sweep is searching for you", body)
+
+    def test_the_free_path_gets_the_tab_promise_and_a_real_stage(self):
+        """The old free screen was an indeterminate bar plus a panel saying
+        there was no progress to show — indistinguishable from a hang."""
+        body = self._running(None).test_client().get(
+            "/running").get_data(as_text=True)
+        self.assertIn("Sweep is searching for you", body)
+        self.assertIn("You can close this tab", body)
+        self.assertNotIn("no per-search progress to show", body)
+
+    def test_a_free_sweep_never_shows_a_count_it_cannot_produce(self):
+        """scraper.py calls fetch_free() once and emits a single checkpoint
+        after it, so a free sweep has no rows until the end and live_feed()
+        returns early on that path. A headline reading "0 jobs found so far"
+        for the whole run would be the bar's own dishonesty with a number
+        painted on it."""
+        body = self._running(None).test_client().get(
+            "/running").get_data(as_text=True)
+        found = body[body.find("headline-figure"):]
+        found = found[:found.find("</div>")]
+        self.assertIn("display:none", found,
+                      "the count is shown before there is anything to count")
+
+    def test_a_local_sweep_reports_no_queue_rather_than_an_unknown(self):
+        """There is nothing in front of a subprocess, so "not queued" is a
+        fact locally rather than a missing reading."""
+        app = app_module.create_app(
+            state={"resume_text": "x", "derived": dict(DERIVED),
+                   "profile": "kartik", "free_only": True,
+                   "raw_plan": {"profile": "kartik", "sites": {},
+                                "max_results": {}, "free_sources": 6},
+                   "proc": _Alive(), "run_started_at": 0},
+            derive=lambda text, prefs: dict(DERIVED),
+            read_rows=lambda profile: [], read_live=lambda p, s: [],
+            read_done=lambda profile, day: set())
+        app.config["TESTING"] = True
+        live = app.test_client().get("/progress").get_json()
+        self.assertFalse(live["queued"])
+        self.assertEqual(live["queue_position"], 0)
+
+
+class _Alive:
+    """A child that is still going, as far as _liveness() is concerned."""
+
+    def poll(self):
+        return None
+
+    def terminate(self):
+        pass

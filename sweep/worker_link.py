@@ -181,6 +181,28 @@ def injections(app):
         # re-runs and re-bills yesterday's, so they are not progress.
         return {line for line in done if line.startswith(day)}
 
+    def read_queue():
+        """This run's place in the worker's queue, or None when it is not
+        waiting.
+
+        The worker has reported `queue_position` since it was written
+        (sweep_worker.py, `public()`), and nothing on this side read it —
+        so with MAX_ACTIVE=1 a visitor waiting behind another sweep saw
+        exactly what a hung sweep looks like. Read from the SAME cached
+        status the rest of the screen polls, so it costs no extra call.
+        """
+        run_id = public.current_run_id()
+        if not run_id:
+            return None
+        try:
+            status = _status(run_id)
+        except worker_client.WorkerError:
+            return None
+        # 0 means "not waiting" on the worker's side — running, finished, or
+        # never queued. Reported as None so the screen does not have to know
+        # which of the two zeroes it is looking at.
+        return status.get("queue_position") or None
+
     def read_spend():
         # Never called on the free path (snapshot() returns early), and
         # there is no account to poll if it were.
@@ -192,7 +214,7 @@ def injections(app):
     return {"fetch_plan": fetch_plan, "start_sweep": start_sweep,
             "read_live": read_live, "read_rows": read_rows,
             "read_done": read_done, "read_spend": read_spend,
-            "list_sweeps": list_sweeps}
+            "read_queue": read_queue, "list_sweeps": list_sweeps}
 
 
 def _prefs_of(state):

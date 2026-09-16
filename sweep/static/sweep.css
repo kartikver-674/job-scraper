@@ -520,6 +520,23 @@ button.big, a.big {
   padding: var(--s5) var(--s7); font-size: 15px; line-height: 1.1;
 }
 
+/* ---- The results toolbar ------------------------------------------------ */
+
+/* Filters and exports as one quiet strip rather than two full panels. The
+   jobs are the payoff and they were starting 730px down a phone screen,
+   below four filter controls, four export links and an explanation of a
+   feature the reader could not use. */
+.toolbar {
+  background: var(--surface-low); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: var(--s4) var(--s5);
+  margin: 0;
+}
+.toolbar > details > summary > h2 { font-size: 15px; margin-right: auto; }
+.toolbar .row { margin-top: var(--s5); }
+/* The score legend rides in the lede, so it must not read as loudly as the
+   sentence it qualifies. */
+.score-help { color: var(--slate); }
+
 /* ---- What Sweep is about to do ------------------------------------------ */
 
 /* A definition list read as label-over-answer, not as a table: the answers

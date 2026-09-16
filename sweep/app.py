@@ -183,7 +183,8 @@ def create_app(state=None, extract=None, resume_dir=None,
                start_sweep=None, read_spend=None, output_dir=None,
                read_done=None, now=None, read_rows=None, read_live=None,
                start_rescore=None, hour_now=None, profile_exists=None,
-               wall_now=None, list_sweeps=None, start_merge=None):
+               wall_now=None, list_sweeps=None, start_merge=None,
+               read_queue=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -258,6 +259,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         read_done = read_done or remote["read_done"]
         read_spend = read_spend or remote["read_spend"]
         list_sweeps = list_sweeps or remote["list_sweeps"]
+        read_queue = read_queue or remote["read_queue"]
 
     # Public mode: every extraction is two GPU calls on the operator's
     # Modal account, so the daily limit wraps the CALL, not the route —
@@ -266,6 +268,13 @@ def create_app(state=None, extract=None, resume_dir=None,
     if public.enabled():
         app.beta_limit = public.limit_from_env()
         derive = public.metered(derive, app.beta_limit)
+
+    if read_queue is None:
+        # A local sweep is a subprocess started directly by POST /run: there
+        # is nothing in front of it and nothing to wait behind, so "no queue"
+        # is a fact here rather than a missing reading.
+        def read_queue():
+            return None
 
     if profile_exists is None:
         def profile_exists(name):
@@ -676,6 +685,15 @@ def create_app(state=None, extract=None, resume_dir=None,
         planned = planned_keys(app.state)
         done = read_done(app.state["profile"], runs_mod.today())
         p = runs_mod.progress(planned, done)
+
+        # Where this run is in the worker's queue, if it is in one at all.
+        # MAX_ACTIVE is 1 on the worker, so waiting behind somebody else is
+        # the NORMAL state for a public beta with more than one visitor —
+        # and until now it was indistinguishable from a hang: the screen
+        # showed an indeterminate bar and said nothing.
+        waiting = read_queue()
+        p["queued"] = bool(waiting)
+        p["queue_position"] = waiting or 0
 
         for tile in p["tiles"]:
             # Same rule plan.cost() already uses (a site listed at a $0.00
