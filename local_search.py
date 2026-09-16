@@ -47,6 +47,8 @@ benchmark scores the code that ships.
 import collections
 import csv
 import glob
+import gzip
+import json
 import math
 import os
 import re
@@ -186,6 +188,128 @@ def seniority_lists():
             tuple(config.SCORING["soft_drop_terms"]))
 
 
+# --------------------------------------------------------------------------
+# The market this repo SHIPS with
+# --------------------------------------------------------------------------
+
+# corpus_signal already solves this for skill WEIGHTS: a machine with no
+# output/ of its own — a fresh clone, or the public beta on an ephemeral
+# disk — falls back to a committed table rather than abstaining on every
+# term. Title derivation had no such fallback, and the asymmetry showed up
+# in production as a real upload that could never succeed:
+#
+#   from_resume() drops internships on purpose (local_extract.countable,
+#   whose comment records why), so a résumé whose every role is an
+#   internship has no own-title floor. With no corpus there is nothing
+#   else, fields_for returns no role_keywords, and local_profile escalates.
+#   Measured on that résumé: 8 keywords with a corpus, 0 without.
+#
+# So the same pattern, for the same reason, with the same rules.
+FROZEN_NAME = os.path.join("data", "title_corpus.json.gz")
+
+# The artifact's own shape. Bumped only when a reader written for the old
+# one would misread the new: a loader that silently accepted a format it
+# did not understand is how a corpus becomes wrong rather than absent.
+FROZEN_SCHEMA = 1
+
+# Below this the live corpus is not thin, it is silent — the same judgement
+# corpus_signal.MIN_LISTINGS makes about frequencies, and deliberately the
+# same number, because both are asking "is there enough market here to rank
+# against". A handful of rows produces keywords ranked by noise, which is
+# worse than falling back to a corpus that can answer.
+#
+# NOT called MIN_ROWS: this module already has one at 20, for the orphan
+# pass's "a title nothing much is posted under" bar. Two unrelated floors
+# under one name meant the later binding won and this gate silently became
+# 20 — caught by an import check, which is the only way a module-level
+# rebinding like that ever shows up.
+MIN_CORPUS_ROWS = 200
+
+
+def frozen_path(path=None):
+    """Resolved from this MODULE, never the working directory.
+
+    The beta runs under gunicorn from whatever cwd Render chose, and a
+    relative path would read as "no corpus" there and as the real one on a
+    laptop — which is precisely the production/local split this exists to
+    remove.
+    """
+    return path or os.path.join(HERE, FROZEN_NAME)
+
+
+def frozen_rows(path=None):
+    """The committed corpus, or [] when it is missing or unreadable.
+
+    Never raises. A file that has been truncated, hand-edited or left out
+    of a build must degrade to "no corpus" — the behaviour that existed
+    before this function did — rather than failing a résumé.
+
+    Rejected as a WHOLE rather than row by row, which is the opposite of
+    frozen_frequencies' per-entry rule and deliberate: a frequency table is
+    a bag of independent terms, where one bad line costs one term. This is
+    a market, and idf() divides by len(rows) — so quietly dropping rows
+    would not give a smaller corpus, it would give a differently-weighted
+    one, and nothing downstream could tell.
+    """
+    try:
+        with gzip.open(frozen_path(path), "rt", encoding="utf-8") as fh:
+            payload = json.load(fh)
+        if payload.get("schema_version") != FROZEN_SCHEMA:
+            return []
+        rows = []
+        for row in payload["rows"]:
+            title, score, skills, company = row
+            if not (isinstance(title, str) and title
+                    and isinstance(score, int) and not isinstance(score, bool)
+                    and isinstance(skills, list)
+                    and all(isinstance(s, str) for s in skills)
+                    and isinstance(company, str)):
+                return []
+            rows.append((title, score, frozenset(skills), company))
+        return rows
+    except (OSError, ValueError, TypeError, KeyError, AttributeError,
+            EOFError, gzip.BadGzipFile):
+        return []
+
+
+def usable(rows):
+    """Whether this corpus can rank anything."""
+    return len(rows) >= MIN_CORPUS_ROWS
+
+
+def market_rows(output_dir=None, frozen=None):
+    """(rows, source) where source is "live", "frozen" or "none".
+
+    Deliberately a choice, not a merge — corpus_signal.market_signal's own
+    reasoning, and it applies here with more force: blending two corpora
+    would make a keyword's rank depend on which dataset it happened to land
+    in, and idf() would divide by a total that describes neither.
+    """
+    live = corpus_rows(output_dir)
+    if usable(live):
+        return live, "live"
+    table = frozen_rows(frozen)
+    if usable(table):
+        return table, "frozen"
+    return [], "none"
+
+
+# The frozen corpus never changes within a process, and indexing 22k rows
+# costs ~0.6s. Cached by resolved PATH so a test pointing at its own file
+# gets its own entry, and only ever for the frozen side: a live corpus is
+# a directory a developer is actively adding sweeps to, and caching that
+# would serve them yesterday's market until they restarted.
+_FROZEN_CACHE = {}
+
+
+def frozen_market(path=None, seniority=None):
+    """A Market over the committed corpus, built once per process."""
+    key = (frozen_path(path), seniority)
+    if key not in _FROZEN_CACHE:
+        _FROZEN_CACHE[key] = Market(rows=frozen_rows(path), seniority=seniority)
+    return _FROZEN_CACHE[key]
+
+
 class Market:
     """The corpus, indexed once. Building it twice is the slow part."""
 
@@ -196,7 +320,14 @@ class Market:
             hard, soft = seniority, ()
         self.hard, self.soft = hard, soft
         self.seniority = tuple(hard) + tuple(soft)
-        self.rows = list(rows) if rows is not None else corpus_rows(output_dir)
+        # The one seam. A caller that HANDS rows in gets exactly those —
+        # including rows=[], which several tests use to mean "an empty
+        # market" and must keep meaning it. Only "read the corpus for me"
+        # goes through the fallback.
+        if rows is not None:
+            self.rows, self.source = list(rows), "given"
+        else:
+            self.rows, self.source = market_rows(output_dir)
         self.index = index(self.rows, self.seniority)
         self.vocab = vocabulary(self.rows)
         self.total = len(self.rows)
@@ -1513,12 +1644,84 @@ def demo():
     assert got["listings"] == 60 and got["relevance"] == 1.0
     assert got["spend"] > 0
 
+    # The fallback rules, checked where corpus_signal.demo() checks its
+    # own: this module owns them, and a reviewer looks here first.
+    import tempfile as _tmp
+    _none_dir = _tmp.mkdtemp()
+    assert frozen_rows(os.path.join(_none_dir, "nope.json.gz")) == []
+    assert market_rows(_none_dir, os.path.join(_none_dir, "nope.json.gz")) \
+        == ([], "none")
+    _shipped = frozen_rows()
+    if _shipped:
+        # Present on a clone; absent in a build that dropped data/.
+        assert usable(_shipped), len(_shipped)
+        assert market_rows(_none_dir)[1] == "frozen"
+    # rows= always wins, including rows=[] — several callers mean "empty".
+    assert Market(rows=[]).rows == [] and Market(rows=[]).source == "given"
+
     print("local_search demo ok")
+
+
+def freeze(output_dir=None, path=None):
+    """Write this machine's corpus out as the committed artifact.
+
+    A maintenance tool, run by hand: `python -m local_search --freeze`.
+    The provenance block exists so a keyword in a shipped profile can be
+    traced to the dataset that produced it, exactly as corpus_signal's
+    does.
+
+    Written AS-IS, not deduplicated. The 57 sweeps repeat postings, and
+    collapsing them halves the file — but idf() divides by len(rows) and
+    counts skill occurrences, so a deduplicated corpus is a different
+    market, not a smaller copy of this one. A frozen corpus that answered
+    differently from the live one would make a bug reproducible on a laptop
+    and not on Render, which is the split this whole artifact exists to
+    close.
+    """
+    import datetime
+
+    output_dir = output_dir or os.path.join(HERE, "output")
+    rows = corpus_rows(output_dir)
+    out = path or frozen_path()
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    payload = {
+        "schema_version": FROZEN_SCHEMA,
+        "generated_at": datetime.date.today().isoformat(),
+        "generated_by": "python -m local_search --freeze",
+        "what": "Every job listing scraped into output/, as [title, score, "
+                "matched skills, company]. Read by local_search.market_rows() "
+                "only when the machine has no usable corpus of its own — a "
+                "fresh clone, or the public beta on an ephemeral disk.",
+        "row_count": len(rows),
+        "distinct_titles": len({t for t, _s, _sk, _c in rows}),
+        "distinct_skills": len({s for _t, _sc, sk, _c in rows for s in sk}),
+        "distinct_companies": len({c for _t, _s, _sk, c in rows if c}),
+        "source_sweeps": len({os.path.basename(os.path.dirname(p))
+                              for p in glob.glob(os.path.join(
+                                  output_dir, "**", "*.csv"), recursive=True)}),
+        # sorted() and mtime=0 so re-freezing an unchanged corpus produces a
+        # byte-identical file: a diff that is only a timestamp is a diff
+        # nobody reads.
+        "rows": [[t, s, sorted(sk), c] for t, s, sk, c in sorted(rows)],
+    }
+    with gzip.GzipFile(out, "wb", mtime=0) as fh:
+        fh.write(json.dumps(payload, separators=(",", ":"),
+                            ensure_ascii=False).encode("utf-8"))
+    return payload, out
 
 
 if __name__ == "__main__":
     import sys
     if "--demo" in sys.argv:
         demo()
+    elif "--freeze" in sys.argv:
+        meta, where = freeze()
+        print(f"rows              {meta['row_count']}")
+        print(f"distinct titles   {meta['distinct_titles']}")
+        print(f"distinct skills   {meta['distinct_skills']}")
+        print(f"distinct companies {meta['distinct_companies']}")
+        print(f"source sweeps     {meta['source_sweeps']}")
+        print(f"written           {where} "
+              f"({os.path.getsize(where) // 1024} KB)")
     else:
         print(__doc__)

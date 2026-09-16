@@ -468,6 +468,20 @@ def harden(app, env=None, store=None, limit=None):
     import corpus_signal
     app.config["MARKET_SIGNAL_SOURCE"] = corpus_signal.market_signal(
         app.config.get("OUTPUT_DIR"))[1]
+    # The same question for TITLES, which had no frozen fallback until a
+    # real upload proved it needed one: no output/ meant no role_keywords
+    # for anyone whose own titles are filtered out, and that is every
+    # internship-only résumé. Read once here for the same reason as above —
+    # market_rows() walks every CSV a live corpus holds.
+    #
+    # The row COUNT as well as the source: "frozen" alone cannot tell a
+    # shipped corpus from a shipped empty one, and this is the diagnostic
+    # that says whether the artifact actually made it into the build.
+    import local_search
+    _title_rows, _title_source = local_search.market_rows(
+        app.config.get("OUTPUT_DIR"))
+    app.config["TITLE_CORPUS_SOURCE"] = _title_source
+    app.config["TITLE_CORPUS_ROWS"] = len(_title_rows)
 
     store = store if store is not None else SessionStore()
     app.session_store = store
@@ -555,7 +569,9 @@ def harden(app, env=None, store=None, limit=None):
         or cost anything."""
         return {"status": "ok", "mode": "public-beta",
                 "sessions": len(store),
-                "market_signal_source": app.config["MARKET_SIGNAL_SOURCE"]}
+                "market_signal_source": app.config["MARKET_SIGNAL_SOURCE"],
+                "title_corpus_source": app.config["TITLE_CORPUS_SOURCE"],
+                "title_corpus_rows": app.config["TITLE_CORPUS_ROWS"]}
 
     @app.errorhandler(worker_client.WorkerError)
     def sweep_service_trouble(exc):
