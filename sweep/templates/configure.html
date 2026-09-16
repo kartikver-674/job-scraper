@@ -191,7 +191,17 @@
           count.</p>
         {% endif %}
         {# Single-quoted for the |tojson rule at the top of this file. #}
+        {# The control is a disclosure over a group of checkboxes, and it is
+           marked up as one now. It used to be a <div role="button"> with real
+           <button> chips inside it — interactive descendants of a role=button
+           are invalid and a screen-reader trap — and it had no Escape, no
+           focus return, and no way out for a keyboard except tabbing through
+           every option in the list.
+
+           aria-expanded moves to the toggle, the menu is a labelled group,
+           and the chips sit OUTSIDE the toggle rather than inside it. #}
         <div class="picker" @click.outside="open = false"
+             @keydown.escape="if (open) { open = false; $refs.toggle.focus() }"
              x-data='{ open: false, picked: {{ picked_locations|tojson }},
                has(name) { return this.picked.indexOf(name) !== -1 },
                toggle(name) {
@@ -206,11 +216,20 @@
                  this.$nextTick(() =&gt; this.$dispatch("change"));
                } }'>
           <input type="hidden" name="locations" :value="picked.join(&#39;, &#39;)">
-          <div class="picker-box" tabindex="0" role="button"
-               :aria-expanded="open ? &#39;true&#39; : &#39;false&#39;"
-               @click="open = !open" @keydown.enter.prevent="open = !open"
-               @keydown.space.prevent="open = !open">
-            <span class="muted" x-show="!picked.length">All locations</span>
+          <div class="picker-box">
+            <button type="button" class="picker-toggle" x-ref="toggle"
+                    :aria-expanded="open ? &#39;true&#39; : &#39;false&#39;"
+                    aria-controls="location-menu"
+                    @click="open = !open">
+              <span class="visually-hidden">Choose locations</span>
+              <span class="muted" x-show="!picked.length">All locations</span>
+              <span class="meta" x-show="picked.length" x-cloak
+                    x-text="picked.length + (picked.length === 1
+                            ? &#39; location&#39; : &#39; locations&#39;)"></span>
+              <span class="picker-caret" aria-hidden="true">&#9662;</span>
+            </button>
+            {# Outside the toggle: a <button> may not contain another one, and
+               these have to be real buttons to be reachable by keyboard. #}
             <template x-for="name in picked" :key="name">
               <span class="tag pick">
                 <span x-text="name"></span>
@@ -218,9 +237,9 @@
                         :aria-label="&#39;Remove &#39; + name">&times;</button>
               </span>
             </template>
-            <span class="picker-caret" aria-hidden="true">&#9662;</span>
           </div>
-          <div class="picker-menu" x-show="open" x-cloak>
+          <div class="picker-menu" id="location-menu" role="group"
+               aria-label="Locations to search" x-show="open" x-cloak>
             {# Not a checkbox of its own: "all" is the state of having picked
                nothing, so it cannot disagree with the list below it. #}
             <label class="choice">

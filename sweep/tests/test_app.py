@@ -469,14 +469,28 @@ class TestFixesThatHadNoTest(Isolated):
         # overflow-x alone let a 989-row shortlist scroll the page body.
         body = self._results_app().test_client().get("/results").get_data(as_text=True)
         self.assertIn('<div class="listings">', body)
-        # The cap lives in the stylesheet now, so that is where it is checked.
-        # Matching "max-height" anywhere in the HTML passed for any unrelated
-        # inline style; this pins the rule that actually bounds the box.
+        # The property being defended is that the PAGE never scrolls
+        # sideways because of this table — not any particular way of
+        # achieving it. The max-height is gone deliberately: a 70vh scroll
+        # box inside a scrolling page is two scrolls under one thumb, and on
+        # touch the inner one wins wherever the finger lands.
         css = (pathlib.Path(app_module.__file__).parent
                / "static" / "sweep.css").read_text()
-        rule = re.search(r"\.listings\s*\{([^}]*)\}", css).group(1)
-        self.assertIn("max-height", rule)
+        rule = re.search(r"^\.listings \{([^}]*)\}", css, re.M).group(1)
         self.assertIn("overflow", rule)
+        self.assertIn("contain", rule)
+        self.assertNotIn("max-height", rule,
+                         "a nested scroll box traps the thumb on touch")
+        # ...and below 48rem the wide table stops existing: the row becomes a
+        # card, so there is nothing to scroll sideways in the first place.
+        phone = re.search(r"@media \(max-width: 47\.99rem\) \{(.*?)\n\}\n",
+                          css, re.S).group(1)
+        self.assertIn(".listings tr {", phone)
+        self.assertIn("grid-template-areas", phone)
+        # Source order decides between equal-specificity rules, so the reflow
+        # has to come after the base rule it overrides.
+        self.assertGreater(css.index("@media (max-width: 47.99rem)"),
+                           css.index("\n.listings { overflow"))
         # And the page itself must not scroll sideways. Clipping the box is
         # not enough: Chrome propagates a min-width table's layout overflow to
         # the viewport anyway (measured: documentElement.scrollWidth 951 on a
@@ -5559,7 +5573,8 @@ class TestResultsScreen(Isolated):
         app = self._app(rows=[dict(ROWS[0], source_site="freebie")])
         with mock.patch.dict(app_module.config.SITE_RATES, {"freebie": 0.0}):
             body = app.test_client().get("/results").get_data(as_text=True)
-        self.assertIn('class="free"', body)
+        # The cell carries its grid-area class too, for the phone reflow.
+        self.assertIn('class="src free"', body)
 
     def test_the_source_filter_keeps_only_that_source(self):
         body = self._app().test_client().get(

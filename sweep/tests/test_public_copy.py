@@ -341,3 +341,44 @@ class _Alive:
 
     def terminate(self):
         pass
+
+
+class TestTheShortlistSurvivesAPhone(unittest.TestCase):
+    """The reflow is CSS over one DOM, so these assert the contract the
+    stylesheet depends on rather than re-testing the browser: every cell the
+    phone layout places by name has to carry that name."""
+
+    AREAS = ("score", "role", "src", "loc", "pay", "exp", "skills", "act")
+
+    def test_every_cell_carries_the_class_its_grid_area_is_named_for(self):
+        with public_screens(free=True) as pages:
+            html = pages["/results"]
+        for area in self.AREAS:
+            with self.subTest(area=area):
+                self.assertIn(f'class="{area}', html,
+                              f"no cell carries .{area}, so the phone grid "
+                              f"cannot place it and the row falls back to "
+                              f"auto-placement")
+
+    def test_the_stylesheet_places_all_of_them(self):
+        import pathlib
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        phone = css[css.index("@media (max-width: 47.99rem)"):]
+        phone = phone[:phone.index("\n}\n")]
+        for area in self.AREAS:
+            with self.subTest(area=area):
+                self.assertIn(f".listings td.{area}", phone)
+
+    def test_the_touch_overrides_come_last(self):
+        """Equal specificity, so source order decides. The block sat mid-file
+        once and .remove's own 28px box, defined below it, silently won."""
+        import pathlib
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        touch = css.index("@media (pointer: coarse) {\n  .stepper button")
+        for defined_earlier in (".remove > span[aria-hidden] {",
+                                ".pick-x {", ".stepper button {",
+                                "button.primary, a.primary {"):
+            with self.subTest(rule=defined_earlier):
+                self.assertLess(css.index(defined_earlier), touch)
