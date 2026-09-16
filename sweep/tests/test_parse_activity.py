@@ -339,3 +339,85 @@ class TestNoInternalWordsEscape(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAParseTheEngineRejectsItself(unittest.TestCase):
+    """local_profile.Escalated is the local engine refusing its OWN answer —
+    dates it cannot reconcile, or no job title that survived validation.
+
+    It is a plain RuntimeError, not an inference.InferenceError, so it fell
+    past that branch into the catch-all and reached the visitor as "export
+    your résumé as a text-based PDF rather than a scan". Reproduced against
+    a real résumé: the PDF was perfect (3806 characters of clean text) and
+    re-uploading it would have failed identically every time.
+
+    The cause is this deployment, not the file. Public mode ships no output/
+    corpus (docs/public-beta.md), so the search fields come from the
+    résumé's own job titles alone — and a résumé whose every role reads
+    "(Intern)" or "Student Lead" yields none.
+    """
+
+    NO_TITLES = ("role_keywords: no keyword survived validation — the "
+                 "résumé's 29 skill(s) and 3 employment row(s) produced "
+                 "nothing the 0-listing corpus supports")
+
+    def _raising(self, reasons):
+        import local_profile
+
+        def derive(text, prefs):
+            raise local_profile.Escalated(reasons)
+        return derive
+
+    def _answer(self, reasons):
+        from sweep.tests.test_public import public_app, unlocked, upload
+        app = public_app(derive=self._raising(reasons))
+        client = unlocked(app)
+        upload(client)
+        return app, client.post("/derive")
+
+    def test_it_no_longer_blames_the_pdf(self):
+        _app, answer = self._answer([self.NO_TITLES])
+        body = " ".join(answer.get_data(as_text=True).split())
+        self.assertNotIn("text-based PDF", body)
+        self.assertNotIn("scan", body)
+
+    def test_it_names_what_actually_went_wrong(self):
+        _app, answer = self._answer([self.NO_TITLES])
+        body = " ".join(answer.get_data(as_text=True).split())
+        self.assertIn("could not work out which job titles", body)
+        self.assertIn("internships or study positions", body)
+        # And something the reader can actually do.
+        self.assertIn("names the role you want", body)
+
+    def test_a_different_escalation_gets_a_different_answer(self):
+        """"No titles" and "the parse did not hold together" are different
+        problems; only one of them is about the roles on the résumé."""
+        _app, answer = self._answer(["dates: employment ranges overlap"])
+        body = " ".join(answer.get_data(as_text=True).split())
+        self.assertIn("not confident enough in what it found", body)
+        self.assertNotIn("internships", body)
+
+    def test_the_daily_slot_is_given_back(self):
+        """The visitor has no profile to show for it, and ending someone's
+        beta on a résumé this build cannot handle is the wrong trade."""
+        app, _answer = self._answer([self.NO_TITLES])
+        self.assertEqual(app.beta_limit.taken(), 0)
+
+    def test_the_reason_reaches_the_log_and_not_the_page(self):
+        import logging
+        from sweep.tests.test_public import public_app, unlocked, upload
+        app = public_app(derive=self._raising([self.NO_TITLES]))
+        client = unlocked(app)
+        upload(client)
+        with self.assertLogs(app.logger, level=logging.WARNING) as caught:
+            answer = client.post("/derive")
+        self.assertTrue(any("0-listing corpus" in line for line in caught.output),
+                        "the operator cannot see why it failed")
+        # ...and the engine's own words stay out of the page.
+        self.assertNotIn("role_keywords", answer.get_data(as_text=True))
+
+    def test_it_is_not_reported_as_a_server_fault(self):
+        """422, not 500: the request was understood and the résumé was read.
+        What failed is that this build cannot make a profile from it."""
+        _app, answer = self._answer([self.NO_TITLES])
+        self.assertEqual(answer.status_code, 422)

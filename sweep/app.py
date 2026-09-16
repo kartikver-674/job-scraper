@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(REPO_ROOT, "auto-apply"))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 import inference  # noqa: E402
+import local_profile  # noqa: E402
 import make_profile  # noqa: E402
 
 # Needed by snapshot() below (site free/paid classification) on every SSE
@@ -1389,6 +1390,42 @@ def create_app(state=None, extract=None, resume_dir=None,
             # turn "you have had your three for today" into "the model did
             # not answer".
             raise
+        except local_profile.Escalated as exc:
+            # The local engine read the résumé and then REJECTED its own
+            # answer — dates it could not reconcile, or, far more often
+            # here, no job title that survived validation.
+            #
+            # It is a plain RuntimeError rather than an InferenceError, so
+            # it fell past the branch below into the catch-all and came out
+            # as "export your résumé as a text-based PDF rather than a
+            # scan". That advice is wrong twice: the PDF is fine, and
+            # re-uploading it fails identically every time.
+            #
+            # Public mode has no output/ corpus (docs/public-beta.md), so
+            # `fields_for` has only the résumé's own job titles to work
+            # from — and a résumé whose every role reads "(Intern)" or
+            # "Student Lead" yields none of them. That is a real limit of
+            # this deployment and the screen says so, rather than blaming
+            # the file.
+            app.logger.warning("derive escalated: %s", "; ".join(exc.reasons))
+            no_titles = any("role_keywords" in r for r in exc.reasons)
+            return render_template("deriving.html", **shell(
+                "review",
+                error=(
+                    "Sweep read your résumé but could not work out which job "
+                    "titles to search for. That usually happens when the "
+                    "roles on it are internships or study positions rather "
+                    "than the job you are looking for now. Nothing was "
+                    "charged. Try a résumé that names the role you want, or "
+                    "add it as your most recent title."
+                    if no_titles else
+                    "Sweep read your résumé but was not confident enough in "
+                    "what it found to build a profile from it. Nothing was "
+                    "charged. A résumé with clearer dates and role titles "
+                    "usually works.")
+                if app.config.get("PUBLIC_MODE") else
+                f"The local engine rejected its own parse: {exc}")), 422
+
         except make_profile.ModelAnswerError as exc:
             # The one exception whose text this app composed itself, from the
             # response's own finish_reason enum. Everything else stays behind
