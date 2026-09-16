@@ -159,6 +159,28 @@ def _parse_chips(raw, label):
     return terms
 
 
+# The PUBLIC journey. Four stages, not the seven routes behind them: the
+# routes are a correct engineering decomposition and a poor mental model, and
+# "Free or paid", "Configure", "Confirm" and "Running" are four separate
+# announcements of one decision a job seeker thinks of as "how should this
+# search work".
+#
+# Each entry is (link, label, members, facts). `link` is the endpoint the
+# chip navigates to; `members` are the routes that light it up; `facts` is
+# which entry of the opens/done tables below decides it. A plain step is all
+# four of those at once, which is why the local STEPS list can stay 2-tuples.
+PUBLIC_STAGES = [
+    ("upload", "Résumé", ("upload",), "upload"),
+    ("review", "Profile", ("review",), "review"),
+    # Links to /key because that is where the stage begins. Gated on
+    # "search" rather than on /key's own guard: /key renders with no profile
+    # and then both of its buttons redirect to /review, which is exactly the
+    # "offers a step that bounces" failure this function exists to prevent.
+    ("key", "Search", ("key", "configure", "confirm", "running"), "search"),
+    ("results", "Jobs", ("results",), "results"),
+]
+
+
 def step_states(steps, state, current):
     """Each step's number, whether it can be opened, and whether it is done.
 
@@ -202,6 +224,10 @@ def step_states(steps, state, current):
              # launched, not has_plan: see the docstring.
              "running": launched,
              "results": has_profile,
+             # The public Search STAGE, which is four routes wide. It opens
+             # on the profile: that is what /key/free and POST /key both
+             # require before they will do anything but redirect.
+             "search": has_profile,
              # Public mode's last step: the profile is downloaded, not
              # written to disk. Unknown to the local flow, which never
              # puts it in STEPS.
@@ -212,20 +238,32 @@ def step_states(steps, state, current):
             "configure": has_plan,
             "confirm": launched,
             "running": launched,
+            # The whole Search stage is behind you once a sweep is away —
+            # the same fact its last member reports, because the stage ends
+            # where /running does.
+            "search": launched,
             # The last step. Nothing is downstream of it to prove it finished.
             "results": False,
             "profile_done": False}
 
-    slugs = [slug for slug, _ in steps]
-    at = slugs.index(current) if current in slugs else None
-    return [{"slug": slug, "label": label, "n": i + 1,
-             "current": slug == current,
+    # A 2-tuple is a step that is its own stage: one member, and its own
+    # entry in the tables above. Unpacked here so the local STEPS list never
+    # had to grow two columns it has no use for.
+    rows = [(entry + (None, None))[:4] if len(entry) < 4 else entry
+            for entry in steps]
+    rows = [(link, label, members or (link,), facts or link)
+            for link, label, members, facts in rows]
+
+    at = next((i for i, (_, _, members, _) in enumerate(rows)
+               if current in members), None)
+    return [{"slug": link, "label": label, "n": i + 1,
+             "current": current in members,
              # Never mark the step being viewed as done, whatever state says:
              # you are standing on it, which is the more useful fact.
-             "done": done.get(slug, False) and slug != current,
-             "open": opens.get(slug, False),
+             "done": done.get(facts, False) and current not in members,
+             "open": opens.get(facts, False),
              "next": at is not None and i == at + 1}
-            for i, (slug, label) in enumerate(steps)]
+            for i, (link, label, members, facts) in enumerate(rows)]
 
 
 # config keys are lowercase, and prose that names a job board should spell it
@@ -243,6 +281,18 @@ def step_states(steps, state, current):
 # the three paid boards. Cross-checked against every source_site prefix in
 # output/'s jobs_*.csv. An unlisted key still falls through to itself, so a
 # board added later appears lowercase rather than vanishing.
+# How each scope reads on a summary. The keys are _SCOPE's, so a scope added
+# there without a phrase here falls back to the key rather than vanishing from
+# the one screen that says what is about to be searched.
+SCOPE_LABELS = {"india": "Across India",
+                "remote": "Remote, anywhere",
+                "global": "Onsite, worldwide"}
+
+
+def scope_label(scope):
+    return SCOPE_LABELS.get(scope, scope or "")
+
+
 SITE_LABELS = {"linkedin": "LinkedIn", "indeed": "Indeed", "naukri": "Naukri",
                # sources.ats.ATS
                "greenhouse": "Greenhouse", "lever": "Lever", "ashby": "Ashby",
@@ -696,6 +746,12 @@ def _configure_overrides(form):
         if scope not in _SCOPE:
             raise _FormError("Choose where you can work.")
         out.update(_SCOPE[scope])
+        # The CHOICE as well as what it expands to. _SCOPE's fields are what
+        # the engine needs; the summary screens need to say which of the
+        # three the user picked, and "Delhi, Gurgaon, Bengaluru, Hyderabad,
+        # Pune, Mumbai" is not how anyone describes having chosen "India".
+        # Ignored by _prefs(), so it reaches no profile and no engine.
+        out["scope"] = scope
 
     # Locations, when the picker sent any. Applied AFTER the scope above, so
     # an empty box means "whatever the scope covers" and picking narrows it —

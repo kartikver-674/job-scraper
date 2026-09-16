@@ -45,7 +45,8 @@ from sweep.logic import (  # noqa: E402,F401
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
-    site_label, sort_rows, step_states, sweep_dates, sweep_state,
+    scope_label, site_label, sort_rows, step_states, sweep_dates,
+    sweep_state,
     with_experience, worst_filter, applied_path, read_applied, set_applied)
 
 # Step 3 is a fork, not a form: "free sources only" or "connect a key". Its
@@ -777,6 +778,47 @@ def create_app(state=None, extract=None, resume_dir=None,
              "halted": "stopped early"}[p["state"]])
         return p
 
+    def current_scope():
+        """Which of the three scopes this session is actually on.
+
+        Unset until the Configure form posts one — and the form's own radio
+        was hardcoded `checked` on "india" while _prefs() defaults
+        `locations` to ["Remote"], so before anyone touched the control the
+        screen claimed India and the profile said Remote. Two answers to one
+        question, and the summary would have printed the wrong one.
+
+        "remote" is the honest default because it is what _prefs() produces,
+        not because it is the nicer option.
+        """
+        return app.state.get("scope") or "remote"
+
+    def search_facts():
+        """Roles, scope, locations and sources — what the sweep will DO.
+
+        Read from the same state the engine is handed, never recomputed: the
+        roles are the derivation's own keywords, the locations are what the
+        Configure form posted, and the sources come off the costed plan. A
+        second opinion about any of them would be a summary that disagrees
+        with the sweep it is summarising.
+        """
+        derived = app.state.get("derived") or {}
+        plan_now = app.state.get("plan") or {}
+        # See current_scope(): the form and the summary must not disagree
+        # about a choice nobody has made yet.
+        paid_on = [site_label(line["site"]) for line in plan_now.get("lines") or ()
+                   if not line.get("free")]
+        return {
+            "roles": derived.get("role_keywords") or [],
+            "scope_label": scope_label(current_scope()),
+            # Only an explicit pick. The scope's own expansion is six city
+            # names the user never chose, and listing them as "Where" would
+            # read as six decisions rather than one.
+            "locations": (app.state.get("locations")
+                          if app.state.get("linkedin_locations") else None),
+            "paid_labels": paid_on,
+            "free_sources": (app.state.get("raw_plan") or {}).get("free_sources"),
+        }
+
     def costed(profile):
         """Cost the plan and say whether it exceeds the key's credit. The
         over-cap flag is advisory: SETTINGS["max_spend_usd"] is the real guard.
@@ -1186,11 +1228,33 @@ def create_app(state=None, extract=None, resume_dir=None,
                       "text-based PDF export.")), 502
         return redirect(url_for("review"))
 
+    def auto_profile_name(derived):
+        """A name nobody had to type.
+
+        Public mode writes no file — `public.harden` replaces write_profile
+        with one that keeps the source in memory — so the name only labels
+        the exports at the end. Asking a job seeker to invent one, in a
+        required field, beside a sentence about Python filenames, was a step
+        with nothing on the other side of it.
+
+        `profile_name_for` returns "" for a résumé whose name does not
+        transliterate, which locally means "type one yourself" and here has
+        to mean something. "sweep" is what worker_link.rehydrate already
+        falls back to for the same reason.
+        """
+        return make_profile.profile_name_for(derived) or "sweep"
+
     @app.post("/review")
     def review_post():
         if not app.state.get("resume_text"):
             return redirect(url_for("upload"))
-        name = (request.form.get("name") or "").strip()
+        derived_now = app.state.get("derived")
+        if app.config.get("PUBLIC_MODE"):
+            # No field to read: the public screen does not render one.
+            name = (app.state.get("profile")
+                    or auto_profile_name(derived_now or {}))
+        else:
+            name = (request.form.get("name") or "").strip()
         derived = derived_for_state()
         commodity = [w["term"] for w in derived["skill_weights"]
                      if w["weight"] <= COMMODITY_WEIGHT]
@@ -1224,7 +1288,13 @@ def create_app(state=None, extract=None, resume_dir=None,
         # file on every configure change, and a profile can carry weeks of
         # hand-tuning — profiles/kartik_reachable.py exists precisely because
         # someone tuned it against a real sweep.
-        if profile_exists(name) and not request.form.get("overwrite"):
+        # Public mode never writes into profiles/, so there is nothing of the
+        # visitor's to protect — and the directory it would be consulting is
+        # the OPERATOR's, checked into the repo. A visitor called Kartik
+        # would otherwise collide with profiles/kartik_reachable.py and be
+        # shown a clash they cannot understand or resolve.
+        if (not app.config.get("PUBLIC_MODE")
+                and profile_exists(name) and not request.form.get("overwrite")):
             return render_template("review.html", **shell(
                 "review", derived=derived, suggested_name=name,
                 clash=name,
@@ -1428,7 +1498,8 @@ def create_app(state=None, extract=None, resume_dir=None,
             # would render as an explicit choice they did not make and post
             # itself back as one.
             picked_locations=app.state.get("locations")
-            if app.state.get("linkedin_locations") else []))
+            if app.state.get("linkedin_locations") else [],
+            scope=current_scope(), facts=search_facts()))
 
     @app.post("/estimate")
     def estimate():
@@ -1517,7 +1588,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         plan = costed(app.state["profile"])
         return render_template("confirm.html", **shell(
             "confirm", spend=plan["total"], spend_is_estimate=True, plan=plan,
-            spans_midnight=_spans_midnight()))
+            facts=search_facts(), spans_midnight=_spans_midnight()))
 
     @app.post("/run")
     def run():
@@ -1863,7 +1934,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         plan_now = app.state.get("plan")
         return render_template("confirm.html", **shell(
             "confirm", spend=plan_now["total"], spend_is_estimate=True,
-            plan=plan_now,
+            plan=plan_now, facts=search_facts(),
             spans_midnight=_spans_midnight(), error=error)), status
 
     _run_lock = threading.Lock()

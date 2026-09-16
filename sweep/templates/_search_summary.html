@@ -1,0 +1,45 @@
+{# What Sweep is about to do, in the user's own terms.
+
+   One macro because three screens need the same four facts and none of them
+   had all four: /configure priced a plan without naming what it searched for,
+   /confirm answered "what will this cost" and never "what is about to
+   happen", and /running reported searches without saying what for. The
+   single most likely thing to be wrong — the job titles — was not on the
+   last screen before a long, sometimes paid, commitment.
+
+   Everything here is read from state the routes already hold: role_keywords
+   from the derivation, locations from the prefs the form posted, sources
+   from the costed plan. Nothing is computed twice. #}
+{% macro search_summary(roles, scope_label, locations, paid_labels,
+                        free_sources, compact=false) -%}
+<dl class="summary{{ ' compact' if compact }}">
+  <div>
+    <dt>Searching for</dt>
+    <dd>
+      {%- if roles %}{% for r in roles %}<span class="tag">{{ r }}</span>{% endfor %}
+      {%- else %}<span class="pending">no job titles</span>{% endif -%}
+    </dd>
+  </div>
+  <div>
+    <dt>Where</dt>
+    <dd>
+      {%- if locations %}{% for l in locations %}<span class="tag">{{ l }}</span>{% endfor %}
+      {%- elif scope_label %}<span class="tag">{{ scope_label }}</span>
+      {%- else %}<span class="pending">everywhere</span>{% endif -%}
+    </dd>
+  </div>
+  <div>
+    <dt>Sources</dt>
+    <dd>
+      {%- for p in paid_labels %}<span class="tag paid-tag">{{ p }}</span>{% endfor -%}
+      {# The free half is a COUNT, not a list: it is six to a dozen boards
+         whose names mean nothing to a job seeker, and naming them all would
+         make the row that matters — the paid ones they are paying for — the
+         hardest to find. #}
+      {%- if free_sources %}<span class="tag free-tag">{{ free_sources }} free
+        job board{{ '' if free_sources == 1 else 's' }}</span>
+      {%- else %}<span class="tag free-tag">Free job boards</span>{% endif -%}
+    </dd>
+  </div>
+</dl>
+{%- endmacro %}

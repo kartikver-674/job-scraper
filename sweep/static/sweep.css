@@ -232,6 +232,25 @@ main {
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
+/* The summary cards on the public review screen. Same auto-fit rule as
+   .tiles, at a wider floor: a card holds a sentence and a row of chips, and
+   at 12rem the chips wrapped one per line. */
+.cards {
+  display: grid; gap: var(--s4);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+.cards > .card { margin-bottom: 0; gap: var(--s3); }
+/* The one line of each card that is the answer. Display face, because this
+   is what the reader is checking — everything else on the card supports it. */
+.card-figure {
+  font-family: var(--display); font-size: 16px; line-height: 1.3;
+  font-weight: 600; color: var(--chalk);
+}
+/* Pinned to the foot of the card, so the three notes sit on one line across
+   the row however tall each card's own content is. A ragged row of notes
+   reads as three unrelated panels rather than one summary. */
+.card-note { margin-top: auto; }
+
 /* ---- Panels ------------------------------------------------------------- */
 
 .panel {
@@ -453,6 +472,99 @@ summary::before {
 details[open] > summary::before { transform: rotate(90deg); }
 details > summary:hover::before { border-left-color: var(--chalk); }
 details > *:not(summary) { margin-top: var(--s4); }
+
+/* A disclosure that holds a whole section rather than a paragraph.
+   Deliberately FLATTER than the cards above it — recessed rather than raised,
+   and no heavier border — because a closed disclosure styled as a panel reads
+   as a fourth card of equal importance, which is the opposite of what putting
+   it behind a click was for. */
+.disclosure {
+  background: var(--surface-low); padding: var(--s4) var(--s5);
+}
+.disclosure > summary > h2 { margin-right: auto; font-size: 15px; }
+.disclosure > summary > .meta {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--slate);
+}
+.disclosure-body { margin-top: var(--s5); }
+/* The arrow on a primary action. Nudged with margin rather than a gap so it
+   travels with the last word instead of being a second column. */
+.primary .go { margin-left: var(--s3); }
+
+/* ---- The one obvious answer --------------------------------------------- */
+
+/* A panel that IS the recommendation, rather than one of two equal options.
+   The lift is a 1px accent edge, not a fill or a glow: the design system
+   spends colour on cost and state only, and this is neither. */
+.hero-choice { border-color: var(--free); }
+.hero-choice > .panel-head > h2 { font-size: 20px; }
+
+/* A list that reads as "what you get" rather than as prose. The marker is
+   drawn, not a bullet glyph, so it aligns on the text's first line. */
+.ticks { margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: var(--s3); }
+.ticks > li {
+  position: relative; padding-left: var(--s6); color: var(--warm);
+}
+.ticks > li::before {
+  content: ""; position: absolute; left: 2px; top: 0.35em;
+  width: 9px; height: 5px;
+  border-left: 1.5px solid var(--free); border-bottom: 1.5px solid var(--free);
+  transform: rotate(-45deg);
+}
+
+/* The dominant action on a screen whose whole job is one decision. Bigger
+   than .primary rather than a different colour — the system has one primary
+   fill, and two of them would be two primaries. */
+button.big, a.big {
+  padding: var(--s5) var(--s7); font-size: 15px; line-height: 1.1;
+}
+
+/* ---- What Sweep is about to do ------------------------------------------ */
+
+/* A definition list read as label-over-answer, not as a table: the answers
+   are chip rows of wildly different widths, and two columns left the Sources
+   row starting three inches from its own label. */
+.summary { margin: 0; display: flex; flex-direction: column; gap: var(--s5); }
+.summary.compact { gap: var(--s4); }
+.summary > div { display: flex; flex-direction: column; gap: var(--s3); }
+.summary dt {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  font-weight: 600; color: var(--slate);
+}
+.summary dd {
+  margin: 0; display: flex; flex-wrap: wrap; gap: var(--s2);
+  align-items: center;
+}
+/* The paid boards are the ones being paid for, so they carry the money
+   colour the rest of the app reserves for exactly that. */
+.summary .paid-tag { color: var(--paid-lift); border-color: var(--paid); }
+.summary .free-tag { color: var(--free); border-color: var(--free); }
+.summary .pending { color: var(--slate); }
+
+/* Replaces the asterisk footnote: the fact travels with the control instead
+   of living 2,400px below the first mark it explains. */
+.affects {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  font-weight: 600; color: var(--paid); margin-left: var(--s3);
+  white-space: nowrap;
+}
+
+/* "What happens next", as three steps rather than a paragraph. Numbered by
+   the counter rather than by <ol>'s own marker so the figure can carry the
+   label face and sit on the first line of a wrapped item. */
+.next-steps {
+  margin: 0; padding: 0; list-style: none; counter-reset: nxt;
+  display: flex; flex-direction: column; gap: var(--s3);
+  color: var(--slate);
+}
+.next-steps > li { position: relative; padding-left: var(--s6); }
+.next-steps > li::before {
+  counter-increment: nxt; content: counter(nxt);
+  position: absolute; left: 0; top: 0;
+  font-size: 10px; font-weight: 700; line-height: 18px;
+  color: var(--paid); font-variant-numeric: tabular-nums;
+}
 
 ul, ol { margin: 0; padding-left: var(--s6); color: var(--warm); }
 li { margin-bottom: var(--s2); }

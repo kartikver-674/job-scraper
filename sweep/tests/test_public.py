@@ -12,6 +12,7 @@ public mode is what it exposes, not what qwen3 answers.
 
 import io
 import os
+import re
 import shutil
 import tempfile
 import threading
@@ -147,16 +148,35 @@ class TestWhatIsReachable(unittest.TestCase):
             self.assertIn(dangerous, registered, dangerous)
             self.assertNotIn(dangerous, public.PUBLIC_ENDPOINTS, dangerous)
 
-    def test_the_tracker_offers_only_the_public_steps(self):
+    def test_the_tracker_shows_four_stages_not_seven_routes(self):
         """A step chip linking to a route that 404s is a lie the header
-        tells on every screen."""
+        tells on every screen — and so, more quietly, is a seven-step
+        tracker. The routes are a correct engineering decomposition;
+        "Free or paid", "Configure", "Confirm" and "Running" are four
+        announcements of one thing a job seeker calls searching."""
         body = unlocked(public_app()).get("/").get_data(as_text=True)
-        # The console's own seven, because the public journey IS those
-        # steps now — the same tracker, reached the same way.
-        self.assertIn("of 7", body)
-        for step in ("Upload", "Review", "Free or paid", "Configure",
-                     "Confirm", "Running", "Results"):
-            self.assertIn(step, body)
+        self.assertIn("1 of 4", body)
+        for stage in ("Résumé", "Profile", "Search", "Jobs"):
+            self.assertIn(stage, body)
+        # The route names the visitor should never be shown as stages.
+        for internal in ("Free or paid", "Configure", "Confirm"):
+            self.assertNotIn(f'step-label">{internal}', body)
+
+    def test_the_tracker_still_links_only_where_it_can_go(self):
+        """Every stage the header offers has to open, in every state — the
+        property that made it worth keeping. The Search stage links to
+        /key, whose own guard is laxer than the stage's: it renders with
+        no profile and then both of its buttons redirect to /review."""
+        app = public_app()
+        client = unlocked(app)
+        for path in ("/", "/review", "/key", "/results"):
+            body = client.get(path, follow_redirects=True).get_data(as_text=True)
+            for href in re.findall(r'<a href="([^"]+)"\s*\n?\s*>', body):
+                if href.startswith("/"):
+                    self.assertEqual(
+                        client.get(href).status_code, 200,
+                        f"from {path}, the tracker offered {href} but it "
+                        f"did not render")
 
 
 class TestSessionIsolation(unittest.TestCase):

@@ -484,10 +484,16 @@ def harden(app, env=None, store=None, limit=None):
         return None
 
     app.write_profile = keep_profile
-    # "Looks right" leads to the console's own source-choice screen, which
-    # is where a visitor picks the free sweep. The step tracker is the
-    # console's too — the public journey IS those steps now.
+    # "Continue to job search" leads to the console's own source-choice
+    # screen, which is where a visitor picks the free sweep.
     app.config["AFTER_REVIEW_ENDPOINT"] = "key"
+    # The journey a VISITOR is walking, which is not the one the routes
+    # describe. Seven numbered steps is the operator's decomposition —
+    # "Free or paid", "Configure", "Confirm" and "Running" are four
+    # announcements of a single thing a job seeker calls "searching". The
+    # routes are untouched; only what the header says about them changes.
+    from sweep.logic import PUBLIC_STAGES
+    app.config["STEPS"] = PUBLIC_STAGES
 
     @app.before_request
     def resume_a_running_sweep():

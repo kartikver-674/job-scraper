@@ -785,8 +785,20 @@ class TestFrontDoor(Isolated):
 
     # ---- what the next screen will get ----------------------------------
     def test_nothing_read_yet_reads_as_absent_not_as_zero(self):
+        """The rule is that a figure nobody has produced is never printed as
+        a zero. Locally the panel says "not read yet" three times; publicly
+        the panel is not drawn at all, which satisfies the same rule and
+        stops a first-time visitor meeting three unfamiliar nouns with no
+        values beside them."""
         body = self.body()
         self.assertEqual(body.count("not read yet"), 3)
+        self.assertNotIn(">0<", body)
+
+    def test_the_public_front_door_omits_the_panel_until_it_has_an_answer(self):
+        from sweep.tests.test_public import public_app, unlocked
+        body = unlocked(public_app()).get("/").get_data(as_text=True)
+        self.assertNotIn("not read yet", body)
+        self.assertNotIn("What Sweep read last time", body)
         self.assertNotIn(">0<", body)
 
     def test_a_cached_derivation_is_shown_without_a_model_call(self):
