@@ -391,20 +391,24 @@ class TestTheFlag(unittest.TestCase):
             if value is not None:
                 os.environ[name] = value
 
-    def test_it_is_on_under_v2_which_is_the_default(self):
-        self.assertEqual(sc.engine_version(), "v2")
-        self.assertTrue(sc.evidence_enabled())
+    def test_it_is_off_by_default(self):
+        """CONTRACT CHANGE: the default returned to v1 on the independent
+        review's finding."""
+        self.assertEqual(sc.engine_version(), "v1")
+        self.assertFalse(sc.evidence_enabled())
 
     def test_v1_turns_it_off(self):
         os.environ[sc.VERSION_ENV] = "v1"
         self.assertFalse(sc.evidence_enabled())
 
-    def test_the_step_flag_still_turns_it_on_under_v1(self):
-        """Kept as an experiment override, so bench/evaluate.py can
-        isolate condition C."""
-        os.environ[sc.VERSION_ENV] = "v1"
+    def test_the_step_flag_composes_only_when_no_version_is_pinned(self):
+        """Kept as an experiment override, so bench/evaluate.py can isolate
+        condition C — which is why that harness now removes the version
+        variable rather than setting it."""
         os.environ[sc.EVIDENCE_FLAG] = "1"
         self.assertTrue(sc.evidence_enabled())
+        os.environ[sc.VERSION_ENV] = "v1"
+        self.assertFalse(sc.evidence_enabled())
 
     def test_it_is_separate_from_the_concept_flag(self):
         """Two switches because they change different things, and the

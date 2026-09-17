@@ -658,10 +658,63 @@ def _generate_one(client, model, resume_text, prefs, attempts, sleep, log):
             sleep(5 * (attempt + 1))
 
 
+# The scale every consumer shares. RULE 1 states it to the model ("use 1-5
+# and nothing higher: every existing profile is on that scale, and score
+# thresholds are compared across profiles"), and until now only the model
+# was asked to obey it: -10 became +10 through abs(), and 10**9 was
+# accepted as a skill weight.
+WEIGHT_RANGE = (1, 5)
+
+# Penalties are a different, documented scale — RESPONSE_SCHEMA calls them
+# "positive severity 1-12", negated at render so the model cannot get the
+# sign backwards.
+PENALTY_RANGE = (1, 12)
+
+
+def _whole(value, label):
+    """An integer, or a refusal. bool is not an integer here.
+
+    True passed int() as 1 and became a year of experience; 1.9 truncated
+    to 1 without saying so. A model answer that is the wrong TYPE is a
+    malformed answer, not a number to round.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a whole number, got {value!r}")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    raise ValueError(f"{label} must be a whole number, got {value!r}")
+
+
 def _weights(entries, sign=1):
-    """Fold [{term, weight}] into {term: weight}, lowercased, sign applied."""
-    return {e["term"].strip().lower(): sign * abs(int(e["weight"])) for e in entries
-            if e["term"].strip()}
+    """Fold [{term, weight}] into {term: weight}, lowercased, sign applied.
+
+    Bounded here because this is the boundary every engine shares — the
+    local path, the Gemini path, the review screen and hand-written
+    answers all render through it. Out of range is refused rather than
+    clamped: a weight of 99 is not a strong opinion, it is a malformed
+    answer, and silently turning it into 5 would hide that.
+    """
+    low, high = PENALTY_RANGE if sign < 0 else WEIGHT_RANGE
+    kind = "penalty" if sign < 0 else "skill"
+    out = {}
+    for entry in entries:
+        term = str(entry["term"]).strip().lower()
+        if not term:
+            continue
+        weight = _whole(entry["weight"], f"{kind} weight for {term!r}")
+        # abs() for penalties only, where the schema documents it as the
+        # guard against a reversed sign. For skills it turned the most
+        # negative answer into the strongest positive signal.
+        if sign < 0:
+            weight = abs(weight)
+        if not low <= weight <= high:
+            raise ValueError(
+                f"{kind} weight for {term!r} must be between {low} and "
+                f"{high}, got {weight}")
+        out[term] = sign * weight
+    return out
 
 
 def _load_config():
@@ -719,11 +772,7 @@ MAX_CAREER_YEARS = 60
 
 def _years(value):
     """years_experience, or a refusal. Never a profile that cannot work."""
-    try:
-        years = int(value)
-    except (TypeError, ValueError):
-        raise ValueError(
-            f"years_experience must be a whole number, got {value!r}") from None
+    years = _whole(value, "years_experience")
     if not 0 <= years <= MAX_CAREER_YEARS:
         raise ValueError(
             f"years_experience must be between 0 and {MAX_CAREER_YEARS}, "

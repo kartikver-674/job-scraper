@@ -417,10 +417,13 @@ class TestTheVersionSwitch(unittest.TestCase):
             if value is not None:
                 os.environ[name] = value
 
-    def test_the_default_is_v2(self):
-        self.assertEqual(sc.engine_version(), "v2")
-        self.assertTrue(sc.enabled())
-        self.assertTrue(sc.evidence_enabled())
+    def test_the_default_is_v1(self):
+        """CONTRACT CHANGE. This asserted v2. The independent review found
+        that any process without the variable — a worker, a CLI run, a
+        background rerank — then silently ran the experimental engine."""
+        self.assertEqual(sc.engine_version(), "v1")
+        self.assertFalse(sc.enabled())
+        self.assertFalse(sc.evidence_enabled())
 
     def test_v1_turns_the_whole_thing_off(self):
         os.environ[sc.VERSION_ENV] = "v1"
@@ -455,14 +458,15 @@ class TestTheVersionSwitch(unittest.TestCase):
             os.environ[sc.VERSION_ENV] = value
             self.assertEqual(sc.engine_version(), value.strip().lower())
 
-    def test_a_step_flag_still_works_under_v1(self):
-        """The per-step flags stay as experiment overrides — that is how
-        bench/evaluate.py isolates conditions B, C and D."""
-        os.environ[sc.VERSION_ENV] = "v1"
-        self.assertFalse(sc.enabled())
+    def test_an_explicit_version_beats_a_stale_step_flag(self):
+        """CONTRACT CHANGE. A step flag used to win, so a stale
+        SWEEP_SKILL_CONCEPTS in somebody's shell silently defeated a
+        documented rollback to v1. Experiments compose when NO version is
+        pinned; a pinned version is the complete answer."""
         os.environ[sc.FLAG] = "1"
         self.assertTrue(sc.enabled())
-        self.assertFalse(sc.evidence_enabled())
+        os.environ[sc.VERSION_ENV] = "v1"
+        self.assertFalse(sc.enabled())
 
     def test_it_is_read_per_call_not_at_import(self):
         """So a rollback takes effect on the next request, not the next

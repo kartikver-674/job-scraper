@@ -80,9 +80,16 @@ PAYLOAD = {
     "field_summary": "Salesforce functional consultant, 4 years.",
     "years_experience": 4,
     "role_keywords": ["Salesforce Business Analyst", "Salesforce Consultant"],
+    # COMPATIBILITY DECISION, recorded rather than assumed. These were 10
+    # and 8, from an older Gemini prompt that used a 1-10 scale. The
+    # instruction this repo sends today says "use 1-5 and nothing higher:
+    # every existing profile is on that scale, and score thresholds are
+    # compared across profiles", so 10 was historical permissiveness, not
+    # supported behaviour, and _weights() now refuses it. The ORDERING the
+    # tests below assert is unchanged.
     "skill_weights": [
-        {"term": "Salesforce", "weight": 10},
-        {"term": "Apex", "weight": 8},
+        {"term": "Salesforce", "weight": 5},
+        {"term": "Apex", "weight": 4},
         {"term": "Stakeholder Management", "weight": 1},
     ],
     "penalty_terms": [{"term": "SAP", "weight": 6}, {"term": "Oracle", "weight": 4}],
@@ -125,7 +132,7 @@ class TestRender(unittest.TestCase):
 
     def test_skill_weights_fold_to_a_lowercased_dict(self):
         weights = rendered_namespace()["SCORING"]["skill_weights"]
-        self.assertEqual(weights["salesforce"], 10)
+        self.assertEqual(weights["salesforce"], 5)
         # Discriminative power, not centrality: the craft term stays demoted.
         self.assertLess(weights["stakeholder management"], weights["salesforce"])
 
@@ -483,10 +490,12 @@ class TestCorpusReweighting(unittest.TestCase):
         self.assertIn("react", said)
         self.assertIn("5 -> 2", said)
 
-    def test_a_weight_off_the_1_to_5_scale_is_left_alone(self):
-        # RESPONSE_SCHEMA bounds weight only to "integer" and the renderer
-        # has always passed it through. Re-bounding the scale is a different
-        # change from measuring importance.
+    def test_a_weight_off_the_1_to_5_scale_is_left_alone_by_reweighting(self):
+        # Still true HERE, and no longer true of the pipeline: corpus
+        # blending preserves an out-of-range weight, and render() now
+        # refuses to write a profile containing one. The bound belongs at
+        # the boundary that produces the file, not at every step before
+        # it — see test_engine_contract for the refusal.
         out = make_profile.reweight_from_corpus(
             self.payload({"react": 10}), self.corpus(["react"] * 300),
             log=lambda *a: None)

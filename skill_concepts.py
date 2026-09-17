@@ -514,23 +514,96 @@ ROLES_FLAG = "SWEEP_ROLE_FAMILIES"
 # test passes, so the public beta is not moved by a code default.
 VERSION_ENV = "SWEEP_PROFILE_ENGINE_VERSION"
 VERSIONS = ("v1", "v2")
-DEFAULT_VERSION = "v2"
+
+# v1. The independent review found the branch defaulting to v2, which
+# meant any process without the variable — a worker, a CLI run, a
+# background rerank — silently ran an engine the evaluation called
+# experimental. Absence now means the engine that has always run.
+DEFAULT_VERSION = "v1"
+
+# The engine a LOADED PROFILE was derived with, when one is loaded.
+#
+# Two machines agreeing by coincidence is not a contract. Render pins the
+# derivation engine; the Oracle worker's scraper child reads its own
+# environment, so a profile derived as v1 could be scored as v2 and
+# nothing would say so. A profile now carries the engine that wrote it,
+# config.py reads that stamp, and it beats whatever the scoring machine
+# happens to have exported.
+_BOUND = None
+
+
+def bind(version):
+    """Pin the engine to the one a loaded profile was derived with.
+
+    None releases it. Anything that is not a known version raises rather
+    than being ignored: this value arrives from a file on disk, and
+    profile content must never reach configuration unchecked.
+    """
+    global _BOUND
+    if version is None:
+        _BOUND = None
+        return None
+    if not isinstance(version, str):
+        raise ValueError(
+            f"engine version must be a string, got {type(version).__name__}")
+    _BOUND = engine_version(version)
+    return _BOUND
 
 
 def engine_version(value=None):
-    """Which engine reads the résumé: "v1" or "v2".
+    """Which engine reads and scores this résumé: "v1" or "v2".
 
-    An unknown name is an error rather than a silent fall back to either
-    side. Falling back to v1 would hide a typo as a rollback nobody asked
-    for; falling back to v2 would hide it as a migration nobody approved.
+    Precedence, strongest first:
+
+      1. the engine a loaded profile was derived with     bind()
+      2. an explicitly pinned version                     VERSION_ENV
+      3. individual step flags, for experiments           FLAG, EVIDENCE_FLAG
+      4. the default                                      v1
+
+    2 above 3 is the rollback property: the review found that a stale
+    SWEEP_SKILL_CONCEPTS in somebody's shell could silently defeat a
+    documented rollback to v1. An explicit version is now the complete
+    answer, and composing steps is what an unpinned environment is for —
+    which is how bench/evaluate.py isolates its conditions.
     """
-    name = (value or os.environ.get(VERSION_ENV) or DEFAULT_VERSION)
+    if value is None and _BOUND is not None:
+        return _BOUND
+    name = value if value is not None else os.environ.get(VERSION_ENV)
+    if not name:
+        return None if value is not None else _from_flags()
     name = str(name).strip().lower()
     if name not in VERSIONS:
         raise ValueError(
             f"{VERSION_ENV}={name!r} is not an engine version — expected one "
             f"of {', '.join(VERSIONS)}")
     return name
+
+
+# A composition that is neither engine. Reported, never bound, and
+# refused by the profile loader — an experiment's output must not be
+# runnable as though it were one of the two supported engines.
+MIXED = "mixed"
+
+
+def _from_flags():
+    """The version implied when nothing is pinned.
+
+    v2 means BOTH steps. Concepts without evidence is a real and useful
+    experiment, and calling it v2 would stamp a profile v2 and later bind
+    evidence that was never used to derive it — precisely the silent
+    disagreement this contract exists to stop.
+    """
+    concepts, evidence = _on(FLAG), _on(EVIDENCE_FLAG)
+    if concepts and evidence:
+        return "v2"
+    if not concepts and not evidence:
+        return DEFAULT_VERSION
+    return MIXED
+
+
+def _pinned():
+    """Is a version explicitly chosen, rather than implied?"""
+    return _BOUND is not None or bool(os.environ.get(VERSION_ENV, "").strip())
 
 
 def _on(name):
@@ -540,22 +613,31 @@ def _on(name):
 def enabled():
     """Is concept scoring on?
 
-    Read per call, so a test or a comparison run can flip either the
-    version or the individual flag without reimporting the scraper. The
-    per-step flags remain as experiment overrides: they can turn a step
-    on under v1, which is how bench/evaluate.py isolates conditions B, C
-    and D.
+    Read per call, so a rollback takes effect on the next request rather
+    than the next deploy.
     """
-    return _on(FLAG) or engine_version() == "v2"
+    if _pinned():
+        return engine_version() == "v2"
+    return _on(FLAG) or DEFAULT_VERSION == "v2"
 
 
-def roles_enabled():
-    """Is evidence-grounded role construction on? Off unless asked.
+def effective():
+    """The complete configuration in force, for logs and evaluation records.
 
-    Deliberately NOT part of v2 — see the note above. Needs importance to
-    exist, so role_families falls back when the evidence path is off.
+    Archived comparisons are only auditable if they say what was actually
+    running, which the review found the evaluator did not.
     """
-    return _on(ROLES_FLAG)
+    if _BOUND is not None:
+        source = "the profile it was derived with"
+    elif os.environ.get(VERSION_ENV, "").strip():
+        source = VERSION_ENV
+    elif _on(FLAG) or _on(EVIDENCE_FLAG) or _on(ROLES_FLAG):
+        source = "step flags"
+    else:
+        source = "default"
+    return {"version": engine_version(), "concepts": enabled(),
+            "evidence": evidence_enabled(), "roles": roles_enabled(),
+            "source": source}
 
 
 def evidence_enabled():
@@ -566,7 +648,24 @@ def evidence_enabled():
     as two careers. One switch turning on the thing it depends on beats a
     second switch someone can forget.
     """
-    return _on(EVIDENCE_FLAG) or engine_version() == "v2"
+    if _pinned():
+        return engine_version() == "v2"
+    return _on(EVIDENCE_FLAG) or DEFAULT_VERSION == "v2"
+
+
+def roles_enabled():
+    """Is evidence-grounded role construction on? Off unless asked.
+
+    Deliberately NOT part of v2, and not reachable through the version
+    switch: the evaluation measured it removing the job search entirely
+    for 2 of 16 personas, and the independent review agreed it should stay
+    held. Only the explicit step flag turns it on, and a bound profile can
+    never turn it on at all — the reason for holding it is a coverage
+    regression, not a configuration question.
+    """
+    if _BOUND is not None:
+        return False
+    return _on(ROLES_FLAG)
 
 
 def demo():

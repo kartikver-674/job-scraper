@@ -270,6 +270,17 @@ SKILL_PATTERNS   = {t: (w, _compile(t)) for t, w in SCORING["skill_weights"].ite
 # instead of SKILL_PATTERNS: both are cheap, and score_job picks per call,
 # so a comparison run can flip SWEEP_SKILL_CONCEPTS without reimporting.
 SKILL_CONCEPTS = skill_concepts.from_weights(SCORING["skill_weights"])
+
+# The engine that DERIVED the loaded profile decides how it is scored.
+#
+# Without this, Render could derive a profile as v1 and the Oracle
+# worker's scraper child — reading its own environment, on another
+# machine, possibly from an older checkout — could score it as v2, and
+# nothing anywhere would say so. The stamp travels with the profile, so
+# the two cannot disagree by accident. No profile loaded means nothing to
+# bind, and the environment answers as before.
+if getattr(config, "PROFILE_ENGINE", None):
+    skill_concepts.bind(config.PROFILE_ENGINE)
 PENALTY_PATTERNS = {t: (p, _compile(t)) for t, p in SCORING["penalty_terms"].items()}
 FRONTEND_PATTERNS = [_compile(t) for t in SCORING["frontend_terms"]]
 BACKEND_PATTERNS  = [_compile(t) for t in SCORING["backend_terms"]]

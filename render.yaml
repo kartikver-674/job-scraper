@@ -38,11 +38,15 @@ services:
       # service. An error here is an error — never a silent paid fallback.
       - key: SWEEP_PROFILE_ENGINE
         value: local
-      # PINNED to v1 until the Render smoke test passes. The code default
-      # is v2 so local and dev run what is being migrated to; the public
-      # beta is not moved by a code default. Flipping this line to v2 IS
-      # the migration, and flipping it back IS the rollback — no redeploy
-      # of Modal or the Oracle worker is involved either way.
+      # PINNED to v1, and the CODE DEFAULT is v1 too — the independent
+      # review found the branch defaulting to v2, so any process without
+      # this variable silently ran the experimental engine. This line is
+      # now a statement of intent rather than the only thing standing
+      # between the public beta and unproven behaviour.
+      #
+      # The worker does not need a matching value: a profile carries the
+      # engine that derived it and config.py binds it at load, so
+      # derivation and scoring cannot disagree by accident.
       - key: SWEEP_PROFILE_ENGINE_VERSION
         value: v1
       - key: SWEEP_INFERENCE_BACKEND
