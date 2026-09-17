@@ -469,5 +469,88 @@ class TestTheFlag(unittest.TestCase):
         self.assertNotIn("role_families", got)
 
 
+# --------------------------------------------------------------------------
+# The counterexample the guard does NOT survive
+# --------------------------------------------------------------------------
+#
+# The independent review's finding, kept rather than reshaped.
+#
+# corpus() above models the sales cluster the way the audited corpus
+# measures it: a listing asks for the CRM and then for SALES skills, and
+# only about a quarter also name something a software engineer has. The
+# pair-share guard rejects it at 27%.
+#
+# That is not the only shape a real sales market takes. A coherent
+# shared-platform cluster — every listing asking for Salesforce AND CRM
+# and nothing else — is entirely plausible, and it is what SKILL_LIFT
+# used to reject before step 4 replaced it with frequency ranking plus
+# revalidation. Against that cluster the replacement re-admits a business
+# development query for an engineer.
+#
+# It is recorded here as a KNOWN FAILURE rather than fixed or softened:
+# role construction is held, its thresholds are explicitly out of scope
+# for this batch, and a guard that only works against the easier of two
+# plausible markets should say so.
+
+
+def coherent_sales_corpus():
+    """The harder case: every sales listing genuinely wants Salesforce."""
+    rows = []
+    cluster(rows, "react native developer", 200,
+            {"react native", "typescript", "redux"}, 20)
+    cluster(rows, "salesforce developer", 160,
+            {"salesforce", "apex", "soql"}, 18)
+    cluster(rows, "business development representative", 140,
+            {"salesforce", "crm"}, 15)
+    for i in range(900):
+        rows.append((f"software engineer {i % 11}", 5,
+                     frozenset({"java", "sql", "agile"}), f"big{i % 30}"))
+    return rows
+
+
+class TestTheCoherentSharedPlatformMarket(unittest.TestCase):
+    """A sales market that really does want Salesforce and CRM."""
+
+    def setUp(self):
+        self.rows = coherent_sales_corpus()
+        self.market = local_search.Market(rows=self.rows,
+                                          seniority=SENIORITY)
+
+    def test_the_cluster_is_coherent_as_claimed(self):
+        """The precondition: if this stops holding the fixture is wrong,
+        not the finding."""
+        rows = [r for r in self.rows
+                if "business development representative" in r[0]]
+        self.assertTrue(rows)
+        self.assertTrue(all({"salesforce", "crm"} <= set(r[2]) for r in rows))
+
+    @unittest.expectedFailure
+    def test_KNOWN_FAILURE_a_sales_title_is_still_admitted(self):
+        """KNOWN FAILURE, recorded deliberately.
+
+        The pair-share guard asks how many of a title's listings want two
+        or more of the candidate's concepts. Here every sales listing
+        wants exactly two — Salesforce and CRM — so the guard passes it,
+        and an engineer is offered a business development search.
+
+        If this ever starts passing, role construction has been changed
+        and this test should become a plain assertion.
+        """
+        built = rf.build(held_titles=["software engineer"],
+                         importance=IMPORTANCE, market=self.market,
+                         resume_text=RESUME)
+        self.assertNotIn("business development representative",
+                         built["role_keywords"])
+
+    def test_the_engineering_titles_are_still_reached(self):
+        """The failure above is an over-admission, not a collapse."""
+        built = rf.build(held_titles=["software engineer"],
+                         importance=IMPORTANCE, market=self.market,
+                         resume_text=RESUME)
+        self.assertTrue(
+            any("react native" in q or "salesforce developer" in q
+                for q in built["role_keywords"]), built["role_keywords"])
+
+
 if __name__ == "__main__":
     unittest.main()

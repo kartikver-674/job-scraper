@@ -54,6 +54,27 @@ from bench.people import titles as person_titles  # noqa: E402
 
 NOW = (2026, 9)
 
+
+def _sha(path):
+    """A short digest of a corpus file, so an archived run says which."""
+    import hashlib
+    try:
+        with open(path, "rb") as handle:
+            return hashlib.sha256(handle.read()).hexdigest()[:16]
+    except OSError:
+        return None
+
+
+def _revision():
+    """The source revision, when this is a checkout."""
+    import subprocess
+    try:
+        done = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT,
+                              capture_output=True, text=True, timeout=10)
+        return done.stdout.strip() or None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
 # The five conditions, as the two flags that produce them.
 CONDITIONS = {
     "A": {"concepts": False, "evidence": False, "roles": False,
@@ -76,10 +97,19 @@ CONDITIONS = {
 
 
 class Flags:
-    """The environment for one condition, restored afterwards."""
+    """The COMPLETE environment for one condition, restored afterwards.
 
-    NAMES = (skill_concepts.FLAG, skill_concepts.EVIDENCE_FLAG,
-             skill_concepts.ROLES_FLAG)
+    The independent review found this class changing the three step flags
+    and leaving SWEEP_PROFILE_ENGINE_VERSION alone. A developer with that
+    variable exported ran every condition — including the one labelled
+    "v1" — as v2, and the archived table said otherwise. A condition now
+    states its whole configuration, including the variables it needs
+    ABSENT, and the version is deliberately unpinned so the step flags are
+    what compose each condition.
+    """
+
+    NAMES = (skill_concepts.VERSION_ENV, skill_concepts.FLAG,
+             skill_concepts.EVIDENCE_FLAG, skill_concepts.ROLES_FLAG)
 
     def __init__(self, concepts=False, evidence=False, roles=False,
                  **_rest):
@@ -89,6 +119,13 @@ class Flags:
 
     def __enter__(self):
         self.before = {n: os.environ.get(n) for n in self.NAMES}
+        # Unpinned on purpose: with a version pinned, an explicit version
+        # is the complete answer and the step flags below would do
+        # nothing. Removing it is what makes B, C and D reachable at all.
+        os.environ.pop(skill_concepts.VERSION_ENV, None)
+        # A bound profile would outrank both. Nothing here loads a
+        # profile, and releasing it costs nothing if something later does.
+        skill_concepts.bind(None)
         for name, on in self.want.items():
             if on:
                 os.environ[name] = "1"
@@ -102,6 +139,31 @@ class Flags:
             if value is not None:
                 os.environ[name] = value
         return False
+
+    def effective(self):
+        """What is actually in force inside this block."""
+        return skill_concepts.effective()
+
+
+def check_isolation():
+    """Every condition, as it will actually run. Raises if any disagrees.
+
+    Called before the run rather than trusted: the whole value of an A/B
+    table is that the labels are true.
+    """
+    wrong = []
+    for name, wanted in CONDITIONS.items():
+        with Flags(**wanted) as flags:
+            got = flags.effective()
+            for key in ("concepts", "evidence", "roles"):
+                if bool(got[key]) != bool(wanted.get(key)):
+                    wrong.append(f"{name}: {key} is {got[key]}, "
+                                 f"condition asks {wanted.get(key)}")
+    if wrong:
+        raise RuntimeError(
+            "evaluation conditions are contaminated by the environment:\n  "
+            + "\n  ".join(wrong))
+    return True
 
 
 # --------------------------------------------------------------------------
@@ -164,7 +226,10 @@ def run_one(slug, person, text, market, condition, out_dir):
     """Weights, queries and timings for one cell of the matrix."""
     result = {"slug": slug, "condition": condition, "errors": []}
     started = time.perf_counter()
-    with Flags(**CONDITIONS[condition]):
+    with Flags(**CONDITIONS[condition]) as flags:
+        # What was ACTUALLY in force, recorded per cell. An archived
+        # comparison is only auditable if it says what ran.
+        result["effective"] = flags.effective()
         try:
             data = make_profile.split_compounds(extraction(person),
                                                 log=lambda *a: None)
@@ -405,6 +470,9 @@ def import_role_families():
 
 def evaluate(out_dir=None, resumes=None):
     """Every condition over every persona, with the metrics."""
+    # Before anything is measured: a table whose labels are not true is
+    # worse than no table.
+    check_isolation()
     out_dir = out_dir or os.environ.get("SWEEP_EVAL_OUT") or None
     resumes = resumes or os.path.join(HERE, "resumes")
     people = eval_people.all_people()
@@ -425,7 +493,14 @@ def evaluate(out_dir=None, resumes=None):
     report = {"conditions": {}, "failures": failures,
               "people": len(people),
               "corpus": {"rows": market.total,
-                         "source": local_search.market_rows(out_dir)[1]},
+                         "source": local_search.market_rows(out_dir)[1],
+                         "frozen_titles_sha256": _sha(
+                             local_search.frozen_path()),
+                         "frozen_skills_sha256": _sha(
+                             os.path.join(REPO_ROOT, "data",
+                                          "skill_market_frequencies.json"))},
+              "revision": _revision(),
+              "isolation_checked": True,
               "text_chars": {slug: len(t) for slug, t in texts.items()}}
 
     for condition in CONDITIONS:
@@ -458,6 +533,7 @@ def evaluate(out_dir=None, resumes=None):
         uwant = sum(u["want"] for u in unknowns)
         report["conditions"][condition] = {
             "label": CONDITIONS[condition]["label"],
+            "effective": cells[(condition, next(iter(people)))]["effective"],
             "concept_recall": found / want if want else None,
             "concepts_missing": want - found,
             "unknown_recall": ufound / uwant if uwant else None,

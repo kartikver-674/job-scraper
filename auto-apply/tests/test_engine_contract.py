@@ -386,5 +386,74 @@ print(json.dumps({"derived": config.PROFILE_ENGINE,
         self.assertEqual(got["source"], "SWEEP_PROFILE_ENGINE_VERSION")
 
 
+class TestTheEvaluatorIsolatesItsConditions(Clean):
+    """R6. The harness changed the three step flags and left the version
+    variable alone, so a developer with SWEEP_PROFILE_ENGINE_VERSION=v2
+    exported ran every condition — including the one labelled v1 — as v2,
+    and the archived table said otherwise."""
+
+    def conditions(self):
+        from bench import evaluate
+        return evaluate
+
+    def test_conditions_are_correct_with_a_contaminating_environment(self):
+        evaluate = self.conditions()
+        os.environ[skill_concepts.VERSION_ENV] = "v2"
+        os.environ[skill_concepts.FLAG] = "1"
+        os.environ[skill_concepts.EVIDENCE_FLAG] = "1"
+        for name, wanted in evaluate.CONDITIONS.items():
+            with evaluate.Flags(**wanted) as flags:
+                got = flags.effective()
+                for key in ("concepts", "evidence", "roles"):
+                    self.assertEqual(bool(got[key]), bool(wanted.get(key)),
+                                     f"{name}.{key}")
+
+    def test_condition_a_really_is_v1(self):
+        evaluate = self.conditions()
+        os.environ[skill_concepts.VERSION_ENV] = "v2"
+        with evaluate.Flags(**evaluate.CONDITIONS["A"]) as flags:
+            self.assertEqual(flags.effective()["version"], "v1")
+
+    def test_a_bound_profile_cannot_leak_into_a_condition(self):
+        evaluate = self.conditions()
+        skill_concepts.bind("v2")
+        with evaluate.Flags(**evaluate.CONDITIONS["A"]) as flags:
+            self.assertFalse(flags.effective()["concepts"])
+
+    def test_the_environment_is_restored_afterwards(self):
+        evaluate = self.conditions()
+        os.environ[skill_concepts.VERSION_ENV] = "v2"
+        with evaluate.Flags(**evaluate.CONDITIONS["E"]):
+            pass
+        self.assertEqual(os.environ.get(skill_concepts.VERSION_ENV), "v2")
+
+    def test_check_isolation_passes_from_a_dirty_environment(self):
+        evaluate = self.conditions()
+        os.environ[skill_concepts.VERSION_ENV] = "v2"
+        os.environ[skill_concepts.ROLES_FLAG] = "1"
+        self.assertTrue(evaluate.check_isolation())
+
+    def test_check_isolation_would_report_a_real_contamination(self):
+        """The guard has to be able to fail, or it guards nothing."""
+        evaluate = self.conditions()
+        broken = dict(evaluate.CONDITIONS)
+        broken["A"] = dict(broken["A"], concepts=False)
+
+        class Leaky(evaluate.Flags):
+            def __enter__(self):
+                super().__enter__()
+                os.environ[skill_concepts.FLAG] = "1"
+                return self
+
+        with self.assertRaises(RuntimeError):
+            saved_flags, saved_conditions = evaluate.Flags, evaluate.CONDITIONS
+            try:
+                evaluate.Flags = Leaky
+                evaluate.check_isolation()
+            finally:
+                evaluate.Flags, evaluate.CONDITIONS = (saved_flags,
+                                                       saved_conditions)
+
+
 if __name__ == "__main__":
     unittest.main()
