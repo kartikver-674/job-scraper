@@ -3991,6 +3991,148 @@ class TestPostedAge(Isolated):
         self.assertEqual(app_module.posted_age("2026-09-20", self.TODAY), "")
 
 
+class TestTheScreenLooksAlive(Isolated):
+    """The counts were already there and the screen still read as static.
+
+    Three numerals that change every few minutes look identical to three
+    numerals that have stopped changing, and a 40-minute sweep gives the
+    visitor plenty of time to conclude the second. The fix has to say "still
+    working" WITHOUT inventing progress — everything below is asserted
+    against fields the page already polls.
+    """
+
+    def _app(self, done=(), alive=True, stopped=False):
+        proc = FakeProc()
+        if not alive:
+            proc.poll = lambda: 0
+        state = {"profile": "kanav", "cap_usd": 8.41, "proc": proc,
+                 "credit_total_usd": 8.41, "baseline_usd": 1.00,
+                 "raw_plan": RUNNING_PLAN,
+                 "plan": {"total": 2.70, "total_searches": 46,
+                          "over_cap": False, "spend_cap": 3.38, "lines": []}}
+        if stopped:
+            state["stopped_by_user"] = True
+        env = os.path.join(tempfile.mkdtemp(), ".env")
+        pathlib.Path(env).write_text("APIFY_TOKEN=tok-a\n")
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (8.41, None),
+            fetch_plan=lambda profile: RUNNING_PLAN,
+            start_sweep=lambda profile: proc,
+            read_spend=lambda: 2.42,
+            read_done=lambda profile, day: set(done),
+            read_rows=lambda profile: [],
+            env_path=env, output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app
+
+    def _body(self, **kw):
+        return self._app(**kw).get("/running", None) if False else \
+            self._app(**kw).test_client().get("/running").get_data(as_text=True)
+
+    def _state(self, **kw):
+        return self._app(**kw).test_client().get("/progress").get_json()
+
+    # ---- the bar is the real fraction, not a clock -----------------------
+
+    def test_the_bar_is_bound_to_the_fraction_the_server_computed(self):
+        # The one thing that would make this dishonest is a bar that moves
+        # on a timer. It reads p.fraction and nothing else.
+        body = self._body()
+        self.assertIn("(this.p.fraction || 0) * 100", body)
+        self.assertIn("'width: ' + pct() + '%'", body)
+
+    def test_the_fraction_is_searches_done_over_searches_planned(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        p = self._state(done=keys[:23])
+        self.assertEqual(p["done"], 23)
+        self.assertEqual(p["planned"], 46)
+        self.assertAlmostEqual(p["fraction"], 0.5)
+
+    def test_a_finished_sweep_fills_the_bar_exactly(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        p = self._state(done=keys, alive=False)
+        self.assertEqual(p["state"], "finished")
+        self.assertEqual(p["fraction"], 1.0)
+
+    def test_a_stopped_sweep_leaves_the_bar_where_it_stopped(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        p = self._state(done=keys[:10], alive=False, stopped=True)
+        self.assertEqual(p["state"], "stopped")
+        self.assertLess(p["fraction"], 1.0)
+
+    # ---- the pulse ends when the work does -------------------------------
+
+    def test_the_live_state_is_bound_to_the_run_being_running(self):
+        # Requirement: a stopped or failed run must not be left animating.
+        # The class carrying every animation is bound to p.state, so the
+        # next poll after the run ends drops it — there is no separate
+        # "stop the animation" path that could be missed.
+        body = self._body()
+        self.assertIn("p.state === 'running' ? 'live'", body)
+        self.assertIn("p.state === 'finished' ? 'done' : 'off'", body)
+
+    def test_it_says_complete_rather_than_searching_when_it_is(self):
+        body = self._body()
+        self.assertIn("Search complete", body)
+        self.assertIn("Searching live", body)
+        self.assertIn("Search stopped", body)
+
+    def test_only_the_live_class_animates(self):
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertIn(".activity.live .activity-dot { animation: runpulse", css)
+        # The dot itself, unqualified, must not animate — that is what would
+        # keep breathing after a sweep died. Anchored to the line start, so
+        # the qualified rule above does not satisfy it by substring.
+        self.assertNotIn("\n.activity-dot { animation:", css)
+
+    def test_the_pulse_is_the_one_the_product_already_uses(self):
+        # One pulse vocabulary, not two: the header's run strip defines it.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertIn("@keyframes runpulse", css)
+        self.assertEqual(css.count("@keyframes runpulse"), 1)
+
+    def test_reduced_motion_leaves_the_dot_visible(self):
+        # The global rule kills every animation. A pulse frozen at its 35%
+        # keyframe would leave the dot looking broken rather than calm.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertIn("* { transition: none !important; animation: none !important; }",
+                      css)
+        self.assertIn(".activity-dot { opacity: 1; }", css)
+
+    # ---- which cell is running -------------------------------------------
+
+    def test_the_running_cell_is_the_first_the_ledger_has_not_recorded(self):
+        # No engine change: scraper.py works the plan in order and appends
+        # to .done_combos as each search finishes, so the first tile that is
+        # not done is the one in flight.
+        body = self._body()
+        # =&gt; in the source: this lives inside an attribute value, the way
+        # the x-init beside it does.
+        self.assertIn('this.p.tiles.find(t =&gt; t.state !== "done")', body)
+        self.assertIn('this.p.state === "running"', body)
+
+    def test_nothing_is_marked_running_when_the_sweep_is_not(self):
+        body = self._body(alive=False, stopped=True)
+        # nowRunning() returns null off the running state, and the class
+        # expression reaches 'parked' before it ever asks.
+        self.assertIn("p.state !== 'running' ? 'parked'", body)
+
+    def test_the_running_cell_is_a_border_not_a_fill(self):
+        # A filled cell means FINISHED everywhere else on this grid.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        rule = css.split(".cell.running {", 1)[1].split("}", 1)[0]
+        self.assertIn("border-color", rule)
+        self.assertNotIn("background", rule)
+
+    def test_the_legend_names_the_running_state(self):
+        self.assertIn(">running<", self._body().replace("\n", ""))
+
+
 class TestHowASweepEnded(Isolated):
     """Four endings, not two. "Stopped early" used to cover the user pressing
     Stop, the credit running out and the engine dying — three problems with
@@ -4084,9 +4226,12 @@ class TestHowASweepEnded(Isolated):
 
     def test_the_grid_marks_the_searches_that_never_ran(self):
         # "Not run YET" and "did not run" are the same cell until the sweep
-        # stops, and then they are not.
+        # stops, and then they are not. A third state joined them: while the
+        # sweep IS running, the first cell the ledger has not recorded is the
+        # one in flight, and it must not be drawn as either of the others.
         body = self._body(stopped=True)
-        self.assertIn("p.state === 'running' ? '' : 'parked'", body)
+        self.assertIn("p.state !== 'running' ? 'parked'", body)
+        self.assertIn("nowRunning()", body)
         self.assertIn("did not run", body)
 
     def test_stop_wins_over_an_empty_balance(self):

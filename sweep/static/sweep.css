@@ -769,6 +769,12 @@ details.panel { min-width: 0; }
    chalk on either of them is unreadable. */
 .cell.done { background: var(--paid); border-color: var(--paid); color: var(--ground); }
 .cell.done.free { background: var(--free); border-color: var(--free); }
+/* The one in flight. A border that breathes, not a fill: a filled cell means
+   FINISHED everywhere else on this grid, and a second filled state would make
+   the grid say two things with one shape. The cell is 44px wide, so there is
+   no room for a "RUNNING…" label either — the legend carries the word. */
+.cell.running { border-color: var(--paid); color: var(--paid-lift); }
+.key.running::before { background: transparent; border: 1px solid var(--paid); }
 .grid-group + .grid-group { margin-top: var(--s4); }
 .grid-group .label { margin-bottom: var(--s2); }
 
@@ -1108,6 +1114,70 @@ td.score {
   .working-bar span { animation: none; width: 100%; opacity: .5; }
 }
 
+/* ---- Still going --------------------------------------------------------
+
+   One row under the heading: a dot that says the run is alive, the count in
+   words, and a determinate bar of done/planned. Everything in it comes from
+   fields the page already polls, so it cannot drift from the tiles below it.
+
+   Sized and coloured off the meter, which is this product's existing bar —
+   same 8px track, same well, same amber. It is not a second design. */
+.activity {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--s2) var(--s4);
+}
+.activity-said {
+  display: flex; align-items: center; gap: var(--s3);
+  flex: none; margin: 0;
+}
+.activity-said > b { font-size: 13px; font-weight: 600; color: var(--chalk); }
+.activity-count { font-size: 12px; color: var(--slate); }
+
+/* The same dot, the same breath, the same three tones as the run strip in
+   the header. Amber while it runs, teal when it is done, quiet otherwise. */
+.activity-dot {
+  flex: none; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--slate);
+}
+.activity.live .activity-dot { background: var(--paid); }
+.activity.done .activity-dot { background: var(--free); }
+.activity.done .activity-said > b { color: var(--free); }
+.activity.live .activity-dot { animation: runpulse 2s ease-in-out infinite; }
+
+.activity-track {
+  flex: 1 1 14rem; min-width: 10rem; height: 8px;
+  background: var(--well); border: 1px solid var(--rule); border-radius: 4px;
+  overflow: hidden;
+}
+/* Transitioned, not animated: it moves when the server says a search
+   finished and at no other time. */
+.activity-fill {
+  display: block; height: 100%; width: 0;
+  background: var(--paid); border-radius: 4px;
+  transition: width .45s cubic-bezier(.22, .61, .36, 1);
+}
+.activity.done .activity-fill { background: var(--free); }
+.activity-pct {
+  flex: none; font-size: 12px; font-variant-numeric: tabular-nums;
+  color: var(--slate);
+}
+
+/* The global reduced-motion rule above already stops every animation and
+   transition. These two lines only make sure what is LEFT is still legible:
+   a pulse frozen mid-fade must not leave the dot at 35% opacity, and the bar
+   must still show its width rather than none. */
+@media (prefers-reduced-motion: reduce) {
+  .activity-dot { opacity: 1; }
+  .activity-fill { transition: none; }
+}
+
+/* On a phone the bar takes its own line rather than being squeezed to a
+   stub beside the words. */
+@media (max-width: 40rem) {
+  .activity-said { flex: 1 1 100%; }
+  .activity-pct { margin-left: auto; }
+}
+
 /* ---- The front door ----------------------------------------------------- */
 
 /* Narrower than the 88rem the data screens use. This page is one form and
@@ -1438,6 +1508,12 @@ td.score {
 .meter.over .meter-track {
   animation: cap-cross-shake 500ms cubic-bezier(.36, .07, .19, .97);
 }
+
+/* The search in flight. Same breath as .runbar-dot — one pulse vocabulary in
+   the product, not two — and it is on the border alone so the cell never
+   flashes. Ends by itself: the class is bound to p.state === 'running', so a
+   stopped or failed sweep drops it on the next tick. */
+.cell.running { animation: runpulse 2s ease-in-out infinite; }
 
 /* A search finishing. The grid moves because work genuinely completed, so
    it reads as data rather than decoration — which is also why nothing else

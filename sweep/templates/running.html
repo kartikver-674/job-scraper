@@ -13,6 +13,16 @@
 {# Single-quoted for the reason in configure.html: |tojson leaves " raw. #}
 {% block meter_scope %} x-data='{ p: {{ progress|tojson }}, cap: {{ cap_usd|tojson }}, drift: 0,
        waiting: {{ (not progress.finished and not progress.interrupted)|tojson }},
+       pct() { return Math.round((this.p.fraction || 0) * 100) },
+       {# Which search is in flight. scraper.py works the plan in order and
+          appends to .done_combos as each one finishes, so the first tile
+          that is not done is the one running. Derived here rather than
+          asked of the worker: no engine change, and nothing claims to know
+          more than the ledger does. Null unless the run is actually
+          running, so a stopped sweep marks nothing. #}
+       nowRunning() { return this.p.state === "running"
+                      ? this.p.tiles.find(t =&gt; t.state !== "done") || null
+                      : null },
        hms(s) { var m = Math.floor(s / 60); return (m ? m + "m " : "") + (s % 60) + "s" },
        ago(s) { return s > 59 ? Math.floor(s / 60) + "m ago"
                               : (s > 4 ? s + "s ago" : "just now") } }'
@@ -167,6 +177,53 @@
   </div>
   {% endif %}
 
+  {# ---- Still going -----------------------------------------------------
+
+     The counts were already on the screen and the screen still read as
+     static: three numerals that change every few minutes look identical to
+     three numerals that have stopped changing. This says the same thing in
+     a shape the eye reads without counting — and says it from the same
+     fields, so it cannot claim progress the tiles do not have.
+
+     p.fraction is done/planned, computed in runs.progress(). Nothing here
+     interpolates, estimates or animates toward a number the server has not
+     sent. A stopped sweep leaves the bar where it stopped. #}
+  <div class="activity" x-show="p.planned" x-cloak
+       :class="p.state === 'running' ? 'live'
+               : (p.state === 'finished' ? 'done' : 'off')"
+       {% if not progress.planned %}style="display:none"{% endif %}>
+    <p class="activity-said">
+      <span class="activity-dot" aria-hidden="true"></span>
+      <b x-text="p.queued ? 'Waiting to start'
+                 : (p.state === 'running' ? 'Searching live'
+                    : (p.state === 'finished' ? 'Search complete'
+                                              : 'Search stopped'))">{%
+        if progress.queued %}Waiting to start{%
+        elif progress.state == 'running' %}Searching live{%
+        elif progress.state == 'finished' %}Search complete{%
+        else %}Search stopped{% endif %}</b>
+      <span class="activity-count"
+            x-text="p.done + ' of ' + p.planned + ' searches complete'">{{
+        progress.done }} of {{ progress.planned }} searches complete</span>
+    </p>
+    {# role=progressbar with a valuetext, because "25%" read aloud on its own
+       does not say what is a quarter done. #}
+    <div class="activity-track" role="progressbar"
+         aria-valuemin="0" aria-valuemax="100"
+         :aria-valuenow="pct()" aria-valuenow="{{ (progress.fraction * 100)|round|int }}"
+         :aria-valuetext="p.done + ' of ' + p.planned + ' searches complete'"
+         aria-valuetext="{{ progress.done }} of {{ progress.planned }} searches complete">
+      {# No server-rendered width. Jinja inside a style="" is CSS an editor
+         cannot validate, and base.html's meter is the one place that is
+         unavoidable — asserted by test_no_template_puts_jinja_inside_a_style_attribute.
+         It costs nothing here: the whole row is x-cloaked, so the bar is
+         never painted before Alpine has set the real width. #}
+      <span class="activity-fill" :style="'width: ' + pct() + '%'"></span>
+    </div>
+    <span class="activity-pct" x-text="pct() + '%'">{{
+      (progress.fraction * 100)|round|int }}%</span>
+  </div>
+
   {# ---- How it ended ---------------------------------------------------
 
      Four endings, named. They used to be two — "finished", and one
@@ -307,6 +364,8 @@
       <h2>Searches</h2>
       <span class="meta"><span class="key paid">paid</span>
         <span class="key free">free</span>
+        <span class="key running" x-show="p.state === 'running'"
+              x-cloak>running</span>
         <span class="key">not run yet</span><span
           class="key parked" x-show="p.state !== 'running'"
           x-cloak>did not run</span></span>
@@ -335,9 +394,14 @@
                       :key="i">
               {# Classes, not an inline style: the text has to invert on the
                  filled cells, and a done cell is unreadable in chalk. #}
+              {# Three states, not two. "running" is the first tile the
+                 ledger has not recorded yet — see nowRunning() above — and
+                 it is a border that breathes rather than a label, because
+                 the cell is 44px wide and "RUNNING…" does not fit in it. #}
               <div class="cell" :title="t.label"
                    :class="t.state === 'done' ? (t.free ? 'done free' : 'done')
-                           : (p.state === 'running' ? '' : 'parked')"
+                           : (p.state !== 'running' ? 'parked'
+                              : (t === nowRunning() ? 'running' : ''))"
                    x-text="t.short"></div>
             </template>
           </div>
