@@ -243,6 +243,22 @@ class TestMatchingUsesAliasesAsOrMatchers(unittest.TestCase):
         self.assertEqual(points("JavaScript (ES6+) required",
                                 {"javascript (es6+)": 3}), 3)
 
+    def test_spellings_that_fold_alike_are_both_kept_as_matchers(self):
+        """Folding is for LOOKUP — deciding "l wc" and "lwc" are one
+        concept. They are different MATCHERS, and the audited résumé says
+        "L WC": deduping matchers by folded key found nothing in it."""
+        concept, = sc.from_weights({"l wc": 3})
+        self.assertIn("l wc", concept.aliases)
+        self.assertIn("lwc", concept.aliases)
+        self.assertEqual(points("We need L WC and Apex", {"l wc": 3}), 3)
+        self.assertEqual(points("We need LWC and Apex", {"l wc": 3}), 3)
+        self.assertEqual(
+            points("Lightning Web Components required", {"l wc": 3}), 3)
+
+    def test_the_spaced_and_unspaced_forms_still_score_once(self):
+        """Both matchers, one concept, one contribution."""
+        self.assertEqual(points("LWC, also written L WC", {"l wc": 3}), 3)
+
     def test_a_concept_brings_aliases_the_profile_never_carried(self):
         concept, = sc.from_weights({"typescript": 2})
         self.assertIn("ts", concept.aliases)

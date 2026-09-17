@@ -346,12 +346,17 @@ class Concept:
         # résumé that said "JavaScript (ES6+)" now also matches a job that
         # says plain "JavaScript", because the concept brought its own
         # aliases with it.
+        # Deduped by the LITERAL string, not the folded key. Folding is for
+        # lookup — deciding that "l wc" and "lwc" name one concept — but
+        # they are different MATCHERS, and dropping either loses the text
+        # that only spells it that way. The audited résumé says "L WC";
+        # keeping only "lwc" found nothing.
         seen, aliases = set(), []
         for alias in tuple(aliases_for(canonical)) + tuple(extra_aliases):
-            folded = _key(alias)
-            if folded and folded not in seen:
-                seen.add(folded)
-                aliases.append(alias)
+            literal = re.sub(r"\s+", " ", str(alias).strip().lower())
+            if literal and literal not in seen:
+                seen.add(literal)
+                aliases.append(literal)
         self.aliases = tuple(aliases)
         self.patterns = tuple(compile_alias(a) for a in self.aliases)
 
@@ -477,11 +482,31 @@ def canonical_matched(recorded):
 
 FLAG = "SWEEP_SKILL_CONCEPTS"
 
+# Step 3's seam, and deliberately a separate switch. The two change
+# different things and are worth comparing apart: CONCEPTS changes how
+# many times a match COUNTS, EVIDENCE changes what a skill is WORTH.
+EVIDENCE_FLAG = "SWEEP_SKILL_EVIDENCE"
+
+
+def _on(name):
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
 
 def enabled():
     """Is concept scoring on? Off unless asked, read per call so a test or
     a comparison run can flip it without reimporting the scraper."""
-    return os.environ.get(FLAG, "").strip().lower() in ("1", "true", "yes", "on")
+    return _on(FLAG)
+
+
+def evidence_enabled():
+    """Is evidence-aware importance on? Off unless asked.
+
+    Implies concept grouping: tiers are assigned per CONCEPT, so asking
+    for evidence without canonicalisation would tier "node" and "node.js"
+    as two careers. One switch turning on the thing it depends on beats a
+    second switch someone can forget.
+    """
+    return _on(EVIDENCE_FLAG)
 
 
 def demo():

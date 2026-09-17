@@ -281,6 +281,84 @@ def _is(exc, needles):
     return any(n in low for n in needles)
 
 
+def reweight_from_evidence(data, resume_text, output_dir=None, log=print):
+    """Weights from where each skill APPEARS, with the market kept apart.
+
+    The replacement for reweight_from_corpus when SWEEP_SKILL_EVIDENCE is
+    set. What changes is not the arithmetic but the contract: the old path
+    multiplied a centrality proxy by market rarity and produced one
+    number, so the market decided both questions. Measured on the audited
+    résumé, that put Firebase Cloud Messaging on 5 and TypeScript on 2 —
+    a library used once in one side project above the language the
+    candidate writes every working day.
+
+    Here the two stay separate. skill_evidence reads the document and
+    assigns a TIER; the corpus still measures separation exactly as it
+    does today; and the tier's band decides how far the market may move
+    the result. Rarity can order two skills the résumé ranks alike. It
+    cannot carry a skills-list claim above professional work.
+
+    The same rules run for every concept whatever named it — audit defect
+    C1, where the identical Apex evidence scored 3 when Qwen reported it
+    and 5 when the scanner recovered it. Origin is recorded, never
+    consulted.
+    """
+    if cfg.REPO_ROOT not in sys.path:
+        sys.path.insert(0, cfg.REPO_ROOT)
+    import corpus_signal
+    import skill_evidence
+
+    entries = [e for e in data.get("skill_weights") or ()
+               if str(e.get("term", "")).strip()]
+    if not entries:
+        return data
+    weights = {e["term"].strip().lower(): e["weight"] for e in entries}
+    concepts = skill_concepts.from_weights(weights)
+    freqs, source = corpus_signal.market_signal(output_dir)
+
+    # The market is measured on the terms it was measured on. A concept's
+    # own id may be a spelling no corpus ever counted, so its raw
+    # spellings answer for it — the strongest measurement any of them has.
+    separations = {}
+    for concept in concepts:
+        measured = [corpus_signal.separation(term, freqs)
+                    for term in (concept.id,) + concept.raw]
+        measured = [m for m in measured if m is not None]
+        separations[concept.id] = max(measured) if measured else None
+
+    assessed = skill_evidence.assess_all(concepts, resume_text, separations)
+    by_id = {row["id"]: row for row in assessed}
+
+    # Back onto the flat term->weight interface every consumer speaks.
+    # Each raw spelling carries its concept's weight, so matching keeps
+    # every alias while the NUMBER is now the concept's one answer.
+    out = []
+    for entry in entries:
+        row = by_id.get(skill_concepts.resolve(entry["term"]))
+        out.append({"term": entry["term"],
+                    "weight": row["weight"] if row else entry["weight"]})
+
+    where = ("measured in output/" if source == "live"
+             else f"from {corpus_signal.FROZEN_NAME}")
+    log(f"  weighted {len(assessed)} concept(s) by résumé evidence, with "
+        f"market separation {where} kept separate:")
+    order = {name: i for i, name in enumerate(reversed(skill_evidence.ORDER))}
+    for row in sorted(assessed, key=lambda r: (order[r["tier"]],
+                                               -r["weight"], r["display"]))[:12]:
+        rarity = ("unmeasured" if row["market_separation"] is None
+                  else f"market {row['market_separation']}/5")
+        log(f"    {row['weight']}  {row['display']:<26} "
+            f"{row['tier']:<17} {rarity:<11} {row['why']}")
+    if len(assessed) > 12:
+        log(f"    ... and {len(assessed) - 12} more")
+    return dict(data, skill_weights=out,
+                skill_importance=[
+                    {k: row[k] for k in ("id", "display", "tier", "why",
+                                         "weight", "market_separation",
+                                         "sections")}
+                    for row in assessed])
+
+
 def reweight_from_corpus(data, output_dir=None, log=print):
     """Re-score the model's skill weights against the jobs already scraped.
 
@@ -443,9 +521,15 @@ def _finish(data, resume_text, output_dir, log):
     all of them before render(), because render() is where the USER's
     reviewed weights arrive from Sweep's review screen and those must win.
     """
-    return reweight_from_corpus(
-        widen_skills(split_compounds(data, log), resume_text, output_dir, log),
-        output_dir, log)
+    widened = widen_skills(split_compounds(data, log), resume_text,
+                           output_dir, log)
+    if skill_concepts.evidence_enabled():
+        # AFTER widening on purpose. A scanner-recovered term must reach
+        # the tiers on exactly the same footing as a model-reported one —
+        # that asymmetry is the defect (C1), and running importance
+        # before recovery would rebuild it one step earlier.
+        return reweight_from_evidence(widened, resume_text, output_dir, log)
+    return reweight_from_corpus(widened, output_dir, log)
 
 
 def generate_local(resume_text, prefs, log=print, output_dir=None, model=None):

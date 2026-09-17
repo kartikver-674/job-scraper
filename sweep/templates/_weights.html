@@ -2,7 +2,7 @@
    before anything is spent; on the results screen it is what a re-rank
    scores against. One macro so the two cannot drift apart — the POST field
    names here are the contract logic.reweighted() reads. #}
-{% macro weight_editor(skill_weights, commodity=()) -%}
+{% macro weight_editor(skill_weights, commodity=(), importance={}) -%}
 {% if skill_weights %}
 <div class="scroll-x">
   <table class="weights">
@@ -29,10 +29,15 @@
            rather than the server having to reproduce this sort order to know
            which weight is whose. #}
         <td class="term">{{ w.term }}
-          {#- Says what it measures. "Low signal" read as "you are not good
-              at this", and it sat beside TypeScript, Node.js, MongoDB and
-              Salesforce — all of them the candidate's own, all of them
-              common. Commonness is about the market, never about them. #}
+          {#- TWO badges, because these are two different facts and the
+              engine spent a long time collapsing them into one. The first
+              says what the RÉSUMÉ shows about this person; the second says
+              what the MARKET does with the word. "TypeScript: used at work,
+              and common" is the true sentence. "TypeScript is low signal"
+              was not. #}
+          {%- set tier = importance.get(w.term) %}
+          {%- if tier %}<span class="tag {{ tier.css }}"
+            title="{{ tier.why }}">{{ tier.label }}</span>{% endif %}
           {%- if w.term in commodity %}<span class="tag low"
             title="Common in job descriptions, so it separates listings less
                    — not a judgement about your skill">Common</span>{% endif %}
