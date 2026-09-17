@@ -3991,6 +3991,133 @@ class TestPostedAge(Isolated):
         self.assertEqual(app_module.posted_age("2026-09-20", self.TODAY), "")
 
 
+class TestTheResumeIsBeingRead(Isolated):
+    """The parse is one opaque model call and can run for tens of seconds on
+    a cold container.
+
+    The screen was a headline, a sentence promising "a few seconds", and a
+    4px bar on an otherwise empty page. Two problems: the promise is false on
+    a cold start, and there is nothing else to look at while it is being
+    broken.
+
+    What CAN be said is what the call is for and what the result will look
+    like. What cannot is progress — derive() exposes no stages, and the only
+    states this app can see are reading, ready and failed.
+    """
+
+    def _body(self, parse=None):
+        import time as _time
+        state = {"resume_text": "x"}
+        if parse:
+            state["parse"] = {"state": parse, "at": _time.time()}
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True)
+        return app.test_client().get("/review").get_data(as_text=True)
+
+    # ---- the promise it can keep -----------------------------------------
+
+    def test_it_no_longer_promises_a_few_seconds(self):
+        # A cold inference container takes considerably longer, and a screen
+        # that promises seconds then runs for fifty has lied at the one
+        # moment the visitor has nothing else to go on.
+        body = self._body()
+        self.assertNotIn("few seconds", body)
+        self.assertIn("usually finishes within a minute", body)
+        # Wrapped in the template, so matched either side of the break.
+        self.assertIn("the very first run can take a", body)
+        self.assertIn("while the model wakes up", body)
+
+    def test_it_still_says_no_credit_is_spent(self):
+        self.assertIn("No scraping credit is spent", self._body())
+
+    def test_it_says_no_refresh_is_needed(self):
+        self.assertIn("do not need to refresh", self._body())
+
+    def test_only_the_watching_screen_says_you_can_leave(self):
+        # The claim is true when a parse is already open — that is what
+        # `waiting` MEANS, and the marker outlives the request. It is not
+        # made on the screen whose own POST is the parse.
+        self.assertNotIn("You can leave it", self._body())
+        self.assertIn("You can leave it", self._body(parse="reading"))
+
+    # ---- what is real and what is explanation ----------------------------
+
+    def test_nothing_claims_a_percentage(self):
+        body = self._body()
+        self.assertIn('<div class="working-bar"><span></span></div>', body)
+        # activity-fill is the determinate bar built for the paid sweep.
+        self.assertNotIn("activity-fill", body)
+        self.assertNotIn("progressbar", body)
+
+    def test_the_four_labels_are_not_dressed_as_stages(self):
+        # derive() is one call with nothing exposed between its two model
+        # requests, so there is no stage to report. No ticks, no ordering,
+        # no per-item animation — and the page says so in words.
+        body = self._body()
+        self.assertIn("What Sweep is preparing", body)
+        self.assertIn("there are no steps to", body)
+        self.assertNotIn("stageClass", body)
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertNotIn(".plain li { animation", css)
+
+    def test_the_preview_invents_no_content(self):
+        body = self._body()
+        for card in ("Core skills", "Experience", "Role signals",
+                     "Search keywords"):
+            self.assertIn(card, body)
+        # Bones, not names. DERIVED's own skills must not leak in here.
+        preview = body.split('class="preview-grid"', 1)[1].split("</div>\n    <p")[0]
+        for term in ("react", "python", "java", "aws"):
+            self.assertNotIn(term, preview.lower())
+
+    # ---- it stops when the work does -------------------------------------
+
+    def test_a_failed_parse_leaves_nothing_working(self):
+        body = self._body(parse="failed")
+        self.assertIn("Try a different résumé", body)
+        for gone in ("activity live", "working-bar", "What Sweep is preparing",
+                     "preview-grid"):
+            self.assertNotIn(gone, body, gone)
+
+    def test_the_screen_still_drives_itself_forward(self):
+        # Success is the POST's own redirect; the watching screen polls the
+        # same /activity endpoint the strip does. Neither is changed here.
+        self.assertIn("requestSubmit", self._body())
+        self.assertIn("EVERY = 3000", self._body(parse="reading"))
+        self.assertNotIn("requestSubmit", self._body(parse="reading"))
+
+    def test_one_breath_per_screen(self):
+        # The headline used to pulse because it was the only sign of life.
+        # The activity row carries that now, and two things pulsing out of
+        # step is noise.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertNotIn(".working h1 { animation: breathe", css)
+        self.assertIn(".activity.live .activity-dot { animation: runpulse", css)
+
+    def test_reduced_motion_leaves_the_placeholders_visible(self):
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertIn("@media (prefers-reduced-motion: reduce) { .preview .bone",
+                      css)
+
+    def test_the_persistent_run_banner_is_untouched(self):
+        # A sweep can be finishing while a second résumé is read. The strip
+        # belongs to the shell, and this screen must neither suppress it nor
+        # be pushed below it: it overrides `body` only, and the shell still
+        # includes the strip above that block.
+        page = (pathlib.Path(app_module.__file__).parent
+                / "templates" / "deriving.html").read_text()
+        base = (pathlib.Path(app_module.__file__).parent
+                / "templates" / "base.html").read_text()
+        self.assertIn("_active_run.html", base)
+        self.assertEqual(re.findall(r"{% block (\w+) %}", page),
+                         ["title", "body"])
+
+
 class TestTheFreeSweepScreenSaysSomething(Isolated):
     """The free path has almost nothing to report and somebody waits about
     five minutes in front of it.

@@ -5,9 +5,30 @@
 <div class="working">
   {{ mark(56) }}
   <h1>Reading your résumé</h1>
-  <p class="lede">A model is working out which job titles to search for and how
-    to weight your skills. It takes a few seconds and spends no scraping
-    credit.</p>
+  {# Not "a few seconds". A cold inference container takes considerably
+     longer than that, and a screen that promises seconds and then runs for
+     fifty of them has told the visitor something false at the one moment
+     they have nothing else to go on. #}
+  <p class="lede">Sweep is turning your résumé into a search profile — which
+    job titles to look for, and how much each of your skills should count.
+    This usually finishes within a minute, and the very first run can take a
+    little longer while the model wakes up. No scraping credit is spent
+    reading it.</p>
+
+  {% if not error %}
+  {# The same row the two running screens use: one dot, one breath, one
+     indeterminate bar. There is no progress to report here — the parse is a
+     model call that either returns or does not — so the bar stays
+     indeterminate and no percentage is shown. #}
+  <div class="activity live">
+    <p class="activity-said">
+      <span class="activity-dot" aria-hidden="true"></span>
+      <b>Working</b>
+      <span class="activity-count">reading your document</span>
+    </p>
+    <div class="working-bar"><span></span></div>
+  </div>
+  {% endif %}
 
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
@@ -22,15 +43,14 @@
         <a class="secondary" href="{{ url_for('upload') }}">Upload another PDF</a>
       </div>
     {% else %}
-      {# The bar is not gated on anything. It used to appear only once Alpine
-         had fired the submit, so the first moment of this screen was a
-         "Continue" button with no sign that anything was happening — which
-         is what it looked like whenever Alpine was slow to boot. #}
-      <div class="working-bar"><span></span></div>
-      {% if waiting %}
-        <p class="muted">You can leave this page — Sweep keeps reading, and
-          your profile will be here when you come back.</p>
-      {% endif %}
+      {# The bar moved up into the activity row above, and is still gated on
+         nothing: it used to appear only once Alpine had fired the submit, so
+         the first moment of this screen was a "Continue" button with no sign
+         that anything was happening. #}
+      <p class="muted">You do not need to refresh this page — it moves on by
+        itself the moment your profile is ready.
+        {% if waiting %}You can leave it, too: Sweep keeps reading, and your
+        profile will be here when you come back.{% endif %}</p>
       {# No button here on purpose: this screen is already working, and a
          control that does nothing is worse than no control. <noscript> keeps
          one because without a script nothing else moves — except when a
@@ -47,6 +67,78 @@
     {% endif %}
   </form>
 </div>
+
+{% if not error %}
+{# ---- The rest of the screen -------------------------------------------
+
+   Tens of seconds on a cold container, in front of a headline and a bar.
+   What can honestly fill that is what the call is FOR — so this says what
+   is being built and shows the shape it will take.
+
+   These four are NOT server-reported stages. Parsing is one opaque call
+   (two model calls inside it, with nothing exposed between), and the only
+   states this app can see are reading, ready and failed. So they are
+   labelled as what the pass produces, with no ticks, no ordering and no
+   per-item animation — a rotating highlight here would be a progress
+   indicator wearing a disguise. #}
+<div class="split derive-more">
+  <div class="stack">
+    <div class="panel">
+      <h2>What Sweep is preparing</h2>
+      <ul class="plain">
+        <li><b>Your experience</b><span class="meta">Employers, titles and
+          dates, read from the document rather than guessed.</span></li>
+        <li><b>Skills and technologies</b><span class="meta">Everything the
+          résumé names, collapsed so one technology counts once however many
+          ways you spell it.</span></li>
+        <li><b>Which of them matter most</b><span class="meta">Weighted by
+          what the document shows you actually built with, not by how often
+          the word appears.</span></li>
+        <li><b>Your search profile</b><span class="meta">The job titles to
+          search and the weights that will rank what comes back.</span></li>
+      </ul>
+      <p class="meta">All of it happens in one pass, so there are no steps to
+        tick off — the screen moves on when the whole profile is ready.</p>
+    </div>
+  </div>
+
+  <aside class="aside">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Your profile</h2>
+        <span class="meta">being built</span>
+      </div>
+      {# Placeholders, and only that: no invented skill names, no counts.
+         They shimmer because on THIS screen the wait really is tens of
+         seconds and the page navigates itself when it ends — unlike the free
+         sweep's shortlist, which cannot fill for five minutes and so stays
+         still. #}
+      <div class="preview-grid" aria-hidden="true">
+        <div class="preview">
+          <span class="label">Core skills</span>
+          <span class="bone w-60"></span><span class="bone w-40"></span>
+          <span class="bone w-50"></span>
+        </div>
+        <div class="preview">
+          <span class="label">Experience</span>
+          <span class="bone w-70"></span><span class="bone w-35"></span>
+        </div>
+        <div class="preview">
+          <span class="label">Role signals</span>
+          <span class="bone w-45"></span><span class="bone w-60"></span>
+        </div>
+        <div class="preview">
+          <span class="label">Search keywords</span>
+          <span class="bone w-55"></span><span class="bone w-40"></span>
+          <span class="bone w-65"></span>
+        </div>
+      </div>
+      <p class="meta">You will see every one of these before anything is
+        searched, and you can change them.</p>
+    </div>
+  </aside>
+</div>
+{% endif %}
 
 {% if not error and not waiting %}
   {# A plain script rather than Alpine's x-init. Alpine is deferred, and a

@@ -1089,9 +1089,11 @@ td.score {
    so with animations off the content sits at its natural opacity rather than
    staying invisible. */
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
-@keyframes breathe { 50% { opacity: .5; } }
 .working { animation: rise .4s ease both; }
-.working h1 { animation: breathe 2.2s ease-in-out infinite; }
+/* The headline used to breathe. It was the only sign of life on the screen
+   and it had to be; now the activity row below it carries that, and two
+   things pulsing out of step is the noise this product spends its motion
+   budget avoiding. One breath per screen. */
 
 /* Indeterminate on purpose. There is no progress to report — one model call
    either returns or it doesn't — and a bar that crept to 90%% and waited
@@ -1179,8 +1181,56 @@ td.score {
 }
 
 /* The free sweep has no fraction to show, so the row carries the indeterminate
-   bar instead of the determinate one. Same row, same dot, same breath. */
+   bar instead of the determinate one. Same row, same dot, same breath. The
+   résumé parse is the third screen with no fraction and uses it too. */
 .activity > .working-bar { flex: 1 1 14rem; width: auto; }
+
+/* ---- Reading a résumé ---------------------------------------------------
+
+   The parse is one opaque model call and can run for tens of seconds on a
+   cold container. The hero stays narrow and legible; everything explaining
+   the wait sits below it at full width, so the screen is intentional rather
+   than a headline stranded above an empty page. */
+.derive-more { margin-top: var(--s6); }
+.derive-more .panel h2 { margin-bottom: var(--s3); }
+
+/* The shape of the profile being built. Two columns on anything wider than a
+   phone: four of these in one column is a long thin list, not a preview. */
+.preview-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s4);
+}
+.preview {
+  display: grid; gap: var(--s2); align-content: start;
+  padding: var(--s4); border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface-low);
+}
+.preview .label { margin-bottom: var(--s1); }
+@media (max-width: 30rem) { .preview-grid { grid-template-columns: 1fr; } }
+
+/* Only here. The free sweep's shortlist skeleton stays still on purpose —
+   nothing can fill it for five minutes, so movement there would be a claim.
+   This one genuinely fills in tens of seconds and the page navigates itself
+   when it does, so a slow sweep across the bones is true. Staggered off the
+   position, the way the search grid's tile-land ripple already is. */
+@keyframes bone-sweep {
+  0%, 100% { opacity: .35; }
+  50%      { opacity: .7; }
+}
+.preview .bone { animation: bone-sweep 2.4s ease-in-out infinite; }
+.preview .bone:nth-child(3) { animation-delay: .2s; }
+.preview .bone:nth-child(4) { animation-delay: .4s; }
+.preview:nth-child(2) .bone { animation-delay: .3s; }
+.preview:nth-child(3) .bone { animation-delay: .6s; }
+.preview:nth-child(4) .bone { animation-delay: .9s; }
+/* The blanket reduced-motion rule stops all of that. These keep the bones
+   visible at their own opacity rather than frozen at the dim keyframe. */
+@media (prefers-reduced-motion: reduce) { .preview .bone { opacity: .5; } }
+
+.bone.w-35 { width: 35%; } .bone.w-40 { width: 40%; }
+.bone.w-45 { width: 45%; } .bone.w-50 { width: 50%; }
+.bone.w-55 { width: 55%; } .bone.w-60 { width: 60%; }
+.bone.w-65 { width: 65%; } .bone.w-70 { width: 70%; }
 
 /* ---- Passes, not a meter ------------------------------------------------
 
