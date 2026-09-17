@@ -317,6 +317,7 @@ def parse_month(text, now=None):
     if low in PRESENT_WORDS:
         return now
     year = month = None
+    impossible = False
     for token in low.replace("/", " ").replace("-", " ").replace(",", " ").split():
         if token[:3] in MONTHS and month is None:
             month = MONTHS[token[:3]]
@@ -326,7 +327,13 @@ def parse_month(text, now=None):
                 year = value
             elif 1 <= value <= 12 and month is None:
                 month = value
-    if year is None:
+            elif 12 < value < 1900 or value >= 2100:
+                # A number that is neither a year nor a month. "2023-19"
+                # used to drop the 19 and answer January 2023, which is a
+                # date nobody wrote. Only fatal if no month was named any
+                # other way, so "15 Jan 2021" still reads.
+                impossible = True
+    if year is None or (impossible and month is None):
         return None
     return year, month or 1
 
@@ -496,6 +503,129 @@ def check_grounding(parsed, text):
 PROMOTION_MARKERS = ("promoted", "promotion")
 
 
+# A date belongs to a row if it can be reached from that row's own name
+# WITHOUT crossing a section heading.
+#
+# Distance alone cannot do it, in either direction. A compact résumé puts
+# the education section a few lines under the last job, so any window wide
+# enough for a real entry also borrows a degree's years. And a table
+# layout wraps every cell onto its own line —
+#
+#     Zenith / Softworks / Kochi, / India / May 2025 – Jul / 2025
+#
+# — so the dates of a genuine row can sit six lines from its employer with
+# nothing wrong at all. What separates the two cases is not how far apart
+# they are but whether a HEADING stands between them.
+#
+# The line cap is a backstop for one enormous section, not the main rule.
+# check_years already treats a refused row as a floor rather than a zero,
+# so being too strict costs a conservative number and being too loose
+# costs 27 invented years.
+NEARBY_LINES = 14
+
+# The budget for a qualifier that belongs to the title itself, rather than
+# to the entry's block.
+QUALIFIER_LINES = 1
+
+# Headings, as résumés write them. Deliberately the same shape as
+# skill_scan's: a short line that is nothing but a section name.
+_SECTION_LINE = re.compile(
+    r"^\s*(professional\s+summary|summary|about\s+me|profile|objective|"
+    r"core\s+skills|technical\s+skills|skills|competenc\w*|technolog\w*|"
+    r"professional\s+experience|work\s+experience|experience|employment|"
+    r"projects?|portfolio|education|academics?|qualifications?|coursework|"
+    r"certifications?|licen[cs]es?|courses?|training|publications?|awards?|"
+    r"interests?|references?|languages?)\s*:?\s*$", re.I)
+
+# Below this a company or title is too short to locate reliably, so the
+# row is judged unlocatable rather than matched to the wrong place.
+LOCATABLE = 3
+
+
+def _folded(text):
+    """(folded text, index back into the original).
+
+    Folding is how "Dealermatix T echnologies" is found at all; the index
+    is how the match is then given a position on the real page.
+    """
+    keep, index = [], []
+    for at, char in enumerate(str(text or "").lower()):
+        if char.isalnum() or char in "+#":
+            keep.append(char)
+            index.append(at)
+    return "".join(keep), index
+
+
+def _occurrences(needle, folded, index):
+    """Original-text offsets where this value appears."""
+    key = _key(needle)
+    if len(key) < LOCATABLE:
+        return []
+    out, at = [], folded.find(key)
+    while at >= 0:
+        out.append(index[at])
+        at = folded.find(key, at + 1)
+    return out
+
+
+def anchors(row, text):
+    """Where this row's own employer or title sits in the document.
+
+    Empty means the row names nobody findable — which is not a licence to
+    validate its dates against the whole page.
+    """
+    folded, index = _folded(text)
+    spots = []
+    for field in ("company", "title"):
+        spots.extend(_occurrences(row.get(field), folded, index))
+    return sorted(set(spots))
+
+
+def _lines(text):
+    """(offset -> line number, {line numbers that are section headings})."""
+    raw = str(text or "")
+    breaks = [at for at, char in enumerate(raw) if char == "\n"]
+    headings = {n for n, line in enumerate(raw.splitlines())
+                if len(line.strip()) <= 40 and _SECTION_LINE.match(line)}
+
+    def line(offset):
+        lo, hi = 0, len(breaks)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if breaks[mid] < offset:
+                lo = mid + 1
+            else:
+                hi = mid
+        return lo
+    return line, headings
+
+
+def _near(value, text, spots, folded=None, index=None, placed=None,
+          within=None):
+    """Is this value in the same block of the document as one of those
+    anchors — no heading between them, and not absurdly far?
+
+    `within` tightens the line budget for callers that need adjacency
+    rather than block membership. A date can be six lines from its
+    employer in a table layout; a title's own qualifier cannot.
+    """
+    if folded is None:
+        folded, index = _folded(text)
+    line, headings = placed or _lines(text)
+    budget = NEARBY_LINES if within is None else within
+    for at in _occurrences(value, folded, index):
+        here = line(at)
+        for spot in spots:
+            there = line(spot)
+            lo, hi = (here, there) if here < there else (there, here)
+            if hi - lo > budget:
+                continue
+            if any(lo < n <= hi for n in headings):
+                continue
+            return True
+    return False
+
+
 def row_problems(row, text, now=None):
     """Why this employment row cannot be counted, if it cannot.
 
@@ -512,35 +642,90 @@ def row_problems(row, text, now=None):
         if value and not supported(value, text):
             bad.append(f"{field} {value!r} is not in the document")
 
+    # Where this row's own entry sits. Everything below is checked against
+    # THOSE positions rather than against the whole page: a year is only
+    # this job's year if it is written next to this job.
+    spots = anchors(row, text)
+    folded, index = _folded(text)
+    placed = _lines(text)
+    if not spots:
+        bad.append("names no employer or title that can be found in the "
+                   "document, so its dates cannot be checked against it")
+
     start, end = parse_month(row.get("start"), now), parse_month(row.get("end"), now)
     for field, when in (("start", start), ("end", end)):
         raw = str(row.get(field) or "").strip().lower()
-        if not when or raw in PRESENT_WORDS:
-            # An open end is a word, not a date, and an unreadable one is
-            # already check_years' business — it counts those as a floor
-            # rather than dropping the row.
+        if raw in PRESENT_WORDS:
+            # An open end is a word, not a date — but the document has to
+            # agree that the job is open. Replacing a real "December 2024"
+            # with "Present" added two years of experience nobody claimed.
+            if spots and not any(
+                    _near(word, text, spots, folded, index, placed)
+                    for word in PRESENT_WORDS):
+                bad.append(f"{field} says {row.get(field)!r}, and nothing "
+                           f"beside this role says it is still current")
             continue
-        # ponytail: the YEAR, not the whole date. A résumé writes "Jan
-        # 2025" and the model returns "January 2025", which no string
-        # comparison survives; the four digits are the part that does. A
-        # year borrowed from a degree line would pass — tighten to a
-        # span offset if a real case ever needs it.
-        if not supported(str(when[0]), text):
-            bad.append(f"{field} year {when[0]} is not in the document")
+        if not when:
+            # Unreadable is already check_years' business — it counts
+            # those as a floor rather than dropping the row.
+            continue
+        # The YEAR, not the whole date: a résumé writes "Jan 2025" and the
+        # model returns "January 2025", which no string comparison
+        # survives. What changed is WHERE it has to appear.
+        if spots and not _near(str(when[0]), text, spots, folded, index,
+                               placed):
+            bad.append(f"{field} year {when[0]} is not written beside this "
+                       f"role in the document")
 
     if start and end and end < start:
         bad.append(f"ends {row.get('end')!r} before it starts "
                    f"{row.get('start')!r}")
-    if start and start > (now or today()):
+    horizon = now or today()
+    if start and start > horizon:
         bad.append(f"starts {row.get('start')!r} in the future")
+    if end and str(row.get("end") or "").strip().lower() not in PRESENT_WORDS \
+            and end > horizon:
+        bad.append(f"ends {row.get('end')!r} in the future")
     return bad
 
 
-def ambiguous_span(row):
-    """Is this row's countable span unknowable from the document?"""
+def ambiguous_span(row, text=""):
+    """Is this row's countable span unknowable from the document?
+
+    Read the DOCUMENT, not only the model's title. The audited résumé says
+
+        Software Engineer (promoted from Software Engineer Trainee)
+
+    and the model returned "Software Engineer" — true, perfectly grounded,
+    and missing the one word that made the interval uncertain. Reading the
+    title alone meant a simplification silently converted an unresolved
+    traineeship into fully known professional experience.
+
+    The qualifier has to belong to THIS row, so it is looked for beside
+    the row's own anchors, exactly as its dates are. No promotion date is
+    invented: the span is still counted as a floor. What is added is that
+    the floor is declared.
+    """
     title = str(row.get("title") or "").lower()
-    return (any(word in title for word in NOT_PROFESSIONAL)
-            and any(mark in title for mark in PROMOTION_MARKERS))
+    if (any(word in title for word in NOT_PROFESSIONAL)
+            and any(mark in title for mark in PROMOTION_MARKERS)):
+        return True
+    if not text:
+        return False
+    spots = anchors(row, text)
+    if not spots:
+        return False
+    folded, index = _folded(text)
+    placed = _lines(text)
+    # Adjacent, not merely in the same block: the qualifier lives in the
+    # title itself. A wider budget let one job's "(promoted from Trainee)"
+    # mark the NEXT job uncertain in a document with no headings between
+    # them.
+    return (any(_near(word, text, spots, folded, index, placed, QUALIFIER_LINES)
+                for word in NOT_PROFESSIONAL)
+            and any(_near(mark, text, spots, folded, index, placed,
+                          QUALIFIER_LINES)
+                    for mark in PROMOTION_MARKERS))
 
 
 def check_employment(rows, text, now=None):
@@ -585,7 +770,7 @@ def check_employment(rows, text, now=None):
     # promotion is real; only the DATE the traineeship ended is missing.
     # is_professional already excludes it, so the count is a floor — say
     # so, rather than letting zero read as a measurement.
-    unclear = [row for row in kept if ambiguous_span(row)]
+    unclear = [row for row in kept if ambiguous_span(row, text)]
     if unclear:
         corrections.append({
             "field": "employment", "action": "flagged",
@@ -691,8 +876,14 @@ def route(parsed, rows, text, now=None):
                                     if _key(v) not in removed]
         elif fix["action"] == "computed":
             result[fix["field"]] = fix["to"]
+    # The rows travel WITH the verdict. Returning only a decision left the
+    # caller holding the model's original list, and read() recomputed from
+    # it — so a row this function had just rejected came back as 27 years
+    # of experience while the correction beside it still said the row was
+    # excluded. One validated list, one truth.
     return {"decision": "corrected" if corrections else "accept",
-            "result": result, "corrections": corrections, "reasons": []}
+            "result": result, "corrections": corrections, "reasons": [],
+            "employment": kept}
 
 
 def read(model=None, text="", timeout=TIMEOUT, url=None, now=None,
@@ -707,7 +898,12 @@ def read(model=None, text="", timeout=TIMEOUT, url=None, now=None,
     decision = route(fields, rows, text, now)
     checked = decision["result"]
     if checked is not None:
-        months = months_from((rows or {}).get("employment") or [], now)
+        # The VALIDATED rows, and they replace the answer the model gave —
+        # every consumer downstream reads `rows`, so leaving the originals
+        # here is what let a rejected row derive a search title as well as
+        # an experience total.
+        rows = dict(rows or {}, employment=list(decision["employment"]))
+        months = months_from(rows["employment"], now)
         checked["years_experience"] = months // 12
         # The remainder, for display only. Both consumers of the number
         # compare it against a posting's stated floor, so they keep the
