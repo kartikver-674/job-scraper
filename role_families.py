@@ -600,7 +600,7 @@ def demo():
 
     market = local_search.Market(rows=rows, seniority=("senior", "staff"))
 
-    resume = ("Kartik Verma\nFull-Stack Software Engineer\n"
+    resume = ("Rohan Mehta\nFull-Stack Software Engineer\n"
               "Summary\nReact Native and Node.js, plus Salesforce.\n")
     importance = [
         {"id": "react native", "display": "React Native", "tier": "CORE"},

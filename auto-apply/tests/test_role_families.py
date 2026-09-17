@@ -79,7 +79,7 @@ def corpus():
 ROWS = corpus()
 MARKET = local_search.Market(rows=ROWS, seniority=SENIORITY)
 
-RESUME = ("Kartik Verma\nFull-Stack Software Engineer\n"
+RESUME = ("Rohan Mehta\nFull-Stack Software Engineer\n"
           "Summary\nReact Native and Node.js apps, plus Salesforce work.\n")
 
 IMPORTANCE = [

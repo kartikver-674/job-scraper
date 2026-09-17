@@ -40,12 +40,12 @@ Languages: TypeScript, Apex, C++
 Frontend: React Native, Tailwind CSS, L WC
 Backend: Node.js, Mongoose, Redis
 Professional Experience
-Dealermatix Technologies Pvt Ltd
+Harbourline Systems Pvt Ltd
 Software Engineer January 2025 - Present
 - Build REST integrations between a React Native app and Salesforce.
 - Author Apex unit tests, and optimise React Native render performance.
 Projects
-RentKaro | React Native, Node.js, Redis, Socket.IO, Cloudinary
+LendCircle | React Native, Node.js, Redis, Socket.IO, Cloudinary
 - Developed a marketplace on a Node.js backend with Redis caching.
 - Added Socket.IO chat, and Planned for a pluggable payment gateway.
 Vintage Photo Restoration | Python, TensorFlow, OpenCV
@@ -84,17 +84,17 @@ class TestSections(unittest.TestCase):
 
     def test_entries_are_named(self):
         entries = {e for _k, e, _s, _x in SPANS if e}
-        self.assertIn("Dealermatix Technologies Pvt Ltd", entries)
-        self.assertIn("RentKaro", entries)
+        self.assertIn("Harbourline Systems Pvt Ltd", entries)
+        self.assertIn("LendCircle", entries)
         self.assertIn("Vintage Photo Restoration", entries)
 
     def test_a_wrapped_bullet_is_not_a_new_entry(self):
         """A PDF wraps a long bullet; the continuation is not an employer."""
-        text = ("Projects\nRentKaro | React Native\n"
+        text = ("Projects\nLendCircle | React Native\n"
                 "- Designed a location hook over a rate-limited\n"
                 "Google Maps proxy, with JWT auth and shared tokens.\n")
         entries = {e for _k, e, _s, _x in se.sections(text) if e}
-        self.assertEqual(entries, {"RentKaro"})
+        self.assertEqual(entries, {"LendCircle"})
 
     def test_an_unknown_heading_does_not_lose_the_content(self):
         """Requirement 2: degrade safely. The skill still has a section."""
@@ -152,14 +152,14 @@ class TestTiers(unittest.TestCase):
         self.assertEqual(tier_of("salesforce"), se.CORE)
 
     def test_the_reason_names_the_employer(self):
-        self.assertIn("Dealermatix", why_of("apex"))
+        self.assertIn("Harbourline", why_of("apex"))
 
     def test_a_project_built_with_is_strong_secondary(self):
         """Projects count meaningfully — "paid employment only" is
         explicitly NOT the rule."""
         self.assertEqual(tier_of("node.js"), se.STRONG_SECONDARY)
         self.assertEqual(tier_of("socket.io"), se.STRONG_SECONDARY)
-        self.assertIn("RentKaro", why_of("socket.io"))
+        self.assertIn("LendCircle", why_of("socket.io"))
 
     def test_a_stack_line_alone_is_only_supporting(self):
         """Named in a project's header and never mentioned again is a

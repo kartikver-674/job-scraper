@@ -545,7 +545,7 @@ LOCATABLE = 3
 def _folded(text):
     """(folded text, index back into the original).
 
-    Folding is how "Dealermatix T echnologies" is found at all; the index
+    Folding is how "Harbourline S ystems" is found at all; the index
     is how the match is then given a position on the real page.
     """
     keep, index = [], []

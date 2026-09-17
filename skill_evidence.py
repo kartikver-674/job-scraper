@@ -140,7 +140,7 @@ def _heading(line):
 
 
 # An entry line: an employer, a project, a degree. Projects write
-# "MediCart | React Native, ..."; jobs write the company and then the
+# "PharmaDesk | React Native, ..."; jobs write the company and then the
 # title. Only used as a LABEL, so a miss costs provenance, never a tier.
 _ENTRY_SPLIT = re.compile(r"\s*[|–—]\s*")
 
@@ -324,7 +324,7 @@ ORDER = (BACKGROUND, SUPPORTING, STRONG_SECONDARY, CORE)
 # A project has to be more than a stack line to count as building
 # something. The stack line names it; a bullet describing what was done
 # with it is the evidence. Two occurrences inside one project entry is
-# the smallest honest bar and it is what separates RentKaro's Socket.IO
+# the smallest honest bar and it is what separates LendCircle's Socket.IO
 # (named in the stack AND described in a bullet) from Cloudinary (named
 # in the stack and never mentioned again).
 PROJECT_DEPTH = 2
@@ -541,12 +541,12 @@ def demo():
         "Frontend: React Native, Tailwind CSS, L WC\n"
         "Backend: Node.js, Mongoose\n"
         "Professional Experience\n"
-        "Dealermatix Technologies Pvt Ltd\n"
+        "Harbourline Systems Pvt Ltd\n"
         "Software Engineer January 2025 - Present\n"
         "- Build REST integrations between a React Native app and Salesforce.\n"
         "- Author Apex unit tests at 85% coverage.\n"
         "Projects\n"
-        "RentKaro | React Native, Node.js, Redis, Socket.IO, Cloudinary\n"
+        "LendCircle | React Native, Node.js, Redis, Socket.IO, Cloudinary\n"
         "- Developed a marketplace on a Node.js backend with Redis.\n"
         "- Added Socket.IO chat, and Planned for a pluggable payment gateway.\n"
         "Vintage Photo Restoration | Python, TensorFlow\n"
@@ -594,7 +594,7 @@ def demo():
     assert tier_of("python") == SUPPORTING
 
     # Unknown technology survives with its own evidence.
-    assert tier_of("dealermatix") in (CORE, SUPPORTING)
+    assert tier_of("harbourline") in (CORE, SUPPORTING)
 
     # --- the mapping ---------------------------------------------------------
     # CORE and common still outranks SUPPORTING and rare. This is the
