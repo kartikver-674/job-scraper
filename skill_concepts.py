@@ -488,25 +488,72 @@ FLAG = "SWEEP_SKILL_CONCEPTS"
 EVIDENCE_FLAG = "SWEEP_SKILL_EVIDENCE"
 
 
+ROLES_FLAG = "SWEEP_ROLE_FAMILIES"
+
+# --------------------------------------------------------------------------
+# The production switch
+# --------------------------------------------------------------------------
+#
+# One name decides which engine reads a résumé, so a rollback is one
+# environment variable rather than three:
+#
+#     v1   the engine that has always run. Every alias scored on its own,
+#          importance from the corpus alone.
+#     v2   canonical concepts (step 2) and evidence-aware importance
+#          (step 3), which the evaluation measured and recommended.
+#
+# v2 DOES NOT INCLUDE ROLE FAMILIES. The evaluation measured step 4
+# removing the job search entirely for 2 of 16 personas — a graduate with
+# no employment and a QA specialist the corpus under-covers — and
+# recommended holding it. It stays behind SWEEP_ROLE_FAMILIES, off, and
+# is not reachable through this switch. docs/profile-engine-v2-evaluation.md
+# carries the numbers.
+#
+# The default is v2 because local and dev should run what is being
+# migrated to. Render pins v1 explicitly (render.yaml) until its smoke
+# test passes, so the public beta is not moved by a code default.
+VERSION_ENV = "SWEEP_PROFILE_ENGINE_VERSION"
+VERSIONS = ("v1", "v2")
+DEFAULT_VERSION = "v2"
+
+
+def engine_version(value=None):
+    """Which engine reads the résumé: "v1" or "v2".
+
+    An unknown name is an error rather than a silent fall back to either
+    side. Falling back to v1 would hide a typo as a rollback nobody asked
+    for; falling back to v2 would hide it as a migration nobody approved.
+    """
+    name = (value or os.environ.get(VERSION_ENV) or DEFAULT_VERSION)
+    name = str(name).strip().lower()
+    if name not in VERSIONS:
+        raise ValueError(
+            f"{VERSION_ENV}={name!r} is not an engine version — expected one "
+            f"of {', '.join(VERSIONS)}")
+    return name
+
+
 def _on(name):
     return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def enabled():
-    """Is concept scoring on? Off unless asked, read per call so a test or
-    a comparison run can flip it without reimporting the scraper."""
-    return _on(FLAG)
+    """Is concept scoring on?
 
-
-ROLES_FLAG = "SWEEP_ROLE_FAMILIES"
+    Read per call, so a test or a comparison run can flip either the
+    version or the individual flag without reimporting the scraper. The
+    per-step flags remain as experiment overrides: they can turn a step
+    on under v1, which is how bench/evaluate.py isolates conditions B, C
+    and D.
+    """
+    return _on(FLAG) or engine_version() == "v2"
 
 
 def roles_enabled():
     """Is evidence-grounded role construction on? Off unless asked.
 
-    Needs importance to exist — a family is anchored by a CORE or
-    STRONG_SECONDARY concept, and without tiers there is nothing to gate
-    on — so role_families falls back when the evidence path is off.
+    Deliberately NOT part of v2 — see the note above. Needs importance to
+    exist, so role_families falls back when the evidence path is off.
     """
     return _on(ROLES_FLAG)
 
@@ -519,7 +566,7 @@ def evidence_enabled():
     as two careers. One switch turning on the thing it depends on beats a
     second switch someone can forget.
     """
-    return _on(EVIDENCE_FLAG)
+    return _on(EVIDENCE_FLAG) or engine_version() == "v2"
 
 
 def demo():

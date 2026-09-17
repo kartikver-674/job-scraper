@@ -837,7 +837,75 @@ def _prose(text):
 PROFILE_NAMES = frozenset({
     "SITES", "FEEDS", "SEARCH", "SETTINGS", "SCORING",
     "ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE",
+    # Which engine wrote this file. Inert to config._overlay, which only
+    # reads OVERLAYABLE names, so it changes nothing about how a profile
+    # behaves — it is there so a reader, a rollback and a bug report can
+    # all tell v1 output from v2 output without guessing.
+    "PROFILE_SCHEMA",
 })
+
+# Bumped when the MEANING of a profile's fields changes, not when the
+# engine changes: v1 and v2 both emit the same keys with the same types,
+# so both are schema 1. A future step that adds evidence to the file
+# itself is what makes this 2.
+PROFILE_SCHEMA = 1
+
+# Profiles written before this field existed. Readable, and known to be
+# v1 output — absence IS the version, which is why nothing needs
+# migrating on disk.
+LEGACY_SCHEMA = 0
+
+
+def profile_schema(module):
+    """Which engine wrote a profile, and whether this build can read it.
+
+    Returns {"version", "engine", "readable", "why"}. Never raises on an
+    old file: a profile written before PROFILE_SCHEMA existed is v1
+    output and perfectly readable, and ABSENCE is how we know that —
+    which is why nothing on disk needs migrating.
+
+    A profile from a FUTURE schema is the case that must fail loudly. Its
+    fields may mean something this build does not implement, and quietly
+    running it would spend real money on a search nobody configured.
+    """
+    stamp = getattr(module, "PROFILE_SCHEMA", None)
+    if stamp is None:
+        return {"version": LEGACY_SCHEMA, "engine": "v1", "readable": True,
+                "why": "written before profiles carried a schema — v1 output"}
+    if isinstance(stamp, int):          # a bare int is a tolerated shorthand
+        stamp = {"version": stamp, "engine": "unknown"}
+    if not isinstance(stamp, dict) or not isinstance(stamp.get("version"), int):
+        return {"version": None, "engine": "unknown", "readable": False,
+                "why": (f"PROFILE_SCHEMA is {type(stamp).__name__}, not a "
+                        f"version — this file was not written by "
+                        f"make_profile.render()")}
+    version = stamp["version"]
+    if version > PROFILE_SCHEMA:
+        return {"version": version, "engine": stamp.get("engine", "unknown"),
+                "readable": False,
+                "why": (f"profile schema {version} was written by a newer "
+                        f"build than this one (schema {PROFILE_SCHEMA}). "
+                        f"Upgrade, or regenerate the profile with this "
+                        f"build — do not run it as-is.")}
+    return {"version": version, "engine": stamp.get("engine", "unknown"),
+            "readable": True, "why": f"schema {version}"}
+
+
+def load_profile(name):
+    """Import profiles/<name>.py, or fail with a compatibility message.
+
+    The one place that turns "this file is from the future" into a
+    sentence a person can act on, rather than an AttributeError four
+    frames into a paid run.
+    """
+    import importlib
+    if cfg.REPO_ROOT not in sys.path:
+        sys.path.insert(0, cfg.REPO_ROOT)
+    module = importlib.import_module(f"profiles.{name}")
+    stamp = profile_schema(module)
+    if not stamp["readable"]:
+        raise ValueError(f"profiles/{name}.py: {stamp['why']}")
+    return module, stamp
 
 
 def check_module(source):
@@ -921,6 +989,7 @@ def render(name, data, prefs):
     }
     config = validate_keys(sections)
 
+    engine = skill_concepts.engine_version()
     years = _years(data["years_experience"])
     skills = _weights(data["skill_weights"])
     # The scanned terms and why each was kept, as a comment beside the
@@ -1062,6 +1131,10 @@ command line, not from the résumé. Anything absent here inherits from config.p
 Re-scoring is free — after editing weights run `python rescore_from_apify.py`
 rather than paying to scrape again.
 """
+
+# Which engine wrote this file, for a rollback and a bug report. Inert:
+# config._overlay only reads the names it knows.
+PROFILE_SCHEMA = {{"version": {PROFILE_SCHEMA}, "engine": {engine!r}}}
 
 {extra_sites}{extra_feeds}SEARCH = {{
     "role_keywords": {_fmt(data["role_keywords"])},

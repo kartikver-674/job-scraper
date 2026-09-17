@@ -694,7 +694,32 @@ class TestTheMarketOnRender(unittest.TestCase):
         body = app.test_client().get("/healthz").get_json()
         self.assertEqual(body["market_signal_source"], "frozen")
 
+    def test_render_pins_the_engine_version_the_beta_runs(self):
+        """The public beta is held on v1 until the Render smoke passes, and
+        render.yaml is what holds it. Asserted here so the deployed
+        configuration and the tests of it cannot drift apart: if this line
+        changes, the cold-start expectations below must be re-measured."""
+        import os as _os
+        import skill_concepts
+        root = _os.path.dirname(_os.path.dirname(
+            _os.path.dirname(_os.path.abspath(__file__))))
+        with open(_os.path.join(root, "render.yaml"), encoding="utf-8") as fh:
+            manifest = fh.read()
+        self.assertIn(skill_concepts.VERSION_ENV, manifest)
+        block = manifest.split(skill_concepts.VERSION_ENV, 1)[1]
+        self.assertIn("v1", block.split("- key:", 1)[0])
+
     def test_a_beta_visitors_profile_is_not_a_flat_wall_of_threes(self):
+        # Pinned to the version render.yaml deploys, not to the code
+        # default: this asserts what a beta visitor actually gets, and the
+        # beta is on v1. The v2 numbers for the same input are measured in
+        # docs/profile-engine-v2-evaluation.md.
+        import skill_concepts
+        before = os.environ.get(skill_concepts.VERSION_ENV)
+        os.environ[skill_concepts.VERSION_ENV] = "v1"
+        self.addCleanup(lambda: (os.environ.pop(skill_concepts.VERSION_ENV, None),
+                                 before is not None and os.environ.__setitem__(
+                                     skill_concepts.VERSION_ENV, before)))
         app = self.real_pipeline_app()
         client = unlocked(app)
         upload(client)

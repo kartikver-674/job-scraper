@@ -1297,13 +1297,18 @@ class TestEngineSelection(unittest.TestCase):
                                       log=lambda *a: None)
 
     def test_every_engine_goes_through_widen_and_reweight(self):
-        # The scanned-skill widening and the corpus re-scoring are not
-        # Gemini's; a profile that skipped them would be scored on a
-        # different basis from every other one.
+        # The scanned-skill widening and the re-scoring are not Gemini's; a
+        # profile that skipped them would be scored on a different basis
+        # from every other one. Both re-scorers are patched because v1
+        # re-scores from the corpus and v2 from the résumé's evidence —
+        # WHICH one runs is the engine version's business, THAT one runs
+        # is this test's.
         order = []
         with _patched(make_profile, "widen_skills",
                       lambda d, *a, **kw: (order.append("widen"), d)[1]), \
              _patched(make_profile, "reweight_from_corpus",
+                      lambda d, *a, **kw: (order.append("reweight"), d)[1]), \
+             _patched(make_profile, "reweight_from_evidence",
                       lambda d, *a, **kw: (order.append("reweight"), d)[1]), \
              _patched(make_profile, "_generate_one",
                       lambda *a: dict(_MINIMAL_PROFILE)):

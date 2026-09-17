@@ -396,36 +396,80 @@ class TestWhatGetsRecorded(unittest.TestCase):
                          ["React", "Node.js"])
 
 
-class TestTheFlag(unittest.TestCase):
-    """Requirement 7: a seam, off by default, not exposed to users yet."""
+class TestTheVersionSwitch(unittest.TestCase):
+    """One name decides which engine reads a résumé, so a rollback is one
+    environment variable rather than three.
+
+    The default is v2: local and dev should run what is being migrated
+    to. Render pins v1 explicitly until its smoke test passes, so the
+    public beta is not moved by a code default."""
 
     def setUp(self):
-        self.before = os.environ.get(sc.FLAG)
+        self.before = {n: os.environ.get(n)
+                       for n in (sc.VERSION_ENV, sc.FLAG, sc.EVIDENCE_FLAG,
+                                 sc.ROLES_FLAG)}
+        for name in self.before:
+            os.environ.pop(name, None)
 
     def tearDown(self):
-        os.environ.pop(sc.FLAG, None)
-        if self.before is not None:
-            os.environ[sc.FLAG] = self.before
+        for name, value in self.before.items():
+            os.environ.pop(name, None)
+            if value is not None:
+                os.environ[name] = value
 
-    def test_off_by_default(self):
-        os.environ.pop(sc.FLAG, None)
+    def test_the_default_is_v2(self):
+        self.assertEqual(sc.engine_version(), "v2")
+        self.assertTrue(sc.enabled())
+        self.assertTrue(sc.evidence_enabled())
+
+    def test_v1_turns_the_whole_thing_off(self):
+        os.environ[sc.VERSION_ENV] = "v1"
+        self.assertEqual(sc.engine_version(), "v1")
         self.assertFalse(sc.enabled())
+        self.assertFalse(sc.evidence_enabled())
 
-    def test_on_when_asked(self):
-        for value in ("1", "true", "yes", "on", "TRUE"):
-            os.environ[sc.FLAG] = value
-            self.assertTrue(sc.enabled(), value)
+    def test_role_families_are_not_part_of_v2(self):
+        """The evaluation measured step 4 removing the job search entirely
+        for 2 of 16 personas and recommended holding it. v2 must not be a
+        way to switch it on by accident."""
+        for version in ("v1", "v2"):
+            os.environ[sc.VERSION_ENV] = version
+            self.assertFalse(sc.roles_enabled(), version)
 
-    def test_anything_else_is_off(self):
-        for value in ("0", "", "no", "off", "maybe"):
-            os.environ[sc.FLAG] = value
-            self.assertFalse(sc.enabled(), value)
+    def test_an_unknown_version_is_an_error_not_a_guess(self):
+        """Falling back to v1 would hide a typo as a rollback nobody
+        asked for; falling back to v2 as a migration nobody approved."""
+        for bad in ("v3", "latest", "true", "on", "v0"):
+            os.environ[sc.VERSION_ENV] = bad
+            with self.assertRaises(ValueError, msg=bad):
+                sc.engine_version()
 
-    def test_it_is_read_per_call_not_at_import(self):
-        """So a comparison run can flip it without reimporting."""
+    def test_an_empty_value_means_unset(self):
+        """An exported-but-empty variable is how a shell says "not set",
+        and it must not be an error."""
+        os.environ[sc.VERSION_ENV] = ""
+        self.assertEqual(sc.engine_version(), sc.DEFAULT_VERSION)
+
+    def test_case_and_space_are_forgiven(self):
+        for value in ("V1", " v1 ", "V2", "v2 "):
+            os.environ[sc.VERSION_ENV] = value
+            self.assertEqual(sc.engine_version(), value.strip().lower())
+
+    def test_a_step_flag_still_works_under_v1(self):
+        """The per-step flags stay as experiment overrides — that is how
+        bench/evaluate.py isolates conditions B, C and D."""
+        os.environ[sc.VERSION_ENV] = "v1"
+        self.assertFalse(sc.enabled())
         os.environ[sc.FLAG] = "1"
         self.assertTrue(sc.enabled())
-        os.environ[sc.FLAG] = "0"
+        self.assertFalse(sc.evidence_enabled())
+
+    def test_it_is_read_per_call_not_at_import(self):
+        """So a rollback takes effect on the next request, not the next
+        deploy."""
+        os.environ[sc.VERSION_ENV] = "v2"
+        self.assertTrue(sc.enabled())
+        os.environ[sc.VERSION_ENV] = "v1"
         self.assertFalse(sc.enabled())
 
 
@@ -441,19 +485,27 @@ class TestScraperIntegration(unittest.TestCase):
     def setUp(self):
         import scraper
         self.scraper = scraper
-        self.before = os.environ.get(sc.FLAG)
+        # Pinned to v1, not merely flag-free: the code default is v2 now,
+        # so "no flag set" is the NEW behaviour and these tests are about
+        # the old one still being reachable.
+        self.before = {n: os.environ.get(n)
+                       for n in (sc.VERSION_ENV, sc.FLAG)}
         os.environ.pop(sc.FLAG, None)
+        os.environ[sc.VERSION_ENV] = "v1"
 
     def tearDown(self):
-        os.environ.pop(sc.FLAG, None)
-        if self.before is not None:
-            os.environ[sc.FLAG] = self.before
+        for name, value in self.before.items():
+            os.environ.pop(name, None)
+            if value is not None:
+                os.environ[name] = value
 
     def scored(self, row=None):
         return self.scraper.score_job(dict(row or self.ROW))
 
-    def test_v1_is_the_default(self):
+    def test_v1_is_reachable_and_complete(self):
+        self.assertEqual(sc.engine_version(), "v1")
         self.assertFalse(sc.enabled())
+        self.assertFalse(sc.evidence_enabled())
 
     def test_v1_scoring_is_byte_for_byte_what_it_was(self):
         """The old loop, reproduced here from SKILL_PATTERNS, must agree
@@ -468,16 +520,18 @@ class TestScraperIntegration(unittest.TestCase):
         self.assertEqual(expected, skills_only)
         self.assertIsNotNone(row)
 
-    def test_the_flag_changes_the_score_and_changes_back(self):
+    def test_the_version_changes_the_score_and_changes_back(self):
+        """The rollback property: flipping back restores v1 exactly, on
+        the next call, with no reimport."""
         first = self.scored()["score"]
-        os.environ[sc.FLAG] = "1"
+        os.environ[sc.VERSION_ENV] = "v2"
         concept = self.scored()["score"]
-        os.environ.pop(sc.FLAG)
+        os.environ[sc.VERSION_ENV] = "v1"
         self.assertEqual(self.scored()["score"], first)
         self.assertLess(concept, first, "alias inflation should have gone")
 
     def test_v2_records_canonical_display_names(self):
-        os.environ[sc.FLAG] = "1"
+        os.environ[sc.VERSION_ENV] = "v2"
         matched = self.scored()["matched_skills"]
         self.assertIn("React Native", matched)
         self.assertIn("Firebase Cloud Messaging", matched)
@@ -562,13 +616,15 @@ class TestSplittingInThePipeline(unittest.TestCase):
     def setUp(self):
         import make_profile
         self.mp = make_profile
-        self.before = os.environ.get(sc.FLAG)
+        self.before = {n: os.environ.get(n)
+                       for n in (sc.VERSION_ENV, sc.FLAG)}
         os.environ[sc.FLAG] = "1"
 
     def tearDown(self):
-        os.environ.pop(sc.FLAG, None)
-        if self.before is not None:
-            os.environ[sc.FLAG] = self.before
+        for name, value in self.before.items():
+            os.environ.pop(name, None)
+            if value is not None:
+                os.environ[name] = value
 
     def split(self, weights):
         data = {"skill_weights": [{"term": t, "weight": w}
@@ -600,8 +656,9 @@ class TestSplittingInThePipeline(unittest.TestCase):
         self.assertEqual(out["skills_split"],
                          [{"raw": "Agile/Scrum", "into": ["agile", "scrum"]}])
 
-    def test_it_does_nothing_at_all_when_the_flag_is_off(self):
+    def test_it_does_nothing_at_all_under_v1(self):
         os.environ.pop(sc.FLAG, None)
+        os.environ[sc.VERSION_ENV] = "v1"
         data = {"skill_weights": [{"term": "jwt / oauth 2.0", "weight": 3}]}
         self.assertIs(self.mp.split_compounds(data, log=lambda *a: None), data)
 

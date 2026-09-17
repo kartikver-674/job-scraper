@@ -212,5 +212,108 @@ class TestExistingProfilesStillWork(unittest.TestCase):
         self.assertTrue(outside, "the distinction this test documents is real")
 
 
+class TestProfileSchemaCompatibility(unittest.TestCase):
+    """Old profiles must keep working, and a profile from the future must
+    fail with a sentence rather than an AttributeError four frames into a
+    paid run."""
+
+    def stamped(self, value=None, **kw):
+        import types
+        return types.SimpleNamespace(**kw) if value is None else \
+            types.SimpleNamespace(PROFILE_SCHEMA=value)
+
+    def test_a_profile_written_before_the_field_existed_is_readable(self):
+        """Absence IS the version, which is why nothing on disk needs
+        migrating."""
+        got = make_profile.profile_schema(self.stamped())
+        self.assertTrue(got["readable"])
+        self.assertEqual(got["version"], make_profile.LEGACY_SCHEMA)
+        self.assertEqual(got["engine"], "v1")
+
+    def test_every_profile_on_disk_is_readable(self):
+        import glob
+        import importlib
+        for path in sorted(glob.glob(os.path.join(REPO_ROOT, "profiles",
+                                                  "*.py"))):
+            name = os.path.basename(path)[:-3]
+            if name.startswith("_"):
+                continue
+            module = importlib.import_module(f"profiles.{name}")
+            self.assertTrue(make_profile.profile_schema(module)["readable"],
+                            path)
+
+    def test_a_current_profile_is_readable(self):
+        got = make_profile.profile_schema(
+            self.stamped({"version": make_profile.PROFILE_SCHEMA,
+                          "engine": "v2"}))
+        self.assertTrue(got["readable"])
+        self.assertEqual(got["engine"], "v2")
+
+    def test_a_future_schema_is_refused_with_an_explicit_message(self):
+        got = make_profile.profile_schema(
+            self.stamped({"version": make_profile.PROFILE_SCHEMA + 1,
+                          "engine": "v9"}))
+        self.assertFalse(got["readable"])
+        self.assertIn("newer build", got["why"])
+        self.assertIn("regenerate", got["why"])
+
+    def test_a_malformed_stamp_is_refused(self):
+        for bad in ("hello", [1], None if False else 1.5):
+            got = make_profile.profile_schema(self.stamped(bad))
+            self.assertFalse(got["readable"], bad)
+
+    def test_load_profile_raises_the_compatibility_message(self):
+        import sys as _sys
+        import types
+        fake = types.ModuleType("profiles.futureprofile")
+        fake.PROFILE_SCHEMA = {"version": 99, "engine": "v9"}
+        _sys.modules["profiles.futureprofile"] = fake
+        try:
+            with self.assertRaises(ValueError) as caught:
+                make_profile.load_profile("futureprofile")
+            self.assertIn("newer build", str(caught.exception))
+        finally:
+            _sys.modules.pop("profiles.futureprofile", None)
+
+    def test_load_profile_returns_a_real_profile(self):
+        module, stamp = make_profile.load_profile("kartik_reachable")
+        self.assertTrue(hasattr(module, "SEARCH"))
+        self.assertTrue(stamp["readable"])
+        self.assertEqual(stamp["engine"], "v1")   # written before the stamp
+
+    def test_a_generated_profile_records_the_engine_that_wrote_it(self):
+        import skill_concepts
+        before = os.environ.get(skill_concepts.VERSION_ENV)
+        try:
+            for version in ("v1", "v2"):
+                os.environ[skill_concepts.VERSION_ENV] = version
+                source = render()
+                # Parsed, not string-matched: the point is the VALUE, and
+                # repr's choice of quote is not the contract.
+                node = next(n for n in ast.parse(source).body
+                            if isinstance(n, ast.Assign)
+                            and n.targets[0].id == "PROFILE_SCHEMA")
+                self.assertEqual(ast.literal_eval(node.value),
+                                 {"version": make_profile.PROFILE_SCHEMA,
+                                  "engine": version})
+        finally:
+            os.environ.pop(skill_concepts.VERSION_ENV, None)
+            if before is not None:
+                os.environ[skill_concepts.VERSION_ENV] = before
+
+    def test_the_stamp_is_inert_to_config(self):
+        """config._overlay only reads the names it knows, so the stamp
+        cannot change how a profile behaves."""
+        import config
+        self.assertNotIn("PROFILE_SCHEMA", config.OVERLAYABLE)
+
+    def test_the_stamp_is_a_literal_like_every_other_field(self):
+        source = render()
+        node = next(n for n in ast.parse(source).body
+                    if isinstance(n, ast.Assign)
+                    and n.targets[0].id == "PROFILE_SCHEMA")
+        self.assertIsInstance(ast.literal_eval(node.value), dict)
+
+
 if __name__ == "__main__":
     unittest.main()
