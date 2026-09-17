@@ -196,5 +196,51 @@ class TestValidRowsAreUntouched(unittest.TestCase):
         self.assertEqual(out["decision"], "accept")
 
 
+class TestAMalformedAnswerFailsSafely(unittest.TestCase):
+    """A schema-constrained decoder usually returns the right shape, and
+    "usually" is the problem: these all reached row.get() and raised
+    AttributeError several frames from the model that caused it. The guard
+    is at the shared seam, so every path to the arithmetic is covered."""
+
+    def decision(self, rows):
+        return le.route(dict(FIELDS), rows, TEXT, now=NOW)["decision"]
+
+    def test_rows_of_strings_escalate_rather_than_crash(self):
+        self.assertEqual(self.decision({"employment": ["Backend Dev at X"]}),
+                         "escalate")
+
+    def test_employment_as_a_bare_string_escalates(self):
+        self.assertEqual(self.decision({"employment": "Backend Developer"}),
+                         "escalate")
+
+    def test_employment_as_an_object_escalates(self):
+        self.assertEqual(self.decision({"employment": {"company": "X"}}),
+                         "escalate")
+
+    def test_the_whole_answer_being_a_list_escalates(self):
+        self.assertEqual(self.decision(["a", "b"]), "escalate")
+
+    def test_one_bad_row_among_objects_still_escalates(self):
+        """Not a partial parse: a list that is not uniformly objects is a
+        malformed answer, not a row to drop."""
+        self.assertEqual(self.decision({"employment": [REAL, "oops"]}),
+                         "escalate")
+
+    def test_the_reason_names_the_shape_it_got(self):
+        out = le.route(dict(FIELDS), {"employment": "x"}, TEXT, now=NOW)
+        self.assertIn("not objects", " ".join(out["reasons"]))
+
+    def test_a_non_object_model_answer_is_refused_at_the_call(self):
+        """_object guards the two local calls themselves, so the error
+        names the model rather than surfacing as a type error later."""
+        for bad in ([], "text", 3, None):
+            with self.assertRaises(le.InferenceError):
+                le._object(bad, "fields")
+
+    def test_a_real_object_passes_through_unchanged(self):
+        answer = {"employment": []}
+        self.assertIs(le._object(answer, "employment"), answer)
+
+
 if __name__ == "__main__":
     unittest.main()

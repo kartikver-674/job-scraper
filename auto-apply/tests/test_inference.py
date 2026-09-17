@@ -1592,5 +1592,42 @@ class TestTransientRetry(unittest.TestCase):
 SECRET_IN_EXC = "Ada Okonkwo ada.okonkwo@example.com"
 
 
+class TestATruncatedAnswerIsNotAnAnswer(unittest.TestCase):
+    """Ollama says why it stopped. "length" means the token cap was hit.
+
+    A schema-constrained decoder can still close its braces on the way
+    out, so a truncated answer does not reliably fail json.loads — it can
+    arrive as well-formed JSON that is simply missing employment rows.
+    Every consumer downstream trusts that count, so a short answer has to
+    be an error rather than a quiet undercount.
+    """
+
+    def generate(self, payload):
+        with mock.patch.object(inference, "_post",
+                               lambda url, body, t, h=None: (200, payload)):
+            return inference.LocalOllama("http://x/api/generate").generate(
+                "qwen3:8b", "p", SCHEMA, 10)
+
+    def test_done_reason_length_is_refused(self):
+        with self.assertRaises(inference.BadModelOutput) as caught:
+            self.generate({"response": '{"a": 1}', "done_reason": "length"})
+        self.assertIn("truncated", str(caught.exception))
+
+    def test_it_is_refused_even_when_the_json_parses(self):
+        """The case that makes this necessary: valid JSON, short content."""
+        with self.assertRaises(inference.BadModelOutput):
+            self.generate({"response": '{"employment": []}',
+                           "done_reason": "length"})
+
+    def test_a_normal_stop_is_untouched(self):
+        self.assertEqual(
+            self.generate({"response": '{"a": 1}', "done_reason": "stop"}),
+            {"a": 1})
+
+    def test_a_server_that_reports_no_reason_still_works(self):
+        """Older Ollama builds omit the field; absence is not truncation."""
+        self.assertEqual(self.generate({"response": '{"a": 1}'}), {"a": 1})
+
+
 if __name__ == "__main__":
     unittest.main()

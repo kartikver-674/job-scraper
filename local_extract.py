@@ -183,13 +183,29 @@ Résumé:
 {text}"""
 
 
+def _object(parsed, what):
+    """The answer, if it is the JSON object the schema asked for.
+
+    A schema-constrained decoder usually returns the right shape, and
+    "usually" is the problem: the callers below index straight into this,
+    so a list or a bare string became an AttributeError several frames
+    away from the model that caused it. One type check, one clear name.
+    """
+    if not isinstance(parsed, dict):
+        raise InferenceError(
+            f"the model's {what} answer is {type(parsed).__name__}, not the "
+            f"JSON object the schema asked for")
+    return parsed
+
+
 def extract(model=None, text="", timeout=TIMEOUT, url=None,
             backend=None):
     """The fields, from one local call. Returns (parsed, seconds)."""
     prompt = FIELDS_PROMPT.format(text=text)
     started = time.time()
-    return _generate(model_name(model), prompt, FIELDS_SCHEMA, timeout,
-                     url, backend), time.time() - started
+    parsed = _generate(model_name(model), prompt, FIELDS_SCHEMA, timeout,
+                       url, backend)
+    return _object(parsed, "fields"), time.time() - started
 
 
 # --------------------------------------------------------------------------
@@ -261,8 +277,8 @@ def employment(model=None, text="", timeout=TIMEOUT, url=None,
                backend=None):
     """The employment rows and the target field, from one local call."""
     prompt = EMPLOYMENT_PROMPT.format(text=text)
-    return _generate(model_name(model), prompt, EMPLOYMENT_SCHEMA, timeout,
-                     url, backend)
+    return _object(_generate(model_name(model), prompt, EMPLOYMENT_SCHEMA,
+                             timeout, url, backend), "employment")
 
 
 # --------------------------------------------------------------------------
@@ -534,9 +550,20 @@ def check_employment(rows, text, now=None):
     is the same judgement: one bad row is a row to drop, most of them bad
     is a parse that cannot be trusted row by row.
     """
-    rows = list((rows or {}).get("employment") or [])
+    # Defensive at the shared seam rather than at each caller: every path to
+    # the date arithmetic comes through here, and a row that is a string
+    # rather than an object used to reach row.get() and raise AttributeError
+    # several frames down. A malformed answer is a parse to escalate, not a
+    # crash.
+    if not isinstance(rows, dict):
+        return [], [f"employment: the model's answer is "
+                    f"{type(rows).__name__}, not an object"], []
+    rows = list(rows.get("employment") or [])
     if not rows:
         return [], [], []
+    if not all(isinstance(row, dict) for row in rows):
+        return [], [f"employment: {sum(1 for r in rows if not isinstance(r, dict))} "
+                    f"of {len(rows)} rows are not objects"], []
 
     problems = [(row, row_problems(row, text, now)) for row in rows]
     bad = [(row, why) for row, why in problems if why]

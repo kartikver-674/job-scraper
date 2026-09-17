@@ -573,6 +573,31 @@ def validate_keys(rendered_keys):
     return config
 
 
+# The same window sweep.logic.with_experience already enforces on the review
+# form, for the reason its comment gives: this number becomes
+# SETTINGS["max_experience_years"] (years + 3) and SEARCH["experience_years"],
+# and both are compared against what a posting DEMANDS. Unbounded above, it
+# stops filtering anything; negative, max_experience_years goes negative too
+# and every posting is dropped — a search that silently returns nothing.
+# The form gate only covers the field the user posted; the model's own figure
+# reaches here ungated.
+MAX_CAREER_YEARS = 60
+
+
+def _years(value):
+    """years_experience, or a refusal. Never a profile that cannot work."""
+    try:
+        years = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(
+            f"years_experience must be a whole number, got {value!r}") from None
+    if not 0 <= years <= MAX_CAREER_YEARS:
+        raise ValueError(
+            f"years_experience must be between 0 and {MAX_CAREER_YEARS}, "
+            f"got {years}")
+    return years
+
+
 def _fmt(value, indent=8):
     """Render a dict or list as readable, line-wrapped Python source."""
     pad = " " * indent
@@ -763,7 +788,7 @@ def render(name, data, prefs):
     }
     config = validate_keys(sections)
 
-    years = int(data["years_experience"])
+    years = _years(data["years_experience"])
     skills = _weights(data["skill_weights"])
     # The scanned terms and why each was kept, as a comment beside the
     # weights they became. notes carries the count; this carries the

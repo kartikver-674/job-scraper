@@ -191,6 +191,44 @@ class TestRender(unittest.TestCase):
         self.assertEqual(ns["SCORING"]["fullstack_bonus"], 0)
 
 
+class TestExperienceBounds(unittest.TestCase):
+    """years_experience becomes SEARCH["experience_years"] and
+    SETTINGS["max_experience_years"] (years + 3), and both are compared
+    against what a posting DEMANDS. sweep.logic.with_experience already
+    holds the form to 0-60 for this reason; the model's own figure reached
+    render() ungated, where -5 produced max_experience_years=-2 and every
+    posting was dropped — a search that silently returns nothing."""
+
+    def render(self, years):
+        return make_profile.render("p", dict(PAYLOAD, years_experience=years),
+                                   PREFS)
+
+    def test_a_negative_year_count_is_refused(self):
+        with self.assertRaises(ValueError) as caught:
+            self.render(-5)
+        self.assertIn("between 0 and 60", str(caught.exception))
+
+    def test_an_absurd_career_length_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.render(500)
+
+    def test_a_non_number_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.render("lots")
+
+    def test_the_bound_matches_the_one_the_review_form_already_enforces(self):
+        from sweep import logic
+        self.assertEqual(make_profile.MAX_CAREER_YEARS, 60)
+        # Same window, so a number the form accepts always renders.
+        self.assertEqual(
+            logic.with_experience({}, "60", "0")["years_experience"], 60)
+        self.assertIn("experience_years", self.render(60))
+
+    def test_the_ordinary_range_still_renders(self):
+        for years in (0, 1, 4, 40, 60):
+            self.assertIn(f'"experience_years": {years},', self.render(years))
+
+
 class TestProfileNameFor(unittest.TestCase):
     """The résumé already names the person, so Sweep's review screen prefills
     the profile name from it. Whatever comes out has to satisfy the regex that
