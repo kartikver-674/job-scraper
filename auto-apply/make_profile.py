@@ -20,6 +20,7 @@ Verify the result at zero cost before spending:
 """
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -646,6 +647,98 @@ def _fmt_feeds(queries):
             "}\n\n")
 
 
+# Exactly two characters carry syntactic power inside a """...""" block: a
+# run of quotes can close it, and a backslash escapes whatever follows —
+# including the closing quotes. field_summary and notes are free model prose
+# interpolated straight into the module docstring, and an f-string escapes
+# nothing, so prose containing
+#
+#     """
+#     WHATEVER = 1
+#
+# closed the docstring and made the next line a top-level statement in a
+# file config.py imports. Every other value in a profile goes through
+# repr() already; only the prose did not.
+_QUOTE_RUN = re.compile(r'"{2,}')
+
+
+def _prose(text):
+    """Model prose, safe to interpolate into a triple-quoted docstring.
+
+    Not a blocklist of patterns — the removal of the only two symbols that
+    can act. str.replace('\"\"\"', '\"') would NOT do: replace scans left to
+    right without rescanning, so nine quotes become three and the escape is
+    back. Collapsing every run of two or more leaves no two adjacent, so no
+    three can exist however they arrived.
+    """
+    return _QUOTE_RUN.sub('"', str(text or "")).replace("\\", " ")
+
+
+# Every top-level name render() is allowed to define. A GENERATED profile is
+# DATA: config.py imports profiles/<name>.py, so anything else in there runs.
+PROFILE_NAMES = frozenset({
+    "SITES", "FEEDS", "SEARCH", "SETTINGS", "SCORING",
+    "ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE",
+})
+
+
+def check_module(source):
+    """Source RENDERED BY THIS FILE, parsed and checked before it is written.
+
+    Scope, and it matters: this judges what render() just built out of model
+    output, never a profile a person wrote. The nine hand-written ones in
+    profiles/ import helpers and define their own locals (ATS_BOARDS,
+    _COUNTRIES, OPTUM) — deliberate, reviewed, in git, and none of this
+    applies to them. Only the path from a résumé to an imported file needs
+    a gate, because only that path has a stranger's prose in it.
+
+    Belt and braces to _prose's razor: _prose makes the docstring
+    inescapable, and this refuses the file if anything got through anyway.
+    Returns the source, so it can wrap a return and no caller can forget it.
+
+    ast.parse and ast.literal_eval both READ. Nothing here executes the
+    module, which is the point — the check has to happen while the payload
+    is still text.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        raise ValueError(
+            f"generated profile is not valid Python: {exc}") from exc
+
+    allowed = ", ".join(sorted(PROFILE_NAMES))
+    for node in tree.body:
+        if (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)):
+            continue  # the module docstring, and only in that position
+        if not isinstance(node, ast.Assign):
+            raise ValueError(
+                f"generated profile line {node.lineno}: a top-level "
+                f"{type(node).__name__} is not allowed — a profile is the "
+                f"docstring and {allowed}")
+        for target in node.targets:
+            if not isinstance(target, ast.Name):
+                raise ValueError(
+                    f"generated profile line {node.lineno}: only plain "
+                    f"top-level names may be assigned")
+            if target.id not in PROFILE_NAMES:
+                raise ValueError(
+                    f"generated profile line {node.lineno}: assigns "
+                    f"{target.id!r}, which is not one of {allowed}")
+        # A profile holds data, never an expression to evaluate later.
+        # literal_eval raises on anything with a call, a name or an
+        # operator in it.
+        try:
+            ast.literal_eval(node.value)
+        except (ValueError, SyntaxError, TypeError, MemoryError,
+                RecursionError) as exc:
+            raise ValueError(
+                f"generated profile line {node.lineno}: "
+                f"{getattr(node.targets[0], 'id', '?')} is not a literal "
+                f"({exc})") from exc
+    return source
+
+
 def render(name, data, prefs):
     """Render profiles/<name>.py source from the model's JSON and the preferences.
 
@@ -788,15 +881,18 @@ def render(name, data, prefs):
     penalties = {term: weight
                  for term, weight in _weights(data["penalty_terms"], sign=-1).items()
                  if term not in excluded}
-    return f'''"""{name} — generated from a résumé by auto-apply/make_profile.py.
+    # check_module wraps the return so no caller can forget it: the CLI and
+    # Sweep's POST /review both come through here, and the file this builds
+    # is imported by config.py.
+    return check_module(f'''"""{name} — generated from a résumé by auto-apply/make_profile.py.
 
-{data["field_summary"]}
+{_prose(data["field_summary"])}
 
     python scraper.py --profile {name} --dry-run   # cost check, free
     python scraper.py --profile {name} --yes
 
 HOW THE MODEL READ THIS RÉSUMÉ
-{data["notes"]}
+{_prose(data["notes"])}
 
 Skill weights are by DISCRIMINATIVE POWER, not centrality: a term that would
 also appear in an unwanted job is weighted low however core it is to this
@@ -850,7 +946,7 @@ ATS_TITLE_HINTS = {_fmt(hints, indent=4)}
 
 # Checked first, so it wins: different CAREERS that borrow the same words.
 ATS_TITLE_EXCLUDE = {_fmt(excludes, indent=4)}
-'''
+''')
 
 
 def _csv(value):
