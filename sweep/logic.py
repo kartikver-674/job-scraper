@@ -737,9 +737,12 @@ def reweighted(derived, terms, weights, dropped, add_raw="", add_weight=""):
     would silently keep whichever copy was written last.
 
     Adding a term also UN-DROPS it, by way of the append below rather than a
-    special case: the remove column is pre-checked for the commodity skills on
-    the review screen, so a user who types one of those back has said the more
-    specific thing, and the alternative is their typing doing nothing at all.
+    special case: someone who ticks a term for removal and then types it back
+    has said the more specific thing second, and the alternative is their
+    typing doing nothing at all. (This mattered more when the review screen
+    pre-ticked common terms for removal. It no longer does — a low weight is
+    market commonness, not evidence the skill is absent — but a user can
+    still tick and re-type in one pass, and this is still the right reading.)
     """
     if len(terms) != len(weights):
         raise _FormError("The weights didn't come through — reload the page "
@@ -1102,3 +1105,46 @@ def fill_pct(spend, cap):
         # A real zero-credit account. Anything at all is "all of it".
         return 100 if spend > 0 else 0
     return min(100, round(spend / cap * 100))
+
+
+# What the review screen calls each importance tier. The engine's names are
+# contracts; these are sentences a person reads about their own résumé.
+#
+# Deliberately about EVIDENCE, never about worth: "Listed only" says what
+# the page shows, where the old "Low signal" said what the market thinks
+# and read as a verdict on the person. The market still gets its own badge
+# beside this one, because they are two facts and the whole point of the
+# tier is that they stopped being one.
+TIER_LABELS = {
+    "CORE": ("Used at work", "core"),
+    "STRONG_SECONDARY": ("Built with", "strong"),
+    "SUPPORTING": ("Listed", "support"),
+    "BACKGROUND": ("Background", "low"),
+}
+
+
+def importance_badges(derived):
+    """{term: {label, css, why}} for the weight editor, or {} when the
+    parse carries no importance — every caller degrades to the old screen
+    by rendering nothing."""
+    rows = (derived or {}).get("skill_importance") or []
+    if not rows:
+        return {}
+    try:
+        import skill_concepts
+    except ImportError:          # pragma: no cover - repo root not on path
+        return {}
+    by_id = {}
+    for row in rows:
+        label, css = TIER_LABELS.get(row.get("tier"), (None, None))
+        if label:
+            by_id[row["id"]] = {"label": label, "css": css,
+                                "why": row.get("why") or label}
+    # Keyed by the TERM the form posts, not the concept id: the editor
+    # still edits spellings, and several of them can share one badge.
+    out = {}
+    for entry in (derived or {}).get("skill_weights") or []:
+        badge = by_id.get(skill_concepts.resolve(entry.get("term", "")))
+        if badge:
+            out[entry["term"]] = badge
+    return out

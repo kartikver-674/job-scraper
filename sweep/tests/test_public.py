@@ -694,7 +694,76 @@ class TestTheMarketOnRender(unittest.TestCase):
         body = app.test_client().get("/healthz").get_json()
         self.assertEqual(body["market_signal_source"], "frozen")
 
+    def test_the_health_check_says_which_engine_would_derive(self):
+        """So a rollback can be confirmed rather than assumed.
+
+        This reports what THIS process would derive with. The worker
+        reports its own, and a profile's own stamp still beats both — see
+        docs/profile-engine-v2-production-candidate.md.
+        """
+        import skill_concepts
+        before = os.environ.get(skill_concepts.VERSION_ENV)
+        os.environ[skill_concepts.VERSION_ENV] = "v2"
+        self.addCleanup(lambda: (os.environ.pop(skill_concepts.VERSION_ENV, None),
+                                 before is not None and os.environ.__setitem__(
+                                     skill_concepts.VERSION_ENV, before)))
+        body = self.real_pipeline_app().test_client().get("/healthz").get_json()
+        self.assertEqual(body["derivation_engine"], "v2")
+        self.assertEqual(body["engine_source"], skill_concepts.VERSION_ENV)
+        self.assertFalse(body["role_families"])
+        self.assertEqual(body["profile_schema"], 1)
+        # Nothing that identifies a person or a secret.
+        blob = repr(body)
+        for forbidden in ("SECRET", "token", "key", "resume", "/Users"):
+            self.assertNotIn(forbidden, blob)
+
+    def test_the_health_check_reports_a_rollback(self):
+        import skill_concepts
+        before = os.environ.get(skill_concepts.VERSION_ENV)
+        os.environ[skill_concepts.VERSION_ENV] = "v1"
+        self.addCleanup(lambda: (os.environ.pop(skill_concepts.VERSION_ENV, None),
+                                 before is not None and os.environ.__setitem__(
+                                     skill_concepts.VERSION_ENV, before)))
+        body = self.real_pipeline_app().test_client().get("/healthz").get_json()
+        self.assertEqual(body["derivation_engine"], "v1")
+
+    def test_render_pins_the_engine_version_the_beta_runs(self):
+        """The public beta runs the evaluated v2 skill/weight engine, and
+        render.yaml is what says so. The CODE default stays v1, so this one
+        line is the whole decision and the rollback is this one line back.
+        Asserted here so the deployed configuration and the tests of it
+        cannot drift apart: if this changes, the expectations below must be
+        re-measured."""
+        import os as _os
+        import skill_concepts
+        root = _os.path.dirname(_os.path.dirname(
+            _os.path.dirname(_os.path.abspath(__file__))))
+        with open(_os.path.join(root, "render.yaml"), encoding="utf-8") as fh:
+            manifest = fh.read()
+        self.assertIn(skill_concepts.VERSION_ENV, manifest)
+        block = manifest.split(skill_concepts.VERSION_ENV, 1)[1]
+        self.assertIn("v2", block.split("- key:", 1)[0].split("#")[0])
+        # Nothing is carried by an implicit default, in either direction.
+        self.assertEqual(skill_concepts.DEFAULT_VERSION, "v1")
+        # And role construction is not in this release at all.
+        self.assertFalse(skill_concepts.roles_enabled())
+
     def test_a_beta_visitors_profile_is_not_a_flat_wall_of_threes(self):
+        """What a beta visitor actually gets, through the real pipeline.
+
+        Pinned to the version render.yaml deploys, not to the code default.
+        The beta now runs the evaluated v2 engine, and v2 reads the RESUME:
+        a skill the document does not support does not get a number off the
+        market table. Under v1 this same fixture — whose extracted text is
+        the single line "Ada Okonkwo, React Native dev" — produced
+        `maven: 4` for a build tool that appears nowhere in it.
+        """
+        import skill_concepts
+        before = os.environ.get(skill_concepts.VERSION_ENV)
+        os.environ[skill_concepts.VERSION_ENV] = "v2"
+        self.addCleanup(lambda: (os.environ.pop(skill_concepts.VERSION_ENV, None),
+                                 before is not None and os.environ.__setitem__(
+                                     skill_concepts.VERSION_ENV, before)))
         app = self.real_pipeline_app()
         client = unlocked(app)
         upload(client)
@@ -708,11 +777,58 @@ class TestTheMarketOnRender(unittest.TestCase):
         weights = {int(n) for n in re.findall(r":\s*(\d+)", block)}
         self.assertNotEqual(weights, {3},
                             "the downloaded profile is still flat")
-        self.assertTrue({2, 4} <= weights, sorted(weights))
-        # The commodity and the specialism land on different numbers,
-        # which is the whole point of shipping the table.
-        self.assertIn("'javascript': 2", block)
-        self.assertIn("'maven': 4", block)
+        # The one skill the document names outranks the nine it does not.
+        self.assertIn("'react native': 3", block)
+        self.assertIn("'maven': 2", block)
+        self.assertLess(max(weights), 4,
+                        "a one-line résumé cannot support a core skill")
+
+    def test_a_real_resume_still_reaches_the_top_of_the_scale(self):
+        """The other half: v2 is conservative, not inert.
+
+        Same ten candidate skills, a résumé that actually describes the
+        work. The engine has to separate what was built with from what was
+        only listed, end to end through the shipped pipeline.
+        """
+        import sys
+        for path in (os.path.join(app_module.REPO_ROOT, "auto-apply"),
+                     app_module.REPO_ROOT):
+            if path not in sys.path:
+                sys.path.insert(0, path)
+        import make_profile
+        import skill_concepts
+        from local_profile import NEUTRAL_WEIGHT
+
+        before = os.environ.get(skill_concepts.VERSION_ENV)
+        os.environ[skill_concepts.VERSION_ENV] = "v2"
+        self.addCleanup(lambda: (os.environ.pop(skill_concepts.VERSION_ENV, None),
+                                 before is not None and os.environ.__setitem__(
+                                     skill_concepts.VERSION_ENV, before)))
+        resume = ("Ada Okonkwo\n"
+                  "Technical Skills\n"
+                  "Java, JavaScript, Docker, PostgreSQL, Tailwind CSS\n"
+                  "Professional Experience\n"
+                  "Helix Systems\n"
+                  "Engineer\n"
+                  "- Built the payments service in Java with Spring Security.\n"
+                  "- Implemented the React Native client for field agents.\n"
+                  "- Automated builds with Maven and Gradle.\n")
+        parsed = dict(DERIVED, skill_weights=[
+            {"term": t, "weight": NEUTRAL_WEIGHT} for t in
+            ("react native", "javascript", "react", "maven", "spring security",
+             "gradle", "docker", "java", "postgresql", "tailwind css")])
+        got = make_profile._finish(parsed, resume, self.empty, lambda *a: None)
+        weights = {e["term"]: e["weight"] for e in got["skill_weights"]}
+
+        # Described in a work bullet: the top of the scale.
+        for term in ("react native", "spring security", "maven", "gradle"):
+            self.assertGreaterEqual(weights[term], 4, term)
+        # Listed and never described: kept, and kept low.
+        for term in ("javascript", "docker", "postgresql"):
+            self.assertLessEqual(weights[term], 3, term)
+        # React is only ever inside "React Native" here, and must not
+        # inherit its evidence.
+        self.assertLessEqual(weights["react"], 2)
 
 
 class TestLocalModeIsUntouched(unittest.TestCase):

@@ -2,7 +2,7 @@
    before anything is spent; on the results screen it is what a re-rank
    scores against. One macro so the two cannot drift apart — the POST field
    names here are the contract logic.reweighted() reads. #}
-{% macro weight_editor(skill_weights, commodity=()) -%}
+{% macro weight_editor(skill_weights, commodity=(), importance={}) -%}
 {% if skill_weights %}
 <div class="scroll-x">
   <table class="weights">
@@ -29,7 +29,18 @@
            rather than the server having to reproduce this sort order to know
            which weight is whose. #}
         <td class="term">{{ w.term }}
-          {%- if w.term in commodity %}<span class="tag low">Low signal</span>{% endif %}
+          {#- TWO badges, because these are two different facts and the
+              engine spent a long time collapsing them into one. The first
+              says what the RÉSUMÉ shows about this person; the second says
+              what the MARKET does with the word. "TypeScript: used at work,
+              and common" is the true sentence. "TypeScript is low signal"
+              was not. #}
+          {%- set tier = importance.get(w.term) %}
+          {%- if tier %}<span class="tag {{ tier.css }}"
+            title="{{ tier.why }}">{{ tier.label }}</span>{% endif %}
+          {%- if w.term in commodity %}<span class="tag low"
+            title="Common in job descriptions, so it separates listings less
+                   — not a judgement about your skill">Common</span>{% endif %}
           <input type="hidden" name="term" value="{{ w.term }}"></td>
         {# Server-rendered level AND a binding: without JavaScript the bar
            is still correct, and with it the bar follows the stepper.
@@ -61,8 +72,13 @@
         </td>
         <td>
           <label class="remove">
-            <input type="checkbox" name="drop" value="{{ w.term }}"
-                   {{ 'checked' if w.term in commodity }}>
+            {# Never pre-checked. A low final weight means the term is
+               common in the market, which is not evidence the person does
+               not have the skill — this box was ticked for TypeScript,
+               Node.js, MongoDB and Salesforce on a résumé built out of
+               them. Removal stays one click away, but it is the user's
+               click. #}
+            <input type="checkbox" name="drop" value="{{ w.term }}">
             <span aria-hidden="true">&times;</span>
             <span class="visually-hidden">Remove {{ w.term }}</span>
           </label>

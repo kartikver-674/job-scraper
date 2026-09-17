@@ -80,9 +80,16 @@ PAYLOAD = {
     "field_summary": "Salesforce functional consultant, 4 years.",
     "years_experience": 4,
     "role_keywords": ["Salesforce Business Analyst", "Salesforce Consultant"],
+    # COMPATIBILITY DECISION, recorded rather than assumed. These were 10
+    # and 8, from an older Gemini prompt that used a 1-10 scale. The
+    # instruction this repo sends today says "use 1-5 and nothing higher:
+    # every existing profile is on that scale, and score thresholds are
+    # compared across profiles", so 10 was historical permissiveness, not
+    # supported behaviour, and _weights() now refuses it. The ORDERING the
+    # tests below assert is unchanged.
     "skill_weights": [
-        {"term": "Salesforce", "weight": 10},
-        {"term": "Apex", "weight": 8},
+        {"term": "Salesforce", "weight": 5},
+        {"term": "Apex", "weight": 4},
         {"term": "Stakeholder Management", "weight": 1},
     ],
     "penalty_terms": [{"term": "SAP", "weight": 6}, {"term": "Oracle", "weight": 4}],
@@ -125,7 +132,7 @@ class TestRender(unittest.TestCase):
 
     def test_skill_weights_fold_to_a_lowercased_dict(self):
         weights = rendered_namespace()["SCORING"]["skill_weights"]
-        self.assertEqual(weights["salesforce"], 10)
+        self.assertEqual(weights["salesforce"], 5)
         # Discriminative power, not centrality: the craft term stays demoted.
         self.assertLess(weights["stakeholder management"], weights["salesforce"])
 
@@ -189,6 +196,44 @@ class TestRender(unittest.TestCase):
         ns = rendered_namespace(payload)
         self.assertEqual(ns["SCORING"]["frontend_terms"], [])
         self.assertEqual(ns["SCORING"]["fullstack_bonus"], 0)
+
+
+class TestExperienceBounds(unittest.TestCase):
+    """years_experience becomes SEARCH["experience_years"] and
+    SETTINGS["max_experience_years"] (years + 3), and both are compared
+    against what a posting DEMANDS. sweep.logic.with_experience already
+    holds the form to 0-60 for this reason; the model's own figure reached
+    render() ungated, where -5 produced max_experience_years=-2 and every
+    posting was dropped — a search that silently returns nothing."""
+
+    def render(self, years):
+        return make_profile.render("p", dict(PAYLOAD, years_experience=years),
+                                   PREFS)
+
+    def test_a_negative_year_count_is_refused(self):
+        with self.assertRaises(ValueError) as caught:
+            self.render(-5)
+        self.assertIn("between 0 and 60", str(caught.exception))
+
+    def test_an_absurd_career_length_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.render(500)
+
+    def test_a_non_number_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.render("lots")
+
+    def test_the_bound_matches_the_one_the_review_form_already_enforces(self):
+        from sweep import logic
+        self.assertEqual(make_profile.MAX_CAREER_YEARS, 60)
+        # Same window, so a number the form accepts always renders.
+        self.assertEqual(
+            logic.with_experience({}, "60", "0")["years_experience"], 60)
+        self.assertIn("experience_years", self.render(60))
+
+    def test_the_ordinary_range_still_renders(self):
+        for years in (0, 1, 4, 40, 60):
+            self.assertIn(f'"experience_years": {years},', self.render(years))
 
 
 class TestProfileNameFor(unittest.TestCase):
@@ -445,10 +490,12 @@ class TestCorpusReweighting(unittest.TestCase):
         self.assertIn("react", said)
         self.assertIn("5 -> 2", said)
 
-    def test_a_weight_off_the_1_to_5_scale_is_left_alone(self):
-        # RESPONSE_SCHEMA bounds weight only to "integer" and the renderer
-        # has always passed it through. Re-bounding the scale is a different
-        # change from measuring importance.
+    def test_a_weight_off_the_1_to_5_scale_is_left_alone_by_reweighting(self):
+        # Still true HERE, and no longer true of the pipeline: corpus
+        # blending preserves an out-of-range weight, and render() now
+        # refuses to write a profile containing one. The bound belongs at
+        # the boundary that produces the file, not at every step before
+        # it — see test_engine_contract for the refusal.
         out = make_profile.reweight_from_corpus(
             self.payload({"react": 10}), self.corpus(["react"] * 300),
             log=lambda *a: None)
@@ -1259,13 +1306,18 @@ class TestEngineSelection(unittest.TestCase):
                                       log=lambda *a: None)
 
     def test_every_engine_goes_through_widen_and_reweight(self):
-        # The scanned-skill widening and the corpus re-scoring are not
-        # Gemini's; a profile that skipped them would be scored on a
-        # different basis from every other one.
+        # The scanned-skill widening and the re-scoring are not Gemini's; a
+        # profile that skipped them would be scored on a different basis
+        # from every other one. Both re-scorers are patched because v1
+        # re-scores from the corpus and v2 from the résumé's evidence —
+        # WHICH one runs is the engine version's business, THAT one runs
+        # is this test's.
         order = []
         with _patched(make_profile, "widen_skills",
                       lambda d, *a, **kw: (order.append("widen"), d)[1]), \
              _patched(make_profile, "reweight_from_corpus",
+                      lambda d, *a, **kw: (order.append("reweight"), d)[1]), \
+             _patched(make_profile, "reweight_from_evidence",
                       lambda d, *a, **kw: (order.append("reweight"), d)[1]), \
              _patched(make_profile, "_generate_one",
                       lambda *a: dict(_MINIMAL_PROFILE)):

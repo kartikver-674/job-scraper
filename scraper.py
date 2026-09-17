@@ -54,6 +54,7 @@ from datetime import datetime, timedelta
 
 import config
 import enrich
+import skill_concepts
 import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
@@ -264,6 +265,22 @@ def _compile(term):
 
 # Precompile everything once from config.
 SKILL_PATTERNS   = {t: (w, _compile(t)) for t, w in SCORING["skill_weights"].items()}
+# The same weights grouped into concepts, so one technology spelled three
+# ways scores once instead of three times. Built alongside rather than
+# instead of SKILL_PATTERNS: both are cheap, and score_job picks per call,
+# so a comparison run can flip SWEEP_SKILL_CONCEPTS without reimporting.
+SKILL_CONCEPTS = skill_concepts.from_weights(SCORING["skill_weights"])
+
+# The engine that DERIVED the loaded profile decides how it is scored.
+#
+# Without this, Render could derive a profile as v1 and the Oracle
+# worker's scraper child — reading its own environment, on another
+# machine, possibly from an older checkout — could score it as v2, and
+# nothing anywhere would say so. The stamp travels with the profile, so
+# the two cannot disagree by accident. No profile loaded means nothing to
+# bind, and the environment answers as before.
+if getattr(config, "PROFILE_ENGINE", None):
+    skill_concepts.bind(config.PROFILE_ENGINE)
 PENALTY_PATTERNS = {t: (p, _compile(t)) for t, p in SCORING["penalty_terms"].items()}
 FRONTEND_PATTERNS = [_compile(t) for t in SCORING["frontend_terms"]]
 BACKEND_PATTERNS  = [_compile(t) for t in SCORING["backend_terms"]]
@@ -602,12 +619,19 @@ def score_job(row):
     soft_seniority = any(pat.search(title) for pat in SOFT_DROP_PATTERNS.values())
 
     # --- Positive skill matches ---
-    score = 0
-    matched = []
-    for term, (weight, pat) in SKILL_PATTERNS.items():
-        if pat.search(text):
-            score += weight
-            matched.append(term)
+    # v2 (SWEEP_SKILL_CONCEPTS): one technology contributes once however
+    # many ways the profile spells it, and matched_skills records the
+    # concept's display name rather than whichever alias happened to fire.
+    # v1 is the default and is unchanged — every term scores on its own.
+    if skill_concepts.enabled():
+        score, matched = skill_concepts.score(text, SKILL_CONCEPTS)
+    else:
+        score = 0
+        matched = []
+        for term, (weight, pat) in SKILL_PATTERNS.items():
+            if pat.search(text):
+                score += weight
+                matched.append(term)
 
     # --- Full-stack detection + bonus ---
     has_frontend = any(pat.search(text) for pat in FRONTEND_PATTERNS)

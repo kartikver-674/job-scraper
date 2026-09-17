@@ -46,7 +46,8 @@ from sweep.logic import (  # noqa: E402,F401
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
-    experience_parts, experience_text, parse_banner, pick_activity,
+    experience_parts, experience_text, importance_badges, parse_banner,
+    pick_activity,
     run_banner, run_phase, scope_label, site_label, sort_rows, step_states,
     sweep_dates, sweep_state,
     with_experience, worst_filter, applied_path, read_applied, set_applied)
@@ -1352,6 +1353,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         derived = derived_for_state()
         commodity = [w["term"] for w in derived["skill_weights"]
                      if w["weight"] <= COMMODITY_WEIGHT]
+        importance = importance_badges(derived)
         # The model already read the résumé, so the person's own name is
         # right there — typing it again was busywork. A profile chosen
         # earlier in the session still wins: that is the name the rest of the
@@ -1360,6 +1362,7 @@ def create_app(state=None, extract=None, resume_dir=None,
                      or make_profile.profile_name_for(derived))
         return render_template("review.html", **shell(
             "review", derived=derived, commodity=commodity,
+                importance=importance,
             suggested_name=suggested,
             # Surfaced on arrival, not after a rejected submit: a suggested
             # name is very often one the user already has a profile for, and
@@ -1528,14 +1531,17 @@ def create_app(state=None, extract=None, resume_dir=None,
         derived = derived_for_state()
         commodity = [w["term"] for w in derived["skill_weights"]
                      if w["weight"] <= COMMODITY_WEIGHT]
+        importance = importance_badges(derived)
         if not name:
             return render_template("review.html", **shell(
                 "review", derived=derived, commodity=commodity,
+                importance=importance,
                 suggested_name="",
                 error="Give the profile a name.")), 400
         if not _valid_profile_name(name):
             return render_template("review.html", **shell(
                 "review", derived=derived, commodity=commodity,
+                importance=importance,
                 suggested_name=name,
                 error="Use letters, numbers, dashes and underscores only "
                       "— this becomes a filename.")), 400
@@ -1552,6 +1558,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         except _FormError as exc:
             return render_template("review.html", **shell(
                 "review", derived=derived, commodity=commodity,
+                importance=importance,
                 suggested_name=name, error=str(exc))), 400
         # Refuse to overwrite an existing profile unless the user says so.
         # This screen writes profiles/<name>.py, /estimate rewrites the same
