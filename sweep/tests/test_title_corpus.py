@@ -19,10 +19,12 @@ model-free: the invariant is about the CORPUS, and a test that needed
 qwen3 running would not be run.
 """
 
+import collections
 import gzip
 import io
 import json
 import os
+import random
 import sys
 import tempfile
 import unittest
@@ -345,6 +347,148 @@ class TestTheHealthCheckSaysWhichCorpusAnswered(unittest.TestCase):
         did not."""
         body = self._healthz(tempfile.mkdtemp())
         self.assertIsInstance(body["title_corpus_rows"], int)
+
+
+class TestRowOrderCannotChangeTheAnswer(unittest.TestCase):
+    """The same rows in a different order are the same market.
+
+    Live and frozen output/ hold the SAME 22,806 rows and differ only in
+    the order they are read. That alone moved the "systems engineer"
+    fragment between four equally-common titles and displaced
+    "salesforce developer" from role_keywords — a different search sent
+    to LinkedIn for the same person, the same résumé and the same data.
+
+    A Counter iterates in insertion order, so `count > best` and
+    `most_common` were both resolving ties by whichever row arrived
+    first. These pin the fix: commonness decides, then word count, then
+    the title itself.
+    """
+
+    # Five titles at the SAME count, which is the whole problem. Only one
+    # of them is a title rather than a team name.
+    TIED = ["business systems engineer", "systems engineer, network automation",
+            "systems engineer, ssl/tls team", "systems engineer, growth engineering",
+            "principal systems engineer, devtools"]
+
+    def market(self, rows):
+        return local_search.Market(rows=rows, seniority=("senior", "principal"))
+
+    def tied_rows(self, each=11):
+        rows = []
+        for i, title in enumerate(self.TIED):
+            for n in range(each):
+                rows.append((title, 30, frozenset({"apex", "soql"}),
+                             "co %d" % (n % 7)))
+        rows += [("software engineer %d" % (i % 9), 5,
+                  frozenset({"java", "agile"}), "bigco %d" % (i % 20))
+                 for i in range(300)]
+        return rows
+
+    def counted(self, rows):
+        return collections.Counter(t for t, _s, _k, _c in rows)
+
+    def test_canonical_is_the_same_under_every_permutation(self):
+        rows = self.tied_rows()
+        first = local_search.canonical(
+            "systems engineer", self.counted(rows), ("senior", "principal"))
+        rng = random.Random(0)
+        for _ in range(25):
+            shuffled = list(rows)
+            rng.shuffle(shuffled)
+            self.assertEqual(
+                local_search.canonical("systems engineer",
+                                       self.counted(shuffled),
+                                       ("senior", "principal")),
+                first)
+
+    def test_reversed_is_a_permutation_too(self):
+        """random.shuffle can miss the adversarial case; reversal cannot."""
+        rows = self.tied_rows()
+        self.assertEqual(
+            local_search.canonical("systems engineer", self.counted(rows),
+                                   ("senior", "principal")),
+            local_search.canonical("systems engineer",
+                                   self.counted(list(reversed(rows))),
+                                   ("senior", "principal")))
+
+    def test_the_tie_goes_to_the_title_not_the_team_name(self):
+        """Not tuning: word count is the tie-break, and the four losers
+        are all "<title>, <team>" — decoration this corpus should not be
+        searching on."""
+        self.assertEqual(
+            local_search.canonical("systems engineer", self.counted(self.tied_rows()),
+                                   ("senior", "principal")),
+            "business systems engineer")
+
+    def test_commonness_still_wins_over_the_tie_break(self):
+        """The tie-break must never outrank the signal it breaks ties for:
+        a longer title that is genuinely more common still wins."""
+        rows = self.tied_rows()
+        rows += [("systems engineer, network automation", 30,
+                  frozenset({"apex"}), "co %d" % i) for i in range(40)]
+        self.assertEqual(
+            local_search.canonical("systems engineer", self.counted(rows),
+                                   ("senior", "principal")),
+            "systems engineer, network automation")
+
+    def test_rank_title_is_a_total_order(self):
+        """Two distinct titles can never compare equal, or something
+        downstream is still deciding by arrival order."""
+        keys = [local_search.rank_title(11, t) for t in self.TIED]
+        self.assertEqual(len(set(keys)), len(self.TIED))
+
+    def test_role_keywords_survive_permutation(self):
+        """The end of the path, not just the unit: same rows, same
+        searches."""
+        rows = self.tied_rows()
+        person = {"skills": ["apex", "soql"],
+                  "employment": [{"title": "Systems Engineer",
+                                  "company": "Acme"}]}
+        first = local_search.fields_for(person, self.market(rows))
+        rng = random.Random(7)
+        for _ in range(10):
+            shuffled = list(rows)
+            rng.shuffle(shuffled)
+            got = local_search.fields_for(person, self.market(shuffled))
+            self.assertEqual(got["role_keywords"], first["role_keywords"])
+            self.assertEqual(got["title_hints"], first["title_hints"])
+            self.assertEqual(got["from_orphans"], first["from_orphans"])
+
+    def test_candidates_for_skill_survive_permutation(self):
+        """most_common(80) truncated on insertion order, so which
+        fragments even reached the guards depended on row order."""
+        rows = self.tied_rows()
+        first = None
+        rng = random.Random(3)
+        for _ in range(10):
+            shuffled = list(rows)
+            rng.shuffle(shuffled)
+            market = self.market(shuffled)
+            got = local_search.candidates_for_skill(
+                "apex", market.rows, market.index, market.total,
+                seniority=market.seniority)
+            if first is None:
+                first = got
+            self.assertEqual(got, first)
+
+    def test_the_shipped_corpus_permutes_to_the_same_keywords(self):
+        """The real 22,806 rows, not a fixture."""
+        if not os.path.exists(local_search.frozen_path()):
+            self.skipTest("data/title_corpus.json.gz is not built")
+        rows = local_search.frozen_rows()
+        hard, soft = local_search.seniority_lists()
+        seniority = tuple(hard) + tuple(soft)
+
+        def keywords(order):
+            market = local_search.Market(rows=order, seniority=seniority)
+            return local_search.fields_for(INTERNSHIP_ONLY, market)["role_keywords"]
+
+        first = keywords(rows)
+        self.assertTrue(first, "the fixture must produce keywords at all")
+        self.assertEqual(keywords(list(reversed(rows))), first)
+        shuffled = list(rows)
+        random.Random(99).shuffle(shuffled)
+        self.assertEqual(keywords(shuffled), first)
 
 
 if __name__ == "__main__":
