@@ -278,6 +278,12 @@ MONTHS = {m: i for i, m in enumerate(
 # the case that makes this necessary rather than tidy.
 NOT_PROFESSIONAL = ("intern", "internship", "trainee", "student", "volunteer")
 
+# Words that say "this role has not ended". parse_month already knew them;
+# naming them lets the grounding check below tell a legitimate open end
+# from a date that should be findable in the document.
+PRESENT_WORDS = ("present", "current", "now", "ongoing", "till date",
+                 "to date")
+
 
 def today():
     """(year, month) now. A default argument would freeze the clock at
@@ -292,7 +298,7 @@ def parse_month(text, now=None):
     if not text:
         return None
     low = str(text).strip().lower()
-    if low in ("present", "current", "now", "ongoing", "till date", "to date"):
+    if low in PRESENT_WORDS:
         return now
     year = month = None
     for token in low.replace("/", " ").replace("-", " ").replace(",", " ").split():
@@ -467,6 +473,103 @@ def check_grounding(parsed, text):
     return corrections, escalations
 
 
+# A title that is BOTH a traineeship and a promotion describes a span whose
+# countable part is not stated anywhere. "Software Engineer (promoted from
+# Software Engineer Trainee)" is twenty months of which an unknown prefix
+# does not count.
+PROMOTION_MARKERS = ("promoted", "promotion")
+
+
+def row_problems(row, text, now=None):
+    """Why this employment row cannot be counted, if it cannot.
+
+    check_grounding validates the FIELDS call. Employment rows come from a
+    second call and were never checked against the document at all, so the
+    date arithmetic — which is exact, and tested 52/52 — ran over whatever
+    the model said. An offline row reading "Initech Global Holdings /
+    Principal Architect / March 1999 - Present", with no part of it in the
+    résumé, was accepted as 27 years of experience.
+    """
+    bad = []
+    for field in ("company", "title"):
+        value = str(row.get(field) or "").strip()
+        if value and not supported(value, text):
+            bad.append(f"{field} {value!r} is not in the document")
+
+    start, end = parse_month(row.get("start"), now), parse_month(row.get("end"), now)
+    for field, when in (("start", start), ("end", end)):
+        raw = str(row.get(field) or "").strip().lower()
+        if not when or raw in PRESENT_WORDS:
+            # An open end is a word, not a date, and an unreadable one is
+            # already check_years' business — it counts those as a floor
+            # rather than dropping the row.
+            continue
+        # ponytail: the YEAR, not the whole date. A résumé writes "Jan
+        # 2025" and the model returns "January 2025", which no string
+        # comparison survives; the four digits are the part that does. A
+        # year borrowed from a degree line would pass — tighten to a
+        # span offset if a real case ever needs it.
+        if not supported(str(when[0]), text):
+            bad.append(f"{field} year {when[0]} is not in the document")
+
+    if start and end and end < start:
+        bad.append(f"ends {row.get('end')!r} before it starts "
+                   f"{row.get('start')!r}")
+    if start and start > (now or today()):
+        bad.append(f"starts {row.get('start')!r} in the future")
+    return bad
+
+
+def ambiguous_span(row):
+    """Is this row's countable span unknowable from the document?"""
+    title = str(row.get("title") or "").lower()
+    return (any(word in title for word in NOT_PROFESSIONAL)
+            and any(mark in title for mark in PROMOTION_MARKERS))
+
+
+def check_employment(rows, text, now=None):
+    """(corrections, escalations, rows_that_may_be_counted).
+
+    Same shape and the same share threshold as check_grounding, because it
+    is the same judgement: one bad row is a row to drop, most of them bad
+    is a parse that cannot be trusted row by row.
+    """
+    rows = list((rows or {}).get("employment") or [])
+    if not rows:
+        return [], [], []
+
+    problems = [(row, row_problems(row, text, now)) for row in rows]
+    bad = [(row, why) for row, why in problems if why]
+    if not bad:
+        corrections = []
+    elif len(bad) / len(rows) > CONFABULATION_SHARE:
+        detail = "; ".join(why[0] for _row, why in bad[:3])
+        return [], [f"employment: {len(bad)} of {len(rows)} rows are not "
+                    f"supported by the document ({detail})"], []
+    else:
+        corrections = [{
+            "field": "employment", "action": "excluded",
+            "removed": [row for row, _why in bad],
+            "why": "not supported by the document: "
+                   + "; ".join("; ".join(why) for _row, why in bad)}]
+
+    kept = [row for row, why in problems if not why]
+    # Not a drop, and deliberately not a guess. The row is real and the
+    # promotion is real; only the DATE the traineeship ended is missing.
+    # is_professional already excludes it, so the count is a floor — say
+    # so, rather than letting zero read as a measurement.
+    unclear = [row for row in kept if ambiguous_span(row)]
+    if unclear:
+        corrections.append({
+            "field": "employment", "action": "flagged",
+            "removed": unclear,
+            "why": f"{len(unclear)} row(s) record a promotion out of a "
+                   f"traineeship without saying when, so the professional "
+                   f"span is unknown and counts as zero — a floor, not a "
+                   f"measurement. Needs review."})
+    return corrections, [], kept
+
+
 def check_years(parsed, rows, now=None):
     """years_experience against the definition at the top of this file.
 
@@ -542,14 +645,18 @@ def route(parsed, rows, text, now=None):
                 "reasons": ["the local model returned nothing usable"]}
 
     grounding_fixes, grounding_stops = check_grounding(parsed, text)
-    year_fixes, year_stops = check_years(parsed, rows, now)
-    reasons = grounding_stops + year_stops
+    # BEFORE check_years, and it hands back the rows rather than only a
+    # verdict: the arithmetic is exact, so the only way to keep it honest
+    # is to stop unsupported rows reaching it.
+    row_fixes, row_stops, kept = check_employment(rows, text, now)
+    year_fixes, year_stops = check_years(parsed, {"employment": kept}, now)
+    reasons = grounding_stops + row_stops + year_stops
     if reasons:
         return {"decision": "escalate", "result": None,
                 "corrections": [], "reasons": reasons}
 
     result = dict(parsed)
-    corrections = grounding_fixes + year_fixes
+    corrections = grounding_fixes + row_fixes + year_fixes
     for fix in corrections:
         if fix["action"] == "dropped":
             removed = {_key(v) for v in fix["removed"]}
@@ -641,7 +748,13 @@ def demo():
     assert parse_month("present", now) == now
 
     # Grounding: a value not in the document is dropped, most of them escalate.
-    text = "Ada Okonkwo. Backend Engineer at Fettle Health. python, django."
+    # The dates and the second title are here because check_employment reads
+    # this text too: the route cases below reuse `ada` and `hana`, and rows
+    # whose employer, title or year is nowhere in the document no longer
+    # reach the arithmetic.
+    text = ("Ada Okonkwo. Backend Engineer at Fettle Health, Jan 2021 - Mar "
+            "2023. Senior Backend Engineer, Apr 2023 - Present. Structural "
+            "Engineer, Jan 2014 - Dec 2021. python, django.")
     fixes, stops = check_grounding(
         {"name": "Ada Okonkwo", "skills": ["python", "django", "cobol"]}, text)
     assert not stops and fixes[0]["removed"] == ["cobol"], (fixes, stops)
@@ -671,10 +784,38 @@ def demo():
     assert gone["decision"] == "escalate" and "different career" in gone["reasons"][0]
 
     # Unreadable dates everywhere escalate rather than answering zero.
+    # The title is one the document really carries: this case is about
+    # unreadable DATES, and a row that also fails grounding would escalate
+    # for the other reason and prove nothing about check_years.
     blind = route({"name": "Ada Okonkwo", "years_experience": 3},
-                  {"employment": [{"title": "Dev", "start": "?", "end": "?",
-                                   "relevant": True}]}, text)
+                  {"employment": [{"title": "Backend Engineer", "start": "?",
+                                   "end": "?", "relevant": True}]}, text)
     assert blind["decision"] == "escalate" and "could be read" in blind["reasons"][0]
+
+    # An employment row is checked against the document too. Exact
+    # arithmetic over an employer nobody wrote down is still exact.
+    invented = [{"company": "Initech Global Holdings",
+                 "title": "Principal Architect", "start": "March 1999",
+                 "end": "Present", "relevant": True}]
+    fake = route({"name": "Ada Okonkwo", "years_experience": 27},
+                 {"employment": invented}, text)
+    assert fake["decision"] == "escalate", fake
+    assert "not supported by the document" in fake["reasons"][0], fake
+    # One bad row among good ones is a correction, not an escalation —
+    # the same share rule check_grounding uses.
+    mixed = route({"name": "Ada Okonkwo", "years_experience": 27},
+                  {"employment": ada + invented}, text)
+    assert mixed["decision"] == "corrected", mixed
+    assert mixed["result"]["years_experience"] == 5, mixed
+    # A range that ends before it begins counted zero and said nothing.
+    backwards = {"title": "Backend Engineer", "start": "Mar 2023",
+                 "end": "Jan 2021", "relevant": True}
+    assert any("before it starts" in why
+               for why in row_problems(backwards, text, now))
+    # A promotion out of a traineeship with no date is a floor, not a
+    # measurement, and says so rather than answering zero quietly.
+    assert ambiguous_span({"title": "Engineer (promoted from Trainee)"})
+    assert not ambiguous_span({"title": "Engineer (promoted)"})
 
     # A stated number with no rows behind it has nothing to check it against.
     empty = route({"name": "Ada Okonkwo", "years_experience": 7},

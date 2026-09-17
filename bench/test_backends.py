@@ -197,7 +197,13 @@ class ExactDuplicateEmploymentRows(unittest.TestCase):
 
         readable = ROLE
         unreadable = dict(ROLE, start="sometime", end="later")
-        text = "DealerMatix Technologies Software Engineer Onsite react native"
+        # The dates are in the text because the rows have to GROUND before
+        # this test can reach what it is about. local_extract.check_employment
+        # drops a row whose year appears nowhere in the document, and a
+        # fixture that never mentioned 2025 was exercising that instead of
+        # the duplicate-row rule. The assertions below are unchanged.
+        text = ("DealerMatix Technologies Software Engineer Onsite "
+                "react native Jan 2025 - Present")
         parsed = {"name": "", "years_experience": 2, "skills": ["react native"],
                   "titles": ["Software Engineer Onsite"],
                   "companies": ["DealerMatix Technologies"]}
