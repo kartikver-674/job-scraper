@@ -37,6 +37,7 @@ if cfg.REPO_ROOT not in sys.path:
     sys.path.insert(0, cfg.REPO_ROOT)
 
 import local_extract
+import skill_concepts
 
 # `tailor` and `google.genai` are imported inside the two functions that
 # actually reach Gemini (_generate_one and main), NOT here. At module
@@ -387,16 +388,64 @@ def engine_name(engine=None):
     return name
 
 
-def _finish(data, resume_text, output_dir, log):
-    """The two steps every engine's answer goes through.
+def split_compounds(data, log=print):
+    """Compound extracted strings as the atomic skills they name.
 
-    Widen BEFORE re-scoring, so a scanned term is weighted against the
-    market exactly like a reported one — and both before render(), because
-    render() is where the USER's reviewed weights arrive from Sweep's
-    review screen and those must win over both of these.
+    The prompts ask for skills "as written", so the page's own punctuation
+    comes back with them: "JWT / OAuth 2.0", "React Hook Form + Zod",
+    "Agile/Scrum". Each became ONE literal matcher, which fires only on a
+    job that writes the compound exactly the same way — so both halves
+    were invisible to scoring.
+
+    Off unless SWEEP_SKILL_CONCEPTS is set. skill_concepts.split_compound
+    refuses to touch anything it recognises as a single name (ci/cd,
+    node.js, socket.io, c++), and the weight rides along to each half:
+    deciding what a skill is WORTH is a later step.
+    """
+    if not skill_concepts.enabled():
+        return data
+    weights, added = data.get("skill_weights") or [], []
+    out, at = [], {}
+    for entry in weights:
+        parts = skill_concepts.split_compound(entry["term"])
+        for part in parts:
+            if part in at:
+                # A half can collide with a term already in the list —
+                # "jwt / oauth 2.0" (3) splits onto the scanner's own
+                # "jwt" (4). Keep the HIGHER, exactly as from_weights
+                # does: splitting must not cost a term the weight it
+                # already had.
+                existing = out[at[part]]
+                existing["weight"] = max(existing["weight"], entry["weight"])
+                continue
+            at[part] = len(out)
+            out.append({"term": part, "weight": entry["weight"]})
+        if len(parts) > 1:
+            added.append((entry["term"], parts))
+    if added:
+        log(f"  split {len(added)} compound skill(s) into atomic concepts:")
+        for raw, parts in added:
+            log(f"    {raw:28s} -> {', '.join(parts)}")
+    # The raw strings are kept beside the weights, not thrown away: this is
+    # the provenance for anyone asking why a term is in the profile.
+    return dict(data, skill_weights=out,
+                skills_split=[{"raw": raw, "into": parts}
+                              for raw, parts in added])
+
+
+def _finish(data, resume_text, output_dir, log):
+    """The steps every engine's answer goes through.
+
+    Split BEFORE widening, so the scanner and the market both see atomic
+    terms — a compound reaching the corpus lookup is a term the market has
+    never heard of, and abstains on. Widen before re-scoring, so a scanned
+    term is weighted against the market exactly like a reported one — and
+    all of them before render(), because render() is where the USER's
+    reviewed weights arrive from Sweep's review screen and those must win.
     """
     return reweight_from_corpus(
-        widen_skills(data, resume_text, output_dir, log), output_dir, log)
+        widen_skills(split_compounds(data, log), resume_text, output_dir, log),
+        output_dir, log)
 
 
 def generate_local(resume_text, prefs, log=print, output_dir=None, model=None):
