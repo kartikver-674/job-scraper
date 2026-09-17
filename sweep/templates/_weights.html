@@ -29,7 +29,13 @@
            rather than the server having to reproduce this sort order to know
            which weight is whose. #}
         <td class="term">{{ w.term }}
-          {%- if w.term in commodity %}<span class="tag low">Low signal</span>{% endif %}
+          {#- Says what it measures. "Low signal" read as "you are not good
+              at this", and it sat beside TypeScript, Node.js, MongoDB and
+              Salesforce — all of them the candidate's own, all of them
+              common. Commonness is about the market, never about them. #}
+          {%- if w.term in commodity %}<span class="tag low"
+            title="Common in job descriptions, so it separates listings less
+                   — not a judgement about your skill">Common</span>{% endif %}
           <input type="hidden" name="term" value="{{ w.term }}"></td>
         {# Server-rendered level AND a binding: without JavaScript the bar
            is still correct, and with it the bar follows the stepper.
@@ -61,8 +67,13 @@
         </td>
         <td>
           <label class="remove">
-            <input type="checkbox" name="drop" value="{{ w.term }}"
-                   {{ 'checked' if w.term in commodity }}>
+            {# Never pre-checked. A low final weight means the term is
+               common in the market, which is not evidence the person does
+               not have the skill — this box was ticked for TypeScript,
+               Node.js, MongoDB and Salesforce on a résumé built out of
+               them. Removal stays one click away, but it is the user's
+               click. #}
+            <input type="checkbox" name="drop" value="{{ w.term }}">
             <span aria-hidden="true">&times;</span>
             <span class="visually-hidden">Remove {{ w.term }}</span>
           </label>

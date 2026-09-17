@@ -152,8 +152,9 @@
               low however good you are at it.</p>
             {% if commodity %}
               <p class="muted">{{ and_list(commodity) }} appear in most job
-                descriptions, so they tell Sweep very little. They are already
-                ticked for removal — untick one to keep it.</p>
+                descriptions, so they separate listings less than the rest.
+                That is about the market, not about you — they are kept.
+                Tick one to remove it.</p>
             {% endif %}
             {{ weight_editor(derived.skill_weights, commodity) }}
           </div>
@@ -280,13 +281,16 @@
               do not want scores low however good you are at it.
             </div>
 
+            {# Not a warning any more. This screen told people their own
+               core stack was "worth removing" because the market names it
+               often — and pre-ticked the box. #}
             {% if commodity %}
-              <div class="callout warn">
-                <b>Worth removing</b>
+              <div class="callout">
+                <b>Common in most postings</b>
                 {{ and_list(commodity) }} appear in most job descriptions, so
-                they add no signal and every posting scores a little higher for
-                free. They are already ticked for removal below — untick one to
-                keep it.
+                they separate one listing from another less than your rarer
+                skills do. That is about the market, not about you — they are
+                kept, and weighted lower. Tick one below to remove it.
               </div>
             {% endif %}
 

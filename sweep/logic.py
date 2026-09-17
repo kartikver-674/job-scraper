@@ -737,9 +737,12 @@ def reweighted(derived, terms, weights, dropped, add_raw="", add_weight=""):
     would silently keep whichever copy was written last.
 
     Adding a term also UN-DROPS it, by way of the append below rather than a
-    special case: the remove column is pre-checked for the commodity skills on
-    the review screen, so a user who types one of those back has said the more
-    specific thing, and the alternative is their typing doing nothing at all.
+    special case: someone who ticks a term for removal and then types it back
+    has said the more specific thing second, and the alternative is their
+    typing doing nothing at all. (This mattered more when the review screen
+    pre-ticked common terms for removal. It no longer does — a low weight is
+    market commonness, not evidence the skill is absent — but a user can
+    still tick and re-type in one pass, and this is still the right reading.)
     """
     if len(terms) != len(weights):
         raise _FormError("The weights didn't come through — reload the page "
