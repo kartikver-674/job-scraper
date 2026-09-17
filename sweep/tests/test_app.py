@@ -3991,6 +3991,133 @@ class TestPostedAge(Isolated):
         self.assertEqual(app_module.posted_age("2026-09-20", self.TODAY), "")
 
 
+class TestTheFreeSweepScreenSaysSomething(Isolated):
+    """The free path has almost nothing to report and somebody waits about
+    five minutes in front of it.
+
+    fetch_free() makes one pass and returns everything at the end, so
+    live_feed() returns early here: no count that moves, no feed until it is
+    over, no per-source progress. The screen was one indeterminate bar on an
+    otherwise empty page, which reads as a hang.
+
+    The answer is not a number. It is to say what the pass does, what it is
+    searching and how it will rank what it finds — none of which needs a
+    signal the backend does not have. These tests pin that the page says
+    those things, and that the two moving parts are still driven by real
+    state.
+    """
+
+    def _app(self, alive=True, elapsed=None, found=0, free_sources=134):
+        import time as _time
+        proc = FakeProc()
+        if not alive:
+            proc.poll = lambda: 0
+        raw = {"profile": "kanav", "sites": {}, "max_results": {},
+               "free_sources": free_sources}
+        state = {"profile": "kanav", "free_only": True, "proc": proc,
+                 "raw_plan": raw, "live_found": found, "live_items": [],
+                 "plan": {"total": 0.0, "total_searches": 0, "lines": [],
+                          "over_cap": False, "spend_cap": 0.0,
+                          "free_sources": free_sources}}
+        if elapsed is not None:
+            state["run_started_at"] = _time.time() - elapsed
+        env = os.path.join(tempfile.mkdtemp(), ".env")
+        pathlib.Path(env).write_text("APIFY_TOKEN=tok\n")
+        app = app_module.create_app(
+            state=state, extract=lambda p: "x", derive=lambda t, p: DERIVED,
+            check_token=lambda t: (0.0, None), fetch_plan=lambda p: raw,
+            start_sweep=lambda p: proc, read_spend=lambda: 0.0,
+            read_done=lambda p, d: set(), read_rows=lambda p: [],
+            env_path=env, output_dir=tempfile.mkdtemp())
+        app.config.update(TESTING=True, PUBLIC_MODE=True)
+        return app
+
+    def _body(self, **kw):
+        return self._app(**kw).test_client().get("/running").get_data(as_text=True)
+
+    # ---- it is not an empty screen any more ------------------------------
+
+    def test_the_page_says_what_the_pass_is_doing(self):
+        body = self._body(elapsed=120)
+        for heading in ("What Sweep is doing", "Where Sweep is searching",
+                        "How jobs are ranked", "What to expect"):
+            self.assertIn(heading, body)
+
+    def test_the_four_stages_are_marked_from_state_not_from_a_clock(self):
+        # stage() reads p.queued, p.state, p.elapsed and p.found. The only
+        # use of elapsed is the 20s the stage line above it already used.
+        body = self._body(elapsed=120)
+        self.assertEqual(body.count(':class="stageClass('), 4)
+        self.assertIn('this.p.elapsed < 20', body)
+        self.assertIn('return this.p.found ? 2 : 1', body)
+
+    def test_it_says_these_are_passes_rather_than_a_meter(self):
+        # The one sentence that keeps the stage list honest.
+        self.assertIn("not a progress meter", self._body(elapsed=120))
+
+    # ---- what it shows is real -------------------------------------------
+
+    def test_it_shows_the_free_source_count_when_the_plan_knows_it(self):
+        self.assertIn("<b>134</b> free sources", self._body(elapsed=60))
+
+    def test_it_stays_generic_when_the_plan_does_not_know_the_count(self):
+        # free_plan() defaults to 0 when the worker could not be reached.
+        body = self._body(elapsed=60, free_sources=0)
+        self.assertNotIn("free sources,\n          at no cost", body)
+        self.assertIn("Every free source Sweep knows", body)
+
+    def test_the_bar_stays_indeterminate(self):
+        # There is no fraction on this path. A determinate bar here would be
+        # a number nobody measured.
+        body = self._body(elapsed=60)
+        self.assertIn('<div class="working-bar"><span></span></div>', body)
+        self.assertNotIn("activity-fill", body)
+
+    # ---- the skeleton does not pretend -----------------------------------
+
+    def test_the_placeholder_says_why_it_is_empty(self):
+        body = self._body(elapsed=60)
+        self.assertIn("Your shortlist", body)
+        self.assertIn("return everything together at the\n          end of the pass",
+                      body)
+
+    def test_the_placeholder_gives_way_to_real_rows(self):
+        body = self._body(elapsed=60)
+        # Both are in the DOM; Alpine picks on p.latest.length, and the
+        # server hides the wrong one for the state the page loads in.
+        self.assertIn('x-show="p.latest.length"', body)
+        self.assertIn('x-show="!p.latest.length"', body)
+
+    def test_nothing_in_the_placeholder_shimmers(self):
+        # A skeleton that animates says rows are on their way. On this path
+        # they are not, for about five minutes.
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        block = css.split("/* ---- The shape the results will take", 1)[1]
+        self.assertNotIn("animation", block.split("*/", 1)[0] + block[:600])
+
+    # ---- the animation ends when the pass does ---------------------------
+
+    def test_only_a_running_pass_breathes(self):
+        css = (pathlib.Path(app_module.__file__).parent
+               / "static" / "sweep.css").read_text()
+        self.assertIn(".stages:not(.settled) li.now::before", css)
+        self.assertIn('.stages" :class="p.state === \'running\' ? \'\' : \'settled\'',
+                      self._body(elapsed=60).replace("\n", " ").replace("  ", " ")
+                      .replace('<ol class="stages" :class', '.stages" :class')
+                      or "")
+
+    def test_the_activity_row_is_only_there_while_it_runs(self):
+        self.assertIn("p.state === 'running'\"\n         x-cloak",
+                      self._body(elapsed=60))
+
+    def test_a_finished_free_sweep_marks_the_last_stage(self):
+        # stage() returns 3 only on the finished state, so the shortlist row
+        # cannot light up while the pass is still going.
+        self.assertIn('if (this.p.state === "finished") return 3',
+                      self._body(elapsed=300, alive=False, found=41))
+
+
 class TestTheScreenLooksAlive(Isolated):
     """The counts were already there and the screen still read as static.
 

@@ -1178,6 +1178,68 @@ td.score {
   .activity-pct { margin-left: auto; }
 }
 
+/* The free sweep has no fraction to show, so the row carries the indeterminate
+   bar instead of the determinate one. Same row, same dot, same breath. */
+.activity > .working-bar { flex: 1 1 14rem; width: auto; }
+
+/* ---- Passes, not a meter ------------------------------------------------
+
+   The free pass returns everything at the end, so there is no percentage
+   that is true until it is 100. What CAN be said is which pass is under way,
+   and that is what this is: four rows, one marked, marked only where the run
+   state or a row that actually exists says so. */
+.stages { list-style: none; margin: 0; padding: 0; }
+.stages li {
+  display: grid; grid-template-columns: auto 1fr; column-gap: var(--s4);
+  padding: var(--s3) 0;
+  border-top: 1px solid var(--rule);
+}
+.stages li:first-child { border-top: 0; }
+.stages li > b { font-size: 13px; font-weight: 600; color: var(--warm); }
+.stages li > .meta { grid-column: 2; }
+/* The marker. A ring for what is coming, a filled dot for what is under way,
+   a tick for what is behind. */
+.stages li::before {
+  content: ""; grid-row: 1 / span 2; align-self: start;
+  margin-top: 5px; width: 9px; height: 9px; border-radius: 50%;
+  border: 1px solid var(--dim); background: transparent;
+}
+.stages li.done::before { content: "\2713"; border: 0; margin-top: 0;
+  width: auto; height: auto; font-size: 11px; color: var(--free);
+  line-height: 1.5; }
+.stages li.done > b { color: var(--slate); }
+.stages li.now::before { border-color: var(--paid); background: var(--paid); }
+.stages li.now > b { color: var(--chalk); }
+.stages li.next > b { color: var(--slate); }
+.stages li.next > .meta { color: var(--dim); }
+/* Only the pass actually under way breathes, and only while the run is. The
+   class comes off with p.state, so a stopped sweep settles by itself. */
+.stages:not(.settled) li.now::before {
+  animation: runpulse 2s ease-in-out infinite;
+}
+.stages.settled li.now::before { border-color: var(--slate); background: var(--slate); }
+
+/* ---- A list that is prose, not data -------------------------------------
+   Used where a panel explains something: a bold lead and a quiet line under
+   it. No bullets — the bold is the bullet. */
+.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s4); }
+.plain li { display: grid; gap: var(--s1); }
+.plain li > b { font-size: 13px; font-weight: 600; color: var(--warm); }
+.numeral-inline { margin: 0; color: var(--warm); }
+.numeral-inline b { font-size: 20px; color: var(--paid); font-weight: 700; }
+
+/* ---- The shape the results will take ------------------------------------
+   Not a loading skeleton pretending rows are on their way: on this path they
+   are not, for about five minutes. It is the shape of the panel, dimmed, with
+   the sentence under it saying exactly that. So it does not shimmer either. */
+.skeleton { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s4); }
+.skeleton li { display: grid; gap: var(--s2); opacity: .45; }
+.bone { display: block; height: 9px; border-radius: 3px; background: var(--rule); }
+.bone.w-title  { width: 62%; height: 11px; }
+.bone.w-title2 { width: 48%; height: 11px; }
+.bone.w-title3 { width: 55%; height: 11px; }
+.bone.w-meta   { width: 34%; }
+
 /* ---- The front door ----------------------------------------------------- */
 
 /* Narrower than the 88rem the data screens use. This page is one form and
