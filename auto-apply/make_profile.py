@@ -20,6 +20,7 @@ Verify the result at zero cost before spending:
 """
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -36,6 +37,7 @@ if cfg.REPO_ROOT not in sys.path:
     sys.path.insert(0, cfg.REPO_ROOT)
 
 import local_extract
+import skill_concepts
 
 # `tailor` and `google.genai` are imported inside the two functions that
 # actually reach Gemini (_generate_one and main), NOT here. At module
@@ -279,6 +281,100 @@ def _is(exc, needles):
     return any(n in low for n in needles)
 
 
+def reweight_from_evidence(data, resume_text, output_dir=None, log=print):
+    """Weights from where each skill APPEARS, with the market kept apart.
+
+    The replacement for reweight_from_corpus when SWEEP_SKILL_EVIDENCE is
+    set. What changes is not the arithmetic but the contract: the old path
+    multiplied a centrality proxy by market rarity and produced one
+    number, so the market decided both questions. Measured on the audited
+    résumé, that put Firebase Cloud Messaging on 5 and TypeScript on 2 —
+    a library used once in one side project above the language the
+    candidate writes every working day.
+
+    Here the two stay separate. skill_evidence reads the document and
+    assigns a TIER; the corpus still measures separation exactly as it
+    does today; and the tier's band decides how far the market may move
+    the result. Rarity can order two skills the résumé ranks alike. It
+    cannot carry a skills-list claim above professional work.
+
+    The same rules run for every concept whatever named it — audit defect
+    C1, where the identical Apex evidence scored 3 when Qwen reported it
+    and 5 when the scanner recovered it. Origin is recorded, never
+    consulted.
+    """
+    if cfg.REPO_ROOT not in sys.path:
+        sys.path.insert(0, cfg.REPO_ROOT)
+    import corpus_signal
+    import skill_evidence
+
+    entries = [e for e in data.get("skill_weights") or ()
+               if str(e.get("term", "")).strip()]
+    if not entries:
+        return data
+    weights = {e["term"].strip().lower(): e["weight"] for e in entries}
+    concepts = skill_concepts.from_weights(weights)
+    freqs, source = corpus_signal.market_signal(output_dir)
+
+    # The market answers about the CONCEPT, not about whichever spellings
+    # this candidate's extractor happened to emit.
+    #
+    # This was max(separation) over the concept's id AND its observed raw
+    # strings, and "es6" is rare where "javascript" is not — so the same
+    # person with the same résumé and the same corpus measured JavaScript
+    # at band 1 with one spelling and band 4 with six. Rarity of an alias
+    # is not rarity of the concept.
+    #
+    # skill_concepts.market_signal_for asks the concept's DECLARED keys in
+    # a fixed order and takes the first the corpus can measure. The full
+    # observation is kept so an audit can ask which key answered.
+    observed = {c.id: skill_concepts.market_signal_for(
+        c.id, freqs, corpus_signal) for c in concepts}
+    separations = {cid: row["separation"] for cid, row in observed.items()}
+
+    assessed = skill_evidence.assess_all(concepts, resume_text, separations)
+    by_id = {row["id"]: row for row in assessed}
+
+    # Back onto the flat term->weight interface every consumer speaks.
+    # Each raw spelling carries its concept's weight, so matching keeps
+    # every alias while the NUMBER is now the concept's one answer.
+    out = []
+    for entry in entries:
+        row = by_id.get(skill_concepts.resolve(entry["term"]))
+        out.append({"term": entry["term"],
+                    "weight": row["weight"] if row else entry["weight"]})
+
+    where = ("measured in output/" if source == "live"
+             else f"from {corpus_signal.FROZEN_NAME}")
+    log(f"  weighted {len(assessed)} concept(s) by résumé evidence, with "
+        f"market separation {where} kept separate:")
+    order = {name: i for i, name in enumerate(reversed(skill_evidence.ORDER))}
+    for row in sorted(assessed, key=lambda r: (order[r["tier"]],
+                                               -r["weight"], r["display"]))[:12]:
+        rarity = ("unmeasured" if row["market_separation"] is None
+                  else f"market {row['market_separation']}/5")
+        log(f"    {row['weight']}  {row['display']:<26} "
+            f"{row['tier']:<17} {rarity:<11} {row['why']}")
+    if len(assessed) > 12:
+        log(f"    ... and {len(assessed) - 12} more")
+    return dict(data, skill_weights=out,
+                skill_importance=[
+                    # `occurrences` and `status_counts` are R4a: what each
+                    # mention MEANT, kept as offsets and sentence digests so
+                    # a tier can be argued with after the run. No résumé
+                    # text is copied into the profile.
+                    dict({k: row[k] for k in ("id", "display", "tier", "why",
+                                              "weight", "market_separation",
+                                              "sections", "occurrences",
+                                              "status_counts",
+                                              "evidence_strength",
+                                              "independent_entries")},
+                         # Which corpus term answered for this concept, and
+                         # on what denominator. Internal provenance, not UI.
+                         market=observed.get(row["id"]))
+                    for row in assessed])
+
+
 def reweight_from_corpus(data, output_dir=None, log=print):
     """Re-score the model's skill weights against the jobs already scraped.
 
@@ -386,16 +482,70 @@ def engine_name(engine=None):
     return name
 
 
-def _finish(data, resume_text, output_dir, log):
-    """The two steps every engine's answer goes through.
+def split_compounds(data, log=print):
+    """Compound extracted strings as the atomic skills they name.
 
-    Widen BEFORE re-scoring, so a scanned term is weighted against the
-    market exactly like a reported one — and both before render(), because
-    render() is where the USER's reviewed weights arrive from Sweep's
-    review screen and those must win over both of these.
+    The prompts ask for skills "as written", so the page's own punctuation
+    comes back with them: "JWT / OAuth 2.0", "React Hook Form + Zod",
+    "Agile/Scrum". Each became ONE literal matcher, which fires only on a
+    job that writes the compound exactly the same way — so both halves
+    were invisible to scoring.
+
+    Off unless SWEEP_SKILL_CONCEPTS is set. skill_concepts.split_compound
+    refuses to touch anything it recognises as a single name (ci/cd,
+    node.js, socket.io, c++), and the weight rides along to each half:
+    deciding what a skill is WORTH is a later step.
     """
-    return reweight_from_corpus(
-        widen_skills(data, resume_text, output_dir, log), output_dir, log)
+    if not skill_concepts.enabled():
+        return data
+    weights, added = data.get("skill_weights") or [], []
+    out, at = [], {}
+    for entry in weights:
+        parts = skill_concepts.split_compound(entry["term"])
+        for part in parts:
+            if part in at:
+                # A half can collide with a term already in the list —
+                # "jwt / oauth 2.0" (3) splits onto the scanner's own
+                # "jwt" (4). Keep the HIGHER, exactly as from_weights
+                # does: splitting must not cost a term the weight it
+                # already had.
+                existing = out[at[part]]
+                existing["weight"] = max(existing["weight"], entry["weight"])
+                continue
+            at[part] = len(out)
+            out.append({"term": part, "weight": entry["weight"]})
+        if len(parts) > 1:
+            added.append((entry["term"], parts))
+    if added:
+        log(f"  split {len(added)} compound skill(s) into atomic concepts:")
+        for raw, parts in added:
+            log(f"    {raw:28s} -> {', '.join(parts)}")
+    # The raw strings are kept beside the weights, not thrown away: this is
+    # the provenance for anyone asking why a term is in the profile.
+    return dict(data, skill_weights=out,
+                skills_split=[{"raw": raw, "into": parts}
+                              for raw, parts in added])
+
+
+def _finish(data, resume_text, output_dir, log):
+    """The steps every engine's answer goes through.
+
+    Split BEFORE widening, so the scanner and the market both see atomic
+    terms — a compound reaching the corpus lookup is a term the market has
+    never heard of, and abstains on. Widen before re-scoring, so a scanned
+    term is weighted against the market exactly like a reported one — and
+    all of them before render(), because render() is where the USER's
+    reviewed weights arrive from Sweep's review screen and those must win.
+    """
+    widened = widen_skills(split_compounds(data, log), resume_text,
+                           output_dir, log)
+    if skill_concepts.evidence_enabled():
+        # AFTER widening on purpose. A scanner-recovered term must reach
+        # the tiers on exactly the same footing as a model-reported one —
+        # that asymmetry is the defect (C1), and running importance
+        # before recovery would rebuild it one step earlier.
+        return reweight_from_evidence(widened, resume_text, output_dir, log)
+    return reweight_from_corpus(widened, output_dir, log)
 
 
 def generate_local(resume_text, prefs, log=print, output_dir=None, model=None):
@@ -524,10 +674,63 @@ def _generate_one(client, model, resume_text, prefs, attempts, sleep, log):
             sleep(5 * (attempt + 1))
 
 
+# The scale every consumer shares. RULE 1 states it to the model ("use 1-5
+# and nothing higher: every existing profile is on that scale, and score
+# thresholds are compared across profiles"), and until now only the model
+# was asked to obey it: -10 became +10 through abs(), and 10**9 was
+# accepted as a skill weight.
+WEIGHT_RANGE = (1, 5)
+
+# Penalties are a different, documented scale — RESPONSE_SCHEMA calls them
+# "positive severity 1-12", negated at render so the model cannot get the
+# sign backwards.
+PENALTY_RANGE = (1, 12)
+
+
+def _whole(value, label):
+    """An integer, or a refusal. bool is not an integer here.
+
+    True passed int() as 1 and became a year of experience; 1.9 truncated
+    to 1 without saying so. A model answer that is the wrong TYPE is a
+    malformed answer, not a number to round.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a whole number, got {value!r}")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    raise ValueError(f"{label} must be a whole number, got {value!r}")
+
+
 def _weights(entries, sign=1):
-    """Fold [{term, weight}] into {term: weight}, lowercased, sign applied."""
-    return {e["term"].strip().lower(): sign * abs(int(e["weight"])) for e in entries
-            if e["term"].strip()}
+    """Fold [{term, weight}] into {term: weight}, lowercased, sign applied.
+
+    Bounded here because this is the boundary every engine shares — the
+    local path, the Gemini path, the review screen and hand-written
+    answers all render through it. Out of range is refused rather than
+    clamped: a weight of 99 is not a strong opinion, it is a malformed
+    answer, and silently turning it into 5 would hide that.
+    """
+    low, high = PENALTY_RANGE if sign < 0 else WEIGHT_RANGE
+    kind = "penalty" if sign < 0 else "skill"
+    out = {}
+    for entry in entries:
+        term = str(entry["term"]).strip().lower()
+        if not term:
+            continue
+        weight = _whole(entry["weight"], f"{kind} weight for {term!r}")
+        # abs() for penalties only, where the schema documents it as the
+        # guard against a reversed sign. For skills it turned the most
+        # negative answer into the strongest positive signal.
+        if sign < 0:
+            weight = abs(weight)
+        if not low <= weight <= high:
+            raise ValueError(
+                f"{kind} weight for {term!r} must be between {low} and "
+                f"{high}, got {weight}")
+        out[term] = sign * weight
+    return out
 
 
 def _load_config():
@@ -570,6 +773,27 @@ def validate_keys(rendered_keys):
     if unknown:
         raise KeyError(f"not real config keys: {', '.join(unknown)}")
     return config
+
+
+# The same window sweep.logic.with_experience already enforces on the review
+# form, for the reason its comment gives: this number becomes
+# SETTINGS["max_experience_years"] (years + 3) and SEARCH["experience_years"],
+# and both are compared against what a posting DEMANDS. Unbounded above, it
+# stops filtering anything; negative, max_experience_years goes negative too
+# and every posting is dropped — a search that silently returns nothing.
+# The form gate only covers the field the user posted; the model's own figure
+# reaches here ungated.
+MAX_CAREER_YEARS = 60
+
+
+def _years(value):
+    """years_experience, or a refusal. Never a profile that cannot work."""
+    years = _whole(value, "years_experience")
+    if not 0 <= years <= MAX_CAREER_YEARS:
+        raise ValueError(
+            f"years_experience must be between 0 and {MAX_CAREER_YEARS}, "
+            f"got {years}")
+    return years
 
 
 def _fmt(value, indent=8):
@@ -646,6 +870,166 @@ def _fmt_feeds(queries):
             "}\n\n")
 
 
+# Exactly two characters carry syntactic power inside a """...""" block: a
+# run of quotes can close it, and a backslash escapes whatever follows —
+# including the closing quotes. field_summary and notes are free model prose
+# interpolated straight into the module docstring, and an f-string escapes
+# nothing, so prose containing
+#
+#     """
+#     WHATEVER = 1
+#
+# closed the docstring and made the next line a top-level statement in a
+# file config.py imports. Every other value in a profile goes through
+# repr() already; only the prose did not.
+_QUOTE_RUN = re.compile(r'"{2,}')
+
+
+def _prose(text):
+    """Model prose, safe to interpolate into a triple-quoted docstring.
+
+    Not a blocklist of patterns — the removal of the only two symbols that
+    can act. str.replace('\"\"\"', '\"') would NOT do: replace scans left to
+    right without rescanning, so nine quotes become three and the escape is
+    back. Collapsing every run of two or more leaves no two adjacent, so no
+    three can exist however they arrived.
+    """
+    return _QUOTE_RUN.sub('"', str(text or "")).replace("\\", " ")
+
+
+# Every top-level name render() is allowed to define. A GENERATED profile is
+# DATA: config.py imports profiles/<name>.py, so anything else in there runs.
+PROFILE_NAMES = frozenset({
+    "SITES", "FEEDS", "SEARCH", "SETTINGS", "SCORING",
+    "ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE",
+    # Which engine wrote this file. Inert to config._overlay, which only
+    # reads OVERLAYABLE names, so it changes nothing about how a profile
+    # behaves — it is there so a reader, a rollback and a bug report can
+    # all tell v1 output from v2 output without guessing.
+    "PROFILE_SCHEMA",
+})
+
+# Bumped when the MEANING of a profile's fields changes, not when the
+# engine changes: v1 and v2 both emit the same keys with the same types,
+# so both are schema 1. A future step that adds evidence to the file
+# itself is what makes this 2.
+PROFILE_SCHEMA = 1
+
+# Profiles written before this field existed. Readable, and known to be
+# v1 output — absence IS the version, which is why nothing needs
+# migrating on disk.
+LEGACY_SCHEMA = 0
+
+
+def profile_schema(module):
+    """Which engine wrote a profile, and whether this build can read it.
+
+    Returns {"version", "engine", "readable", "why"}. Never raises on an
+    old file: a profile written before PROFILE_SCHEMA existed is v1
+    output and perfectly readable, and ABSENCE is how we know that —
+    which is why nothing on disk needs migrating.
+
+    A profile from a FUTURE schema is the case that must fail loudly. Its
+    fields may mean something this build does not implement, and quietly
+    running it would spend real money on a search nobody configured.
+    """
+    stamp = getattr(module, "PROFILE_SCHEMA", None)
+    if stamp is None:
+        return {"version": LEGACY_SCHEMA, "engine": "v1", "readable": True,
+                "why": "written before profiles carried a schema — v1 output"}
+    if isinstance(stamp, int):          # a bare int is a tolerated shorthand
+        stamp = {"version": stamp, "engine": "unknown"}
+    if not isinstance(stamp, dict) or not isinstance(stamp.get("version"), int):
+        return {"version": None, "engine": "unknown", "readable": False,
+                "why": (f"PROFILE_SCHEMA is {type(stamp).__name__}, not a "
+                        f"version — this file was not written by "
+                        f"make_profile.render()")}
+    version = stamp["version"]
+    if version > PROFILE_SCHEMA:
+        return {"version": version, "engine": stamp.get("engine", "unknown"),
+                "readable": False,
+                "why": (f"profile schema {version} was written by a newer "
+                        f"build than this one (schema {PROFILE_SCHEMA}). "
+                        f"Upgrade, or regenerate the profile with this "
+                        f"build — do not run it as-is.")}
+    return {"version": version, "engine": stamp.get("engine", "unknown"),
+            "readable": True, "why": f"schema {version}"}
+
+
+def load_profile(name):
+    """Import profiles/<name>.py, or fail with a compatibility message.
+
+    The one place that turns "this file is from the future" into a
+    sentence a person can act on, rather than an AttributeError four
+    frames into a paid run.
+    """
+    import importlib
+    if cfg.REPO_ROOT not in sys.path:
+        sys.path.insert(0, cfg.REPO_ROOT)
+    module = importlib.import_module(f"profiles.{name}")
+    stamp = profile_schema(module)
+    if not stamp["readable"]:
+        raise ValueError(f"profiles/{name}.py: {stamp['why']}")
+    return module, stamp
+
+
+def check_module(source):
+    """Source RENDERED BY THIS FILE, parsed and checked before it is written.
+
+    Scope, and it matters: this judges what render() just built out of model
+    output, never a profile a person wrote. The nine hand-written ones in
+    profiles/ import helpers and define their own locals (ATS_BOARDS,
+    _COUNTRIES, OPTUM) — deliberate, reviewed, in git, and none of this
+    applies to them. Only the path from a résumé to an imported file needs
+    a gate, because only that path has a stranger's prose in it.
+
+    Belt and braces to _prose's razor: _prose makes the docstring
+    inescapable, and this refuses the file if anything got through anyway.
+    Returns the source, so it can wrap a return and no caller can forget it.
+
+    ast.parse and ast.literal_eval both READ. Nothing here executes the
+    module, which is the point — the check has to happen while the payload
+    is still text.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        raise ValueError(
+            f"generated profile is not valid Python: {exc}") from exc
+
+    allowed = ", ".join(sorted(PROFILE_NAMES))
+    for node in tree.body:
+        if (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)):
+            continue  # the module docstring, and only in that position
+        if not isinstance(node, ast.Assign):
+            raise ValueError(
+                f"generated profile line {node.lineno}: a top-level "
+                f"{type(node).__name__} is not allowed — a profile is the "
+                f"docstring and {allowed}")
+        for target in node.targets:
+            if not isinstance(target, ast.Name):
+                raise ValueError(
+                    f"generated profile line {node.lineno}: only plain "
+                    f"top-level names may be assigned")
+            if target.id not in PROFILE_NAMES:
+                raise ValueError(
+                    f"generated profile line {node.lineno}: assigns "
+                    f"{target.id!r}, which is not one of {allowed}")
+        # A profile holds data, never an expression to evaluate later.
+        # literal_eval raises on anything with a call, a name or an
+        # operator in it.
+        try:
+            ast.literal_eval(node.value)
+        except (ValueError, SyntaxError, TypeError, MemoryError,
+                RecursionError) as exc:
+            raise ValueError(
+                f"generated profile line {node.lineno}: "
+                f"{getattr(node.targets[0], 'id', '?')} is not a literal "
+                f"({exc})") from exc
+    return source
+
+
 def render(name, data, prefs):
     """Render profiles/<name>.py source from the model's JSON and the preferences.
 
@@ -670,7 +1054,8 @@ def render(name, data, prefs):
     }
     config = validate_keys(sections)
 
-    years = int(data["years_experience"])
+    engine = skill_concepts.engine_version()
+    years = _years(data["years_experience"])
     skills = _weights(data["skill_weights"])
     # The scanned terms and why each was kept, as a comment beside the
     # weights they became. notes carries the count; this carries the
@@ -788,15 +1173,18 @@ def render(name, data, prefs):
     penalties = {term: weight
                  for term, weight in _weights(data["penalty_terms"], sign=-1).items()
                  if term not in excluded}
-    return f'''"""{name} — generated from a résumé by auto-apply/make_profile.py.
+    # check_module wraps the return so no caller can forget it: the CLI and
+    # Sweep's POST /review both come through here, and the file this builds
+    # is imported by config.py.
+    return check_module(f'''"""{name} — generated from a résumé by auto-apply/make_profile.py.
 
-{data["field_summary"]}
+{_prose(data["field_summary"])}
 
     python scraper.py --profile {name} --dry-run   # cost check, free
     python scraper.py --profile {name} --yes
 
 HOW THE MODEL READ THIS RÉSUMÉ
-{data["notes"]}
+{_prose(data["notes"])}
 
 Skill weights are by DISCRIMINATIVE POWER, not centrality: a term that would
 also appear in an unwanted job is weighted low however core it is to this
@@ -808,6 +1196,10 @@ command line, not from the résumé. Anything absent here inherits from config.p
 Re-scoring is free — after editing weights run `python rescore_from_apify.py`
 rather than paying to scrape again.
 """
+
+# Which engine wrote this file, for a rollback and a bug report. Inert:
+# config._overlay only reads the names it knows.
+PROFILE_SCHEMA = {{"version": {PROFILE_SCHEMA}, "engine": {engine!r}}}
 
 {extra_sites}{extra_feeds}SEARCH = {{
     "role_keywords": {_fmt(data["role_keywords"])},
@@ -850,7 +1242,7 @@ ATS_TITLE_HINTS = {_fmt(hints, indent=4)}
 
 # Checked first, so it wins: different CAREERS that borrow the same words.
 ATS_TITLE_EXCLUDE = {_fmt(excludes, indent=4)}
-'''
+''')
 
 
 def _csv(value):

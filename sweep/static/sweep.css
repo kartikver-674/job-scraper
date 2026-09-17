@@ -1530,3 +1530,12 @@ td.score {
   summary { min-height: 44px; display: flex; align-items: center; }
   .tick { min-width: 44px; min-height: 44px; }
 }
+
+/* Importance badges on the review screen. Two badges sit side by side and
+   they answer different questions — what the RÉSUMÉ shows about this
+   person, and what the MARKET does with the word — so they must not read
+   as one scale. .tag.low (the market's "Common") is already the muted
+   grey; these three step up from it rather than colouring a verdict. */
+.tag.core { color: var(--chalk); border-color: var(--chalk); }
+.tag.strong { color: var(--chalk); border-color: var(--dim); }
+.tag.support { color: var(--slate); border-color: var(--dim); }

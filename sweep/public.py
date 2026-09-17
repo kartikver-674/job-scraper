@@ -566,12 +566,25 @@ def harden(app, env=None, store=None, limit=None):
     def healthz():
         """Render's health check. Cheap on purpose: it touches no model,
         no session and no disk, so a health probe can never wake the GPU
-        or cost anything."""
+        or cost anything.
+
+        The engine block is here so a rollback can be CONFIRMED rather
+        than assumed. It reports what this process would derive with —
+        the worker reports its own, and a profile's own stamp still beats
+        both. No secret, no path, no user data.
+        """
+        import make_profile
+        import skill_concepts
+        effective = skill_concepts.effective()
         return {"status": "ok", "mode": "public-beta",
                 "sessions": len(store),
                 "market_signal_source": app.config["MARKET_SIGNAL_SOURCE"],
                 "title_corpus_source": app.config["TITLE_CORPUS_SOURCE"],
-                "title_corpus_rows": app.config["TITLE_CORPUS_ROWS"]}
+                "title_corpus_rows": app.config["TITLE_CORPUS_ROWS"],
+                "derivation_engine": effective["version"],
+                "engine_source": effective["source"],
+                "role_families": effective["roles"],
+                "profile_schema": make_profile.PROFILE_SCHEMA}
 
     @app.errorhandler(worker_client.WorkerError)
     def sweep_service_trouble(exc):

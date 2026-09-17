@@ -38,6 +38,23 @@ services:
       # service. An error here is an error — never a silent paid fallback.
       - key: SWEEP_PROFILE_ENGINE
         value: local
+      # PUBLIC BETA: the v2 skill/weight engine, requested explicitly.
+      # The CODE DEFAULT stays v1, so this line is the whole decision —
+      # nothing is carried by an implicit default, in either direction.
+      #
+      # ROLLBACK is this value back to v1. Nothing else changes: profiles
+      # already derived as v2 keep scoring as v2 because the engine that
+      # derived a profile is stamped into it and config.py binds that
+      # stamp at load. New profiles derive as v1 from the next request.
+      #
+      # The worker does not need a matching value, and must not be given
+      # one: a profile carries the engine that derived it, so derivation
+      # and scoring cannot disagree by accident.
+      #
+      # ROLE CONSTRUCTION (R5) IS NOT IN THIS RELEASE. role_families.py is
+      # not shipped and skill_concepts.roles_enabled() is hard-false.
+      - key: SWEEP_PROFILE_ENGINE_VERSION
+        value: v2
       - key: SWEEP_INFERENCE_BACKEND
         value: remote
       # Generated once by Render and then stable: a key that changed on each

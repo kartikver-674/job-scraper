@@ -1028,12 +1028,47 @@ class TestReviewScreen(Isolated):
         self.assertIn("react native", body)
         self.assertIn("Full-stack React Native developer", body)
 
-    def test_low_weight_commodity_terms_are_flagged_for_removal(self):
-        # 'git' and 'javascript' appear in most postings and carry no signal.
+    def test_common_terms_are_named_but_not_ticked_for_removal(self):
+        """Market commonness is not evidence the person lacks the skill.
+
+        This screen used to pre-tick the remove box for every final weight
+        <= 2. On a real résumé that was TypeScript, Node.js, MongoDB and
+        Salesforce — the candidate's own working stack, ticked for deletion
+        because the market names them often. The terms are still called
+        out; nothing is removed on their behalf.
+        """
         app, _ = self._app()
         body = app.test_client().get("/review").get_data(as_text=True)
-        self.assertIn("Worth removing", body)
+        self.assertIn("Common in most postings", body)
         self.assertIn("git", body)
+        self.assertNotIn("Worth removing", body)
+        self.assertNotIn("already ticked for removal", body)
+        self.assertNotIn("checked", body.split("<table")[-1])
+
+    def test_no_skill_arrives_pre_selected_for_deletion(self):
+        """The invariant, not the copy: whatever the weights, the POST this
+        screen would send drops nothing."""
+        app, _ = self._app()
+        body = app.test_client().get("/review").get_data(as_text=True)
+        for row in body.split('name="drop"')[1:]:
+            self.assertNotIn("checked", row.split(">")[0])
+
+    def test_a_common_skill_survives_approving_the_form_untouched(self):
+        """End to end: submit the screen as rendered and the weight-2 and
+        weight-1 terms are still in the written profile."""
+        app, _ = self._app()
+        written = {}
+        app.write_profile = lambda name, source: written.update(
+            {"name": name, "source": source})
+        weights = DERIVED["skill_weights"]
+        r = app.test_client().post("/review", data={
+            "name": "kanav",
+            "term": [w["term"] for w in weights],
+            "weight": [str(w["weight"]) for w in weights],
+        })
+        self.assertIn(r.status_code, (302, 303), written)
+        self.assertIn("javascript", written["source"])
+        self.assertIn("git", written["source"])
 
     def test_review_without_a_resume_sends_you_back_to_upload(self):
         app, _ = self._app(state={})
@@ -6373,8 +6408,8 @@ class TestAddingASkill(Isolated):
                          [{"term": "react native", "weight": 1}])
 
     def test_adding_a_term_takes_it_back_off_the_remove_list(self):
-        # The remove column is pre-checked for commodity skills, so someone
-        # typing one back has said the more specific thing.
+        # Someone who ticks a term for removal and then types it back has
+        # said the more specific thing second.
         app = self._app()
         self.review(app, drop=["javascript"], add_skills="javascript",
                     add_weight="5")

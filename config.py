@@ -973,21 +973,52 @@ def _overlay(module, target=None):
     return changed
 
 
-PROFILE = _selected_profile()
-PROFILE_CHANGED = []
-if PROFILE:
+def load_profile_module(name):
+    """(module, schema stamp) for one profile, or exit with the reason.
+
+    THE loader. make_profile.load_profile() had the same schema check and
+    production never called it, so the protection was real and
+    unreachable — a profile written by a newer build loaded silently and
+    its search fields were overlaid onto config. Anything that imports a
+    profile goes through here now.
+    """
     import importlib
     try:
-        _module = importlib.import_module(f"profiles.{PROFILE}")
+        module = importlib.import_module(f"profiles.{name}")
     except ImportError as exc:
         # Loud, not silent: falling back to the default profile would quietly run
         # someone else's search and cost real money doing it.
-        _available = sorted(
+        available = sorted(
             f.removesuffix(".py")
             for f in os.listdir(os.path.join(os.path.dirname(__file__), "profiles"))
             if f.endswith(".py") and not f.startswith("_"))
-        sys.exit(f"Unknown profile '{PROFILE}' ({exc}). "
-                 f"Available: {', '.join(_available) or '(none)'}")
+        sys.exit(f"Unknown profile '{name}' ({exc}). "
+                 f"Available: {', '.join(available) or '(none)'}")
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "auto-apply"))
+    try:
+        import make_profile
+    finally:
+        sys.path.pop(0)
+    stamp = make_profile.profile_schema(module)
+    if not stamp["readable"]:
+        # Same loudness, same reason: a profile this build does not
+        # understand must not be run, because running it spends money on a
+        # search nobody configured.
+        sys.exit(f"Cannot run profiles/{name}.py: {stamp['why']}")
+    return module, stamp
+
+
+PROFILE = _selected_profile()
+PROFILE_CHANGED = []
+# Which engine derived the loaded profile, so the machine SCORING it does
+# not have to be told separately. Two machines agreeing by coincidence is
+# not a contract: Render pins derivation, and the worker's scraper child
+# reads its own environment.
+PROFILE_ENGINE = None
+if PROFILE:
+    _module, _stamp = load_profile_module(PROFILE)
+    PROFILE_ENGINE = _stamp.get("engine")
     PROFILE_CHANGED = _overlay(_module)
     # Keep each person's sweeps apart unless the profile picks its own directory.
     if "SETTINGS" not in PROFILE_CHANGED or "output_dir" not in getattr(_module, "SETTINGS", {}):

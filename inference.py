@@ -338,6 +338,16 @@ class LocalOllama:
         self.last_metrics = {k: v for k, v in payload.items()
                              if isinstance(v, (int, float))
                              and not isinstance(v, bool)}
+        # The server says why it stopped, and "length" means the answer was
+        # cut off at the token cap. A schema-constrained decoder can still
+        # close its braces on the way out, so a truncated answer does not
+        # reliably fail json.loads — it can arrive as valid JSON that is
+        # simply missing rows. Silently short employment is worse than an
+        # error, because every consumer downstream trusts the count.
+        if payload.get("done_reason") == "length":
+            raise BadModelOutput(
+                f"{model} hit its output limit before finishing — the answer "
+                f"is truncated")
         try:
             return json.loads(payload["response"])
         except (KeyError, TypeError, json.JSONDecodeError):

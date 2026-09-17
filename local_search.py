@@ -461,6 +461,27 @@ def keywords_for(own, rows, idx, total, want=12, need=2,
 # Real job titles, not n-gram artifacts
 # --------------------------------------------------------------------------
 
+def rank_title(count, title):
+    """The sort key that makes title selection independent of row order.
+
+    A Counter iterates in INSERTION order, so `count > best` kept the
+    first title seen at the winning count and `most_common` broke ties the
+    same way. Live and frozen output/ hold the same 22,806 rows in
+    different orders, and that alone moved "systems engineer" between
+    "systems engineer, network automation" and "business systems
+    engineer" — which then displaced "salesforce developer" from
+    role_keywords. Same rows, different answer, no data change.
+
+    Commonness still decides. Word count breaks the tie, and it is the
+    signal this module already reasons in: these go out as literal search
+    strings, so the shorter of two equally-posted titles is the one
+    carrying less employer-specific decoration (", network automation",
+    ", amazon now"). The title itself is the final key, so the result is
+    total — never a coin flip on dict order.
+    """
+    return (-count, len(title.split()), title)
+
+
 def canonical(fragment, titles, seniority=(), max_words=4):
     """The most common COMPLETE job title containing this fragment.
 
@@ -474,25 +495,22 @@ def canonical(fragment, titles, seniority=(), max_words=4):
     needle = fragment.strip().lower()
     if not needle:
         return None
-    plain, senior = (None, 0), (None, 0)
+    plain, senior = [], []
     for title, count in titles.items():
         if needle not in title or not (2 <= len(title.split()) <= max_words):
             continue
         words = title.split()
-        bucket = "senior" if any(w in seniority for w in words) else "plain"
-        if bucket == "plain" and count > plain[1]:
-            plain = (title, count)
-        elif bucket == "senior" and count > senior[1]:
-            senior = (title, count)
+        bucket = senior if any(w in seniority for w in words) else plain
+        bucket.append(rank_title(count, title))
     # A title with no seniority word in it is preferred outright. Stripping
     # one produces a string that may be no title at all: "senior software
     # engineer onsite" became "software engineer onsite", which nobody
     # posts, and it went straight out as a search query.
-    if plain[0]:
-        return plain[0]
-    if not senior[0]:
+    if plain:
+        return min(plain)[2]
+    if not senior:
         return None
-    stripped = " ".join(w for w in senior[0].split() if w not in seniority)
+    stripped = " ".join(w for w in min(senior)[2].split() if w not in seniority)
     return stripped if stripped and stripped in titles else None
 
 
@@ -1018,7 +1036,10 @@ def candidates_for_skill(skill, rows, idx, total, seniority=(), want=8,
             here[fragment] += 1
     titles = collections.Counter(t for t, _s, _k, _c in rows)
     out = []
-    for fragment, count in here.most_common(80):
+    # Not most_common(80): it breaks ties on insertion order, so which
+    # fragments survive the cut depended on the order the rows arrived in.
+    ranked = sorted(here.items(), key=lambda kv: (-kv[1], kv[0]))[:80]
+    for fragment, count in ranked:
         entry = idx.get(fragment)
         if not entry or count / len(named) < min_share:
             continue
@@ -1299,7 +1320,8 @@ def budget_order(keywords, held, rows, own, vocab, total):
 # The whole derivation, for one person
 # --------------------------------------------------------------------------
 
-def fields_for(person, market, want=12):
+def fields_for(person, market, want=12, importance=None, resume_text="",
+               preferred=()):
     """Every corpus-derived search field for one person.
 
     `person` is {"skills": [...], "employment": [rows]} — whatever
@@ -1307,6 +1329,13 @@ def fields_for(person, market, want=12):
 
     Returns a dict carrying the fields AND the provenance: which skills
     were dropped as concepts, and why each keyword is in the order it is.
+
+    Role construction (R5) is NOT in this release. The experimental
+    `role_families` path lives on feat/profile-engine-v2 and is excluded
+    here deliberately: it was never finished, never evaluated, and its own
+    test suite still carries a failing case. `importance` and
+    `resume_text` are accepted and ignored so the caller's signature does
+    not have to change when it is eventually finished.
     """
     rows, idx = market.rows, market.index
     total, vocab, seniority = market.total, market.vocab, market.seniority
@@ -1315,6 +1344,7 @@ def fields_for(person, market, want=12):
     own = set(skills)
 
     held_raw = from_resume(person, seniority)
+
     corpus_raw = canonicalise(
         keywords_for(own, rows, idx, total, want=want, seniority=seniority),
         rows, seniority)
