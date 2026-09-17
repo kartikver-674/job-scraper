@@ -498,6 +498,19 @@ def enabled():
     return _on(FLAG)
 
 
+ROLES_FLAG = "SWEEP_ROLE_FAMILIES"
+
+
+def roles_enabled():
+    """Is evidence-grounded role construction on? Off unless asked.
+
+    Needs importance to exist — a family is anchored by a CORE or
+    STRONG_SECONDARY concept, and without tiers there is nothing to gate
+    on — so role_families falls back when the evidence path is off.
+    """
+    return _on(ROLES_FLAG)
+
+
 def evidence_enabled():
     """Is evidence-aware importance on? Off unless asked.
 

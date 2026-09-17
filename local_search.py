@@ -1320,7 +1320,8 @@ def budget_order(keywords, held, rows, own, vocab, total):
 # The whole derivation, for one person
 # --------------------------------------------------------------------------
 
-def fields_for(person, market, want=12):
+def fields_for(person, market, want=12, importance=None, resume_text="",
+               preferred=()):
     """Every corpus-derived search field for one person.
 
     `person` is {"skills": [...], "employment": [rows]} — whatever
@@ -1328,6 +1329,13 @@ def fields_for(person, market, want=12):
 
     Returns a dict carrying the fields AND the provenance: which skills
     were dropped as concepts, and why each keyword is in the order it is.
+
+    With SWEEP_ROLE_FAMILIES and an `importance` list, role_keywords come
+    from role_families instead: the résumé proposes the careers, the
+    market offers concrete titles for them, and the résumé then checks the
+    title it got back. Everything else on this dict — title_hints, the
+    skill list, the dropped concepts — is unchanged, because only the
+    PAID queries were choosing careers out of market correlations.
     """
     rows, idx = market.rows, market.index
     total, vocab, seniority = market.total, market.vocab, market.seniority
@@ -1336,6 +1344,25 @@ def fields_for(person, market, want=12):
     own = set(skills)
 
     held_raw = from_resume(person, seniority)
+    import skill_concepts
+    if importance and skill_concepts.roles_enabled():
+        import role_families
+        built = role_families.build(held_raw, importance, market,
+                                    resume_text, preferred, cap=want)
+        return {
+            "skills": sorted(own),
+            "filler_dropped": filler,
+            "role_keywords": built["role_keywords"],
+            "ranking": [[w["query"], 1 if w["primary"] else 2, w["source"]]
+                        for w in built["why"]],
+            "from_orphans": [],
+            "role_families": built["families"],
+            "why": built["why"],
+            # Unchanged: the free-source gate only ever WIDENS, and
+            # narrowing it here would delete inventory nobody pays for.
+            "title_hints": hints_for(own, rows, idx, total, seniority),
+        }
+
     corpus_raw = canonicalise(
         keywords_for(own, rows, idx, total, want=want, seniority=seniority),
         rows, seniority)
