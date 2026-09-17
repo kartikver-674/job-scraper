@@ -13,6 +13,31 @@
 {# Single-quoted for the reason in configure.html: |tojson leaves " raw. #}
 {% block meter_scope %} x-data='{ p: {{ progress|tojson }}, cap: {{ cap_usd|tojson }}, drift: 0,
        waiting: {{ (not progress.finished and not progress.interrupted)|tojson }},
+       pct() { return Math.round((this.p.fraction || 0) * 100) },
+       {# How far the FREE pass has got, as an index into the four stages
+          below. Evidenced, not timed: 0 is the engine still starting (the
+          same 20s the stage line above uses), 1 is the fetch running, 2
+          needs rows to actually exist, and 3 needs the run to be over.
+          -1 queued, -2 ended early. On the free path fetch_free() returns
+          everything in one pass, so this usually reads 1 for the whole run
+          and then 3 — which is the truth, and is why the panel says these
+          are passes rather than a meter. #}
+       stage() { if (this.p.queued) return -1;
+                 if (this.p.state === "finished") return 3;
+                 if (this.p.state !== "running") return -2;
+                 if (this.p.elapsed === null || this.p.elapsed < 20) return 0;
+                 return this.p.found ? 2 : 1 },
+       stageClass(i) { var at = this.stage();
+                       return at === i ? "now" : (at > i ? "done" : "next") },
+       {# Which search is in flight. scraper.py works the plan in order and
+          appends to .done_combos as each one finishes, so the first tile
+          that is not done is the one running. Derived here rather than
+          asked of the worker: no engine change, and nothing claims to know
+          more than the ledger does. Null unless the run is actually
+          running, so a stopped sweep marks nothing. #}
+       nowRunning() { return this.p.state === "running"
+                      ? this.p.tiles.find(t =&gt; t.state !== "done") || null
+                      : null },
        hms(s) { var m = Math.floor(s / 60); return (m ? m + "m " : "") + (s % 60) + "s" },
        ago(s) { return s > 59 ? Math.floor(s / 60) + "m ago"
                               : (s > 4 ? s + "s ago" : "just now") } }'
@@ -129,10 +154,21 @@
          so a returning browser finds its sweep, and the run id lives in the
          signed cookie rather than in this process. No duration figure — it
          is titles x locations x depth and nobody has measured it per sweep. #}
+      {% if not free_only %}
       <p class="muted" x-show="p.state === 'running' || p.queued" x-cloak>
         This can take a few minutes to a few tens of minutes, depending on how
         wide your search is. <b>You can close this tab</b> — Sweep keeps
         searching, and your jobs will be here when you come back.</p>
+      {% else %}
+      {# The free page carries this in its "What to expect" panel, at more
+         length and beside the two things a waiting visitor also wants —
+         where it is looking and how it will rank what it finds. Said twice,
+         it reads as filler on a screen that already has little else. #}
+      <p class="muted" x-show="p.queued" x-cloak
+         {% if not progress.queued %}style="display:none"{% endif %}>
+        Nothing is lost while you wait — <b>you can close this tab</b> and
+        come back.</p>
+      {% endif %}
     </div>
   {% else %}
   <div class="stack-tight">
@@ -166,6 +202,58 @@
     {% endif %}
   </div>
   {% endif %}
+
+  {% if not free_only %}
+  {# ---- Still going -----------------------------------------------------
+
+     The counts were already on the screen and the screen still read as
+     static: three numerals that change every few minutes look identical to
+     three numerals that have stopped changing. This says the same thing in
+     a shape the eye reads without counting — and says it from the same
+     fields, so it cannot claim progress the tiles do not have.
+
+     p.fraction is done/planned, computed in runs.progress(). Nothing here
+     interpolates, estimates or animates toward a number the server has not
+     sent. A stopped sweep leaves the bar where it stopped. #}
+  <div class="activity" x-show="p.planned" x-cloak
+       :class="p.state === 'running' ? 'live'
+               : (p.state === 'finished' ? 'done' : 'off')"
+       {% if not progress.planned %}style="display:none"{% endif %}>
+    <p class="activity-said">
+      <span class="activity-dot" aria-hidden="true"></span>
+      <b x-text="p.queued ? 'Waiting to start'
+                 : (p.state === 'running' ? 'Searching live'
+                    : (p.state === 'finished' ? 'Search complete'
+                                              : 'Search stopped'))">{%
+        if progress.queued %}Waiting to start{%
+        elif progress.state == 'running' %}Searching live{%
+        elif progress.state == 'finished' %}Search complete{%
+        else %}Search stopped{% endif %}</b>
+      <span class="activity-count"
+            x-text="p.done + ' of ' + p.planned + ' searches complete'">{{
+        progress.done }} of {{ progress.planned }} searches complete</span>
+    </p>
+    {# role=progressbar with a valuetext, because "25%" read aloud on its own
+       does not say what is a quarter done. #}
+    <div class="activity-track" role="progressbar"
+         aria-valuemin="0" aria-valuemax="100"
+         :aria-valuenow="pct()" aria-valuenow="{{ (progress.fraction * 100)|round|int }}"
+         :aria-valuetext="p.done + ' of ' + p.planned + ' searches complete'"
+         aria-valuetext="{{ progress.done }} of {{ progress.planned }} searches complete">
+      {# No server-rendered width. Jinja inside a style="" is CSS an editor
+         cannot validate, and base.html's meter is the one place that is
+         unavoidable — asserted by test_no_template_puts_jinja_inside_a_style_attribute.
+         It costs nothing here: the whole row is x-cloaked, so the bar is
+         never painted before Alpine has set the real width. #}
+      <span class="activity-fill" :style="'width: ' + pct() + '%'"></span>
+    </div>
+    <span class="activity-pct" x-text="pct() + '%'">{{
+      (progress.fraction * 100)|round|int }}%</span>
+  </div>
+  {% endif %}
+  {# Not drawn on the free path at all. p.planned is 0 there, so the row
+     would be permanently hidden markup carrying a determinate bar that path
+     can never fill — the free page has its own indeterminate row below. #}
 
   {# ---- How it ended ---------------------------------------------------
 
@@ -232,35 +320,154 @@
   {% if free_only and not public_mode %}
     <div class="working-bar" x-show="!p.finished"><span></span></div>
   {% elif free_only %}
-    {# The free public path. It had an indeterminate bar and a panel saying
-       there was nothing to show — while read_live() was working the whole
-       time and the feed below was gated out with the paid grid it sits
-       beside. The bar stays as the sign of life between batches. #}
-    <div class="working-bar" x-show="!p.finished && !p.queued" x-cloak
-         {% if progress.queued %}style="display:none"{% endif %}><span></span></div>
-    <div class="panel" x-show="!p.queued && p.latest.length" x-cloak
-         {% if progress.queued or not progress.latest %}style="display:none"{% endif %}>
-      <div class="panel-head">
-        <h2>Latest matches</h2>
-        <span class="meta"><b x-text="p.found"></b> found</span>
+    {# ---- The free public path ------------------------------------------
+
+       This screen has almost nothing to report and somebody waits about
+       five minutes in front of it. fetch_free() makes one pass and returns
+       everything at the end, so there is no per-source progress, no count
+       that moves, and no feed until it is over — live_feed() returns early
+       here for exactly that reason.
+
+       So the honest answer is not a number. It is to SAY what the pass
+       does, what it is searching, how it will rank what it finds, and what
+       happens if the tab is closed — none of which needs a signal the
+       backend does not have. The only moving parts on this page are the
+       indeterminate bar and the stage marker, and both are driven by
+       p.state, p.elapsed and p.found. Nothing here interpolates. #}
+
+    <div class="activity live" x-show="!p.queued && p.state === 'running'"
+         x-cloak
+         {% if progress.queued or progress.state != 'running' %}style="display:none"{% endif %}>
+      <p class="activity-said">
+        <span class="activity-dot" aria-hidden="true"></span>
+        <b>Searching live</b>
+        <span class="activity-count">no exact count while the pass runs</span>
+      </p>
+      {# Indeterminate on purpose. A determinate bar here would be a number
+         nobody measured — see the panel note below. #}
+      <div class="working-bar"><span></span></div>
+    </div>
+
+    <div class="split">
+     <div class="stack">
+      <div class="panel">
+        <h2>What Sweep is doing</h2>
+        {# Marked from evidence: elapsed for the first, the run state for the
+           last, and rows actually existing for the third. A stage nobody can
+           evidence stays unmarked rather than lighting up on a timer. #}
+        <ol class="stages" :class="p.state === 'running' ? '' : 'settled'">
+          <li :class="stageClass(0)"><b>Preparing your search</b>
+            <span class="meta">Turning your profile into queries the free
+              boards understand.</span></li>
+          <li :class="stageClass(1)"><b>Searching free sources</b>
+            <span class="meta">Company job boards, enterprise career sites
+              and remote feeds, in one pass.</span></li>
+          <li :class="stageClass(2)"><b>Scoring against your profile</b>
+            <span class="meta">Every listing is read and scored on what your
+              résumé actually shows.</span></li>
+          <li :class="stageClass(3)"><b>Preparing your shortlist</b>
+            <span class="meta">Ranked, de-duplicated, and ready to
+              export.</span></li>
+        </ol>
+        <p class="meta">These are the passes, not a progress meter — the free
+          sources answer in one batch, so there is no honest percentage to
+          show until they do.</p>
       </div>
-      <ul class="feed" aria-live="polite" aria-relevant="additions">
-        <template x-for="job in p.latest" :key="job.key">
-          <li>
-            <span>
-              <b x-text="job.title"></b>
-              <span class="meta" x-text="job.company
-                      + (job.site ? ' · ' + job.site : '')"></span>
-            </span>
-            <span class="feed-score"
-                  :title="'Match score ' + job.score"
-                  x-text="job.score"></span>
-          </li>
-        </template>
-      </ul>
-      <p class="meta" x-show="p.since !== null" x-cloak>Last job
-        <span x-text="ago(p.since)"></span>. They arrive in batches, as each
-        board answers.</p>
+
+      {# Real rows the moment there are any. Until then, the shape they will
+         take, labelled as such: a skeleton that pretends to be loading rows
+         on a path that produces none for five minutes is the same lie as a
+         fake bar, only quieter. #}
+      <div class="panel" x-show="p.latest.length" x-cloak
+           {% if not progress.latest %}style="display:none"{% endif %}>
+        <div class="panel-head">
+          <h2>Latest matches</h2>
+          <span class="meta"><b x-text="p.found"></b> found</span>
+        </div>
+        <ul class="feed" aria-live="polite" aria-relevant="additions">
+          <template x-for="job in p.latest" :key="job.key">
+            <li>
+              <span>
+                <b x-text="job.title"></b>
+                <span class="meta" x-text="job.company
+                        + (job.site ? ' · ' + job.site : '')"></span>
+              </span>
+              <span class="feed-score"
+                    :title="'Match score ' + job.score"
+                    x-text="job.score"></span>
+            </li>
+          </template>
+        </ul>
+        <p class="meta" x-show="p.since !== null" x-cloak>Last job
+          <span x-text="ago(p.since)"></span>. They arrive in batches, as each
+          board answers.</p>
+      </div>
+      <div class="panel" x-show="!p.latest.length" x-cloak
+           {% if progress.latest %}style="display:none"{% endif %}>
+        <div class="panel-head">
+          <h2>Your shortlist</h2>
+          <span class="meta">lands here</span>
+        </div>
+        <ul class="skeleton" aria-hidden="true">
+          <li><span class="bone w-title"></span><span class="bone w-meta"></span></li>
+          <li><span class="bone w-title2"></span><span class="bone w-meta"></span></li>
+          <li><span class="bone w-title3"></span><span class="bone w-meta"></span></li>
+        </ul>
+        <p class="meta">The free sources return everything together at the
+          end of the pass, so this fills in one go rather than trickling.</p>
+      </div>
+     </div>
+
+     <aside class="aside stack">
+      <div class="panel">
+        <h2>Where Sweep is searching</h2>
+        {% if plan.free_sources %}
+        <p class="numeral-inline"><b>{{ plan.free_sources }}</b> free sources,
+          at no cost.</p>
+        {% else %}
+        <p class="muted">Every free source Sweep knows, at no cost.</p>
+        {% endif %}
+        <ul class="plain">
+          <li><b>Company job boards</b><span class="meta">Greenhouse, Lever,
+            Ashby, Breezy and SmartRecruiters postings, straight from the
+            employer.</span></li>
+          <li><b>Enterprise career sites</b><span class="meta">Large employers
+            that publish their own listings.</span></li>
+          <li><b>Remote job feeds</b><span class="meta">Public remote-work
+            feeds, fetched directly.</span></li>
+        </ul>
+        <p class="meta">No paid board is touched on a free sweep, and nothing
+          here can be billed.</p>
+      </div>
+
+      <div class="panel">
+        <h2>How jobs are ranked</h2>
+        <ul class="plain">
+          <li><b>Skills from your résumé</b><span class="meta">Each one
+            weighted by how much your own document shows you used it.</span></li>
+          <li><b>Whether the role is reachable</b><span class="meta">A listing
+            demanding more experience than you have is dropped, not
+            ranked.</span></li>
+          <li><b>What you asked to avoid</b><span class="meta">Terms and
+            companies on your avoid list count against a listing.</span></li>
+          <li><b>Remote and timezone fit</b><span class="meta">A remote role
+            far outside your working hours loses points.</span></li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h2>What to expect</h2>
+        <ul class="plain">
+          <li><b>A few minutes</b><span class="meta">Usually around five,
+            depending on how wide your search is.</span></li>
+          <li><b>You can close this tab</b><span class="meta">The search runs
+            on Sweep's own machine, not in this browser.</span></li>
+          <li><b>Come back any time</b><span class="meta">This page finds your
+            sweep again, and opens the results itself when it
+            finishes.</span></li>
+        </ul>
+      </div>
+     </aside>
     </div>
   {% else %}
   <div class="split">
@@ -307,6 +514,8 @@
       <h2>Searches</h2>
       <span class="meta"><span class="key paid">paid</span>
         <span class="key free">free</span>
+        <span class="key running" x-show="p.state === 'running'"
+              x-cloak>running</span>
         <span class="key">not run yet</span><span
           class="key parked" x-show="p.state !== 'running'"
           x-cloak>did not run</span></span>
@@ -335,9 +544,14 @@
                       :key="i">
               {# Classes, not an inline style: the text has to invert on the
                  filled cells, and a done cell is unreadable in chalk. #}
+              {# Three states, not two. "running" is the first tile the
+                 ledger has not recorded yet — see nowRunning() above — and
+                 it is a border that breathes rather than a label, because
+                 the cell is 44px wide and "RUNNING…" does not fit in it. #}
               <div class="cell" :title="t.label"
                    :class="t.state === 'done' ? (t.free ? 'done free' : 'done')
-                           : (p.state === 'running' ? '' : 'parked')"
+                           : (p.state !== 'running' ? 'parked'
+                              : (t === nowRunning() ? 'running' : ''))"
                    x-text="t.short"></div>
             </template>
           </div>
