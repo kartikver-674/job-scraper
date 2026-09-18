@@ -221,21 +221,34 @@
        {% if not progress.planned %}style="display:none"{% endif %}>
     <p class="activity-said">
       <span class="activity-dot" aria-hidden="true"></span>
+      {# The free sources run AFTER the last paid search, and p.free_running
+         is exactly that: still going, nothing left in the grid. Without this
+         the row said "Searching live · 8 of 8 · 100%" for the rest of the
+         sweep — a full bar and a complete count on a screen that was still
+         working, which reads as finished. #}
       <b x-text="p.queued ? 'Waiting to start'
-                 : (p.state === 'running' ? 'Searching live'
-                    : (p.state === 'finished' ? 'Search complete'
-                                              : 'Search stopped'))">{%
+                 : (p.free_running ? 'Searching free sources'
+                    : (p.state === 'running' ? 'Searching live'
+                       : (p.state === 'finished' ? 'Search complete'
+                                                 : 'Search stopped')))">{%
         if progress.queued %}Waiting to start{%
+        elif progress.free_running %}Searching free sources{%
         elif progress.state == 'running' %}Searching live{%
         elif progress.state == 'finished' %}Search complete{%
         else %}Search stopped{% endif %}</b>
       <span class="activity-count"
-            x-text="p.done + ' of ' + p.planned + ' searches complete'">{{
-        progress.done }} of {{ progress.planned }} searches complete</span>
+            x-text="p.free_running
+                    ? 'all ' + p.planned + ' paid searches done'
+                    : p.done + ' of ' + p.planned + ' searches complete'">{%
+        if progress.free_running %}all {{ progress.planned }} paid searches
+        done{% else %}{{ progress.done }} of {{ progress.planned }} searches
+        complete{% endif %}</span>
     </p>
     {# role=progressbar with a valuetext, because "25%" read aloud on its own
        does not say what is a quarter done. #}
     <div class="activity-track" role="progressbar"
+         x-show="!p.free_running"
+         {% if progress.free_running %}style="display:none"{% endif %}
          aria-valuemin="0" aria-valuemax="100"
          :aria-valuenow="pct()" aria-valuenow="{{ (progress.fraction * 100)|round|int }}"
          :aria-valuetext="p.done + ' of ' + p.planned + ' searches complete'"
@@ -247,7 +260,13 @@
          never painted before Alpine has set the real width. #}
       <span class="activity-fill" :style="'width: ' + pct() + '%'"></span>
     </div>
-    <span class="activity-pct" x-text="pct() + '%'">{{
+    {# Indeterminate for the free pass, because there genuinely is no
+       fraction: fetch_free() answers in one batch and the grid it would fill
+       does not exist. The same bar the free sweep's own screen uses. #}
+    <div class="working-bar" x-show="p.free_running" x-cloak
+         {% if not progress.free_running %}style="display:none"{% endif %}><span></span></div>
+    <span class="activity-pct" x-text="pct() + '%'" x-show="!p.free_running"
+          {% if progress.free_running %}style="display:none"{% endif %}>{{
       (progress.fraction * 100)|round|int }}%</span>
   </div>
   {% endif %}
@@ -512,11 +531,26 @@
   <div class="panel">
     <div class="panel-head">
       <h2>Searches</h2>
-      <span class="meta"><span class="key paid">paid</span>
-        <span class="key free">free</span>
-        <span class="key running" x-show="p.state === 'running'"
-              x-cloak>running</span>
-        <span class="key">not run yet</span><span
+      {# Each key is shown only when the grid actually uses it. "free" here
+         means a search on a PAID board that is billed at $0.00 — nothing to
+         do with the 134 free sources mentioned below, which have no tiles at
+         all. On a sweep with no such site the teal swatch named nothing, and
+         sat directly above a sentence using the same word for a different
+         thing. #}
+      <span class="meta"><span class="key paid"
+          x-show="p.tiles.some(t =&gt; !t.free)" x-cloak
+          {% if not progress.tiles|selectattr('free', 'equalto', False)|list %}style="display:none"{% endif %}>paid</span>
+        <span class="key free" x-show="p.tiles.some(t =&gt; t.free)" x-cloak
+          {% if not progress.tiles|selectattr('free')|list %}style="display:none"{% endif %}>free search</span>
+        {# Exactly one pending tile is the one running, so "running" needs a
+           pending tile and "not run yet" needs a SECOND one. During the free
+           pass the grid is complete and neither applies. #}
+        <span class="key running" x-show="p.state === 'running'
+                &amp;&amp; p.tiles.some(t =&gt; t.state !== 'done')" x-cloak
+          {% if progress.state != 'running' or not progress.tiles|rejectattr('state', 'equalto', 'done')|list %}style="display:none"{% endif %}>running</span>
+        <span class="key" x-show="p.state === 'running'
+                &amp;&amp; p.tiles.filter(t =&gt; t.state !== 'done').length &gt; 1" x-cloak
+          {% if progress.state != 'running' or progress.tiles|rejectattr('state', 'equalto', 'done')|list|length < 2 %}style="display:none"{% endif %}>not run yet</span><span
           class="key parked" x-show="p.state !== 'running'"
           x-cloak>did not run</span></span>
     </{{ 'summary' if public_mode else 'div' }}>

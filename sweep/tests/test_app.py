@@ -4386,6 +4386,78 @@ class TestTheScreenLooksAlive(Isolated):
     def test_the_legend_names_the_running_state(self):
         self.assertIn(">running<", self._body().replace("\n", ""))
 
+    # ---- the free pass, after the last paid search -----------------------
+
+    def test_the_row_says_the_free_sources_are_still_running(self):
+        """p.free_running is "still going, nothing left in the grid".
+
+        Without it the row said "Searching live · 46 of 46 · 100%" for the
+        rest of the sweep: a full bar and a complete count on a screen that
+        was still working. It read as finished, and the only thing saying
+        otherwise was a sentence further down the page.
+        """
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        p = self._state(done=keys)
+        self.assertEqual(p["state"], "running")
+        self.assertTrue(p["free_running"])
+        body = self._body(done=keys)
+        self.assertIn("Searching free sources", body)
+        self.assertIn("' paid searches done'", body)
+
+    def test_the_bar_goes_indeterminate_for_the_free_pass(self):
+        # There is no fraction for it: fetch_free() answers in one batch and
+        # the grid it would fill does not exist. A determinate bar sitting at
+        # 100% is the wrong shape for work that is still happening.
+        body = self._body(done=app_module.planned_keys({"raw_plan": RUNNING_PLAN}))
+        track = body.split('class="activity-track"', 1)[1].split(">", 1)[0]
+        self.assertIn("display:none", track)
+        self.assertIn('<div class="working-bar" x-show="p.free_running"', body)
+
+    def test_the_determinate_bar_is_back_for_the_paid_searches(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        body = self._body(done=keys[:20])
+        track = body.split('class="activity-track"', 1)[1].split(">", 1)[0]
+        self.assertNotIn("display:none", track)
+
+    # ---- the legend describes the grid, and only the grid ----------------
+
+    def _legend(self, **kw):
+        import re as _re
+        body = self._body(**kw)
+        block = _re.search(r'<span class="meta"><span class="key paid".*?</span></span>',
+                           body, _re.S).group(0)
+        return {_re.search(r'>([^<]*)</span>', c).group(1).strip():
+                "display:none" not in c
+                for c in _re.findall(r'<span class="key[^"]*"[^>]*>[^<]*</span>',
+                                     block, _re.S)}
+
+    def test_the_free_key_is_not_shown_when_no_search_is_free(self):
+        """The teal key means a search on a PAID board billed at $0.00.
+
+        It has nothing to do with the free SOURCES named below the grid,
+        which have no tiles at all — and on a sweep with no zero-rate site it
+        was a swatch naming nothing, sitting directly above a sentence using
+        the same word for a different thing.
+        """
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        shown = self._legend(done=keys[:20])
+        self.assertTrue(shown["paid"])
+        self.assertFalse(shown["free search"])
+
+    def test_the_legend_drops_the_keys_the_grid_stops_using(self):
+        # Once every tile is done, nothing is running and nothing is pending.
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        shown = self._legend(done=keys)
+        self.assertFalse(shown["running"])
+        self.assertFalse(shown["not run yet"])
+        self.assertTrue(shown["paid"])
+
+    def test_the_legend_keeps_the_keys_the_grid_is_using(self):
+        keys = app_module.planned_keys({"raw_plan": RUNNING_PLAN})
+        shown = self._legend(done=keys[:20])
+        self.assertTrue(shown["running"])
+        self.assertTrue(shown["not run yet"])
+
 
 class TestHowASweepEnded(Isolated):
     """Four endings, not two. "Stopped early" used to cover the user pressing
