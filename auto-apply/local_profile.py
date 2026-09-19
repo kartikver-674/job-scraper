@@ -58,6 +58,7 @@ import inference
 import local_extract
 import hard_drop
 import local_search
+import orphan_guard
 import role_evidence
 import skill_concepts
 
@@ -216,6 +217,25 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
                                 (rows or {}).get("employment") or [])
             if role_evidence.enabled() else None)
     fields = local_search.fields_for(person, market)
+    # V3 STEP 6. The orphan pass finds a rare skill nobody is searching for and
+    # asks the corpus which titles are posted alongside it. That is useful and
+    # stays; what it must not do is confer a profession. `git` anchors "flutter
+    # developer" for a technical programme manager, and the chain is circular
+    # unless support comes from somewhere the orphan skill did not (audit
+    # V3-C5). Only an orphan-derived ROLE TITLE can be removed here, and only
+    # when the candidate has real evidence pointing elsewhere.
+    orphan_record = None
+    if orphan_guard.enabled():
+        surviving, orphan_record = orphan_guard.filter_queries(
+            fields["role_keywords"], {"role_evidence": role},
+            fields.get("from_orphans") or (),
+            fields.get("orphan_anchors") or ())
+        if orphan_record.get("rejected"):
+            log(f"    orphan guard: dropped "
+                f"{len(orphan_record['rejected'])} manufactured title(s) "
+                f"{orphan_record['rejected']}")
+            log(orphan_guard.explain(orphan_record))
+        fields = dict(fields, role_keywords=surviving)
     # V3 STEP 5. config.SCORING's drop terms strip "manager", "architect",
     # "director" and "lead" from every title everywhere, and a title reduced
     # below two words is discarded, so an Engineering Manager's own job title
@@ -298,6 +318,8 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
         # PROFILE_NAMES, so no schema bump.
         "hard_drop_restored": restored,
         "hard_drop_record": drop_record,
+        # V3 Step 6. Additive like the rest; render() emits only PROFILE_NAMES.
+        "orphan_guard_record": orphan_record,
         # Provenance, for the caller's log and for the tests. render()
         # ignores keys it does not name.
         "local_ranking": fields["ranking"],

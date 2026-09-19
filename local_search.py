@@ -1372,6 +1372,12 @@ def fields_for(person, market, want=12, importance=None, resume_text="",
         "role_keywords": ranked_keywords(order),
         "ranking": [[k, t, w] for k, t, w in order],
         "from_orphans": [title for title, _s, _e in anchored],
+        # Which skill anchored each orphan title. Additive provenance: the
+        # pairs already exist inside select_detail and were being thrown away
+        # here, so a later stage could see THAT a title came from the orphan
+        # pass but not WHICH skill produced it. Nothing reads this that did not
+        # ask for it, and no behaviour changes.
+        "orphan_anchors": [[title, skill] for title, skill, _e in anchored],
         "title_hints": hints_for(own, rows, idx, total, seniority),
     }
 
