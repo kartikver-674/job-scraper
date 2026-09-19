@@ -56,6 +56,7 @@ if cfg.REPO_ROOT not in sys.path:
 
 import inference
 import local_extract
+import hard_drop
 import local_search
 import role_evidence
 import skill_concepts
@@ -215,6 +216,24 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
                                 (rows or {}).get("employment") or [])
             if role_evidence.enabled() else None)
     fields = local_search.fields_for(person, market)
+    # V3 STEP 5. config.SCORING's drop terms strip "manager", "architect",
+    # "director" and "lead" from every title everywhere, and a title reduced
+    # below two words is discarded, so an Engineering Manager's own job title
+    # produces no search at all (audit V3-C8). A query is restored only when
+    # the candidate has grounded evidence for that exact role, never from
+    # family-level support, so an individual contributor gains nothing. This
+    # runs BEFORE the Step 3 gate on purpose: a restored query is still subject
+    # to it, exactly as one that had never been dropped would be.
+    restored, drop_record = [], None
+    if hard_drop.enabled():
+        restored, drop_record = hard_drop.restore(
+            {"role_keywords": fields["role_keywords"], "role_signals": signals,
+             "role_evidence": role}, market)
+        if restored:
+            log(f"    hard-drop: restored {len(restored)} grounded quer(y/ies) "
+                f"{restored}")
+            fields = dict(fields,
+                          role_keywords=list(fields["role_keywords"]) + restored)
     rejected = []
     if role is not None:
         surviving, rejected = role_evidence.filter_queries(
@@ -275,6 +294,10 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
         # schema bump is required. Carried for measurement and explainability.
         "role_evidence": role,
         "role_gate_rejected": rejected,
+        # V3 Step 5. Additive, like the two above; render() emits only
+        # PROFILE_NAMES, so no schema bump.
+        "hard_drop_restored": restored,
+        "hard_drop_record": drop_record,
         # Provenance, for the caller's log and for the tests. render()
         # ignores keys it does not name.
         "local_ranking": fields["ranking"],
