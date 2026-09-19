@@ -57,6 +57,7 @@ if cfg.REPO_ROOT not in sys.path:
 import inference
 import local_extract
 import local_search
+import role_evidence
 import skill_concepts
 
 # The model this was measured on. Bigger models were tried for extraction
@@ -202,7 +203,27 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
     # and the free-source gate cannot move. This record is carried for
     # measurement and for a later step to consume; nothing reads it today.
     signals = local_extract.role_signals(checked, rows)
+    # V3 STEP 3. The role record is built HERE, before a query exists, from the
+    # résumé text that is already in memory. No extra model call, no corpus.
+    # It is consumed in exactly one way, below: as a veto over queries search
+    # has already proposed. It never proposes one.
+    # Built only when the gate is on. With the flag absent nothing in this
+    # block runs, so v2 cannot be broken by a defect in a layer it does not
+    # use — and "identical with the flag off" is a fact about the control
+    # flow rather than a claim about role_evidence being bug-free.
+    role = (role_evidence.build(resume_text, signals,
+                                (rows or {}).get("employment") or [])
+            if role_evidence.enabled() else None)
     fields = local_search.fields_for(person, market)
+    rejected = []
+    if role is not None:
+        surviving, rejected = role_evidence.filter_queries(
+            role, fields["role_keywords"])
+        if rejected:
+            log(f"    role gate: {len(fields['role_keywords']) - len(surviving)}"
+                f" of {len(fields['role_keywords'])} quer(y/ies) rejected")
+            log(role_evidence.explain(role, rejected))
+        fields = dict(fields, role_keywords=surviving)
     # The profile's own list, and the filler line in the notes, are the
     # pre-canonical ones: this batch changes what search matches on, not
     # what the review screen shows or what the scorer keys on.
@@ -249,6 +270,11 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
         # emits only PROFILE_NAMES, so this cannot change what the scraper
         # runs and cannot force a PROFILE_SCHEMA bump. V3 Step 1.
         "role_signals": signals,
+        # V3 Step 3. Additive like role_signals: render() emits only
+        # PROFILE_NAMES, so nothing here reaches profiles/<name>.py and no
+        # schema bump is required. Carried for measurement and explainability.
+        "role_evidence": role,
+        "role_gate_rejected": rejected,
         # Provenance, for the caller's log and for the tests. render()
         # ignores keys it does not name.
         "local_ranking": fields["ranking"],
