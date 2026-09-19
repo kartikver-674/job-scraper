@@ -7,13 +7,71 @@ fragment is not automatically valid as its replacement.
 | | |
 |---|---|
 | Base | `d2b5c74` |
-| Step 6 | `d2b5c74`, verified unmoved, flag still off |
+| Step 6 | `d2b5c74`, verified unmoved. Shipped default still **off**; the development measurement ran with the guard **on** — see §0 |
 | Step 5 | `2c13a88`, verified unmoved |
 | Step 4 | `6e0b095`, verified unmoved |
 | Step 3 | `5ddb2e9`, verified unmoved |
 | Step 7 flag | `SWEEP_CANONICAL_REVALIDATION`, off unless set |
 
 ---
+
+## 0. Which flags the measurement ran under
+
+Added after review, which spotted that the "Step 7 off" baseline of 379 queries
+/ 37 forbidden is the Step-6-**enabled** result rather than the Step 5 result.
+It is. The development harness measures each new step on top of the full
+previously-accepted stack, so Steps 3, 5 and 6 were all active:
+
+| step | in the measurement | how |
+|---|---|---|
+| 3 `role_evidence` | **on** | `build` + `filter_queries` called directly |
+| 4 `title_gate` | **not on this surface** | lives in `make_profile._title_gate`, produces `ATS_TITLE_HINTS` for the free-source fetch, and is never imported by `local_search` or `local_profile`. It cannot change a `role_keywords` metric |
+| 5 `hard_drop` | **on** | `restore` called directly |
+| 6 `orphan_guard` | **on**, mode `any` | `filter_queries` called directly |
+| 7 `canonical_guard` | the ablated variable | |
+
+The harness sets no `SWEEP_*` step flag. These modules expose `enabled()` but do
+not self-gate — the caller checks it, and `auto-apply/local_profile.py` does.
+The harness calls them unconditionally and selects arms by call-site presence,
+which is the convention every step's harness has used. Production wiring is
+correctly gated and is not affected.
+
+**This is a labelling defect in the status block below, not a measurement
+defect.** The cumulative stack was the intended comparison — §6 reports Step 6
+guard verdicts, which requires Step 6 to be running, and the harness prints a
+`step 6 orphan rejections` row. What was wrong was writing
+"SWEEP_ORPHAN_ROLE_GUARD still off", true of the **committed default**, beside a
+baseline measured with it **on**.
+
+### Both stacks, measured explicitly
+
+Re-run at `b6b1c92` with each step gated on its own `enabled()`, mirroring
+`local_profile.py` gate for gate. `SWEEP_ORPHAN_GUARD_MODE` unset, so the frozen
+shipped mode `any` is the one exercised. 54 personas with output, of 56.
+
+| | **A** Step 6 off<br>(deployment candidate) | | **B** Step 6 on<br>(cumulative) | |
+|---|---:|---:|---:|---:|
+| Step 7 | off | on | off | on |
+| total queries | 381 | 366 | 379 | 364 |
+| malformed final queries | 14 | **0** | 14 | **0** |
+| supported-family-classified | 210 | 202 | 209 | 201 |
+| forbidden | 38 | 35 | 37 | 34 |
+| contaminated personas | 20 | 19 | 20 | 19 |
+| primary role coverage | 51 | 51 | 51 | 51 |
+| zero-query personas | 0 | 0 | 0 | 0 |
+| Step 7 removals | 0 | 16 | 0 | 16 |
+| supported precision | 0.551 | 0.552 | 0.551 | 0.552 |
+
+**Step 7's effect is identical in both stacks** — 16 removals, all 14 malformed
+queries gone, −15 net queries, −8 supported, −3 forbidden, one persona
+decontaminated. The A/B gap of two queries is Step 6's own documented effect
+(381→379, 38→37), not Step 7's. Published table §5 is Stack B throughout; no
+Step 7 conclusion moves.
+
+Sixteen removals cost fifteen queries because `swe_ml`'s copy of
+`software engineer -python developer` was already being removed downstream — by
+Step 3's gate in Stack A, by Step 6 in Stack B. Rejecting it earlier changes
+nothing net, which is the "one attributable disappearance" §6 records.
 
 ## 1. Every `canonical()` consumer, traced before anything was changed
 
@@ -120,6 +178,9 @@ missing validation and the missing predicate are two separate problems.
 
 ## 5. Fallback policy, ablated
 
+Measured on **Stack B** (Step 6 on). Stack A shifts the baseline by two
+queries and leaves every Step 7 delta unchanged; see §0.
+
 | | A off | B discard | C fragment |
 |---|---:|---:|---:|
 | total queries | 379 | 364 | 379 |
@@ -193,7 +254,12 @@ recorded as equivalent rather than as a pass.
 
 ```
 BASE SHA:                     d2b5c74
-STEP 6 SHA:                   d2b5c74   unmoved, SWEEP_ORPHAN_ROLE_GUARD still off
+STEP 6 SHA:                   d2b5c74   unmoved, SWEEP_ORPHAN_ROLE_GUARD
+                              default still off
+MEASUREMENT STACK:            Step 3 on, Step 5 on, Step 6 on (mode any).
+                              Step 4 is not on this surface. Every figure
+                              below is Stack B; Stack A is in §0 and moves
+                              no Step 7 delta.
 STEP 7 FLAG:                  SWEEP_CANONICAL_REVALIDATION, off unless set
                               SWEEP_CANONICAL_FALLBACK selects discard|fragment
 
@@ -218,6 +284,21 @@ PRIMARY ROLE COVERAGE:        51/54 -> 51/54
 TECHNICALIZATION:              4 -> 4
 ZERO QUERY:                    0 -> 0
 SUPPORTED QUERIES LOST:        8
+  same 8, named precisely:    SUPPORTED-FAMILY-CLASSIFIED MALFORMED QUERIES
+                              REMOVED: 8. The original metric name is retained,
+                              not replaced; both denote the same eight queries.
+                              Verified: all eight are the identical string
+                              'software engineer -python developer', across
+                              swe_backend, swe_fullstack, swe_java, swe_dotnet,
+                              swe_qa, swe_data_eng, pm_technical, adv_grad_cs.
+                              Every one matches the negation-operator rule and
+                              was classified 'backend' by the audit-era
+                              classifier. Identical in Stack A and Stack B.
+
+STACK A (STEP 6 OFF):         queries 381 -> 366, malformed 14 -> 0,
+                              supported 210 -> 202, forbidden 38 -> 35,
+                              contaminated personas 20 -> 19, primary 51/54,
+                              zero-query 0, Step 7 removals 16
 
 STEP 3:                       unchanged
 STEP 4 TITLE GATE:            identical
