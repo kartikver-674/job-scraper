@@ -442,6 +442,36 @@ def atomize(terms):
     return out
 
 
+def identities(terms):
+    """Raw extracted strings as the atomic canonical concepts they name.
+
+    V3 STEP 2, and deliberately the ONLY place that answers "what concepts
+    is this person claiming". Search used to match on whatever spellings
+    extraction happened to emit while the profile resolved the same strings
+    to canonical ids one stage later, so the two layers disagreed about
+    identity — `agile/scrum` was one unknown string to the corpus and two
+    known concepts to the profile. This is the single transformation both
+    now mean.
+
+    It is exactly `atomize` then `resolve`, in that order, because the
+    order matters: resolving first would hand `split_compound` a string
+    the LOOKUP table has already rewritten, and its whole protection is
+    that it refuses to split anything the table recognises.
+
+    Pure. No résumé text, no evidence, no market, no weights, no roles —
+    those all stay where they are. Order-preserving, and deduplicated on
+    the CANONICAL id, so `javascript (es6+)` contributes JavaScript once
+    rather than twice.
+    """
+    out, seen = [], set()
+    for part in atomize(terms):
+        concept = resolve(part)
+        if concept and concept not in seen:
+            seen.add(concept)
+            out.append(concept)
+    return out
+
+
 # --------------------------------------------------------------------------
 # Concepts, from a flat profile
 # --------------------------------------------------------------------------

@@ -57,6 +57,7 @@ if cfg.REPO_ROOT not in sys.path:
 import inference
 import local_extract
 import local_search
+import skill_concepts
 
 # The model this was measured on. Bigger models were tried for extraction
 # and did not do better; see bench/extract_models.py. Resolved per call
@@ -178,15 +179,34 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
         # floor this was designed to have.
         log("    output/ holds no scored listings — falling back to the "
             "résumé's own job titles only")
-    person = {"skills": checked.get("skills") or (),
+    # V3 STEP 2. Concept identity is decided HERE, before a single query
+    # exists, so the corpus is matched with the same identities the profile
+    # ends up carrying. It used to be decided in _finish, one stage AFTER
+    # every query had been chosen: `agile/scrum` reached the corpus as one
+    # string nothing had heard of, and became two well-known concepts only
+    # once the search that needed them was already built (audit V3-C1).
+    #
+    # `kept` stays RAW on purpose and is what the profile is built from
+    # below. v2 keeps the résumé's own spellings as the scorer's matcher
+    # keys, and _finish still atomises and weights exactly as it did, so
+    # the final skill representation is unchanged by this move. Only the
+    # set handed to search is canonical.
+    raw = checked.get("skills") or ()
+    kept, filler = local_search.clean_skills(raw, market.vocab)
+    concepts = (skill_concepts.identities(kept)
+                if skill_concepts.enabled() else list(kept))
+    person = {"skills": concepts,
               "employment": (rows or {}).get("employment") or []}
     # V3 STEP 1. Built here, and deliberately NOT part of `person`:
-    # fields_for() must see exactly what it saw before, so role_keywords,
-    # title_hints and the free-source gate cannot move. This record is
-    # carried for measurement and for a later step to consume; nothing
-    # reads it today. See local_extract.role_signals.
+    # fields_for() must not see role intent, so role_keywords, title_hints
+    # and the free-source gate cannot move. This record is carried for
+    # measurement and for a later step to consume; nothing reads it today.
     signals = local_extract.role_signals(checked, rows)
     fields = local_search.fields_for(person, market)
+    # The profile's own list, and the filler line in the notes, are the
+    # pre-canonical ones: this batch changes what search matches on, not
+    # what the review screen shows or what the scorer keys on.
+    fields = dict(fields, skills=sorted(kept), filler_dropped=filler)
 
     if not fields["role_keywords"]:
         # Nothing to search for is not a profile. This is the one local
