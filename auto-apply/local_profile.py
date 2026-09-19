@@ -180,6 +180,12 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
             "résumé's own job titles only")
     person = {"skills": checked.get("skills") or (),
               "employment": (rows or {}).get("employment") or []}
+    # V3 STEP 1. Built here, and deliberately NOT part of `person`:
+    # fields_for() must see exactly what it saw before, so role_keywords,
+    # title_hints and the free-source gate cannot move. This record is
+    # carried for measurement and for a later step to consume; nothing
+    # reads it today. See local_extract.role_signals.
+    signals = local_extract.role_signals(checked, rows)
     fields = local_search.fields_for(person, market)
 
     if not fields["role_keywords"]:
@@ -218,6 +224,11 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
         "title_hints": fields["title_hints"],
         "title_exclude": [],
         "notes": _notes(decision, fields, years, field),
+        # The role-shaped evidence the model already reported. Additive,
+        # unconsumed, and not rendered into profiles/<name>.py — render()
+        # emits only PROFILE_NAMES, so this cannot change what the scraper
+        # runs and cannot force a PROFILE_SCHEMA bump. V3 Step 1.
+        "role_signals": signals,
         # Provenance, for the caller's log and for the tests. render()
         # ignores keys it does not name.
         "local_ranking": fields["ranking"],

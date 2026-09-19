@@ -411,6 +411,98 @@ def years_from(rows, now=None, ignore_relevance=False):
 
 
 # --------------------------------------------------------------------------
+# Role signals: the two role-shaped answers the model already gives
+# --------------------------------------------------------------------------
+#
+# V3 STEP 1. Both of these are produced today and thrown away: `titles`
+# (FIELDS call) is read nowhere in production, and `target_field`
+# (EMPLOYMENT call) reaches one prose sentence in the profile docstring.
+# The v2 forensic audit measured that on 60 documents and called it V3-C10.
+#
+# This function only PRESERVES them. It infers nothing, resolves nothing,
+# merges nothing, and has no consumer: role_keywords, title_hints and the
+# free-source gate are all built from `skills` and `employment` exactly as
+# before. The three sources are kept apart on purpose — a later step needs
+# to see where they DISAGREE, and merging them here would destroy the one
+# measurement that step depends on.
+#
+# Sanitised because this is model prose travelling into a dict a renderer
+# and a review screen will read. Control characters go, whitespace
+# collapses, lengths are bounded, and a value that is not a usable string
+# is dropped rather than coerced into one.
+
+# A job title or a profession longer than this is not one. Generous enough
+# for "Senior Salesforce Business Analyst / Functional Consultant".
+SIGNAL_CHARS = 120
+
+# Enough for any real career. A list longer than this is a malformed answer,
+# not a work history.
+SIGNAL_ITEMS = 20
+
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _signal(value):
+    """One model string, safe to carry. "" when there is nothing usable.
+
+    Deliberately strict about type: a schema-constrained decoder usually
+    returns a string and "usually" is exactly what bit the employment rows
+    before they were validated. A number, a dict or None is not a title.
+    """
+    if not isinstance(value, str):
+        return ""
+    cleaned = _CONTROL.sub(" ", value)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned[:SIGNAL_CHARS].strip()
+
+
+def _signal_list(values):
+    """Sanitised, order-preserving, case-insensitively deduplicated."""
+    if isinstance(values, str) or not isinstance(values, (list, tuple)):
+        return []
+    out, seen = [], set()
+    for value in values:
+        cleaned = _signal(value)
+        key = cleaned.lower()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        out.append(cleaned)
+        if len(out) >= SIGNAL_ITEMS:
+            break
+    return out
+
+
+def role_signals(checked, rows):
+    """The role-shaped evidence the model reported, preserved and kept apart.
+
+    `checked` is route()'s validated FIELDS answer, so its `titles` have
+    already passed check_grounding — every one of them appears in the
+    document. `rows` is the EMPLOYMENT answer, whose `target_field` is NOT
+    grounded: it is the model's own words for a profession and may name
+    something the résumé never writes down. That asymmetry is recorded
+    here rather than hidden, because a later consumer must not trust the
+    two equally.
+
+    employment_titles are the titles of the VALIDATED rows — the same list
+    from_resume() reads — kept raw, with no seniority stripping and no
+    two-word rule, so a comparison can still see what the résumé said.
+    """
+    checked = checked or {}
+    rows = rows or {}
+    return {
+        "target_field": _signal(rows.get("target_field")),
+        "titles": _signal_list(checked.get("titles")),
+        "employment_titles": _signal_list(
+            [row.get("title") for row in (rows.get("employment") or ())
+             if isinstance(row, dict)]),
+        # What a reader needs in order not to over-trust a field.
+        "grounded": {"titles": True, "target_field": False,
+                     "employment_titles": True},
+    }
+
+
+# --------------------------------------------------------------------------
 # The router: is this parse good enough to keep?
 # --------------------------------------------------------------------------
 #
