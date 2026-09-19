@@ -70,6 +70,7 @@ import functools
 import hashlib
 import re
 
+import semantic_scope          # V3 Step 8. Scope only; off unless set.
 import skill_concepts
 
 # --------------------------------------------------------------------------
@@ -532,10 +533,52 @@ def is_planned(text, start, end=None):
     return classify(text, start, start if end is None else end) == PLANNED
 
 
-def classify(text, start, end, section=OTHER, bounds=None):
+def _scoped(text, start, end, section, bounds, record=None):
+    """V3 STEP 8. The same decision order and the same cue definitions as
+    classify() below; only the WINDOWS are narrower (audit defect V3-C16).
+
+    Each window is intersected with _governed() -- the clause segmentation
+    shape() has always used for evidence depth, where a break ends a verb's
+    reach only when what follows starts a new predicate -- and a cue in a
+    different comma item from the concept no longer governs it. Intersected,
+    never replaced: bounding PLANNED by _governed alone would WIDEN it, since
+    its forward bound is already a bare clause break.
+    """
+    sentence = _sentence(text, start, end, bounds)
+    governed = _governed(text, start, end, bounds)
+    opened, closed = sentence
+    ahead = _CLAUSE_BREAK.search(text, end, closed)
+
+    def fires(rx, family, window):
+        lo, hi = semantic_scope.narrow(window, governed)
+        match, why = semantic_scope.first_governing(text, rx, lo, hi, start, end)
+        if match is not None and record is not None:
+            record.setdefault("decisions", []).append(
+                {"span": [start, end], "cue": match.group(0),
+                 "cue_family": family, "cue_position": list(match.span()),
+                 "scope": text[lo:hi], "reason": why})
+        return match
+
+    if fires(semantic_scope.negated(_NEGATED), "NEGATED", sentence):
+        return NEGATED
+    if fires(_PLANNED, "PLANNED", (opened, ahead.start() if ahead else closed)):
+        return PLANNED
+    if section in (EDUCATION, CERTIFICATION):
+        return LEARNING
+    if fires(_LEARNING, "LEARNING", sentence):
+        return LEARNING
+    line_lo, line_hi = _unit(text, start, bounds)
+    if _used(text, line_lo, start, end, line_hi):
+        return USED
+    return MENTIONED
+
+
+def classify(text, start, end, section=OTHER, bounds=None, record=None):
     """The status of one occurrence. Deterministic, local, no model."""
     text = str(text or "")
     bounds = (0, len(text)) if bounds is None else bounds
+    if semantic_scope.enabled():
+        return _scoped(text, start, end, section, bounds, record)
     opened, closed = _sentence(text, start, end, bounds)
 
     # Negation reads the whole sentence: the denial can sit on either
