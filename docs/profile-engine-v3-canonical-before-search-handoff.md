@@ -12,6 +12,7 @@ and it matters for Step 3.
 |---|---|
 | Step 1 commit | `6e115290c507a35f170ef7a350adde06d4a96013` |
 | Step 2 base | `8ba32a2` (Step 1 plus its own SHA correction) |
+| **Step 2 commit** | **`d8579d7a2facb7baea2e187c52d307d110cabcb1`** — committed when Step 2 was accepted |
 | Engine | v2, unchanged. `render.yaml` untouched |
 | Profile schema | 1, unchanged |
 | Role construction | off and absent, unchanged |
@@ -357,6 +358,7 @@ lock an empty or malformed set.
 ```
 STEP 1 COMMIT:                     6e115290c507a35f170ef7a350adde06d4a96013
 STEP 2 BASE:                       8ba32a2
+STEP 2 COMMIT:                     d8579d7a2facb7baea2e187c52d307d110cabcb1
 
 FILES CHANGED:                     skill_concepts.py (+30/-0)
                                    auto-apply/local_profile.py (+30/-5)
@@ -402,4 +404,6 @@ READY FOR ROLE_EVIDENCE:           no — the holdout must be collected and
 
 Stopping here. `role_evidence` was not implemented, the free gate was not
 changed, `target_field` and `role_signals` are still consumed by nothing,
-orphan anchors and `SKILL_LIFT` were not touched, and nothing was deployed.
+orphan anchors and `SKILL_LIFT` were not touched, the corpus was not
+canonicalised, and nothing was deployed. Committed on acceptance as
+`d8579d7`.
