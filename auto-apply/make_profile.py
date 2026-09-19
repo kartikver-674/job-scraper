@@ -38,6 +38,7 @@ if cfg.REPO_ROOT not in sys.path:
 
 import local_extract
 import skill_concepts
+import title_gate
 
 # `tailor` and `google.genai` are imported inside the two functions that
 # actually reach Gemini (_generate_one and main), NOT here. At module
@@ -841,11 +842,39 @@ def _title_gate(data, config):
     Excludes are NOT unioned with anything — they delete, so only what the
     model asked for is honoured.
     """
+    excludes = {str(t).strip().lower() for t in data.get("title_exclude") or []}
+    if title_gate.enabled():
+        # V3 STEP 4. The global floor is NOT unioned in. The gate is built from
+        # this candidate's own grounded titles and supported role families, so
+        # it answers "could this title belong to this person" rather than "is
+        # this a title somebody in software might want" (audit V3-C4). The
+        # legacy floor survives as the last fallback, for a candidate about whom
+        # nothing at all is known, and that fallback is recorded rather than
+        # silent.
+        hints, record = title_gate.build(data, config.ATS_TITLE_HINTS)
+        kept = sorted(h for h in hints if h and h not in excludes)
+        return kept, sorted(excludes), record
     hints = {str(t).strip().lower() for t in data.get("title_hints") or []}
     hints |= set(config.ATS_TITLE_HINTS)
-    excludes = {str(t).strip().lower() for t in data.get("title_exclude") or []}
     # A term on both lists would delete itself: exclude wins in is_dev_title.
-    return sorted(h for h in hints if h and h not in excludes), sorted(excludes)
+    return (sorted(h for h in hints if h and h not in excludes),
+            sorted(excludes), None)
+
+
+def _gate_note(record):
+    """One comment line above the rendered gate, so a reader can see where it
+    came from without running anything. Empty under the legacy union."""
+    if not record:
+        return ""
+    if record.get("global_floor_used"):
+        return ("# V3 Step 4: no candidate-specific title evidence existed; "
+                "fell back to\n# the legacy global floor.\n")
+    families = ", ".join(record.get("supported_families") or ()) or "none"
+    line = (f"# V3 Step 4: candidate-specific gate. Supported families: "
+            f"{families}.\n")
+    if record.get("fallback"):
+        line += f"# FALLBACK: {record['fallback']}.\n"
+    return line
 
 
 def _fmt_feeds(queries):
@@ -1137,7 +1166,8 @@ def render(name, data, prefs):
         overlay.setdefault(site, dict(config.SITES[site]))["enabled"] = bool(on)
 
     extra_sites = _fmt_sites(overlay) if overlay else ""
-    hints, excludes = _title_gate(data, config)
+    hints, excludes, gate_record = _title_gate(data, config)
+    gate_note = _gate_note(gate_record)
     # The résumé's own role keywords are what himalayas is searched for; its
     # search endpoint takes one free-text query per request.
     extra_feeds = _fmt_feeds([k for k in data["role_keywords"] if str(k).strip()])
@@ -1238,7 +1268,7 @@ SCORING = {{
 # BEFORE scoring, so a fragment missing here is inventory nobody sees. This is
 # the résumé's own vocabulary UNIONED with config.py's generic software floor,
 # so it can only ever widen the search.
-ATS_TITLE_HINTS = {_fmt(hints, indent=4)}
+{gate_note}ATS_TITLE_HINTS = {_fmt(hints, indent=4)}
 
 # Checked first, so it wins: different CAREERS that borrow the same words.
 ATS_TITLE_EXCLUDE = {_fmt(excludes, indent=4)}
