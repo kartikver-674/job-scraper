@@ -56,6 +56,7 @@ if cfg.REPO_ROOT not in sys.path:
 
 import inference
 import local_extract
+import canonical_guard
 import hard_drop
 import local_search
 import orphan_guard
@@ -217,6 +218,30 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
                                 (rows or {}).get("employment") or [])
             if role_evidence.enabled() else None)
     fields = local_search.fields_for(person, market)
+    # V3 STEP 7. canonical() swaps a ranked fragment for a real corpus title.
+    # On the corpus path the replacement is revalidated because canonicalise
+    # runs before validated; on the orphan path it never meets validate at all,
+    # so "software engineer -python developer" reached role_keywords (audit
+    # V3-C6). Only REPLACEMENTS are judged, and the role-term rule routes
+    # through Step 5's own exemption so a grounded title is not taken back.
+    canonical_record = None
+    if canonical_guard.enabled():
+        hard_terms, _soft = local_search.seniority_lists()
+        # Step 5's decision, read through Step 5. An empty query list means
+        # this asks "what is this candidate grounded for" without touching the
+        # real restoration below.
+        exempt, _r5 = hard_drop.restore(
+            {"role_keywords": [], "role_signals": signals,
+             "role_evidence": role}, market)
+        surviving, canonical_record = canonical_guard.revalidate(
+            fields["role_keywords"], fields.get("canonical_trace") or (),
+            getattr(market, "titles", ()), exempt, hard_terms)
+        if canonical_record.get("rejected"):
+            log(f"    canonical guard: rejected "
+                f"{len(canonical_record['rejected'])} replacement(s) "
+                f"{canonical_record['rejected']}")
+            log(canonical_guard.explain(canonical_record))
+        fields = dict(fields, role_keywords=surviving)
     # V3 STEP 6. The orphan pass finds a rare skill nobody is searching for and
     # asks the corpus which titles are posted alongside it. That is useful and
     # stays; what it must not do is confer a profession. `git` anchors "flutter
@@ -320,6 +345,8 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
         "hard_drop_record": drop_record,
         # V3 Step 6. Additive like the rest; render() emits only PROFILE_NAMES.
         "orphan_guard_record": orphan_record,
+        # V3 Step 7. Additive like the rest; render() emits only PROFILE_NAMES.
+        "canonical_guard_record": canonical_record,
         # Provenance, for the caller's log and for the tests. render()
         # ignores keys it does not name.
         "local_ranking": fields["ranking"],

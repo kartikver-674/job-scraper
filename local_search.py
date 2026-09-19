@@ -482,7 +482,7 @@ def rank_title(count, title):
     return (-count, len(title.split()), title)
 
 
-def canonical(fragment, titles, seniority=(), max_words=4):
+def canonical(fragment, titles, seniority=(), max_words=4, trace=None):
     """The most common COMPLETE job title containing this fragment.
 
     role_keywords are sent to LinkedIn and Indeed as literal search
@@ -495,6 +495,13 @@ def canonical(fragment, titles, seniority=(), max_words=4):
     needle = fragment.strip().lower()
     if not needle:
         return None
+    # `trace`, when given, collects (fragment, replacement) pairs. The fragment
+    # is otherwise lost at the replacement boundary, and without it a later
+    # stage can say a query is malformed but not what it replaced (V3-C6).
+    def record(result):
+        if trace is not None:
+            trace.append((needle, result))
+        return result
     plain, senior = [], []
     for title, count in titles.items():
         if needle not in title or not (2 <= len(title.split()) <= max_words):
@@ -507,19 +514,19 @@ def canonical(fragment, titles, seniority=(), max_words=4):
     # engineer onsite" became "software engineer onsite", which nobody
     # posts, and it went straight out as a search query.
     if plain:
-        return min(plain)[2]
+        return record(min(plain)[2])
     if not senior:
-        return None
+        return record(None)
     stripped = " ".join(w for w in min(senior)[2].split() if w not in seniority)
-    return stripped if stripped and stripped in titles else None
+    return record(stripped if stripped and stripped in titles else None)
 
 
-def canonicalise(frags, rows, seniority=()):
+def canonicalise(frags, rows, seniority=(), trace=None):
     """Ranked fragments as real, deduplicated job titles."""
     titles = collections.Counter(t for t, _s, _sk, _c in rows)
     out = []
     for fragment in frags:
-        title = canonical(fragment, titles, seniority)
+        title = canonical(fragment, titles, seniority, trace=trace)
         if title and title not in out:
             out.append(title)
     return out
@@ -1013,7 +1020,7 @@ def orphans(own, keywords, rows, vocab=None):
 
 
 def candidates_for_skill(skill, rows, idx, total, seniority=(), want=8,
-                         min_share=0.02, vocab=None):
+                         min_share=0.02, vocab=None, trace=None):
     """The job titles this market attaches to this skill, most common first.
 
     A LIST, not a pick, because frequency alone chooses wrong. The corpus
@@ -1047,7 +1054,7 @@ def candidates_for_skill(skill, rows, idx, total, seniority=(), want=8,
             continue
         if entry["listings"] / total > MAX_SHARE:
             continue
-        title = canonical(fragment, titles, seniority)
+        title = canonical(fragment, titles, seniority, trace=trace)
         if not title or title in out:
             continue
         if any(title in got or got in title for got in out):
@@ -1091,12 +1098,13 @@ def worth_it(title, rows, own, anchor=None, vocab=None, total=None):
     return strength >= ANCHOR_EVIDENCE, got
 
 
-def blocks_for(own, keywords, rows, idx, total, seniority, cap=8, vocab=None):
+def blocks_for(own, keywords, rows, idx, total, seniority, cap=8, vocab=None,
+               trace=None):
     """[(skill, [candidate titles])] for this person's orphaned skills."""
     out = []
     for skill, _n, _emp, _share in orphans(own, keywords, rows, vocab):
         titles = candidates_for_skill(skill, rows, idx, total, seniority,
-                                      vocab=vocab)
+                                      vocab=vocab, trace=trace)
         if titles:
             out.append((skill, titles))
         if len(out) >= cap:
@@ -1104,7 +1112,8 @@ def blocks_for(own, keywords, rows, idx, total, seniority, cap=8, vocab=None):
     return out
 
 
-def select_detail(own, base, rows, idx, total, seniority, vocab=None, cap=2):
+def select_detail(own, base, rows, idx, total, seniority, vocab=None, cap=2,
+                  trace=None):
     """The orphan keywords to add, with the skill that produced each.
 
     No model. One was here: asked to pick the software title out of a
@@ -1116,7 +1125,7 @@ def select_detail(own, base, rows, idx, total, seniority, vocab=None, cap=2):
     vocab = vocab if vocab is not None else vocabulary(rows)
     scored = []
     for skill, titles in blocks_for(own, base, rows, idx, total, seniority,
-                                    vocab=vocab):
+                                    vocab=vocab, trace=trace):
         for title in titles:
             if any(title in b or b in title for b in base):
                 continue
@@ -1345,9 +1354,10 @@ def fields_for(person, market, want=12, importance=None, resume_text="",
 
     held_raw = from_resume(person, seniority)
 
+    canonical_trace = []
     corpus_raw = canonicalise(
         keywords_for(own, rows, idx, total, want=want, seniority=seniority),
-        rows, seniority)
+        rows, seniority, trace=canonical_trace)
     # Validated as ONE list, so every guard sees the same input it was
     # measured on. The split below is for ordering only.
     base = validated(held_raw + corpus_raw, rows, seniority)
@@ -1355,7 +1365,8 @@ def fields_for(person, market, want=12, importance=None, resume_text="",
     held = [k for k in base if k.strip().lower() in held_keys]
     corpus = [k for k in base if k.strip().lower() not in held_keys]
 
-    anchored = select_detail(own, base, rows, idx, total, seniority, vocab)
+    anchored = select_detail(own, base, rows, idx, total, seniority, vocab,
+                             trace=canonical_trace)
     order = rank(held, anchored, corpus)
 
     # Last step, and only an order: the tiers, the reasons and the
@@ -1378,6 +1389,10 @@ def fields_for(person, market, want=12, importance=None, resume_text="",
         # pass but not WHICH skill produced it. Nothing reads this that did not
         # ask for it, and no behaviour changes.
         "orphan_anchors": [[title, skill] for title, skill, _e in anchored],
+        # Every fragment -> replacement pair canonical() produced this run.
+        # Additive provenance for the replacement boundary; nothing reads it
+        # that did not ask for it, and no behaviour changes.
+        "canonical_trace": [[frag, title] for frag, title in canonical_trace],
         "title_hints": hints_for(own, rows, idx, total, seniority),
     }
 
