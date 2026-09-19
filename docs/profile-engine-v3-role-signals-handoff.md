@@ -8,7 +8,7 @@ is inert. It builds no role model, consumes nothing, and touches no query.
 | | |
 |---|---|
 | Base SHA | `c600fb4161f449991caa4f425dbbe41e4ebfbfdc` |
-| Final SHA | **`c600fb4161f449991caa4f425dbbe41e4ebfbfdc`** — no commit was made; the change is in the working tree |
+| Final SHA | **`6e115290c507a35f170ef7a350adde06d4a96013`** — committed when Step 1 was accepted, on top of `86929adf121d13324ad6b6fddfb55f71ca9b2330` (the audit doc) |
 | Engine | v2, unchanged. `render.yaml` untouched |
 | Profile schema | **1, unchanged** |
 | Role construction | off and absent, unchanged |
@@ -407,7 +407,9 @@ fabricated to fill the gap.
    `target_field` is uniquely correct.
 6. **The real résumés' weight half was not re-proven**, because the source PDFs
    were deliberately not re-read. Proven on 54 personas instead.
-7. **Nothing was committed.** The change sits in the working tree.
+7. **Committed on acceptance** as `6e11529`, after this document was
+   written. Three sibling v2-audit documents stay untracked as previous
+   sessions left them; one names a personal résumé file.
 
 ---
 
@@ -458,5 +460,5 @@ remove config's floor, or the 13 DOMAIN cases become 13 starved sweeps.
 ---
 
 Stopping here. The free gate was not touched, canonicalisation was not moved,
-`role_evidence` was not built, orphan anchors were not touched, nothing was
-deployed and nothing was committed.
+`role_evidence` was not built, orphan anchors were not touched, and nothing was
+deployed. Committed on acceptance as `6e11529`.
