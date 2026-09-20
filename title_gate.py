@@ -38,6 +38,7 @@ are generous rather than strict.
 import os
 import re
 
+import family_centrality      # V3 Fix B. Off unless set.
 import role_evidence          # FROZEN at Step 3. Read, never modified.
 
 FLAG = "SWEEP_CANDIDATE_TITLE_GATE"
@@ -279,7 +280,19 @@ def build(data, base_hints=()):
     own_raw = [h for h in own_raw if h and h not in _TOO_BROAD]
 
     held = _held(signals)
-    family_hints, supported = _families(role)
+    # V3 FIX B. Strong work-mode evidence means the candidate DID this kind of
+    # work; it does not mean the profession is theirs to search broadly. With
+    # the centrality gate on, only a family named by a held title or by the
+    # stated target hands over its whole vocabulary, and every other strong
+    # family contributes just the titles the candidate's own evidence already
+    # names. `_families` below is the untouched Fix-A path.
+    centrality = None
+    if family_centrality.enabled():
+        family_hints, supported, centrality = family_centrality.families(
+            role, signals, held, own_raw, data.get("role_keywords") or (),
+            FAMILY_TITLES, normalize)
+    else:
+        family_hints, supported = _families(role)
     # The candidate's own hints are derived from the CORPUS, and the corpus is
     # 63% software, so they carry titles from families this person has no
     # evidence for — "salesforce developer" for a business analyst is exactly
@@ -323,6 +336,8 @@ def build(data, base_hints=()):
         "own_hints_dropped": own_dropped,
         "global_floor_used": False,
     }
+    if centrality is not None:
+        record["family_centrality"] = centrality
 
     # Usable means PRESENT, not plentiful. A teacher whose evidence is three
     # fragments has a small correct gate; counting fragments and calling three
