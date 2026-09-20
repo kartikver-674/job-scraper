@@ -626,6 +626,43 @@ class TestOneForm(unittest.TestCase):
             self.assertIn(f'action="{action}"', tag)
             self.assertRegex(body, r'<button class="primary[^"]*" type="submit"')
 
+    def test_no_submit_button_disables_itself_on_click(self):
+        """A submit button that disables itself in its own click handler
+        never submits.
+
+        Shipped and reported within the hour: the Start Free Sweep button
+        carried @click="sent = true" next to :disabled="sent", Alpine
+        flushed the binding before the click's default action ran, and the
+        form-submission algorithm re-checks the submitter — so the button
+        greyed out and nothing happened. The guard belongs on the FORM's
+        @submit, which fires once the browser has already committed.
+        """
+        checked = 0
+        for free in (True, False):
+            body = make_app(free=free).test_client().get(
+                "/configure").get_data(as_text=True)
+            form_tag = re.search(r'<form class="split"[^>]*>', body, re.S).group(0)
+            for tag in re.findall(r"<button[^>]*>", body, re.S):
+                disabled = re.search(r':disabled="([^"]+)"', tag)
+                if 'type="submit"' not in tag or not disabled:
+                    continue
+                checked += 1
+                flag = disabled.group(1).strip()
+                click = re.search(r'@click(?:\.\w+)*="([^"]*)"', tag)
+                if click:
+                    # An assignment to the same name, not merely a mention.
+                    self.assertNotRegex(
+                        click.group(1), rf"\b{re.escape(flag)}\s*=[^=]",
+                        f"this submit button cancels itself "
+                        f"(free={free}): {tag}")
+                # ...and something else has to be setting it, or the guard
+                # against a double-click is not there at all.
+                self.assertIn(f'@submit="{flag} = true"', form_tag)
+        # The assertions above are all conditional, so the loop has to prove
+        # it found something — a renamed class or attribute would otherwise
+        # make this test quietly vacuous.
+        self.assertEqual(checked, 1, "expected exactly one guarded submit button")
+
     def test_the_free_start_button_carries_the_preferences(self):
         # It used to be a second <form> of its own posting nothing, which is
         # why preferences had to be saved by the estimate request firing.

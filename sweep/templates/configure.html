@@ -78,7 +78,8 @@
   <form class="split" method="post"
         action="{{ url_for('run') if public_mode and free_only
                   else url_for('configure_post') }}"
-        x-data="{ scope: '{{ scope }}' }"
+        x-data="{ scope: '{{ scope }}', sent: false }"
+        @submit="sent = true"
         @change="busy = true; err = null;
           fetch('{{ url_for('estimate') }}', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -498,9 +499,17 @@
                >View my Sweep<span class="go" aria-hidden="true">&rarr;</span></a>
           {% else %}
           <p class="muted">Free — no account needed and nothing to pay.</p>
-          <button class="primary big" type="submit" x-data="{ sent: false }"
-                  @click="sent = true" :disabled="sent">Start Free Sweep<span
-                  class="go" aria-hidden="true">&rarr;</span></button>
+          {# :disabled is bound to the FORM's @submit, never to this
+             button's own @click. A submit button that disables itself in
+             its click handler cancels the submission it was pressed for:
+             the form-submission algorithm re-checks the submitter, Alpine
+             has already flushed the binding by then, and the button just
+             greys out while nothing happens. #}
+          <button class="primary big" type="submit" :disabled="sent"
+                  >Start Free Sweep<span class="go"
+                  aria-hidden="true">&rarr;</span></button>
+          <span class="meta sending" x-show="sent" x-cloak
+                aria-live="polite">Starting your sweep…</span>
           {% endif %}
         {% endif %}
       </div>

@@ -348,6 +348,7 @@ claimed and what made them indistinguishable from each other.
 | `test_duplicate_locations_do_not_duplicate_paid_searches` · `test_repeats_do_not_count_twice_against_the_limit` | B16 |
 | `test_the_limit_is_stated_and_enforced` | B19 |
 | `test_every_control_appears_exactly_once` · `test_the_preferences_form_can_be_submitted_without_javascript` | mobile/desktop, no-JS |
+| `test_no_submit_button_disables_itself_on_click` | the Start-button regression below |
 | `test_going_on_to_confirm_and_back_keeps_every_value` | back navigation |
 | `test_the_summary_does_not_claim_a_location_under_remote` · `test_the_free_summary_shows_only_what_is_active` | the summary |
 
@@ -389,6 +390,20 @@ relaxed:
   and avoid-term messages do. Rendered with Alpine `x-text`, so it is text,
   not markup.
 - Search Engine V2, industry taxonomy, visa filtering, Fix C.
+
+**Found and fixed after the first commit (`c9c7ef1` → `HEAD`):**
+
+- **The Start Free Sweep button did nothing.** Restructuring the screen into
+  one form moved the double-click guard from the form's `@submit` onto the
+  button's own `@click`, next to `:disabled="sent"`. A submit button that
+  disables itself in its click handler never submits: Alpine flushes the
+  binding before the click's default action runs, and the form-submission
+  algorithm re-checks the submitter. The button greyed out and nothing
+  happened. The guard is back on the form, where it fires once the browser
+  has already committed, and
+  `test_no_submit_button_disables_itself_on_click` fails if it moves again.
+  The "Starting your sweep…" live region, dropped in the same edit, is back
+  too.
 
 **New, introduced by this patch and worth stating plainly:**
 
