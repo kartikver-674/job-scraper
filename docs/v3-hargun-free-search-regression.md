@@ -9,27 +9,66 @@ by default).
 
 ## The headline finding, before anything else
 
-**This is not a V3 regression.** V3 has never been deployed — the release
-readiness checkpoint (`1f14f89`) recorded both hosts as unconfigured, and
-nothing has been applied since. The screenshots were produced by the **legacy
-V2 path**.
+**CORRECTED 2026-09-20.** An earlier version of this report said "V3 has never
+been deployed" on the strength of the release-readiness checkpoint `1f14f89`.
+That checkpoint was superseded: the V3 stack was deployed to Render and Oracle
+afterwards, Oracle verified `S3 True S4 True S5 True S6 False S7 True S8 True
+neg False fallback discard` on commit `455c68d`, the worker was restarted, and
+a beta canary passed. The checkpoint is not evidence of runtime state and is
+no longer used as such here.
 
-Run on the same résumé, same corpus, same preferences:
+**The run in the screenshots was produced by the deployed V3 stack.**
 
-| | V2 (live today) | V3 intended stack |
+The Oracle run artefact could not be read directly — SSH to `140.245.7.224`
+fails at the TCP layer from this machine (`connect to port 22: Operation timed
+out`, before authentication; the box answers on 443, so it is a port-22
+restriction, not the key). So the engine state was established from the run
+**output** instead, which is stronger than a timestamp for this question.
+
+Every free source applies `keep_title = scraper.is_dev_title` — ATS boards,
+feeds, optum and enterprise alike. A title on the results page therefore
+*proves* the gate contained a hint matching it. Three of the observed titles
+are admitted by the V3 gate and by neither the V2 gate nor the legacy floor:
+
+| observed title | V2 gate | V3 gate | legacy floor | admitting hint |
+|---|---|---|---|---|
+| Technical Support Engineer 2 | no | **ADMIT** | no | `technical support`, `support engineer` |
+| Data Analyst | no | **ADMIT** | no | `data analyst` |
+| Director of Recruiting, Engineering & IT | no | **ADMIT** | no | `recruiting` |
+| Staff Software Engineer, Device Management | ADMIT | ADMIT | yes | `software engineer` |
+| AI Engineer | ADMIT | ADMIT | yes | `ai engineer` |
+
+Those three could not have reached the page under V2. **Task 1 answer: B —
+generated after V3 deployment.** Not C: a stale V2 profile would lack exactly
+those three hints.
+
+What would confirm it from the artefact side, for whoever can reach the host:
+
+```
+sudo ls -lt /var/lib/sweep-worker/runs | head
+sudo grep -c "'" /var/lib/sweep-worker/runs/<run_id>/profile.py   # hint count
+sudo grep "V3 Step 4" /var/lib/sweep-worker/runs/<run_id>/profile.py
+sudo stat -c '%y %n' /var/lib/sweep-worker/runs/<run_id>/{status.json,profile.py}
+```
+
+A V3 render carries the `# V3 Step 4: candidate-specific gate. Supported
+families: ...` provenance comment; a V2 render carries no comment and contains
+the whole 79-entry floor.
+
+### The offline V2/V3 comparison still stands
+
+Same résumé, same corpus, same preferences:
+
+| | V2 | V3 (deployed) |
 |---|---:|---:|
 | title-gate size | 115 hints | **147 hints** |
-| legacy 79-entry software floor present | **yes** | no |
-| observed bad titles admitted | **5 of 8** | **8 of 8** |
+| legacy 79-entry software floor present | yes | no |
+| observed bad titles admitted | 5 of 8 | **8 of 8** |
 
-V2 admits the engineering jobs through the **legacy 79-entry software floor**.
-V3 removes that floor but replaces it with something wider for this candidate,
-and additionally admits `Director of Recruiting`, `Technical Support Engineer`
-and `Data Analyst`, which V2 rejected.
-
-So the correct statement is: **a pre-existing V2 defect, which V3 in its
-current form would make worse for this candidate rather than fix.** Both need
-addressing; neither is caused by the other.
+So this is **not** a defect V3 inherited unchanged. V2 had a profession leak of
+its own, through the legacy software floor. V3 removed that floor and replaced
+it with a candidate-specific gate that, for this résumé, is wider still — and
+that wider gate is what is live.
 
 ## Candidate role summary
 
@@ -135,7 +174,8 @@ Admission of every observed bad title:
 | Technical Support Engineer 2 | no | **ADMIT** | `technical support`, `support engineer` |
 | Data Analyst | no | **ADMIT** | `data analyst` |
 
-The three V3-only admissions come from families V3 added.
+The three V3-only admissions come from families V3 added, and are the
+evidence that fixes the runtime attribution above.
 
 ### Why V3's gate is wider than the floor it replaced
 
@@ -417,6 +457,205 @@ Two measurements, before choosing any fix:
    separation. If the share is large and concentrated in wrong-profession
    matches, E is justified on evidence rather than intuition.
 
-Both are read-only. Neither should be started until this report is reviewed,
-and the V2-versus-V3 correction at the top is the part that most needs a
-decision: **the live beta has this defect today, with V3 switched off.**
+Both measurements have now been run. See the two sections below.
+
+---
+
+# Measurement A — development attachment
+
+Read-only. The candidate rule was applied **offline only**, to measure what it
+would reject. Nothing was implemented.
+
+Rule measured: *the engineering artefact counts only when no preposition
+separates it from the construct verb.* `Authored FSDs for the module` —
+verb `authored`, artefact `module`, between `FSDs for the` — contains `for`,
+so the module is not what was authored.
+
+```
+TOTAL development hits (non-delegated), 54 personas + Hargun : 41
+REJECTED by the attachment test                              :  9  (21%)
+```
+
+Every rejected hit:
+
+| candidate | verb | artefact | text between |
+|---|---|---|---|
+| **HARGUN** | authored | module | `fsds for the supplier warranty recovery (swr` |
+| **HARGUN** | authored | modules | `fsds across multiple dms` |
+| **HARGUN** | built | service | `custom reports and dashboards to give busine…` |
+| swe_fullstack | built | api | `the customer portal end to end: react front` |
+| swe_java | engineer | microservices | `with 8 years on spring boot` |
+| swe_devops | built | services | `the gitops deployment path with argocd for 6` |
+| tech_support | engineer | platform | `with 4 years on a saas` |
+| adv_swe_titled_sf_work | develop | platform | `on the salesforce` |
+| adv_grad_cs | built | api | `two internal crud screens in react against a` |
+
+### Family and gate effect
+
+| candidate | software_eng | ml_eng | gate | families |
+|---|---|---|---|---|
+| **HARGUN** | strong → **none** | strong → **none** | 147 → **109** | 12 → 10 |
+| **tech_support** | strong → **none** | strong → **none** | 53 → **16** | 3 → 1 |
+| swe_frontend | weak → weak | – | 87 → 87 | 6 → 6 |
+| swe_backend | strong → strong | strong → strong | 67 → 67 | 3 → 3 |
+| swe_data_eng | weak → weak | strong → strong | 72 → 72 | 3 → 3 |
+| adv_grad_cs | strong → strong | strong → strong | 78 → 78 | 6 → 6 |
+| swe_ml, swe_fullstack, pm_technical, plat_sf_ba, ba_generic | unchanged | unchanged | unchanged | unchanged |
+
+**No software persona loses anything.** Four of them had a hit rejected, and
+none lost a family, because each has other development hits that *are*
+properly attached. The rule removes noise without removing identity — which is
+the property that matters, and it is the reason this is worth considering.
+
+It also fixes the one other non-software false positive in the set,
+`tech_support`, whose gate falls 53 → 16.
+
+### But attachment alone does not fix the symptom
+
+Re-testing the observed bad titles against the corrected 109-hint gate:
+
+| bad title | before | after attachment fix |
+|---|---|---|
+| Staff Software Engineer, Device Management | ADMIT | **no** |
+| AI Engineer | ADMIT | **no** |
+| Staff Backend Engineer | ADMIT | **no** |
+| Senior Salesforce Developer, Service Cloud | ADMIT | **no** |
+| Director of Recruiting, Engineering & IT | ADMIT | ADMIT (`recruiting`) |
+| Staff Infrastructure Security Engineer | ADMIT | ADMIT (`infrastructure`) |
+| Technical Support Engineer 2 | ADMIT | ADMIT (`technical support`) |
+| Data Analyst | ADMIT | ADMIT (`data analyst`) |
+
+**8 of 8 → 4 of 8.** It removes every *software and AI* admission and leaves
+the rest, because `hr_recruiting`, `it_administration`, `support` and
+`data_analytics` are still strong on their own evidence — `people`,
+`administration`, `support` and `analysis` modes that genuinely fired.
+
+Fix A is necessary and not sufficient. The residue is a family-breadth
+problem, which is fix B.
+
+# Measurement B — generic concept contribution
+
+```
+candidate concepts                          70
+concepts with no market separation          43 of 70
+frozen frequency file                       unusable for this question
+```
+
+**A limitation to state plainly:** `data/skill_market_frequencies.json` returns
+"unmeasurable" for every concept probed, so true corpus document frequency
+could **not** be computed. The discrimination evidence below is appearance
+counts across a small hand-built job set, not corpus frequency. That is weaker
+evidence than intended and should be strengthened before acting on it.
+
+### Share of score from concepts with no measured separation
+
+| job | total | unmeasured | share | top contributors |
+|---|---:|---:|---:|---|
+| **wrong profession** | | | | |
+| Staff Software Engineer, Device Management | 12 | 10 | **83%** | users 5, roles 5 |
+| AI Engineer | 10 | 10 | **100%** | users 5, roles 5 |
+| Staff Backend Engineer | 10 | 10 | **100%** | users 5, roles 5 |
+| Staff Infrastructure Security Engineer | 10 | 10 | **100%** | users 5, roles 5 |
+| Director of Recruiting, Engineering & IT | 17 | 10 | 59% | users 5, roles 5 |
+| Technical Support Engineer 2 | 5 | 5 | **100%** | roles 5 |
+| **correct profession** | | | | |
+| Salesforce Business Analyst | 58 | 18 | 31% | users, roles, jira |
+| Salesforce Functional Consultant | 43 | 18 | 42% | users, roles, jira |
+| Business Analyst | 28 | 0 | **0%** | — |
+| Business Systems Analyst | 14 | 0 | **0%** | — |
+
+```
+mean unmeasured share, wrong-profession jobs : 90%
+mean unmeasured share, correct-profession jobs : 18%
+```
+
+### "Unmeasured" is the wrong discriminator — and the data says so
+
+This is the finding that matters, and it cuts against the obvious fix:
+
+| concept | wt | sep | appears in wrong jobs | appears in right jobs |
+|---|---:|---|---|---|
+| `roles` | 5 | **None** | **6 of 6** | 2 of 4 |
+| `users` | 5 | **None** | **5 of 6** | 2 of 4 |
+| `lightning` | 5 | None | 0 of 6 | 0 of 4 |
+| `profiles` | 5 | 4 | **0 of 6** | 2 of 4 |
+| `permission sets` | 5 | 4 | **0 of 6** | 2 of 4 |
+| `uat` | 5 | 3 | **0 of 6** | **4 of 4** |
+| `user stories` | 5 | 3 | **0 of 6** | 3 of 4 |
+| `requirement gathering` | 5 | 3 | 0 of 6 | 2 of 4 |
+| `reports` | 4 | 2 | 0 of 6 | 1 of 4 |
+| `dashboards` | 4 | 2 | 1 of 6 | 1 of 4 |
+
+Missing market separation does **not** predict a bad concept. `lightning` is
+unmeasured and legitimate. `profiles` and `permission sets` are *well*
+separated and appear in zero wrong-profession jobs. `uat` is the single best
+discriminator in the set: 0 of 6 wrong, 4 of 4 right.
+
+Exactly two concepts behave badly, and they behave badly in the same way:
+**`roles` and `users` appear in nearly every posting regardless of
+profession.** That is a document-frequency property, not a separation
+property, and the fact that the frozen corpus could not even measure them is
+itself the tell — they are too common to work as skills.
+
+So a rule keyed on "no market separation" would be wrong: it would demote
+`lightning` and leave `profiles` untouched while missing the actual mechanism.
+A rule keyed on document frequency would be right, and **cannot currently be
+built**, because the frequency data is not there.
+
+### Systemic or isolated?
+
+Systemic in mechanism, concentrated in occurrence. The scorer has no
+profession-fit term for anybody, so any candidate whose résumé yields a
+high-frequency common-English concept gets the same inflation. What is
+specific to this candidate is the source: Salesforce administration vocabulary
+("Configured users, roles, profiles and permission sets") is the natural way to
+produce single common words as CORE concepts, and it arrives with a
+fragmentation defect that turns one compound capability into four independent
+weight-5 signals.
+
+# Revised conclusions
+
+| problem | contribution | change from the first version |
+|---|---|---|
+| Bad query generation | **no** | unchanged — 0 forbidden queries |
+| Free-source broad retrieval | **yes — primary** | unchanged |
+| Title gate leakage | **yes — primary** | now attributed to the **deployed V3** gate, not V2 |
+| Missing result role-fit | **yes** | unchanged |
+| Generic skill inflation | **yes** | quantified: 90% vs 18% of score |
+| Concept fragmentation | **yes** | unchanged |
+| Seniority mismatch | **yes** | unchanged |
+| Ranking weakness | **yes** | unchanged |
+
+Three candidate fixes, now with evidence for each:
+
+**A — Step 3 development attachment.** Rejects 9 of 41 hits. Removes both
+false engineering families from Hargun (gate 147 → 109) and from
+`tech_support` (53 → 16). **Harms no software persona.** Takes the symptom
+from 8 of 8 to 4 of 8. Necessary, not sufficient. Lowest risk of the three and
+the only one that corrects a record every later layer reads.
+
+**B — bound or corroborate Step 4 family expansion.** Required for the
+remaining 4 of 8. `_families()` admits every strong family's entire board
+vocabulary with no cap; 11 strong families produced ~120 of the 147 hints.
+Must not shrink the legitimate 67–87-hint software gates.
+
+**C — generic-concept inflation.** Real and large (90% vs 18%), but **do not
+implement it on the market-separation signal** — the data above shows that
+signal is wrong. It needs document frequency, which the frozen corpus does not
+currently provide. This fix is blocked on a measurement, not on a decision.
+
+## Recommended next experiment
+
+1. **Fix A first**, as its own flagged step with the usual 56-persona
+   revalidation. The evidence is unusually clean: it fixes two candidates,
+   harms none, and is a correctness fix to a grammatical rule rather than a
+   tuning knob.
+2. **Then re-measure the symptom** before touching B. With A in place the
+   remaining admissions come from four genuinely-supported families, which is
+   a different argument than the one this report started with.
+3. **Do not start C** until document frequency can actually be computed.
+   Regenerating `skill_market_frequencies.json` with per-term posting counts is
+   the prerequisite, and that is a corpus job, not an engine job.
+
+Still not implemented. Nothing deployed, no threshold changed, Profile V3
+untouched.
