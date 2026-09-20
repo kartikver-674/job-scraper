@@ -46,6 +46,7 @@ rejected?" has an answer made of quoted résumé spans rather than a score.
 import os
 import re
 
+import attachment_guard        # V3 Fix A. Off unless set.
 import skill_evidence as se
 
 # Off unless asked for. The engine-version contract in skill_concepts accepts
@@ -373,6 +374,14 @@ def _governed_hits(text, low, spans, object_rx, verb_rx, mode):
                          and _OTHER_PEOPLE.search(low, lo, hi)):
             hit["kind"] = "delegated"
             hit["mode"] = CONSULTING
+        elif attachment_guard.enabled():
+            # V3 FIX A. The verb and the artefact share a clause; that is not
+            # the same as the verb having acted ON the artefact. "Authored FSDs
+            # for the ... module" authored a document. Delegation is decided
+            # first and is never re-judged here, so consulting evidence is
+            # exactly what it was.
+            if not attachment_guard.governs(low, lo, hi, match.span(), verb_rx)[0]:
+                continue
         out.append(hit)
         if len(out) >= MAX_HITS * 3:
             break
