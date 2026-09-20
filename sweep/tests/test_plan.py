@@ -259,7 +259,8 @@ class TestOnlyThreeThingsReachThePrice(unittest.TestCase):
         # Everything the screen can set that is NOT sources, locations or
         # depth, dropped into the payload as loudly as possible.
         loud = dict(self.RAW, max_age_days=1, min_comp_usd=999_999,
-                    skip_terms=["salesforce"], remote_scopes=[], scope="global")
+                    avoid=["salesforce"], remote_scopes=[], scope="global",
+                    work_scope="global", location_hints=["london"])
         self.assertEqual(plan.cost(loud, self.RATES)["total"], before)
 
     def test_each_of_the_three_does_change_it(self):

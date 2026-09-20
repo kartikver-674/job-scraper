@@ -137,13 +137,46 @@ class TestRender(unittest.TestCase):
         self.assertLess(weights["stakeholder management"], weights["salesforce"])
 
     def test_penalty_terms_are_negative(self):
+        # PREFS["avoid"] names SAP, so it lands at the bottom of
+        # PENALTY_RANGE rather than at the 6 the model gave it — see
+        # test_the_users_own_avoid_list_outranks_the_models_own_weight.
         penalties = rendered_namespace()["SCORING"]["penalty_terms"]
-        self.assertEqual(penalties, {"sap": -6, "oracle": -4})
+        self.assertEqual(penalties, {"sap": -12, "oracle": -4})
 
     def test_penalties_stay_negative_even_if_the_model_sends_negatives(self):
         payload = dict(PAYLOAD, penalty_terms=[{"term": "SAP", "weight": -6}])
         self.assertEqual(
-            rendered_namespace(payload)["SCORING"]["penalty_terms"], {"sap": -6})
+            rendered_namespace(payload, prefs=dict(PREFS, avoid=[]))
+            ["SCORING"]["penalty_terms"], {"sap": -6})
+
+    def test_the_users_own_avoid_list_becomes_a_penalty_at_full_weight(self):
+        # prefs["avoid"] used to reach the model PROMPT and nothing else, so
+        # the rendered profile only penalised a term the model happened to
+        # agree about. Sweep worked around that by folding the user's terms
+        # into the derivation's own penalty_terms, which made them permanent:
+        # they could be added and never taken back. They come through prefs
+        # now, which is what makes clearing the box clear them.
+        ns = rendered_namespace(prefs=dict(PREFS, avoid=["Mainframe", "COBOL"]))
+        penalties = ns["SCORING"]["penalty_terms"]
+        self.assertEqual(penalties["mainframe"], -12)
+        self.assertEqual(penalties["cobol"], -12)
+        # And an empty list leaves the model's own penalties alone.
+        bare = rendered_namespace(prefs=dict(PREFS, avoid=[]))
+        self.assertEqual(bare["SCORING"]["penalty_terms"],
+                         {"sap": -6, "oracle": -4})
+
+    def test_the_users_own_avoid_list_outranks_the_models_own_weight(self):
+        # An explicit "I do not want this" is the strongest signal the 1-12
+        # scale has, and stronger than whatever the model thought of the same
+        # technology.
+        ns = rendered_namespace(prefs=dict(PREFS, avoid=["oracle"]))
+        self.assertEqual(ns["SCORING"]["penalty_terms"]["oracle"], -12)
+
+    def test_an_avoid_term_that_is_already_hard_dropped_is_not_penalised(self):
+        # Same rule the model's own terms get: hard_drop_terms deletes those
+        # rows outright, so a penalty as well is dead weight.
+        ns = rendered_namespace(prefs=dict(PREFS, avoid=["intern"]))
+        self.assertNotIn("intern", ns["SCORING"]["penalty_terms"])
 
     def test_excluded_levels_are_stripped_from_penalty_terms(self):
         # hard_drop_terms already deletes these rows; a penalty as well is dead
@@ -153,7 +186,8 @@ class TestRender(unittest.TestCase):
             {"term": "Intern", "weight": 9},
             {"term": "fresher", "weight": 9},
         ])
-        penalties = rendered_namespace(payload)["SCORING"]["penalty_terms"]
+        penalties = rendered_namespace(
+            payload, prefs=dict(PREFS, avoid=[]))["SCORING"]["penalty_terms"]
         self.assertEqual(penalties, {"sap": -6})
 
     def test_domain_halves_are_lowercased(self):

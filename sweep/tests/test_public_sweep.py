@@ -120,6 +120,65 @@ def local_app(**kw):
     return app
 
 
+class TestTheSearchPreferencesFormReachesTheWorker(unittest.TestCase):
+    """The preferences form submits for real, in the mode that matters.
+
+    public.PUBLIC_ENDPOINTS is an allowlist and the gate answers 404 for
+    anything absent from it — so a route ADDED to app.py is off by default
+    here, silently, and the screen goes back to saving nothing. That is
+    precisely the failure POST /configure was written to end, so it is
+    checked against the real public app rather than against the list.
+    """
+
+    def test_the_preferences_form_posts_where_the_page_says_it_does(self):
+        import re
+        with stack() as (url, store):
+            app = render_app(url)
+            client = reviewed(app)
+            client.post("/key/free")
+            body = client.get("/configure").get_data(as_text=True)
+            action = re.search(r'<form class="split"[^>]*action="([^"]+)"',
+                               body, re.S).group(1)
+            # Free public path: the Start button IS this form's submit, so
+            # the preferences travel with the thing that starts the sweep.
+            # There is no second form and no side effect to rely on.
+            self.assertEqual(action, "/run")
+            r = client.post(action, data={
+                "scope": "india", "locations": "Bengaluru",
+                "max_age_days": "7", "min_comp_usd": "", "avoid": "Salesforce"})
+            self.assertEqual(r.status_code, 302, r.get_data(as_text=True))
+
+            # Asserted on the profile the WORKER rendered and is running —
+            # the far end of the wire, not Render's own session. Every
+            # setting on the form has to survive that trip, and the
+            # free-only override must still have switched the paid boards
+            # off on top of it.
+            run_id = only_run(store)
+            with open(os.path.join(store.dir(run_id), "profile.py"),
+                      encoding="utf-8") as fh:
+                source = fh.read()
+            self.assertIn('"work_scope": \'india\'', source)
+            self.assertIn('"max_age_days": 7', source)
+            self.assertIn("'bengaluru'", source)       # the free location filter
+            self.assertIn("'salesforce': -12", source)  # the avoid-list
+            self.assertRegex(source, r'"linkedin":\s*\{[^}]*"enabled":\s*False')
+
+    def test_the_screen_still_renders_when_the_form_is_refused(self):
+        # A rejected field comes back on the screen it was typed on, in
+        # public mode too — not as a bare 400 with the session half applied.
+        with stack() as (url, store):
+            app = render_app(url)
+            client = reviewed(app)
+            client.post("/key/free")
+            r = client.post("/run", data={"scope": "india",
+                                          "avoid": "docker; rm -rf /"})
+            self.assertEqual(r.status_code, 400)
+            body = r.get_data(as_text=True)
+            self.assertIn("Search preferences", body)
+            self.assertIn("letters, digits", body)
+            self.assertEqual(store.all(), [])      # and nothing was started
+
+
 class TestItUsesTheConsolesOwnTemplates(unittest.TestCase):
     """The point of the consolidation: no second copy of any screen."""
 

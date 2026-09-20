@@ -58,7 +58,7 @@ import skill_concepts
 import sources
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
-                    LINKEDIN_GEO_IDS, LINKEDIN_COMPANY_IDS,
+                    LINKEDIN_GEO_IDS, LINKEDIN_COMPANY_IDS, INDEED_COUNTRIES,
                     ATS_BOARDS, FEEDS, OPTUM, ENTERPRISE,
                     LOCATION_HINTS, HOME_LOCATION_HINTS, ATS_TITLE_HINTS,
                     ATS_TITLE_EXCLUDE)
@@ -234,6 +234,38 @@ def is_home_location(loc):
     company board "does this employer hire here at all", not to filter jobs."""
     low = (loc or "").lower()
     return any(h in low for h in HOME_LOCATION_HINTS)
+
+
+def in_home_country(loc):
+    """Same question as is_home_location, on alphanumeric boundaries.
+
+    is_home_location is a plain substring test and stays one: it decides
+    `hires_home`, a board-level signal where a stray match costs nothing.
+    This one FILTERS, so it uses location_allowed's matcher — "india" must
+    not fire inside "Indianapolis, Indiana", which on one employer's board
+    was 107 of 427 kept cards.
+
+    Unstated location is True, the same answer location_allowed gives and for
+    the same reason: a blank field is "the posting didn't say", never "no".
+    Measured on 7,132 real rows in output/, that case is 0% of them.
+    """
+    low = (loc or "").strip().lower()
+    if not low:
+        return True
+    return any(re.search(rf"(?<![a-z0-9]){re.escape(h)}(?![a-z0-9])", low)
+               for h in HOME_LOCATION_HINTS)
+
+
+def onsite_or_hybrid(row):
+    """True for a row this sweep should treat as an office-based role.
+
+    The COMPLEMENT of enrich.REMOTE_SCOPES, not the pair ("onsite", "hybrid"):
+    ~40% of real rows state no arrangement at all, and a blank signal is "the
+    posting didn't say", never "no". So this keeps onsite, hybrid and
+    unstated, and drops only what the posting positively calls remote —
+    worldwide, remote, or geo-restricted remote.
+    """
+    return row.get("remote_scope") not in enrich.REMOTE_SCOPES
 
 
 def _optum_scope():
@@ -852,6 +884,38 @@ def _build_linkedin_url(s):
     return "https://www.linkedin.com/jobs/search/?" + urllib.parse.urlencode(params)
 
 
+def _indeed_country(s):
+    """Which Indeed market one search combo runs in.
+
+    Indeed is a per-country site. The code used to come from
+    SEARCH["country"], a single value no generated profile could override, so
+    a sweep scoped to "Onsite, anywhere in the world" sent
+    {"location": "United Kingdom", "country": "IN"} and paid the Indian site
+    to look for a country. The market now follows the LOCATION being
+    searched, through config.INDEED_COUNTRIES.
+
+    REFUSES an unmapped place rather than falling back, exactly as
+    _build_linkedin_url refuses an unmapped geoId, and for the same reason: a
+    wrong market does not raise, it bills for the wrong country's jobs. Every
+    planned search is put through build_input in main()'s preflight before a
+    single actor starts, so this surfaces before anything is spent.
+    """
+    loc = (s.get("location") or "").strip()
+    if not loc or loc.lower() == config.LOCATION_NOT_A_PLACE.lower():
+        # "Remote" is an arrangement, not a place, and Indeed has no
+        # worldwide-remote search — so a bare remote search runs in the home
+        # market, which is the same call SITES["linkedin"]["remote_geo"]
+        # already makes for LinkedIn.
+        return SEARCH["country"]
+    code = INDEED_COUNTRIES.get(loc)
+    if not code:
+        raise ValueError(
+            f"indeed: no country code for '{loc}'. Indeed searches one "
+            f"country's site, so running this would bill for the wrong "
+            f"market. Add it to config.INDEED_COUNTRIES.")
+    return code
+
+
 def build_input(site_key, s):
     """Map one search combo (keywords/location/country/experience/max_results)
     onto the actor's expected input schema."""
@@ -859,7 +923,7 @@ def build_input(site_key, s):
         return {
             "position": s["keywords"],
             "location": s.get("location", ""),
-            "country": s.get("country", "US"),
+            "country": _indeed_country(s),
             "maxItemsPerSearch": s["max_results"],
             "parseCompanyDetails": False,
             "saveOnlyUniqueItems": True,
@@ -1212,11 +1276,37 @@ def finalize(raw_rows):
         no_eor = len(scored) - len(ok)
         scored = ok
 
+    # Work arrangement, from Sweep's "which jobs should Sweep include" choice.
+    # The "remote" answer needs nothing here — it is already expressed as
+    # remote_scopes above, which is the filter that was measured and tuned.
+    # The other two are the inverse, and they exist because without them
+    # "In India — onsite or hybrid" and "Onsite, anywhere in the world" were
+    # the SAME sweep: both left remote_scopes empty, so neither filtered at
+    # all, and on the free sources (which have no location parameter) the two
+    # answers returned byte-identical job sets.
+    #
+    # Applied to paid rows as well as free ones, deliberately: LinkedIn's
+    # geoId narrows WHERE a search runs, never what arrangement comes back,
+    # so a paid India search returns remote rows too.
+    wrong_arrangement = off_geography = 0
+    scope = SETTINGS["work_scope"]
+    if scope in ("india", "global"):
+        ok = [r for r in scored if onsite_or_hybrid(r)]
+        wrong_arrangement = len(scored) - len(ok)
+        scored = ok
+        if scope == "india":
+            here = [r for r in scored
+                    if in_home_country(r.get("Location") or r.get("location"))]
+            off_geography = len(scored) - len(here)
+            scored = here
+
     scored.sort(key=lambda r: r["score"], reverse=True)
     unique = dedupe(scored)  # sorted first, so highest-scored duplicate wins
     LAST_STATS.update(stale=stale, low_salary=low_salary, kept=len(unique),
                       unreachable=unreachable, rescued=rescued,
-                      no_visa=no_visa, no_eor=no_eor)
+                      no_visa=no_visa, no_eor=no_eor,
+                      wrong_arrangement=wrong_arrangement,
+                      off_geography=off_geography)
     return [to_output(r) for r in unique]
 
 
@@ -1287,6 +1377,11 @@ def print_summary(pulled, after_dedupe, out_rows):
         if LAST_STATS.get("rescued"):
             filters.append(f"{LAST_STATS['rescued']} geo-locked but employer "
                            f"hires at home (kept)")
+    if SETTINGS["work_scope"] in ("india", "global"):
+        filters.append(f"{LAST_STATS.get('wrong_arrangement', 0)} remote "
+                       f"(this sweep wants onsite/hybrid)")
+        if SETTINGS["work_scope"] == "india":
+            filters.append(f"{LAST_STATS.get('off_geography', 0)} outside India")
     if SETTINGS["drop_no_visa"]:
         filters.append(f"{LAST_STATS.get('no_visa', 0)} refuse visa sponsorship")
     if SETTINGS["require_eor"]:

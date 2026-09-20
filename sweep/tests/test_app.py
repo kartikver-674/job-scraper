@@ -2505,8 +2505,11 @@ class TestConfigureScreen(Isolated):
         # The screen offered no way to drop a paid site, so the only lever on
         # an over-budget plan was depth — and naukri, the priciest line, does
         # not move with depth at all.
+        # Posted to /configure, not /estimate: the estimate route prices a
+        # candidate and commits nothing now, so what the SESSION holds is
+        # whatever the form was actually submitted with.
         app = self._writing_app()
-        app.test_client().post("/estimate", json={
+        app.test_client().post("/configure", data={
             "sites_present": "1", "site_linkedin": "on", "site_indeed": "on"})
         self.assertEqual(app.state["sites_enabled"],
                          {"linkedin": True, "indeed": True, "naukri": False})
@@ -2566,6 +2569,12 @@ class TestConfigureScreen(Isolated):
         app = self._writing_app()
         r = app.test_client().post("/estimate", json={"sites_present": "1"})
         self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        # (fetch_plan is a constant here, so the FIGURE proves nothing —
+        # sweep/tests/test_plan.py owns the arithmetic. What this asserts is
+        # that switching everything off is a priceable plan, not a 400.)
+        # And committed through the form's own route.
+        r = app.test_client().post("/configure", data={"sites_present": "1"})
+        self.assertEqual(r.status_code, 303, r.get_data(as_text=True))
         self.assertEqual(app.state["sites_enabled"],
                          {"linkedin": False, "indeed": False, "naukri": False})
 
@@ -2698,24 +2707,43 @@ class TestConfigureScreen(Isolated):
         app.write_profile = lambda n, s: writes.append((n, s))
         return app, writes
 
-    def test_estimate_writes_submitted_values_and_leaves_the_rest_alone(self):
+    def test_configure_writes_submitted_values_and_leaves_the_rest_alone(self):
         app, writes = self._app_with_spy()
         client = app.test_client()
 
-        r1 = client.post("/estimate", json={"max_age_days": "7"})
-        self.assertEqual(r1.status_code, 200)
-        self.assertEqual(len(writes), 1)
+        r1 = client.post("/configure", data={"max_age_days": "7"})
+        self.assertEqual(r1.status_code, 303)
         self.assertIn('"max_age_days": 7', writes[-1][1])
 
-        r2 = client.post("/estimate", json={"skip_terms": "docker, on-call"})
-        self.assertEqual(r2.status_code, 200)
-        self.assertEqual(len(writes), 2)
+        r2 = client.post("/configure", data={"avoid": "docker, on-call"})
+        self.assertEqual(r2.status_code, 303)
         second_source = writes[-1][1]
         self.assertIn("docker", second_source)
         self.assertIn("on-call", second_source)
         # max_age_days came from an earlier POST that this one never
         # mentioned — it must still be there, not reset.
         self.assertIn('"max_age_days": 7', second_source)
+
+    def test_the_estimate_prices_a_candidate_and_commits_nothing(self):
+        # The whole reason POST /configure exists. /estimate used to persist
+        # as a SIDE EFFECT of pricing, which made the live-cost fetch the
+        # only thing that ever saved a preference: with JavaScript off every
+        # control was inert, and an edit followed straight away by clicking
+        # through could be lost to the navigation cancelling the request.
+        app, writes = self._app_with_spy()
+        client = app.test_client()
+
+        r = client.post("/estimate", json={"max_age_days": "7"})
+        self.assertEqual(r.status_code, 200)
+        # Priced, and the candidate written so the dry run can read it...
+        self.assertIn('"max_age_days": 7', writes[-1][1])
+        # ...but the session is untouched.
+        self.assertIsNone(app.state.get("max_age_days"))
+
+        # And the next screen re-derives the profile from state, so the
+        # candidate cannot become the sweep.
+        client.get("/confirm")
+        self.assertNotIn('"max_age_days": 7', writes[-1][1])
 
     def test_estimate_rejects_a_bad_number_and_writes_nothing(self):
         app, writes = self._app_with_spy()
@@ -2724,10 +2752,10 @@ class TestConfigureScreen(Isolated):
         self.assertIn("error", r.get_json())
         self.assertEqual(writes, [])
 
-    def test_estimate_rejects_a_skip_term_with_disallowed_characters(self):
+    def test_estimate_rejects_an_avoid_term_with_disallowed_characters(self):
         app, writes = self._app_with_spy()
         r = app.test_client().post(
-            "/estimate", json={"skip_terms": "docker; rm -rf /"})
+            "/estimate", json={"avoid": "docker; rm -rf /"})
         self.assertEqual(r.status_code, 400)
         self.assertEqual(writes, [])
 
@@ -2831,10 +2859,21 @@ class TestConfigureScreen(Isolated):
         self.assertNotIn("'United States'", remote_source)
         self.assertIn('"remote_geo": \'India\'', remote_source)
 
-    def test_no_scope_submitted_emits_no_sites_block(self):
+    def test_an_unsubmitted_scope_still_materialises_the_default(self):
+        # It used to emit NO SITES block, so LinkedIn silently inherited
+        # config.py's own ["India", "Remote"] while the screen's radio said
+        # "Remote roles" — the plan and the screen disagreed until something
+        # was touched, and then the quoted price halved for no reason the
+        # user had caused.
         app, writes = self._app_with_spy()
-        app.test_client().post("/estimate", json={"max_age_days": "7"})
-        self.assertNotIn("SITES = {", writes[-1][1])
+        app.test_client().post("/configure", data={"max_age_days": "7"})
+        source = writes[-1][1]
+        self.assertIn("SITES = {", source)
+        self.assertEqual(app.state["scope"], "remote")
+        linkedin = source.split('"linkedin": {', 1)[1].split("},", 1)[0]
+        self.assertIn("'Remote'", linkedin)
+        # And f_WT=2 is stated rather than inferred from that token.
+        self.assertIn('"remote_only": True', linkedin)
 
     def test_an_unverified_linkedin_location_is_rejected_and_writes_nothing(self):
         # Scope is a closed enum in production, so this can only be reached
@@ -2852,9 +2891,12 @@ class TestConfigureScreen(Isolated):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(writes, [])
 
-    def test_configure_screen_has_controls_for_skip_terms_and_depth(self):
+    def test_configure_screen_has_controls_for_avoid_terms_and_depth(self):
         body = self._app().test_client().get("/configure").get_data(as_text=True)
-        self.assertIn('name="skip_terms"', body)
+        # "skip_terms" became "avoid": the field now maps onto prefs["avoid"],
+        # which make_profile.render already had a contract for, and which is
+        # what makes the list removable instead of append-only.
+        self.assertIn('name="avoid"', body)
         self.assertIn('name="max_results"', body)
 
     def test_the_depth_control_is_a_stepper_that_reprices(self):
@@ -2894,14 +2936,17 @@ class TestConfigureScreen(Isolated):
         self.assertIn("no worldwide-remote search", body)
         self.assertIn("free feeds", body)
 
-    def test_a_blank_skip_terms_or_depth_field_does_not_reject_other_changes(self):
+    def test_a_blank_avoid_or_depth_field_does_not_reject_other_changes(self):
         # Both fields live in the same <form> as everything else, so a
         # change to max_age_days resubmits them too, blank — that must not
         # 400 the whole screen the very first time anyone touches a control.
+        # Blank means different things for the two now, and neither is an
+        # error: an empty depth is "use the default", an empty avoid box is
+        # "no terms", which is what makes a term removable.
         app, writes = self._app_with_spy()
         r = app.test_client().post(
             "/estimate",
-            json={"max_age_days": "7", "skip_terms": "", "max_results": ""})
+            json={"max_age_days": "7", "avoid": "", "max_results": ""})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(writes), 1)
 
@@ -2988,8 +3033,8 @@ class TestCostMarkers(Isolated):
 
     def test_every_control_that_moves_the_price_is_marked(self):
         body = " ".join(self._body().split())
-        for control in ("Sources", "Where you can work", "Locations",
-                        "Results per search"):
+        for control in ("Sources", "Which jobs should Sweep include?",
+                        "Locations", "Results per search"):
             self.assertRegex(
                 body, re.escape(control) + r'<span class="costs"',
                 f"{control} changes the cost and carries no mark")
@@ -2998,7 +3043,7 @@ class TestCostMarkers(Isolated):
         # Marking one would claim a filter spends credit, which sends someone
         # looking for savings to the control that cannot give them any.
         body = " ".join(self._body().split())
-        for control in ("How recent", "Pay floor", "Skip these"):
+        for control in ("How recent", "Pay floor", "Rank these lower"):
             self.assertNotRegex(body, re.escape(control) + r'<span class="costs"')
 
     def test_the_mark_is_explained_where_it_is_used(self):
@@ -3083,8 +3128,12 @@ class TestLocationPicker(Isolated):
         self.assertRegex(body, r"\$nextTick\(\(\) =(&gt;|>) this\.\$dispatch")
 
     def test_the_current_pick_comes_back_into_the_control(self):
+        # With a scope that HAS a geography. Under "Remote roles" the picker
+        # is not offered at all — a place cannot narrow "from anywhere", and
+        # letting one try stripped LinkedIn's f_WT=2.
         body = self.body({"profile": "kanav", "cap_usd": 8.41,
-                          "derived": DERIVED, "locations": ["Delhi", "Germany"],
+                          "derived": DERIVED, "scope": "india",
+                          "locations": ["Delhi", "Germany"],
                           "linkedin_locations": ["Delhi", "Germany"]})
         self.assertIn('picked: ["Delhi", "Germany"]', body)
 
@@ -3093,7 +3142,8 @@ class TestLocationPicker(Isolated):
         # that as chips would show a choice the user never made — and post it
         # straight back as one.
         body = self.body({"profile": "kanav", "cap_usd": 8.41,
-                          "derived": DERIVED, "locations": ["Delhi", "Mumbai"]})
+                          "derived": DERIVED, "scope": "india",
+                          "locations": app_module._SCOPE["india"]["locations"]})
         self.assertIn("picked: []", body)
 
     # ---- what it accepts -------------------------------------------------
@@ -3102,16 +3152,16 @@ class TestLocationPicker(Isolated):
         # the most expensive site — keeps config's own default unless
         # linkedin_locations is set too.
         app = self._app()
-        r = app.test_client().post("/estimate", json={
+        r = app.test_client().post("/configure", data={
             "scope": "india", "locations": "Delhi, Germany"})
-        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        self.assertEqual(r.status_code, 303, r.get_data(as_text=True))
         self.assertEqual(self.state["locations"], ["Delhi", "Germany"])
         self.assertEqual(self.state["linkedin_locations"], ["Delhi", "Germany"])
 
     def test_an_empty_pick_leaves_the_scope_alone(self):
         # "All locations" is the absence of a narrowing, not a location.
         app = self._app()
-        app.test_client().post("/estimate", json={"scope": "india",
+        app.test_client().post("/configure", data={"scope": "india",
                                                    "locations": ""})
         self.assertEqual(self.state["locations"],
                          app_module._SCOPE["india"]["locations"])
@@ -3382,10 +3432,13 @@ class TestConfirmScreen(Isolated):
         app.write_profile = lambda n, s: writes.append(n)
         client = app.test_client()
         client.get("/confirm")
+        # Two: /confirm re-derives the profile from state before pricing it
+        # (so a candidate /estimate priced but nobody submitted cannot be
+        # what this screen quotes), then /run stamps the spend cap in.
         client.post("/run")
-        self.assertEqual(writes, ["kanav"])
+        self.assertEqual(writes, ["kanav", "kanav"])
         self.assertEqual(client.post("/run").status_code, 409)
-        self.assertEqual(writes, ["kanav"])        # unchanged by the refusal
+        self.assertEqual(writes, ["kanav", "kanav"])   # unchanged by the refusal
 
     def test_run_stamps_a_real_spend_cap_into_the_profile_before_launching(self):
         # The one guard that actually stops an overspend is
@@ -3402,7 +3455,10 @@ class TestConfirmScreen(Isolated):
         app.test_client().get("/confirm")
         r = app.test_client().post("/run")
         self.assertEqual(r.status_code, 302)
-        self.assertEqual(calls, ["write_profile", "read_spend", "start_sweep"])
+        # The first write is /confirm re-deriving the profile from state; the
+        # one that matters is the second, and it is still before the launch.
+        self.assertEqual(calls, ["write_profile", "write_profile",
+                                 "read_spend", "start_sweep"])
 
         name, source = app.written[-1]
         self.assertEqual(name, "kanav")

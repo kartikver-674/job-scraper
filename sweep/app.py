@@ -43,6 +43,7 @@ import scraper  # noqa: E402
 from sweep import exports, public  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
+    MAX_AVOID_TERMS, SCOPE_KEYS,
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
     posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
@@ -59,6 +60,22 @@ from sweep.logic import (  # noqa: E402,F401
 STEPS = [("upload", "Upload"), ("review", "Review"), ("key", "Free or paid"),
          ("configure", "Configure"), ("confirm", "Confirm"),
          ("running", "Running"), ("results", "Results")]
+
+# Every state key the Search-preferences screen owns. One list, so "start
+# over with another résumé" clears all of them or none — it used to clear the
+# avoid-list (which lived inside `derived`) and keep the other six, which is
+# the worst of both answers.
+#
+# `scope` first because it OWNS the six SCOPE_KEYS after it: they are what it
+# expands to, and a scope left behind without its expansion (or the reverse)
+# is a session whose screen and whose engine disagree.
+#
+# Deliberately NOT here: cap_usd and the credit readings (a verified key
+# belongs to the person, not to the résumé) and anything in the signed
+# cookie (session identity, the beta gate, a run already in flight).
+PREFERENCE_KEYS = ("scope",) + SCOPE_KEYS + (
+    "max_age_days", "max_results", "min_comp_usd", "avoid",
+    "sites_enabled", "free_only")
 
 # account_usage_usd is a live Apify call. /events polls snapshot() every 2s
 # for up to a ~40-minute sweep — read_spend is throttled to once per this
@@ -834,6 +851,91 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         return app.state.get("scope") or "remote"
 
+    DEFAULT_SCOPE = "remote"
+
+    def ensure_scope():
+        """Write the default scope into state, so it is a choice and not a
+        gap the engine fills differently from the screen.
+
+        Unset, `_prefs` produced locations=["Remote"] and nothing else, so
+        make_profile omitted the SITES block entirely and LinkedIn inherited
+        config's own ["India", "Remote"] — two searches per keyword, half of
+        them India-onsite, under a screen whose radio said "Remote, from
+        anywhere". Touching any control then posted the real scope and the
+        quoted price halved for no reason the user had caused.
+
+        Called wherever a profile is about to be rendered, priced or run.
+        """
+        if not app.state.get("scope"):
+            app.state["scope"] = DEFAULT_SCOPE
+            app.state.update(_SCOPE[DEFAULT_SCOPE])
+
+    def sync_profile():
+        """Re-render the profile file from state.
+
+        The profile is a DERIVED artifact: state is what the user chose, the
+        file is what the engine reads, and every screen that prices or runs
+        re-derives it. That is what lets POST /estimate price a candidate
+        the user has not committed to — the next read puts the committed one
+        back — and it is why a priced-but-unsubmitted form can never become
+        the sweep.
+        """
+        name = app.state.get("profile")
+        if not name or not app.state.get("derived"):
+            return
+        ensure_scope()
+        try:
+            app.write_profile(
+                name, make_profile.render(name, app.state["derived"],
+                                          _prefs(app.state)))
+        except KeyError as exc:
+            # Only reachable from state that validation should have refused.
+            # Logged rather than raised: the file on disk is then simply the
+            # previous good render, which is what the screen was showing
+            # anyway, and a 500 here would be on a GET.
+            app.logger.warning("could not re-render %r from state: %s",
+                               name, exc)
+
+    def commit_prefs(form):
+        """Validate a posted preferences form and APPLY it. Error string or None.
+
+        The one writer. POST /configure and the free path's POST /run both
+        come through here, so "what the browser submitted" is what the
+        session holds — no screen depends on a fetch() having fired, and a
+        live-pricing request that never finished cannot cost anyone their
+        last edit.
+
+        Atomic in the same way POST /estimate always was: built on a COPY,
+        and applied only once make_profile.render() — the validator shared
+        with the CLI path — has actually succeeded on it.
+        """
+        try:
+            overrides = _configure_overrides(form, current_scope())
+        except _FormError as exc:
+            return str(exc)
+        if not overrides:
+            return None
+        # The paid toggles belong to the free/paid choice while it stands.
+        # Configure renders no source checkboxes in free mode, so this is a
+        # forged or stale form rather than a control the user saw.
+        if free_only():
+            overrides.pop("sites_enabled", None)
+        new_state = dict(app.state)
+        new_state.update(overrides)
+        if not new_state.get("scope"):
+            new_state["scope"] = DEFAULT_SCOPE
+            new_state.update(_SCOPE[DEFAULT_SCOPE])
+        name = app.state["profile"]
+        try:
+            source = make_profile.render(
+                name, new_state["derived"], _prefs(new_state))
+        except KeyError as exc:
+            return str(exc)
+        app.write_profile(name, source)
+        app.state.clear()
+        app.state.update(new_state)
+        return None
+
     def search_facts():
         """Roles, scope, locations and sources — what the sweep will DO.
 
@@ -849,16 +951,32 @@ def create_app(state=None, extract=None, resume_dir=None,
         # about a choice nobody has made yet.
         paid_on = [site_label(line["site"]) for line in plan_now.get("lines") or ()
                    if not line.get("free")]
+        scope = current_scope()
+        # Only an explicit pick. The scope's own expansion is six city names
+        # the user never chose, and listing them as "Where" would read as six
+        # decisions rather than one. Detected by comparing against the scope's
+        # own list rather than by a separate flag, so the summary cannot claim
+        # a narrowing that is not in state.
+        #
+        # This is also what stops the old free-mode lie: under "Remote, from
+        # anywhere" the picker is not offered and locations are dropped, so
+        # `locations` equals the scope's and the summary says "Remote,
+        # anywhere" — it can no longer print "Where: Bengaluru" for a sweep
+        # that searches everywhere.
+        picked = app.state.get("locations")
+        narrowed = picked if picked and picked != _SCOPE[scope]["locations"] else None
         return {
             "roles": derived.get("role_keywords") or [],
-            "scope_label": scope_label(current_scope()),
-            # Only an explicit pick. The scope's own expansion is six city
-            # names the user never chose, and listing them as "Where" would
-            # read as six decisions rather than one.
-            "locations": (app.state.get("locations")
-                          if app.state.get("linkedin_locations") else None),
+            "scope_label": scope_label(scope),
+            "locations": narrowed,
             "paid_labels": paid_on,
             "free_sources": (app.state.get("raw_plan") or {}).get("free_sources"),
+            # Retrieval depth is a PAID concept: a free sweep runs no
+            # per-query searches at all, it enumerates whole boards, so
+            # quoting a depth there would describe something that does not
+            # happen. None means "do not show it".
+            "depth": (None if free_only() else
+                      app.state.get("max_results") or config.SEARCH["max_results"]),
         }
 
     def costed(profile):
@@ -1265,7 +1383,14 @@ def create_app(state=None, extract=None, resume_dir=None,
         # Without this, uploading a second CV shows the FIRST one's skills
         # and titles — derived_for_state() caches on state and only ever
         # asks the model when there is nothing there.
-        for stale in ("derived", "profile", "profile_source"):
+        #
+        # And so do the previous résumé's SEARCH PREFERENCES. Clearing only
+        # the parse left the next candidate with the last one's scope,
+        # cities, pay floor and depth, while their avoid-list — which lived
+        # inside `derived` — was reset with it. Half kept and half discarded,
+        # with nothing on screen saying which. A new résumé is a new search.
+        for stale in PREFERENCE_KEYS + ("derived", "profile", "profile_source",
+                                        "plan", "raw_plan"):
             app.state.pop(stale, None)
         return redirect(url_for("review"))
 
@@ -1586,6 +1711,13 @@ def create_app(state=None, extract=None, resume_dir=None,
                 error=f"A profile named {name} already exists. Pick another "
                       f"name, or confirm you want to replace it.")), 409
 
+        # The default scope becomes a real choice here, before the first
+        # profile is written. Left unset, `locations` defaulted to ["Remote"]
+        # and nothing overrode SITES, so LinkedIn silently inherited
+        # config.py's ["India", "Remote"] while the next screen's radio said
+        # "Remote, from anywhere" — the plan and the screen disagreed until
+        # something was touched.
+        ensure_scope()
         source = make_profile.render(name, kept, _prefs(app.state))
         app.write_profile(name, source)
         # The reviewed list becomes the state, not just the file. /estimate
@@ -1749,12 +1881,16 @@ def create_app(state=None, extract=None, resume_dir=None,
         return render_template("plan_error.html", **shell(
             None, profile=exc.profile)), 500
 
-    @app.get("/configure")
-    def configure():
-        if not app.state.get("profile"):
-            return redirect(url_for("review"))
-        if needs_key():
-            return redirect(url_for("key"))
+    def _configure_page(error=None):
+        """The preferences screen. Shared by GET and by a rejected POST, so a
+        bad field comes back on the screen it was typed on rather than as a
+        bare 400."""
+        # State is authoritative; the profile file is derived from it. Doing
+        # this before costing is what makes the price on this screen the
+        # price of the sweep the screen is describing — an untouched visit
+        # used to quote config.py's own LinkedIn geographies, and a candidate
+        # priced through /estimate but never submitted used to linger.
+        sync_profile()
         estimate = costed(app.state["profile"])
         chosen = app.state.get("sites_enabled") or {}
         return render_template("configure.html", **shell(
@@ -1782,9 +1918,79 @@ def create_app(state=None, extract=None, resume_dir=None,
             # Only what the user picked — never the scope's own list, which
             # would render as an explicit choice they did not make and post
             # itself back as one.
-            picked_locations=app.state.get("locations")
-            if app.state.get("linkedin_locations") else [],
-            scope=current_scope(), facts=search_facts()))
+            picked_locations=_picked_locations(),
+            scope=current_scope(),
+            # Every remaining control, rendered from what is actually stored
+            # rather than from a placeholder or a hardcoded `selected`. Four
+            # of them used to show a fixed state and then post it back as an
+            # instruction, so coming back to this screen silently reset the
+            # freshness window and erased the pay floor.
+            max_age_days=app.state.get("max_age_days")
+            or config.SETTINGS["max_age_days"],
+            max_results=app.state.get("max_results")
+            or config.SEARCH["max_results"],
+            min_comp_usd=app.state.get("min_comp_usd"),
+            avoid_terms=", ".join(app.state.get("avoid") or []),
+            max_avoid_terms=MAX_AVOID_TERMS,
+            advanced_custom=_advanced_is_custom(),
+            error=error,
+            facts=search_facts()))
+
+    @app.get("/configure")
+    def configure():
+        if not app.state.get("profile"):
+            return redirect(url_for("review"))
+        if needs_key():
+            return redirect(url_for("key"))
+        return _configure_page()
+
+    def _picked_locations():
+        """The cities/countries the user actually chose, for the picker.
+
+        Never the scope's own expansion: rendering six city names the user
+        did not pick would show as six explicit choices and post itself back
+        as one. Under "Remote, from anywhere" this is always empty — the
+        picker is not offered there, because a place cannot narrow
+        "anywhere" and a city used to strip LinkedIn's remote filter.
+        """
+        scope = current_scope()
+        picked = app.state.get("locations")
+        if scope == "remote" or not picked:
+            return []
+        return [] if picked == _SCOPE[scope]["locations"] else list(picked)
+
+    def _advanced_is_custom():
+        """Whether anything behind the Advanced disclosure differs from its
+        default. The badge used to read "using defaults" unconditionally."""
+        return bool(
+            (app.state.get("max_age_days") or config.SETTINGS["max_age_days"])
+            != config.SETTINGS["max_age_days"]
+            or (app.state.get("max_results") or config.SEARCH["max_results"])
+            != config.SEARCH["max_results"]
+            or app.state.get("min_comp_usd") is not None
+            or app.state.get("avoid"))
+
+    @app.post("/configure")
+    def configure_post():
+        """The preferences form's own submission — the authoritative one.
+
+        The screen used to have no submit path at all: the form carried no
+        method and no action, "Review and start" was a link, and the only
+        thing that ever persisted a preference was the live-cost fetch()
+        firing on a change event. With JavaScript unavailable every control
+        was inert, and a last edit followed straight away by clicking through
+        could be lost to the navigation aborting that request.
+        """
+        if not app.state.get("profile"):
+            return redirect(url_for("review"))
+        if needs_key():
+            return redirect(url_for("key"))
+        error = commit_prefs(request.form)
+        if error:
+            return _configure_page(error=error), 400
+        # 303, so the browser re-GETs rather than offering to re-POST the
+        # form if the user then uses Back.
+        return redirect(url_for("confirm"), code=303)
 
     @app.post("/estimate")
     def estimate():
@@ -1796,65 +2002,63 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         form = request.get_json(silent=True) or {}
         try:
-            overrides = _configure_overrides(form)
+            overrides = _configure_overrides(form, current_scope())
         except _FormError as exc:
             return jsonify({"error": str(exc)}), 400
 
-        # A partial form only patches the keys it named — everything else in
-        # the profile stays exactly what an earlier POST (or the review
-        # screen) left it as. Built on a COPY of state/derived, not applied
-        # to app.state directly, until make_profile.render() has actually
-        # succeeded — render() is where an unverified LinkedIn geography or
-        # an unknown config key gets caught (shared with the CLI path), and
-        # that failure must leave nothing applied either, same as a plain
-        # invalid field.
+        # PRICING ONLY. This route no longer commits anything to the session:
+        # POST /configure does that, from the form the browser actually
+        # submitted. What happens here is that a CANDIDATE profile is
+        # rendered and priced — the local dry run reads the file, so the file
+        # has to exist — and state is left alone. Every screen that reads the
+        # profile re-renders it from state first (sync_profile), so a
+        # candidate the user never submitted cannot become the sweep.
+        #
+        # A partial form only patches the keys it named. Built on a COPY, and
+        # written only once make_profile.render() has succeeded — render() is
+        # where an unverified LinkedIn geography or an unknown config key
+        # gets caught, shared with the CLI path.
+        #
         # The paid toggles are the free choice's to own while it stands.
         # Configure does not render them in free mode, so this is a forged or
         # stale form rather than a control the user saw — dropped quietly,
         # and /run refuses a priced plan regardless.
         if free_only():
             overrides.pop("sites_enabled", None)
-        skip_terms = overrides.pop("skip_terms", None)
-        new_state = dict(app.state)
-        new_state.update(overrides)
-        if skip_terms is not None:
-            # By the time a profile exists (checked above), review_post()
-            # has already populated app.state["derived"] — Configure never
-            # regenerates it from a résumé, only patches it in place.
-            derived = dict(app.state["derived"])
-            penalty_terms = list(derived.get("penalty_terms") or [])
-            seen = {p["term"].strip().lower() for p in penalty_terms}
-            for term in skip_terms:
-                if term.lower() not in seen:
-                    # Severity on the 1-12 scale generate() uses for
-                    # penalty_terms (see make_profile.RESPONSE_SCHEMA) — a
-                    # term the person explicitly asked to skip is as strong a
-                    # signal as this scale has.
-                    penalty_terms.append({"term": term, "weight": 12})
-                    seen.add(term.lower())
-            derived["penalty_terms"] = penalty_terms
-            new_state["derived"] = derived
-
         name = app.state["profile"]
-        if overrides or skip_terms is not None:
+        candidate = dict(app.state)
+        if overrides:
+            candidate.update(overrides)
+            if not candidate.get("scope"):
+                candidate["scope"] = DEFAULT_SCOPE
+                candidate.update(_SCOPE[DEFAULT_SCOPE])
             try:
                 source = make_profile.render(
-                    name, new_state["derived"], _prefs(new_state))
+                    name, candidate["derived"], _prefs(candidate))
             except KeyError as exc:
                 return jsonify({"error": str(exc)}), 400
             app.write_profile(name, source)
-            app.state.clear()
-            app.state.update(new_state)
 
+        # Priced AS the candidate and then put back. Public mode's plan comes
+        # from the worker, which is handed _prefs(app.state) rather than the
+        # profile file, so pricing a candidate means the candidate has to be
+        # what state says for the length of this one call — and nothing
+        # longer, or this route would be committing again by another name.
+        saved = dict(app.state)
+        app.state.clear()
+        app.state.update(candidate)
         # The caller is a fetch() doing r.json(), so this cannot fall through
         # to the HTML handler below: an error page would fail to parse and
         # read as "the network is down" on the screen whose whole job is a
         # live cost.
         try:
-            return jsonify(costed(app.state["profile"]))
+            return jsonify(costed(name))
         except PlanUnavailable:
             return jsonify({"error": "The engine could not price that "
                                      "combination. Nothing was charged."}), 400
+        finally:
+            app.state.clear()
+            app.state.update(saved)
 
     @app.get("/confirm")
     def confirm():
@@ -1870,6 +2074,10 @@ def create_app(state=None, extract=None, resume_dir=None,
             refresh_credits()
         # Re-costed on every visit, like /configure — the meter shows this
         # screen's own state, never a figure carried over from an earlier one.
+        # Re-rendered from state first, for the same reason /configure is: a
+        # candidate that POST /estimate priced but the user never submitted
+        # must not be what this screen quotes or what /run then launches.
+        sync_profile()
         plan = costed(app.state["profile"])
         return render_template("confirm.html", **shell(
             "confirm", spend=plan["total"], spend_is_estimate=True, plan=plan,
@@ -1877,6 +2085,22 @@ def create_app(state=None, extract=None, resume_dir=None,
 
     @app.post("/run")
     def run():
+        # The free public path has no /confirm screen: its Start button IS
+        # the preferences form's submit, so this is where that form lands and
+        # this is where it has to be applied — before anything is priced or
+        # launched. A POST from /confirm carries only over_cap_ack, so
+        # _configure_overrides sees no recognised field and this is a no-op
+        # there.
+        if app.state.get("profile") and app.state.get("derived"):
+            error = commit_prefs(request.form)
+            if error:
+                if app.config.get("PUBLIC_MODE") and free_only():
+                    return _configure_page(error=error), 400
+                return _confirm_page(error=error, status=400)
+            # Re-priced against what was just committed. The guards below
+            # read app.state["plan"], and quoting the previous form's plan is
+            # exactly the kind of drift this screen exists to prevent.
+            costed(app.state["profile"])
         # Fail closed: no plan at all (a /run hit that never went through
         # /confirm) must refuse exactly like an over-cap plan does, not
         # launch an uncapped subprocess because an empty dict's .get()
@@ -2572,6 +2796,14 @@ def _prefs(state):
         # make_profile.render() omits the key entirely in that case, so
         # config.py's own default silently applies instead of being reset.
         "remote_scopes": state.get("remote_scopes"),
+        # The other two thirds of the scope choice. work_scope is the
+        # onsite/hybrid filter the "india" and "global" answers need — without
+        # it they were the same sweep. location_hints is the free sources'
+        # only location filter: they have no location parameter to query, so
+        # the picker narrows them by matching each posting's own location
+        # text. Both follow the "unset means inherit config" rule.
+        "work_scope": state.get("work_scope"),
+        "location_hints": state.get("location_hints"),
         "max_age_days": state.get("max_age_days"),
         "max_results": state.get("max_results"),
         "linkedin_locations": state.get("linkedin_locations"),

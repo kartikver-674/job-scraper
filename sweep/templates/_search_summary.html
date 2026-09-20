@@ -11,7 +11,7 @@
    from the derivation, locations from the prefs the form posted, sources
    from the costed plan. Nothing is computed twice. #}
 {% macro search_summary(roles, scope_label, locations, paid_labels,
-                        free_sources, compact=false) -%}
+                        free_sources, depth=none, compact=false) -%}
 <dl class="summary{{ ' compact' if compact }}">
   <div>
     <dt>Searching for</dt>
@@ -20,14 +20,28 @@
       {%- else %}<span class="pending">no job titles</span>{% endif -%}
     </dd>
   </div>
+  {# The scope ALWAYS, and the locations after it when the picker narrowed
+     things. It used to be one or the other, so "Onsite or hybrid, in India"
+     plus a city printed only the city and dropped the half of the answer
+     that says which jobs are included at all. #}
   <div>
     <dt>Where</dt>
     <dd>
+      {%- if scope_label %}<span class="tag">{{ scope_label }}</span>{% endif -%}
       {%- if locations %}{% for l in locations %}<span class="tag">{{ l }}</span>{% endfor %}
-      {%- elif scope_label %}<span class="tag">{{ scope_label }}</span>
-      {%- else %}<span class="pending">everywhere</span>{% endif -%}
+      {%- elif not scope_label %}<span class="pending">everywhere</span>{% endif -%}
     </dd>
   </div>
+  {# Retrieval depth, and only where it means something. A free sweep runs
+     no per-query searches — it reads whole company boards and fixed feeds —
+     so the caller passes none and this row is absent rather than quoting a
+     number nothing there reads. #}
+  {% if depth %}
+  <div>
+    <dt>Per search</dt>
+    <dd><span class="tag">{{ depth }} jobs</span></dd>
+  </div>
+  {% endif %}
   <div>
     <dt>Sources</dt>
     <dd>

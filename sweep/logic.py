@@ -78,14 +78,25 @@ def searchable_locations():
     # is untidy rather than wrong.
     countries = [c for c in known
                  if c not in cities and c not in _INDIA_ALIASES]
-    return [("Anywhere remote", [REMOTE]),
-            ("India", cities),
-            ("Countries", countries)]
+    # No "Anywhere remote" group any more. "Remote" is a work ARRANGEMENT and
+    # it is now the first question on the screen; offering it again as a
+    # place made the two controls answer the same question and disagree —
+    # "India onsite or hybrid" plus a Remote "location" is not a sweep
+    # anything downstream can run. The picker narrows a geography now, and
+    # nothing else.
+    return [("India", cities), ("Countries", countries)]
 
 
 def allowed_locations():
-    """Flat set of everything searchable_locations() offers."""
-    return {name for _, names in searchable_locations() for name in names}
+    """Everything searchable_locations() offers, plus REMOTE.
+
+    REMOTE is accepted but no longer offered: a page loaded before it left
+    the menu can still post it, and a 400 on a control the user cannot see
+    is a worse answer than ignoring a token that now means nothing.
+    _configure_overrides drops it rather than treating it as a place.
+    """
+    return {name for _, names in searchable_locations()
+            for name in names} | {REMOTE}
 
 
 # Gurugram is the same geoId as Gurgaon under LinkedIn's own label; offering
@@ -97,10 +108,51 @@ _INDIA_ALIASES = {"Gurugram"}
 _INDIA_CITY_NAMES = ["Delhi", "Gurgaon", "Chandigarh", "Bengaluru",
                      "Hyderabad", "Pune", "Mumbai"]
 
+
+def _hints_for(names):
+    """The free-source location vocabulary for a set of picked place names.
+
+    Free boards and feeds have no location parameter, so the only way the
+    picker can narrow a Free Sweep is to match each posting's own location
+    text. config.LOCATION_MATCH holds the fragments; scraper.location_allowed
+    does the matching, on alphanumeric boundaries.
+    """
+    import config
+    out = []
+    for name in names:
+        out.extend(config.LOCATION_MATCH.get(name, []))
+    return sorted(set(out))
+
+
+def _india_hints():
+    import config
+    return _hints_for(["India"])
+
+
+# Each entry is the COMPLETE set of state keys a scope owns, so switching
+# between them can never leave one behind — out.update(_SCOPE[scope]) in
+# _configure_overrides replaces all of them at once.
+#
+#   remote_scopes          the post-fetch REMOTE filter (scraper.finalize)
+#   work_scope             the post-fetch ARRANGEMENT filter, for the other two
+#   location_hints         the post-fetch PLACE filter, free sources only
+#   locations              the paid SEARCH PLAN (keywords x locations)
+#   linkedin_locations     the same, for the one site that overrides it
+#   linkedin_remote_only   f_WT=2 on every LinkedIn search
+#
+# work_scope and location_hints are what make the three answers three
+# different sweeps. Before them, "india" and "global" both set remote_scopes
+# to [] and neither's location list reached a free source, so on the free
+# path — which is the default front door — they returned identical job sets.
 _SCOPE = {
     # India only, onsite/hybrid: no "Remote" in the mix — that is what the
-    # "remote" scope is for.
-    "india": {"remote_scopes": [], "locations": _INDIA_CITIES,
+    # "remote" scope is for. The arrangement half is work_scope="india",
+    # which drops rows the posting positively calls remote; the geography
+    # half is location_hints, which is every spelling of an Indian city
+    # config knows (HOME_LOCATION_HINTS, via LOCATION_MATCH["India"]).
+    "india": {"remote_scopes": [], "work_scope": "india",
+              "location_hints": _india_hints(),
+              "locations": _INDIA_CITIES,
               "linkedin_locations": _INDIA_CITIES, "linkedin_remote_only": False},
     # LinkedIn has no worldwide-remote search: f_WT=2 filters workplace type
     # WITHIN one geography, so paying for it across many countries buys
@@ -115,13 +167,29 @@ _SCOPE = {
     # (RemoteOK, WWR, Remotive, Jobicy, Himalayas): built for exactly this,
     # they carry far more of it than LinkedIn, and they're already on by
     # default, so there's nothing to switch on here.
-    "remote": {"remote_scopes": ["worldwide", "remote"], "locations": ["Remote"],
-               "linkedin_locations": ["Remote"], "linkedin_remote_only": False},
-    # Global onsite: same countries, without the remote filter.
-    "global": {"remote_scopes": [], "locations": _VERIFIED_COUNTRIES,
+    #
+    # linkedin_remote_only is True, not False. It used to rely on the literal
+    # token "Remote" being in the location list to make _build_linkedin_url
+    # add f_WT=2 — so narrowing the picker to a city removed it, and LinkedIn
+    # was billed for onsite rows that finalize() then discarded for not being
+    # remote. Stating the flag makes that impossible whatever the locations
+    # say. No place filter: "from anywhere" is the whole point.
+    "remote": {"remote_scopes": ["worldwide", "remote"], "work_scope": "remote",
+               "location_hints": [], "locations": ["Remote"],
+               "linkedin_locations": ["Remote"], "linkedin_remote_only": True},
+    # Global onsite/hybrid: the same arrangement filter as india, with no
+    # geography at all until the picker adds one. The nine countries are the
+    # paid RETRIEVAL plan, not a filter — a free-source row from a tenth
+    # country is still an onsite job this answer asked for.
+    "global": {"remote_scopes": [], "work_scope": "global",
+               "location_hints": [], "locations": _VERIFIED_COUNTRIES,
                "linkedin_locations": _VERIFIED_COUNTRIES,
                "linkedin_remote_only": False},
 }
+
+# Sweep's own keys inside a scope entry, in the order a reader wants them.
+SCOPE_KEYS = ("remote_scopes", "work_scope", "location_hints", "locations",
+              "linkedin_locations", "linkedin_remote_only")
 
 # Real stack names need '.', '+', '#', '/', '-' ("node.js", "c++", "c#",
 # "ci/cd", "full-stack"); nothing else has a legitimate reason to be in a
@@ -149,14 +217,36 @@ def _parse_int(raw, lo, hi, label):
 
 def _parse_chips(raw, label):
     """Comma-separated free text -> a validated list of terms. Rejected, not
-    sanitised, so the response says exactly what is wrong."""
+    sanitised, so the response says exactly what is wrong.
+
+    De-duplicated case-insensitively, first spelling kept. A repeat is not an
+    error — the picker can only produce one by a stale post, and a typed
+    "React, react" is an obvious slip — but it must not survive: a duplicated
+    LOCATION multiplies paid searches (three "Delhi"s planned and billed
+    three identical LinkedIn runs), and a duplicated skip-term counts against
+    the cap twice.
+    """
     terms = [t.strip() for t in str(raw).split(",") if t.strip()]
     for term in terms:
         if not _CHIP_RE.fullmatch(term):
             raise _FormError(
                 f"{label} can only use letters, digits, spaces and . + # / - "
                 f"— check {term!r}.")
-    return terms
+    seen, out = set(), []
+    for term in terms:
+        if term.lower() not in seen:
+            seen.add(term.lower())
+            out.append(term)
+    return out
+
+
+# How many terms the avoid box accepts. It is one line of text with a
+# three-term placeholder, so twenty is already far past what the control was
+# designed for — and each one becomes a compiled regex scanned over the full
+# description of every row in the sweep. Rejected, never truncated: silently
+# dropping the 21st term is the same class of bug as everything else this
+# screen is being fixed for.
+MAX_AVOID_TERMS = 20
 
 
 # The PUBLIC journey. Four stages, not the seven routes behind them: the
@@ -288,9 +378,12 @@ def step_states(steps, state, current, links=None):
 # How each scope reads on a summary. The keys are _SCOPE's, so a scope added
 # there without a phrase here falls back to the key rather than vanishing from
 # the one screen that says what is about to be searched.
-SCOPE_LABELS = {"india": "Across India",
-                "remote": "Remote, anywhere",
-                "global": "Onsite, worldwide"}
+# What each answer IS, in the summary's own voice. They match the radio
+# labels on the Search-preferences screen, because a summary that renames the
+# choice it is summarising is one more thing to reconcile.
+SCOPE_LABELS = {"india": "Onsite or hybrid, in India",
+                "remote": "Remote roles",
+                "global": "Onsite or hybrid, worldwide"}
 
 
 def scope_label(scope):
@@ -933,20 +1026,25 @@ def paid_sites():
     return [s for s in config.SITES if s in config.SITE_RATES]
 
 
-def _configure_overrides(form):
+def _configure_overrides(form, current_scope="remote"):
     """Validate the posted Configure-screen form and map it onto the state
     keys _prefs() understands. Returns {} for a form with no recognised
     field (the plain re-plan the estimate route always does). Raises
     _FormError, with nothing applied yet, on the first invalid field — a
     partial form must never partially write, since that could widen the
     sweep on a field the caller thought they hadn't touched.
+
+    `current_scope` is the session's scope as it stands, needed because the
+    locations rule depends on it and a PARTIAL form (which POST /estimate
+    accepts) may carry locations without a scope. The full form always
+    carries both, so this only decides the partial case.
     """
     out = {}
 
     if "scope" in form:
         scope = form["scope"]
         if scope not in _SCOPE:
-            raise _FormError("Choose where you can work.")
+            raise _FormError("Choose which jobs Sweep should include.")
         out.update(_SCOPE[scope])
         # The CHOICE as well as what it expands to. _SCOPE's fields are what
         # the engine needs; the summary screens need to say which of the
@@ -964,6 +1062,7 @@ def _configure_overrides(form):
     # results at full price (config.LINKEDIN_GEO_IDS). This is the one field
     # on the screen where a typo costs money in the wrong currency.
     if "locations" in form:
+        scope_now = out.get("scope") or current_scope
         picked = _parse_chips(form["locations"], "Locations")
         unknown = [p for p in picked if p not in allowed_locations()]
         if unknown:
@@ -971,11 +1070,33 @@ def _configure_overrides(form):
                 f"{unknown[0]!r} is not a location this can search. LinkedIn "
                 "needs a verified geoId for each one, or it silently returns "
                 "United States results and bills for them.")
-        if picked:
+        # "Remote, from anywhere" has no geography to narrow, and letting a
+        # city narrow it was the most expensive bug on this screen: the
+        # picker replaced ["Remote"] with ["Bengaluru"], LinkedIn lost f_WT=2,
+        # and the sweep paid for onsite rows that finalize() then threw away
+        # for not being remote. The screen hides the picker while remote is
+        # chosen; this is the half that holds when the screen is not there.
+        if scope_now == "remote":
+            picked = []
+        # REMOTE is not a place (see allowed_locations). Dropped rather than
+        # mapped, so a stale post cannot turn an arrangement into a geography.
+        places = [p for p in picked if p != REMOTE]
+        if places:
             # linkedin_locations too: SITES[site].get("locations", ...) means
             # the most expensive site keeps config.py's default otherwise.
-            out["locations"] = picked
-            out["linkedin_locations"] = picked
+            out["locations"] = places
+            out["linkedin_locations"] = places
+            # And the free half. Paid retrieval is constrained at the source
+            # by geoId and Indeed country; free sources have no location
+            # parameter at all, so they are narrowed by matching the
+            # posting's own location text against this vocabulary.
+            out["location_hints"] = _hints_for(places)
+        else:
+            # An empty picker means "everywhere this scope covers" — so it
+            # must restore the scope's own three, not leave an earlier pick
+            # standing. setdefault, so a scope posted in the SAME form wins.
+            for key in ("locations", "linkedin_locations", "location_hints"):
+                out.setdefault(key, _SCOPE[scope_now][key])
 
     if "max_age_days" in form:
         out["max_age_days"] = _parse_int(
@@ -1003,8 +1124,21 @@ def _configure_overrides(form):
         out["min_comp_usd"] = (
             _parse_int(raw, 0, 100_000_000, "Minimum pay") if raw else None)
 
-    if form.get("skip_terms"):
-        out["skip_terms"] = _parse_chips(form["skip_terms"], "Skip-terms")
+    # The avoid-list is AUTHORITATIVE, not additive: what the box holds is
+    # what applies. It used to be `if form.get(...)`, i.e. blank means "no
+    # opinion", and the terms were appended into the derivation's own
+    # penalty_terms — so a term could be added and never taken back, by
+    # anyone, ever, while the box rendered empty. It lives in prefs now
+    # (state["avoid"], which make_profile.render already had a contract for),
+    # separate from the model's penalties, which is what makes it removable.
+    if "avoid" in form:
+        terms = _parse_chips(form["avoid"], "Words to rank lower")
+        if len(terms) > MAX_AVOID_TERMS:
+            raise _FormError(
+                f"That is {len(terms)} terms to rank lower — "
+                f"{MAX_AVOID_TERMS} is the most this box takes. Keep the ones "
+                f"that matter most.")
+        out["avoid"] = terms
 
     # One name per site, never a checkbox GROUP sharing a name: /estimate
     # posts Object.fromEntries(new FormData(form)), which keeps only the LAST

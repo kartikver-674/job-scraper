@@ -71,8 +71,12 @@ PUBLIC_ENDPOINTS = frozenset({
     # public mode they run against the Oracle worker (sweep/worker_link.py)
     # rather than a local subprocess — same pages, same free_only branches
     # they have always had.
-    "key", "key_free", "key_post", "configure", "estimate", "confirm",
-    "run", "running", "progress", "stop", "results", "export",
+    # configure_post is the preferences form's own submission — the
+    # authoritative one. Without it here the gate below answers 404 and the
+    # screen silently stops saving anything, which is the exact failure this
+    # route was added to end.
+    "key", "key_free", "key_post", "configure", "configure_post", "estimate",
+    "confirm", "run", "running", "progress", "stop", "results", "export",
     # The one status endpoint the global activity strip polls, for the
     # résumé half and the sweep half alike. Read-only, and answers only
     # about the caller's own session and their own run.

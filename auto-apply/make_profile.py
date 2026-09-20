@@ -931,6 +931,11 @@ def _prose(text):
 PROFILE_NAMES = frozenset({
     "SITES", "FEEDS", "SEARCH", "SETTINGS", "SCORING",
     "ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE",
+    # The free sources' location filter. They have no location parameter to
+    # query, so scraper.location_allowed matches this vocabulary against each
+    # posting's own location string — which is the only way the Locations
+    # picker can narrow a Free Sweep at all.
+    "LOCATION_HINTS",
     # Which engine wrote this file. Inert to config._overlay, which only
     # reads OVERLAYABLE names, so it changes nothing about how a profile
     # behaves — it is there so a reader, a rollback and a bug report can
@@ -1075,7 +1080,7 @@ def render(name, data, prefs):
         "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min",
                    "max_results"],
         "SETTINGS": ["max_experience_years", "min_comp_usd", "max_age_days",
-                     "remote_scopes", "max_spend_usd"],
+                     "remote_scopes", "max_spend_usd", "work_scope"],
         "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
                     "backend_terms", "fullstack_title_terms", "fullstack_bonus",
                     "hard_drop_terms"],
@@ -1116,6 +1121,27 @@ def render(name, data, prefs):
         extra_settings += f'    "max_age_days": {int(prefs["max_age_days"])!r},\n'
     if prefs.get("remote_scopes") is not None:
         extra_settings += f'    "remote_scopes": {_fmt(prefs["remote_scopes"])},\n'
+    # Which of the three "which jobs should Sweep include" answers this is.
+    # "remote" is already fully expressed by remote_scopes above and adds no
+    # filter of its own; "india" and "global" are the onsite/hybrid halves,
+    # and without them those two answers were the same sweep (see
+    # scraper.finalize and config.SETTINGS["work_scope"]).
+    if prefs.get("work_scope") is not None:
+        extra_settings += f'    "work_scope": {str(prefs["work_scope"])!r},\n'
+
+    # The free sources' location filter. Unset means "inherit config's empty
+    # list", i.e. every location — the same "not set means inherit" rule as
+    # every other optional key here, and the reason an unpicked location box
+    # does not silently narrow a sweep. Written as its OWN top-level name
+    # because config._overlay replaces list settings wholesale.
+    #
+    # Not derived from prefs["locations"]: that list is the paid SEARCH PLAN
+    # (for "global" it is nine countries the person never named), and reusing
+    # it here would turn a retrieval plan into a filter.
+    hints = [str(h).strip().lower()
+             for h in (prefs.get("location_hints") or []) if str(h).strip()]
+    extra_hints = (f"LOCATION_HINTS = {_fmt(sorted(set(hints)), indent=4)}\n\n"
+                   if hints else "")
 
     # SITES[site].get("locations", SEARCH["locations"]) means LinkedIn — the
     # most expensive site — keeps searching whatever config.py's SITES.linkedin
@@ -1203,6 +1229,19 @@ def render(name, data, prefs):
     penalties = {term: weight
                  for term, weight in _weights(data["penalty_terms"], sign=-1).items()
                  if term not in excluded}
+    # The person's OWN avoid-list, kept separate from the model's all the way
+    # to here so it stays removable: it lives in prefs, not in `data`, so
+    # clearing the box on the Search-preferences screen clears it from the
+    # next render. Folding it into data["penalty_terms"] instead made it
+    # permanent — a term could be added and never taken back.
+    #
+    # Applied last and at the top of PENALTY_RANGE, so an explicit "I do not
+    # want this" outranks whatever the model happened to think of the same
+    # technology.
+    for term in prefs.get("avoid") or []:
+        term = str(term).strip().lower()
+        if term and term not in excluded:
+            penalties[term] = -PENALTY_RANGE[1]
     # check_module wraps the return so no caller can forget it: the CLI and
     # Sweep's POST /review both come through here, and the file this builds
     # is imported by config.py.
@@ -1231,7 +1270,7 @@ rather than paying to scrape again.
 # config._overlay only reads the names it knows.
 PROFILE_SCHEMA = {{"version": {PROFILE_SCHEMA}, "engine": {engine!r}}}
 
-{extra_sites}{extra_feeds}SEARCH = {{
+{extra_hints}{extra_sites}{extra_feeds}SEARCH = {{
     "role_keywords": {_fmt(data["role_keywords"])},
     "experience_years": {years},
     "locations": {_fmt(prefs["locations"])},

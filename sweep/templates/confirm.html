@@ -24,7 +24,8 @@
   {% if public_mode %}
     <div class="panel">
       {{ search_summary(facts.roles, facts.scope_label, facts.locations,
-                        facts.paid_labels, facts.free_sources) }}
+                        facts.paid_labels, facts.free_sources,
+                        depth=facts.depth) }}
       {# No "about 40 minutes": the real duration is titles x locations x
          depth and nobody measured it per sweep. A figure this screen cannot
          stand behind is worse than an honest range. #}

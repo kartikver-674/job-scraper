@@ -54,14 +54,32 @@
     {% endif %}
   </div>
 
-  <div class="split">
-    {# est is only ever assigned a real estimate. It used to take whatever
-       came back, so a 400 (an invalid skip-term, an unplannable profile) set
-       est to {error: ...} and est.total.toFixed threw — the live cost layer
-       died silently on bad input. A failure now leaves the last good figures
-       in place and says they may be stale, which is the one thing a money
-       display must not do quietly. #}
-    <form class="stack" @change="busy = true; err = null;
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  {# ONE form, wrapping both columns, with a real method and a real action.
+     It used to have neither: the aside's button was a link, the free path's
+     Start button was a SECOND form carrying no preference fields, and the
+     only thing that ever saved a setting was the live-cost fetch() below
+     firing on a change event. So with JavaScript unavailable every control
+     on the screen was inert, and a last edit followed straight away by
+     clicking through could be lost to the navigation cancelling that
+     request. The submit is authoritative now; the fetch only prices.
+
+     The free public path submits to /run, because that path has no confirm
+     screen and its Start button IS this form's submit. Everywhere else the
+     submit lands on POST /configure, which saves and forwards to /confirm.
+
+     est is only ever assigned a real estimate. It used to take whatever came
+     back, so a 400 (an invalid term, an unplannable profile) set est to
+     {error: ...} and est.total.toFixed threw — the live cost layer died
+     silently on bad input. A failure now leaves the last good figures in
+     place and says they may be stale, which is the one thing a money display
+     must not do quietly. #}
+  <form class="split" method="post"
+        action="{{ url_for('run') if public_mode and free_only
+                  else url_for('configure_post') }}"
+        x-data="{ scope: '{{ scope }}' }"
+        @change="busy = true; err = null;
           fetch('{{ url_for('estimate') }}', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(Object.fromEntries(new FormData($el)))
@@ -70,6 +88,7 @@
                            else { err = res.d.error || 'That could not be priced.'; } })
             .catch(() => { err = 'Could not reach the estimator — the figures below may be out of date.'; })
             .finally(() => { busy = false; })">
+    <div class="stack">
 
       {# First, not last as in the v3 mock: this is the largest cost lever on
          the screen and the one control a user reaches for when the estimate
@@ -129,22 +148,34 @@
         {% endif %}
       </div>
 
+      {# "Where you can work" read as a question about employment
+         authorisation, which Sweep does not ask and does not filter on. It
+         is a question about which JOBS to include, and the three answers are
+         now three genuinely different sweeps: before this, "In India" and
+         "Onsite worldwide" both switched every filter off and — on the free
+         sources, which are the default — returned byte-identical results. #}
       <div class="panel">
-        <h2>Where you can work{% if not public_mode %}{{ costs() }}{% endif %}</h2>
+        <h2>Which jobs should Sweep include?{% if not public_mode %}{{ costs() }}{% endif %}</h2>
         <div class="stack-tight">
           {# Checked from state, not hardcoded: "india" was marked selected on
              every load while _prefs() was defaulting locations to ["Remote"],
              so the control disagreed with the profile it was editing. #}
           <label class="choice"><input type="radio" name="scope" value="remote"
-                 {{ 'checked' if scope == 'remote' }}>
-            <span><b>{% if public_mode %}Remote, from anywhere{% else %}Genuinely remote from anywhere{% endif %}</b></span></label>
+                 x-model="scope" {{ 'checked' if scope == 'remote' }}>
+            <span><b>Remote roles</b>
+              <span class="why">Jobs you can do from anywhere, plus remote jobs
+                open to India. Onsite and hybrid roles are left out.</span></span></label>
           <label class="choice"><input type="radio" name="scope" value="india"
-                 {{ 'checked' if scope == 'india' }}>
-            <span><b>{% if public_mode %}In India — onsite or hybrid{% else %}India only, onsite and hybrid{% endif %}</b></span></label>
+                 x-model="scope" {{ 'checked' if scope == 'india' }}>
+            <span><b>Onsite or hybrid, in India</b>
+              <span class="why">Jobs at an office in India. Remote-only
+                listings are left out.</span></span></label>
           <label class="choice"><input type="radio" name="scope" value="global"
-                 {{ 'checked' if scope == 'global' }}>
-            <span><b>{% if public_mode %}Onsite, anywhere in the world{% else %}Global onsite{% endif %}</b>
-              <span class="why">Most of these need visa sponsorship.</span></span></label>
+                 x-model="scope" {{ 'checked' if scope == 'global' }}>
+            <span><b>Onsite or hybrid, anywhere in the world</b>
+              <span class="why">Jobs at an office in any country. Most will
+                need visa sponsorship — Sweep shows that where a posting says
+                so, but does not filter on it.</span></span></label>
         </div>
         {% if public_mode %}
           {# One line instead of four. The 27-of-480 measurement is a real and
@@ -159,8 +190,8 @@
             remote-labelled rows on the paid boards were actually reachable
             from India — the rest were locked to other countries.</p>
         {% else %}
-          <p class="muted">LinkedIn has no worldwide-remote search, so "genuinely
-            remote" keeps the paid LinkedIn searches on India-remote roles only —
+          <p class="muted">LinkedIn has no worldwide-remote search, so "remote
+            roles" keeps the paid LinkedIn searches on India-remote roles only —
             a past sweep found just 27 of 480 remote-labelled rows were actually
             reachable from here, the rest locked to other countries. Worldwide
             remote comes from the free feeds instead, at no cost.</p>
@@ -173,17 +204,24 @@
          results at full price. That is why this is a picker and not a box
          you can type a city into.
 
+         Hidden while "Remote roles" is selected, and dropped server-side in
+         that case too (sweep.logic._configure_overrides). A place cannot
+         narrow "from anywhere", and letting it try was the most expensive
+         bug on this screen: the picker replaced the Remote token with a
+         city, LinkedIn lost f_WT=2, and the sweep paid for onsite rows the
+         engine then discarded for not being remote.
+
          Checkboxes, not radios: the control has to hold several locations at
-         once, and a radio group cannot. They sit on the left of each row the
-         same way the scope choices above them do. #}
-      <div class="panel">
+         once, and a radio group cannot. #}
+      <div class="panel" x-show="scope !== 'remote'"
+           {% if scope == 'remote' %}style="display:none"{% endif %}>
         <h2>Locations{% if not public_mode %}{{ costs() }}{% elif not free_only %} <span
           class="affects">affects cost</span>{% endif %}</h2>
         {% if public_mode %}
-          <p class="muted">Leave this empty to search everywhere the choice
-            above covers{% if not free_only %}, or pick cities to narrow it.
-            Each city is searched separately, so the price moves with the
-            count{% endif %}.</p>
+          <p class="muted">Optional. Leave this empty for everywhere the choice
+            above covers, or pick places to narrow it{% if not free_only %}.
+            Each one is searched separately on the paid boards, so the price
+            moves with the count{% endif %}.</p>
         {% else %}
         <p class="muted">Empty means every location the choice above covers.
           Pick some to narrow it — each one is a separate paid search on
@@ -215,14 +253,15 @@
                     firing the estimate now would price the PREVIOUS pick. */
                  this.$nextTick(() =&gt; this.$dispatch("change"));
                } }'>
-          <input type="hidden" name="locations" :value="picked.join(&#39;, &#39;)">
+          <input type="hidden" name="locations" :value="picked.join(&#39;, &#39;)"
+                 value="{{ picked_locations|join(', ') }}">
           <div class="picker-box">
             <button type="button" class="picker-toggle" x-ref="toggle"
                     :aria-expanded="open ? &#39;true&#39; : &#39;false&#39;"
                     aria-controls="location-menu"
                     @click="open = !open">
               <span class="visually-hidden">Choose locations</span>
-              <span class="muted" x-show="!picked.length">All locations</span>
+              <span class="muted" x-show="!picked.length">Everywhere</span>
               <span class="meta" x-show="picked.length" x-cloak
                     x-text="picked.length + (picked.length === 1
                             ? &#39; location&#39; : &#39; locations&#39;)"></span>
@@ -240,12 +279,12 @@
           </div>
           <div class="picker-menu" id="location-menu" role="group"
                aria-label="Locations to search" x-show="open" x-cloak>
-            {# Not a checkbox of its own: "all" is the state of having picked
-               nothing, so it cannot disagree with the list below it. #}
+            {# Not a checkbox of its own: "everywhere" is the state of having
+               picked nothing, so it cannot disagree with the list below it. #}
             <label class="choice">
               <input type="checkbox" :checked="!picked.length"
                      @click.prevent="clear()">
-              <span><b>All locations</b>
+              <span><b>Everywhere</b>
                 <span class="why">Everything the choice above covers.</span></span>
             </label>
             {% for heading, names in location_groups %}
@@ -264,20 +303,22 @@
       </div>
 
       {# ---- Advanced ------------------------------------------------------
-         Four controls that a good sweep does not need: recency, depth, a pay
-         floor and terms to avoid. Every one of them has a sensible default,
-         and three of the four carry more explanation than control. Behind one
-         door publicly; always open for the operator, who tunes depth on every
-         run and would pay a click for it each time.
+         Recency, a pay floor, terms to rank down, and (on the paid path) how
+         deep each search goes. Every one has a sensible default, and most
+         carry more explanation than control. Behind one door publicly;
+         always open for the operator, who tunes depth on every run and would
+         pay a click for it each time.
 
          <details> rather than hiding with CSS: the fields stay in the form
-         either way, so a collapsed section still posts its defaults and the
+         either way, so a collapsed section still posts its values and the
          estimate still prices them. #}
       {% if public_mode %}
-      <details class="panel disclosure">
+      <details class="panel disclosure"{{ ' open' if advanced_custom }}>
         <summary>
           <h2>Advanced search settings</h2>
-          <span class="meta">using defaults</span>
+          {# Read from state. It said "using defaults" unconditionally,
+             including on a screen showing four changed values. #}
+          <span class="meta">{{ 'customised' if advanced_custom else 'using defaults' }}</span>
         </summary>
         <div class="disclosure-body stack">
       {% endif %}
@@ -285,15 +326,23 @@
       <div class="panel">
         <div class="grid2">
           <label><span class="label">How recent</span>
+            {# `selected` from state. It was hardcoded on 14, and a <select>
+               always posts — so returning to this screen and touching
+               anything wrote 14 back over a 30 the user had chosen. #}
             <select name="max_age_days">
-              <option value="7">7 days</option>
-              <option value="14" selected>14 days</option>
-              <option value="30">30 days</option>
+              <option value="7"{{ ' selected' if max_age_days == 7 }}>7 days</option>
+              <option value="14"{{ ' selected' if max_age_days == 14 }}>14 days</option>
+              <option value="30"{{ ' selected' if max_age_days == 30 }}>30 days</option>
             </select>
           </label>
+          {# Depth is a PAID concept: a free sweep runs no per-query searches
+             at all, it reads whole company boards and fixed feeds, and this
+             number reached none of them. It was rendered, validated, stored,
+             shipped to the worker and read by nothing. Not shown there. #}
+          {% if not free_only %}
           <label><span class="label">{% if public_mode %}Jobs per search{%
             else %}Results per search{% endif %}{% if not public_mode %}{{ costs() }}{%
-            elif not free_only %} <span class="affects">affects cost</span>{% endif %}</span>
+            else %} <span class="affects">affects cost</span>{% endif %}</span>
             {# The stepper fires the form's change handler ITSELF. A value set
                by script raises no event, and the cost above is recomputed on
                change — so a depth moved by these buttons would otherwise leave
@@ -306,9 +355,10 @@
                perfectly good 17. So the buttons do the arithmetic and the
                input keeps step=1, which is what the server accepts.
 
-               The empty box means "inherit config's own depth", so the first
-               click starts from the placeholder rather than from zero — and
-               reads it off the placeholder rather than repeating the number. #}
+               The box carries a real value now. It used to carry only
+               placeholder="15", so a stored 25 displayed as 15 — which is
+               where "is the 15 real?" came from. The placeholder stays as the
+               stepper's fallback for a box someone has emptied by hand. #}
             <div class="stepper" x-data="{
                    bump(by) {
                      const box = $refs.depth;
@@ -319,30 +369,30 @@
               <button type="button" @click="bump(-5)"
                       aria-label="Five fewer results per search">&minus;</button>
               <input type="number" name="max_results" x-ref="depth"
-                     placeholder="15" min="1" max="200"
-                     aria-label="Results per search">
+                     value="{{ max_results }}" placeholder="{{ max_results }}"
+                     min="1" max="200" aria-label="Results per search">
               <button type="button" @click="bump(5)"
                       aria-label="Five more results per search">+</button>
             </div>
           </label>
+          {% endif %}
         </div>
         {% if public_mode %}
           <p class="muted">A wider window finds more jobs at the same price.
-            Results per search is how many jobs each single search brings
-            back{% if not free_only %} — raising it finds more, and costs
-            proportionally more{% endif %}. Leave it empty for Sweep's own
-            default.</p>
+            Postings that do not carry a usable date are kept either way.</p>
+          {% if not free_only %}
+            <p class="muted">Jobs per search is how many listings ONE paid
+              search brings back — one job title in one location. It is not
+              the size of the whole sweep. Raising it finds more and costs
+              proportionally more.</p>
+          {% endif %}
         {% else %}
-        <p class="muted">A wider window buys more listings at the same price.</p>
+        <p class="muted">A wider window buys more listings at the same price.
+          Listings with no usable posted date are kept either way.</p>
+        {% if not free_only %}
         <p class="muted">Results per search is how deep each single search
           digs: one search is one title in one location, and this is how many
-          listings it brings back from that one pairing. Leave it empty to use
-          the profile's own depth.</p>
-        {% if free_only %}
-          <p class="muted">Depth only moves the metered searches, and this
-            sweep has none on, so it changes nothing here and costs nothing
-            either way.</p>
-        {% else %}
+          listings it brings back from that one pairing.</p>
           <p class="muted">Raising it costs proportionally more: LinkedIn and
             Indeed bill per result, so 30 is twice the price of 15 for the
             same searches, and the estimate above moves as you click.
@@ -351,19 +401,28 @@
             listings the extra depth buys are the ones that matched least
             well; raise it to go deeper on searches that already work, not to
             rescue ones that do not.</p>
+        {% else %}
+          <p class="muted">Search depth is a paid-board setting, and this
+            sweep has no paid boards on. The free sources return whole
+            company boards rather than per-search pages, so there is no depth
+            to set here.</p>
         {% endif %}
         {% endif %}
       </div>
 
       <div class="panel">
         <h2>{% if public_mode %}Minimum salary{% else %}Pay floor{% endif %}</h2>
+        {# value from state. The box rendered empty whatever was stored, and
+           blank means "no floor" — so coming back to this screen and
+           touching anything silently deleted the floor. #}
         <label><span class="label">Minimum yearly pay, USD</span>
           <input type="number" name="min_comp_usd" min="0" placeholder="No floor"
+                 value="{{ min_comp_usd if min_comp_usd is not none }}"
                  aria-describedby="pay-why"></label>
         {% if public_mode %}
-          <p class="muted" id="pay-why">Most jobs do not state a salary, and
-            those are always kept. This only drops jobs that state one below
-            your figure.</p>
+          <p class="muted" id="pay-why">Most postings never state a salary, and
+            those are always kept. This only drops the ones that state a figure
+            below yours.</p>
         {% else %}
         <p class="muted" id="pay-why">Listings that don't state pay are kept either way — most
           don't state it, and dropping them would discard the majority of a
@@ -372,17 +431,25 @@
       </div>
 
       <div class="panel">
-        <h2>{% if public_mode %}Skills or industries to avoid{% else %}Skip these{% endif %}</h2>
+        {# "Industries" was not true: these are matched as plain words in the
+           title and the description, with no notion of a sector. A posting
+           that merely mentions a banking client matched "banking" exactly as
+           hard as a core banking role did. The heading says what happens. #}
+        <h2>{% if public_mode %}Words or skills to rank lower{% else %}Rank these lower{% endif %}</h2>
+        {# value from state, and the posted list is AUTHORITATIVE. Terms used
+           to be appended into the derivation's own penalties and the box
+           rendered empty, so a term could be added and never taken back. #}
+        <label><span class="label">Comma-separated, up to {{ max_avoid_terms }}</span>
+          <input type="text" name="avoid" placeholder="Salesforce, CRM, .NET"
+                 value="{{ avoid_terms }}" aria-describedby="avoid-why"></label>
         {% if public_mode %}
-          <label><span class="label">Rank these lower, separated by commas</span>
-            <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"
-                   aria-describedby="skip-why"></label>
-          <p class="muted" id="skip-why">Jobs asking for these rank lower.
-            Nothing is removed outright.</p>
+          <p class="muted" id="avoid-why">Jobs mentioning these in the title or
+            the description will rank lower. They are not removed. Clear the box
+            to stop using them.</p>
         {% else %}
-          <label><span class="label">Stacks or domains to down-rank, comma-separated</span>
-            <input type="text" name="skip_terms" placeholder="Salesforce, CRM, .NET"></label>
-          <p class="muted">Letters, digits, spaces and . + # / - only.</p>
+          <p class="muted" id="avoid-why">Matched as plain words in the title and
+            description; they down-rank, never drop. Letters, digits, spaces and
+            . + # / - only. The box is authoritative — clearing it clears them.</p>
         {% endif %}
       </div>
 
@@ -404,20 +471,22 @@
         of this screen filters and re-ranks what has already been fetched, so
         it can move the shortlist but never the estimate.</p>
       {% endif %}
-    </form>
+    </div>
 
     <aside class="aside">
       {% if public_mode %}
       <div class="panel">
         <h2>What Sweep will search</h2>
         {{ search_summary(facts.roles, facts.scope_label, facts.locations,
-                          facts.paid_labels, facts.free_sources, compact=true) }}
+                          facts.paid_labels, facts.free_sources,
+                          depth=facts.depth, compact=true) }}
         {% if free_only %}
           {# The free public path ends here. /confirm would be a cost table
              with no costs in it and a second button, so the sweep starts from
              this screen — the summary above is what /confirm would have
-             carried. POST /run is unchanged and still refuses a plan it never
-             priced; /configure's own render is what prices it. #}
+             carried. The button is this form's own submit now, not a second
+             form of its own: a second form could not carry the preferences,
+             which is why they had to be saved by a side effect. #}
           {# A start button while a sweep is already running is an
              invitation to a conflict the worker would refuse anyway. The
              run in progress is the one that matters, so that is what this
@@ -429,14 +498,9 @@
                >View my Sweep<span class="go" aria-hidden="true">&rarr;</span></a>
           {% else %}
           <p class="muted">Free — no account needed and nothing to pay.</p>
-          <form method="post" action="{{ url_for('run') }}"
-                x-data="{ sent: false }" @submit="sent = true">
-            <button class="primary big" type="submit"
-                    :disabled="sent">Start Free Sweep<span class="go"
-                    aria-hidden="true">&rarr;</span></button>
-            <span class="meta sending" x-show="sent" x-cloak
-                  aria-live="polite">Starting your sweep…</span>
-          </form>
+          <button class="primary big" type="submit" x-data="{ sent: false }"
+                  @click="sent = true" :disabled="sent">Start Free Sweep<span
+                  class="go" aria-hidden="true">&rarr;</span></button>
           {% endif %}
         {% endif %}
       </div>
@@ -496,14 +560,16 @@
           <a class="primary big" href="{{ url_for('running') }}"
              >View my Sweep<span class="go" aria-hidden="true">&rarr;</span></a>
         {% else %}
-        <a class="primary{{ ' big' if public_mode }}" href="{{ url_for('confirm') }}">
-          {%- if public_mode %}Review and start<span class="go"
+        {# A submit, not a link. The link never carried the form, which is
+           why the form had to be saved by the estimate request firing. #}
+        <button class="primary{{ ' big' if public_mode }}" type="submit">
+          {%- if public_mode %}Save and review<span class="go"
             aria-hidden="true">&rarr;</span>
-          {%- elif free_only %}Review the sweep{% else %}Review spend plan{% endif %}</a>
+          {%- elif free_only %}Review the sweep{% else %}Review spend plan{% endif %}</button>
         {% endif %}
       </div>
       {% endif %}
     </aside>
-  </div>
+  </form>
 </div>
 {% endblock %}

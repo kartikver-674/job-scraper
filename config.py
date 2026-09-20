@@ -547,6 +547,79 @@ HOME_LOCATION_HINTS = [
     "ahmedabad",
 ]
 
+# One searchable location NAME -> the text fragments that identify it in a
+# posting's own location string. This is what turns Sweep's location picker
+# into a filter on the FREE sources, which have no location parameter to
+# query: make_profile writes the union of the picked names' fragments into
+# LOCATION_HINTS above, and scraper.location_allowed matches them on
+# alphanumeric boundaries (so "india" does not fire inside "Indiana").
+#
+# Fragments were read off 2,083 real free-source rows in output/, not guessed.
+# The spellings that actually occur: "Hyderabad, Telangana", "Bengaluru,
+# Karnataka", "Bangalore, India", "Gurgaon, Haryana", "Gurugram", "Noida,
+# Uttar Pradesh", "Pune, Maharashtra". City names carry the match; the state
+# and the country are decoration a posting may or may not include.
+#
+# ponytail: a posting that names ONLY a foreign city ("San Francisco",
+# "Mountain View, California") is not matched by its country's entry — the
+# table carries each country's own name, its common abbreviations, and a few
+# hub cities, not a world gazetteer. The India entries ARE complete, because
+# India is the home market and the one this filter has to get right. Upgrade
+# path if international narrowing matters: a city -> country lookup, which is
+# a data problem, not a code one. Paid retrieval is unaffected either way —
+# LinkedIn and Indeed are constrained at the source by geoId / country.
+LOCATION_MATCH = {
+    # The whole country, and every city Sweep can search inside it.
+    "India": list(HOME_LOCATION_HINTS),
+    "Delhi": ["delhi", "new delhi", "ncr"],
+    "New Delhi": ["delhi", "new delhi"],
+    "Delhi / NCR": ["delhi", "new delhi", "ncr", "gurgaon", "gurugram", "noida"],
+    "Gurgaon": ["gurgaon", "gurugram"],
+    "Gurugram": ["gurgaon", "gurugram"],
+    "Noida": ["noida"],
+    "Greater Noida": ["noida", "greater noida"],
+    "Chandigarh": ["chandigarh", "mohali", "panchkula"],
+    "Bengaluru": ["bengaluru", "bangalore", "blr"],
+    "Hyderabad": ["hyderabad", "secunderabad"],
+    "Pune": ["pune"],
+    "Mumbai": ["mumbai", "bombay", "navi mumbai", "thane"],
+
+    "United States": ["united states", "usa", "u.s.", "u.s.a.", "san francisco",
+                      "new york", "seattle", "austin", "boston", "chicago",
+                      "los angeles", "mountain view", "palo alto"],
+    "United Kingdom": ["united kingdom", "uk", "u.k.", "england", "scotland",
+                       "wales", "london", "manchester", "edinburgh", "cambridge"],
+    "Canada": ["canada", "toronto", "vancouver", "montreal", "ottawa"],
+    "Ireland": ["ireland", "dublin", "cork"],
+    "Germany": ["germany", "deutschland", "berlin", "munich", "münchen",
+                "hamburg", "frankfurt"],
+    "Netherlands": ["netherlands", "holland", "amsterdam", "rotterdam",
+                    "utrecht", "eindhoven"],
+    "France": ["france", "paris", "lyon", "toulouse"],
+    "Spain": ["spain", "españa", "madrid", "barcelona", "valencia"],
+    "Portugal": ["portugal", "lisbon", "lisboa", "porto"],
+    "Poland": ["poland", "polska", "warsaw", "warszawa", "krakow", "kraków",
+               "wroclaw"],
+    "Sweden": ["sweden", "sverige", "stockholm", "gothenburg", "malmo"],
+    "Switzerland": ["switzerland", "schweiz", "suisse", "zurich", "zürich",
+                    "geneva", "lausanne"],
+    "Australia": ["australia", "sydney", "melbourne", "brisbane", "perth"],
+    "New Zealand": ["new zealand", "auckland", "wellington", "christchurch"],
+    "Singapore": ["singapore"],
+    "United Arab Emirates": ["united arab emirates", "uae", "dubai",
+                             "abu dhabi", "sharjah"],
+    "Japan": ["japan", "tokyo", "osaka", "kyoto"],
+    "Brazil": ["brazil", "brasil", "sao paulo", "são paulo", "rio de janeiro"],
+    "Mexico": ["mexico", "méxico", "mexico city", "guadalajara", "monterrey"],
+    "South Africa": ["south africa", "johannesburg", "cape town", "durban",
+                     "pretoria"],
+}
+
+# "Remote" is a work arrangement, not a place, so it has no entry above and
+# contributes no location hint. A sweep scoped to remote filters on
+# SETTINGS["work_scope"] / remote_scopes instead — see make_profile.render.
+LOCATION_NOT_A_PLACE = "Remote"
+
 # Free sources return a whole board (finance, ops, HR, ...), so unlike job boards
 # we can't keyword-search. Keep only jobs whose TITLE looks like a software/dev
 # role (case-insensitive substring). Scoring then ranks within these.
@@ -605,6 +678,35 @@ ATS_TITLE_EXCLUDE = []
 # Naukri needs numeric city IDs (not names). Map each name you search here to its
 # ID (from the actor's schema). "Remote" is special-cased to a workMode filter, so
 # it needs no entry. Add more IDs as you widen coverage.
+# Indeed is a per-country site: the actor takes a `country` code and searches
+# that market, so a search for "United Kingdom" sent with country "IN" runs on
+# the Indian site and returns nothing useful at full price. SEARCH["country"]
+# used to be the only source of that code and no generated profile could
+# override it, which is exactly how that happened.
+#
+# So the country is DERIVED from the location the search is for, through this
+# table, and scraper.build_input REFUSES a location that is not in it rather
+# than falling back to a guess — the same fail-closed rule LINKEDIN_GEO_IDS
+# already has, and for the same reason: a wrong value here does not error, it
+# silently bills for the wrong market.
+#
+# Keys must cover every name that can reach SEARCH["locations"] or
+# SITES[x]["locations"]: the picker's own list (LINKEDIN_GEO_IDS), this file's
+# defaults, and Naukri's regions. "Remote" is deliberately absent — it is not
+# a place, and build_input handles it explicitly.
+INDEED_COUNTRIES = {
+    "India": "IN", "Delhi": "IN", "New Delhi": "IN", "Delhi / NCR": "IN",
+    "Gurgaon": "IN", "Gurugram": "IN", "Noida": "IN", "Greater Noida": "IN",
+    "Chandigarh": "IN", "Bengaluru": "IN", "Hyderabad": "IN", "Pune": "IN",
+    "Mumbai": "IN",
+    "United States": "US", "United Kingdom": "GB", "Canada": "CA",
+    "Ireland": "IE", "Germany": "DE", "Netherlands": "NL", "France": "FR",
+    "Spain": "ES", "Portugal": "PT", "Poland": "PL", "Sweden": "SE",
+    "Switzerland": "CH", "Australia": "AU", "New Zealand": "NZ",
+    "Singapore": "SG", "United Arab Emirates": "AE", "Japan": "JP",
+    "Brazil": "BR", "Mexico": "MX", "South Africa": "ZA",
+}
+
 NAUKRI_CITY_IDS = {
     "Delhi / NCR": "9508",   # broad region: Delhi + Gurgaon + Noida (best value)
     "Delhi": "382",
@@ -858,6 +960,26 @@ SETTINGS = {
     "remote_scopes": ["worldwide", "remote"],
     "drop_no_visa": False,       # drop only jobs that EXPLICITLY refuse to sponsor
     "require_eor": False,        # keep only jobs naming an employer-of-record path
+
+    # work_scope: which WORK ARRANGEMENT the person is actually shopping for.
+    # Set by Sweep's Search-preferences screen; None (the default) means no
+    # arrangement filter at all, which is what every hand-written profile in
+    # profiles/ has always had.
+    #
+    #   None       no filter — score and rank everything that was fetched
+    #   "remote"   remote roles only. Expressed through remote_scopes above
+    #              (["worldwide", "remote"] plus the hires-home rescue), so
+    #              this value adds NOTHING on its own and is carried only so
+    #              the profile records which of the three the person chose.
+    #   "india"    onsite/hybrid roles located in India
+    #   "global"   onsite/hybrid roles, any country
+    #
+    # "onsite/hybrid" is the COMPLEMENT of enrich.REMOTE_SCOPES, not the pair
+    # ("onsite", "hybrid"): roughly 40% of real rows state no arrangement at
+    # all, and this file's standing rule is that a blank signal means "the
+    # posting didn't say", never "no". So india/global keep onsite, hybrid AND
+    # unstated, and drop only what the posting positively calls remote.
+    "work_scope": None,
 
     # Rescue geo-locked roles at employers who demonstrably hire where you are.
     # A company posting ANY job in HOME_LOCATION_HINTS has an entity or EOR there,
