@@ -1007,10 +1007,18 @@ def create_app(state=None, extract=None, resume_dir=None,
         """
         if not app.config.get("PUBLIC_MODE"):
             return None
-        said = parse_banner(parse_phase(),
-                            # Same stand-down rule the sweep half has:
-                            # "ready" says nothing on the screen it points at.
-                            on_review=(step == "review"))
+        said = parse_banner(
+            parse_phase(),
+            # Same stand-down rule the sweep half has: "ready" says nothing
+            # on the screen it points at — and nothing at all once the
+            # visitor has been there. An approved profile is exactly that
+            # record: POST /review is the only thing that sets it, and a new
+            # résumé pops it again, so it cannot outlive the parse it
+            # describes. Without the second half, "Your profile is ready —
+            # review profile" reappears over Search preferences and again
+            # over the free/paid choice, on the forward path where the
+            # profile screen is the page the visitor just left.
+            reviewed=(step == "review" or bool(app.state.get("profile"))))
         # ...and it is behind you entirely once a sweep exists. Checked on
         # the run id rather than on the sweep banner, because that banner has
         # already stood itself down on /results — and "Your profile is ready"

@@ -529,11 +529,18 @@ def run_banner(phase, queue_position=0, found=None, on_results=False):
 PARSE_PHASES = ("reading", "ready", "failed")
 
 
-def parse_banner(phase, on_review=False):
+def parse_banner(phase, reviewed=False):
     """The profile half of the activity strip, or None.
 
     Same shape as run_banner so one component renders either, and the same
     stand-down rule: "ready" says nothing on the screen it is pointing at.
+
+    `reviewed` widens that rule to the rest of the flow. "Your profile is
+    ready — review profile" is an invitation to go and look, and a visitor
+    who has just come THROUGH the profile screen has looked: repeating it
+    over Search preferences and again over the free/paid choice is the same
+    sentence three times, each one pointing backwards. It stands down once
+    there is nothing left to invite.
     """
     if phase == "reading":
         return {"phase": phase, "kind": "profile", "tone": "live",
@@ -545,7 +552,7 @@ def parse_banner(phase, on_review=False):
                 "headline": "Sweep couldn't read your résumé",
                 "detail": "Nothing was charged.",
                 "cta": "Try again", "to": "upload"}
-    if phase == "ready" and not on_review:
+    if phase == "ready" and not reviewed:
         return {"phase": phase, "kind": "profile", "tone": "done",
                 "headline": "Your profile is ready",
                 "detail": "Check what Sweep understood before searching.",

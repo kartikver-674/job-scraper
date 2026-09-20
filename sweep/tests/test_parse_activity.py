@@ -218,6 +218,42 @@ class TestTheStripSaysTheResumeIsBeingRead(unittest.TestCase):
                       strip(client.get("/key").get_data(as_text=True)))
         self.assertEqual(strip(client.get("/review").get_data(as_text=True)), "")
 
+    def test_the_ready_strip_stands_down_once_the_profile_is_approved(self):
+        """...and stays down for the rest of the forward path.
+
+        "Your profile is ready — review profile" is an invitation to go and
+        look. A visitor walking Résumé -> Profile -> Continue to job search
+        has just come THROUGH the profile screen, and the two screens after
+        it were each repeating that invitation over the top of the thing it
+        was inviting them away from.
+
+        The test above is the other half: until Continue is pressed, nobody
+        has looked, and the strip still has a job to do.
+        """
+        app, client, model, worker = reading()
+        model.finish()
+        worker.join(timeout=10)
+        # Before: the invitation stands.
+        self.assertIn("Your profile is ready",
+                      strip(client.get("/key").get_data(as_text=True)))
+
+        client.post("/review", data={"name": "beta_user"})
+
+        # After: nothing left to invite, on either of the screens that
+        # follow — walked in the order a visitor walks them, because
+        # /configure redirects back to /key until the free/paid choice is
+        # made and a redirect body would pass this vacuously.
+        body = client.get("/key").get_data(as_text=True)
+        self.assertEqual(strip(body), "")
+        # The way back to the profile is not what was removed: the step
+        # tracker still links it.
+        self.assertIn('href="/review"', body)
+
+        client.post("/key/free")
+        body = client.get("/configure").get_data(as_text=True)
+        self.assertEqual(body.count('id="runbar"'), 0)
+        self.assertIn('href="/review"', body)
+
 
 class TestNobodyElsesResume(unittest.TestCase):
 

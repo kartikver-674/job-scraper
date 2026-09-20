@@ -166,6 +166,13 @@ header {
 }
 @media (max-width: 63.99rem) {
   .step:not(.current):not(.next) { display: none; }
+  /* ...except the one you just came from. Where you are and what is next
+     is enough to say where you ARE, but it is not a way back, and on a
+     phone this tracker is the only one there is: every other route to the
+     profile is a link inside a panel on some other screen. "Your profile
+     is ready — review profile" used to cover the gap on Search, which is
+     also why it was still being shown to people who had just been there. */
+  .step:has(+ .step.current) { display: flex; }
   .step.current + .step.next::before { width: 10px; }
   .step.next .step-label { color: var(--slate); }
 }
@@ -482,6 +489,18 @@ summary::before {
 details[open] > summary::before { transform: rotate(90deg); }
 details > summary:hover::before { border-left-color: var(--chalk); }
 details > *:not(summary) { margin-top: var(--s4); }
+/* A CLOSED <details> is still a flex container with two children: the
+   summary, and the ::details-content box the rest is slotted into. That box
+   is size-contained rather than display:none, so it is zero-tall but still
+   present — and .panel's row gap dutifully opens 12px underneath the summary
+   to separate it from nothing. Measured on all three public disclosures:
+   13px above the summary, 25px below it.
+
+   One rule rather than three, because Advanced search settings, Adjust what
+   Sweep looks for and the Apify disclosure are the same .panel flex column;
+   and on :not([open]) rather than on each, so the expanded state — where the
+   gap IS separating two things — keeps it. */
+details:not([open]) { row-gap: 0; }
 
 /* A disclosure that holds a whole section rather than a paragraph.
    Deliberately FLATTER than the cards above it — recessed rather than raised,
@@ -580,17 +599,29 @@ button.big, a.big {
 /* A strip under the header, not a banner in the page: it belongs to the
    shell rather than to whatever screen is showing, and it has to be
    noticeable without competing with that screen's own primary action. */
+/* align-items is BASELINE, not centre: the dot is a state light for the
+   headline, and centring it against a said-block that has wrapped to two
+   lines floats it into the gap between the headline and the detail under
+   it. Baseline sits it on the headline's own line at every width. */
 .runbar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5);
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s3) var(--s5);
   padding: var(--s3) var(--s5);
   background: var(--surface-low);
   border-bottom: 1px solid var(--rule);
 }
+/* flex-basis 0, not auto. Flex breaks lines on an item's HYPOTHETICAL size,
+   before any shrinking — so a said-block basis-sized to its own max-content
+   (a headline plus a sentence, ~330px) did not fit beside the dot on a
+   phone and was pushed to a second flex line, leaving the dot alone on the
+   first. From zero it always fits, then grows into whatever is left and
+   wraps its own text. */
 .runbar-said { display: flex; flex-wrap: wrap; align-items: baseline;
-  gap: var(--s2) var(--s3); min-width: 0; }
+  gap: var(--s2) var(--s3); min-width: 0; flex: 1 1 0; }
 .runbar-said > b { font-size: 13px; font-weight: 600; color: var(--chalk); }
 .runbar-detail { font-size: 12px; color: var(--slate); }
-.runbar-go { margin-left: auto; flex: none; }
+/* The action is a box, not a word on that line: baseline would hang it off
+   the headline's baseline and push the strip taller than it needs to be. */
+.runbar-go { margin-left: auto; flex: none; align-self: center; }
 
 /* One dot, coloured by state, because the strip is read at a glance from
    the corner of the eye. The palette's own meanings hold: teal is the
@@ -599,6 +630,9 @@ button.big, a.big {
 .runbar-dot {
   flex: none; width: 8px; height: 8px; border-radius: 50%;
   background: var(--slate);
+  /* No text, so the baseline the flex line aligns it on is its own bottom
+     edge — which lands the dot across the headline's x-height. */
+  align-self: baseline;
 }
 .runbar.live .runbar-dot { background: var(--paid); }
 .runbar.wait .runbar-dot { background: var(--slate); }
@@ -821,6 +855,60 @@ details.panel { min-width: 0; }
 .weights .bar .lv5 { width: 100%; }
 /* A term already ticked for removal is not steering anything. */
 .weights tr:has(input[name="drop"]:checked) .bar > span { background: var(--dim); }
+
+/* ---- The weight editor as cards, on a phone -----------------------------
+   Five columns do not fit in 250px of panel, and .scroll-x's answer — swipe
+   the table sideways — hides the controls it is scrolling. Same treatment
+   the shortlist already gets below 48rem: the <tr> becomes a grid and each
+   cell is placed by name, one DOM for both layouts.
+
+   Two stacked rows under the rank rather than five squeezed columns, so the
+   skill keeps the full width to wrap into and the stepper keeps its 44px
+   buttons. Nothing is scaled down to fit. */
+@media (max-width: 40rem) {
+  /* Not a scroll container any more: there is nothing wider than the panel
+     left inside it, and a box that can still scroll sideways by a pixel is
+     one a thumb can catch. */
+  .scroll-x { overflow-x: visible; contain: none; margin: 0; padding: 0; }
+  .weights, .weights tbody { display: block; }
+  /* The column names have nowhere to go on a card. Nothing is lost to a
+     screen reader: every control in the row already carries its own label
+     naming the term it belongs to. */
+  .weights tr.muted { display: none; }
+
+  .weights tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rank term term"
+      "rank bar  bar"
+      "rank step drop";
+    gap: var(--s3) var(--s4);
+    align-items: center;
+    padding: var(--s4) 0;
+    border-top: 1px solid var(--rule);
+  }
+  /* The row after the hidden header, not :first-of-type — that still
+     matches the display:none header row and left the first card
+     carrying a rule with nothing above it. */
+  .weights tr.muted + tr { border-top: 0; padding-top: 0; }
+  .weights td { display: block; padding: 0; }
+
+  .weights td.rank { grid-area: rank; align-self: start; padding-top: 3px; }
+  /* A long term wraps; a long unbroken one still may not widen the card. */
+  .weights td.term { grid-area: term; overflow-wrap: anywhere; }
+  /* display:contents so the bar itself is the grid item — the cell around it
+     has no job here beyond holding it. */
+  .weights td.level { display: contents; }
+  .weights td.level > .bar { grid-area: bar; }
+  .weights td.weight { grid-area: step; }
+  .weights td.drop { grid-area: drop; justify-self: end; }
+
+  /* The width rules above are column sizing for a table that is no longer
+     one; left in place they set min-widths on grid items instead. */
+  .weights .rank, .weights .level,
+  .weights td:nth-child(4), .weights td:last-child { width: auto; min-width: 0; }
+}
 .tag.low { margin-left: var(--s3); color: var(--slate); border-color: var(--dim); }
 .lines td:first-child { font-weight: 600; }
 .lines td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
@@ -1374,7 +1462,13 @@ td.score {
   padding-top: var(--s5); border-top: 1px solid var(--rule);
 }
 .panel-foot > p { flex: 1 1 22rem; margin: 0; color: var(--warm); }
-.panel-foot .actions { flex: none; }
+/* Shrinkable, and 0 rather than `none`. `flex: none` froze this block at its
+   own max-content, which on the upload screen is the submit button PLUS the
+   "Reading your résumé…" note that appears beside it the moment the form is
+   sent — 432px of it, inside a 324px panel. The button was pushed clean off
+   the right of the card and took the page's scroll width with it. .actions
+   already wraps; it just has to be given a width it can wrap inside. */
+.panel-foot .actions { flex: 0 1 auto; min-width: 0; }
 /* Teal is this palette's "costs nothing", which is exactly what the note
    says — so the emphasis carries the meaning rather than decorating it. */
 .free-note b { color: var(--free); }
