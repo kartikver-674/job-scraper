@@ -146,42 +146,156 @@ no held title, no target-field match and no query; `business_analysis` has two
 of the three. That is why the recommendation below is corroboration-based and
 why no density threshold is proposed.
 
-## 5. The one non-software regression, examined rather than assumed
+## 5. The one non-software regression — resolved as a benchmark defect
 
-`pm_technical` loses primary-probe visibility under every variant.
+`pm_technical` lost primary-probe visibility under every variant. Audited
+before deciding anything.
+
+### What the fixture actually describes
 
 ```
-primary label      technical_pm    probes: Technical Program Manager,
-                                           Technical Project Manager
-held fragments     product manager, technical product manager,
-                   software engineer, technical product
-target_field       "software engineering"
-strong families    product, project_delivery
+headline      Technical Product Manager
+summary       "Technical product manager with 7 years owning platform and
+               API products."
+employment    Technical Product Manager, Corvus Platform, Jan 2021 - Present
+              Software Engineer, Corvus Platform, Jun 2016 - Dec 2020
+skills        API Design, Technical Specifications, Roadmap, SQL, Python,
+              REST APIs, OpenAPI, SLOs, Jira, Confluence, Stakeholder Mgmt
+primary       technical_pm          <-- the only artefact that disagrees
+plausible     product_manager, backend, solutions_consultant
 ```
 
-Under BASELINE the probes are visible only because `project_delivery` is strong
-and dumps `program manager` / `project manager` into the gate. Under any
-corroboration rule that family is peripheral, and — checked explicitly — **not
-one** of the ten `project_delivery` fragments appears anywhere in that
-persona's held titles, corpus hints or final queries. Neither probe string
-appears either.
+Nothing in the document mentions programme or project management. No "program
+manager", no "project manager", no delivery or ceremony framing.
 
-So no close-variant rule could recover it: the résumé describes a Technical
-**Product** Manager, and product management and programme management are
-different professions. Whether this counts as a regression depends on whether
-you trust the persona's label or its document. By the measurement's own
-definition it is a loss, and it is reported as one; by the document it is a
-correction. It is the single non-software cost of every variant, including the
-recommended one.
+### What `technical_pm` means in this framework
 
-The software safety set is otherwise clean under C, D and F: `swe_frontend`,
-`swe_backend`, `swe_data_eng`, `swe_fullstack`, `swe_java`, `swe_devops`,
-`swe_ml`, `adv_grad_cs` and `adv_swe_titled_sf_work` all keep primary
-visibility. Only held-title-only (A/B) breaks `adv_grad_cs`.
+Not "technical PM" as an umbrella. The audit taxonomy is explicit, and three
+independent artefacts agree:
 
-## 6. Recommendation
+```
+classify_query.family_of("technical product manager")  ->  product_manager
+classify_query.family_of("technical program manager")  ->  technical_pm
+classify_query.family_of("technical project manager")  ->  technical_pm
+PROBES["technical_pm"]        = Technical Program Manager, Technical Project Manager
+PROBES["product_manager"]     = Product Manager, Senior Product Owner
+pm_product  (headline "Product Manager")  lists technical_pm as PLAUSIBLE
+```
 
-**Variant F, the central/peripheral model.**
+`product_manager` and `technical_pm` are **separate families** in the
+`delivery` group, and a Product Manager persona treats Technical Program
+Manager as adjacent-but-different. So the probes are **correct for their
+label**; the user's suggested fix of repointing `PROBES["technical_pm"]` at
+Product Manager titles would have corrupted a taxonomy entry that eight other
+personas reference.
+
+### What the framework says a label means
+
+`defs.py`, first paragraph:
+
+> Every `primary`, `plausible` and `forbidden` field below was written from the
+> persona's own described evidence, BEFORE running the engine on it, and none
+> of them was revised afterwards to match output.
+
+`primary` is therefore the profession the document describes — not a target.
+Every sibling follows it: `pm_product` headline "Product Manager" → primary
+`product_manager`; `proj_manager` → `project_manager`; `scrum_master` →
+`scrum_master`. **`pm_technical` is the only persona whose primary contradicts
+its own headline**, and the document-grounded family was sitting in `plausible`.
+
+### Decision, and the hazard in making it
+
+Evaluation metadata corrected. `primary` and `plausible` are **swapped** so the
+document-grounded family is primary, mirroring `pm_product` exactly:
+
+```
+-    primary="technical_pm",
+-    plausible=["product_manager", "backend", "solutions_consultant"],
++    primary="product_manager",
++    plausible=["technical_pm", "backend", "solutions_consultant"],
+```
+
+No persona text was changed; the summary, employment and skills hash
+identically before and after. No engine code was changed.
+
+**The hazard is real and should be weighed by review, not by me.** The defs
+header exists precisely to stop labels being revised to match output, and this
+revision was *occasioned* by variant F failing on it. Three things argue it is
+nonetheless sound:
+
+1. every piece of evidence is **independent of variant F** — the headline, the
+   frozen classifier, the probe table and the sibling personas. The defect was
+   findable without running any Fix B variant
+2. the correction **does not flatter the baseline**: `pm_technical` was already
+   54/54-visible under BASELINE before the relabel, and still is after, because
+   the old rule dumped both vocabularies in regardless
+3. the change is a **swap**, not a deletion — the information content of the
+   label set is preserved and `technical_pm` remains plausible for this person
+
+Two caveats you should have:
+
+- **`defs.py` is gitignored and untracked.** The correction therefore cannot be
+  committed separately as asked; it exists only in the local workspace. The
+  exact diff is recorded above so it can be reapplied or reverted, and a backup
+  sits at `output/v3-fix-b/defs.py.pre-pm-correction`. It also means the
+  header's "never revised afterwards" claim is not verifiable from history for
+  any label, including this one.
+- If review disagrees and restores `technical_pm`, variant F's honest number is
+  **53/54**, and the remaining loss is a persona whose document names no
+  project-delivery title anywhere.
+
+## 6. Variant F re-run, rule unchanged
+
+Only the benchmark changed. `variant()` was not edited between runs
+(`sha256[:12] = dab2d7b99e2e`); the subject cache was cleared and the same rule
+re-applied.
+
+| | before correction | after correction |
+|---|---:|---:|
+| **primary visibility** | 53/54 | **54/54** |
+| forbidden-family admissions | 17 | 17 (baseline 20) |
+| starvation | 0 | 0 |
+| legacy-floor fallbacks | 0 | 0 |
+| total gate hints | 1629 | 1629 (baseline 2220) |
+| regression candidate gate | 43 | 43 (Fix A baseline 109) |
+| candidate bad titles | 0/8 | **0/8** |
+| candidate wanted titles | 8/8 | **8/8** |
+| **software regressions** | 0 | **0** |
+| **non-software regressions** | 1 | **0** |
+
+Full table on the corrected benchmark:
+
+```
+variant        hints  prim vis  forbid  starv  fallbk  chg  H gate  H bad  H want  SW  NSW
+BASELINE        2220     54/54      20      0       0    0     109    4/8     8/8   0    0
+HELD            1524     53/54      16      0       0   36      35    0/8     6/8   1    0
+TARGET          1524     53/54      16      0       0   36      35    0/8     6/8   1    0
+HELD_OR_TGT     1575     54/54      17      0       0   36      41    0/8     7/8   0    0
+QUERY           1806     54/54      17      0       0   31      72    1/8     8/8   0    0
+CENTRAL         1629     54/54      17      0       0   36      43    0/8     8/8   0    0
+```
+
+`HELD`/`TARGET` still break `adv_grad_cs`, the graduate with no held title.
+`QUERY` still re-admits `Staff Infrastructure Security Engineer` through the
+`it_administration` vocabulary. **CENTRAL is the only variant with no
+regression of any kind.**
+
+## 7. The target_field finding, carried forward unchanged
+
+`role_evidence.family_of(target_field)` is largely inert: `target_field` holds
+descriptions — `"business analysis"`, `"software engineering"` — and
+`family_of` is built for titles, so it returns `None`. The `_target()` family
+path contributes almost nothing on this set.
+
+Variant F does **not** depend on repairing that. It uses the **target-word**
+corroboration measured here: the normalised `target_field` string is matched
+against `FAMILY_TITLES` fragments directly, in either containment direction. An
+implementation must preserve exactly that method. **A `family_of` taxonomy
+refactor must not be mixed into this patch.**
+
+## 8. Recommendation: GO
+
+**Implement variant F, the central/peripheral model.**
 
 ```
 CORE       a family named by a grounded held title, or matched by the words of
@@ -193,40 +307,26 @@ PERIPHERAL any other family with strong work-mode evidence
               (held-title fragments, corpus title hints, final queries)
 ```
 
-Why this one:
+On the corrected benchmark it is the only variant that is strictly better than
+the Fix A baseline on every measured axis except gate breadth, which is the
+point:
 
-- it is the **only** variant that suppresses all four residual bad titles while
-  keeping all eight wanted ones
-- **no software persona regresses**, including the graduate with no held title
-  that held-title-only breaks
-- gate hints fall 2220 → 1629 (27%) with **zero** starvation and **zero**
-  fallbacks to the legacy floor, so nobody is left without a gate
-- forbidden-family admissions fall 20 → 17 across the suite
-- it encodes the distinction the brief asked for directly: performing an
-  activity earns you the titles your own document names, being in a profession
-  earns you the profession's vocabulary
+- primary visibility **54/54**, unchanged from baseline
+- forbidden-family admissions **20 → 17**
+- gate hints **2220 → 1629**, with **zero** starvation and **zero** fallbacks
+- the regression candidate: gate **109 → 43**, bad titles **4/8 → 0/8**,
+  wanted titles **8/8 retained**
+- **no software regression, no non-software regression**
 
-What it does not fix, and should not be expected to:
+Conditions on the GO:
 
-- `pm_technical`, above
-- the `it_administration` vocabulary, which mixes `salesforce administrator`
-  with `infrastructure`. F routes around it; it does not repair it. If that
-  vocabulary were split, variant D would become viable too, and the two would
-  converge
-- primary visibility 54/54 → 53/54. The single loss is `pm_technical`
+1. **Review must ratify the `pm_technical` relabel**, or accept 53/54. It is
+   evaluation metadata, it is untracked, and it was changed after the variant
+   failed on it — all three facts are above so the decision is yours.
+2. Implement behind its own flag, default off, with the usual byte-identical
+   off path, as Steps 3–8 and Fix A all did.
+3. Do not fold in a `family_of` taxonomy refactor or an
+   `it_administration` vocabulary split. Both are real and both are separate.
 
-## 7. Before implementing
-
-1. **Decide the `pm_technical` question first.** If its label is right, F needs
-   a fourth corroboration source and none of the three measured here supplies
-   one. If its document is right, F is correct and the persona's label should
-   be revisited. This is a labelling decision, not an engine decision, and it
-   is the only thing standing between F and a clean result.
-2. **Do not add a density threshold.** §4 shows it separates the extremes and
-   fails on `data_analytics`, which is the family that actually matters here.
-3. **Consider splitting `FAMILY_TITLES["it_administration"]`** as separate
-   work. It is the proximate cause of the one bad title variant D re-admits.
-
-No code changed. No threshold tuned. Fix C untouched: `roles`, `users`, skill
-weights, market separation, ranking and `score_job` are as they were, and the
-free-retrieval path is unchanged.
+Still not implemented. No engine code changed, no threshold tuned, Fix A
+untouched, Fix C untouched, free retrieval unchanged.
