@@ -773,3 +773,334 @@ screenshot shows **9**; the extra two are `salesforce engineer` and
 comparison in this audit is between runs against the same corpus, so the
 conclusions are unaffected, but a frozen corpus is what an invariance harness
 should use.
+
+---
+
+# Production V3 matrix replay
+
+Everything above Part 15 was measured with the V3 step flags **absent**, on the
+authority of `render.yaml`. That was wrong: `render.yaml` is not the live
+runtime. This section replays the decisive measurements under the matrix
+actually in force, on the same corpus (22,806 listings), at `bf7d97e`. No
+engine code was changed.
+
+```
+SWEEP_PROFILE_ENGINE_VERSION          v2        (production, unchanged)
+SWEEP_ROLE_EVIDENCE                   1
+SWEEP_CANDIDATE_TITLE_GATE            1
+SWEEP_CANDIDATE_HARD_DROP             1
+SWEEP_ORPHAN_ROLE_GUARD               0
+SWEEP_CANONICAL_REVALIDATION          1
+SWEEP_CANONICAL_FALLBACK              discard
+SWEEP_SEMANTIC_SCOPE                  1
+SWEEP_SEMANTIC_SCOPE_NEGATION_VERBS   0
+SWEEP_ROLE_ATTACHMENT_GUARD           1
+SWEEP_FAMILY_CENTRALITY_GATE          1
+```
+
+Confirmed live in every run via each module's own `enabled()`.
+`SWEEP_CANONICAL_FALLBACK` is read at **import time**
+([canonical_guard.py:60](canonical_guard.py#L60)), so the harness sets the
+whole matrix before the first import; a late assignment would be silently
+ignored.
+
+**The replay validates the matrix against the report.** Under V3 the BA résumé
+yields **9 roles** — exactly the nine in the reported screenshot. The V3-off
+measurement gave 11. The earlier runs were not reproducing production.
+
+Determinism control under the matrix: the BA body run twice gave identical
+roles, identical title gate and identical weights.
+
+---
+
+## R1 — A / B / C under the live matrix
+
+**B** applies the proposed market-aware compound rule by monkeypatching
+`skill_concepts.split_compound` **inside the harness only**. Production code is
+untouched; `LOOKUP`, the parenthetical rule and `MIN_PART` still run first, and
+an unknown half still blocks the split.
+
+| | **A** Functional, current | **B** Functional, atomised | **C** BA, current |
+|---|---|---|---|
+| target_field | `functional consulting` | `functional consulting` | `salesforce business analysis` |
+| headline title | `FUNCTIONAL CONSULTANT` | `FUNCTIONAL CONSULTANT` | `Salesforce Business Analyst` |
+| employment title | `Functional Consultant` | `Functional Consultant` | `Salesforce Functional Consultant` |
+| extracted skills | 14 compounds | 14 compounds | 11 atomic |
+| concepts after `identities()` | 14, **none split** | **17, five split** | 11 |
+| `role_evidence` supports | data_analytics **strong**, business_analysis **strong**, functional_consulting **strong**, project_delivery **strong**, product **strong**, it_administration weak, hr_recruiting weak | identical | data_analytics strong, business_analysis strong, functional_consulting strong, product strong, it_administration weak, project_delivery weak |
+| `title_families` | `functional_consulting` | `functional_consulting` | `functional_consulting`, **`business_analysis`** |
+| platforms / thin | `['salesforce']` / False | same | same |
+| **CORE families** | `functional_consulting` | `functional_consulting` | **`business_analysis`, `functional_consulting`** |
+| **PERIPHERAL** | business_analysis, data_analytics, product, project_delivery | same | data_analytics, product |
+| peripheral titles recovered | **none** | business analyst, systems analyst, product owner | product owner |
+| role gate rejected | none | none | **`salesforce engineer`** |
+| hard-drop restored | none | none | none |
+| canonical rejected | none | **`sf -data cloud`** | **`sf -data cloud`** |
+| **final roles** | **1** | **10** | **9** |
+| title hints | **0** | 40 | 38 |
+| **title gate** | **10** | 32 | 37 |
+
+### A → B: the compound fix, measured under V3
+
+```
+A  1 role   0 hints   10 gate entries
+B  10 roles 40 hints  32 gate entries
+```
+
+B's roles: `salesforce administrator`, `salesforce business analyst`,
+`functional consultant`, `salesforce techno functional consultant`,
+`functional consultant, salesforce core`, `consultant salesforce`,
+`salesforce sales cloud`, `product owner`, `revenue operations`,
+`salesforce consultant`.
+
+**The V3 guards do not close the gap, and they were never going to.** Every one
+of them is reject-only — `role_evidence.filter_queries`,
+`canonical_guard.revalidate` and `orphan_guard.filter_queries` can veto a query,
+never propose one, and `hard_drop.restore` only restores what the seniority
+lists deleted. A candidate whose skills never reached `matching_rows` has
+nothing for any guard to act on. **Root cause 1 survives the replay unchanged
+and is, if anything, better isolated: it is upstream of every layer that was
+previously unmeasured.**
+
+### A is worse under V3 than it was without it
+
+With the V3 flags off, the Functional candidate's ATS gate was the legacy union
+with `config.ATS_TITLE_HINTS` — a broad software floor. Under the live matrix
+the gate is **candidate-specific and 10 entries long**:
+
+```
+application consultant · crm consultant · erp consultant · functional consultant
+functional consulting · implementation consultant · solution consultant
+solutions consultant · technical consultant · techno-functional
+```
+
+`global_floor_used: False` — the fallback did not fire, because one held title
+is "candidate-specific evidence". Correct by Step 4's rule, and the result is a
+Salesforce-certified administrator whose free-board scan contains the word
+`salesforce` **zero times**. That is a consequence of root cause 1 reaching a
+layer the first audit could not see.
+
+---
+
+## R2 — Headline invariance under V3
+
+Same body, only the line under the name changes. All four runs under the live
+matrix.
+
+| headline | target_field | CORE families | final roles | role J | **gate size** | **gate J** |
+|---|---|---|---|---|---|---|
+| `SALESFORCE BUSINESS ANALYST` | `salesforce business analysis` | business_analysis, functional_consulting | 9 | — | 37 | — |
+| `BUSINESS ANALYST` | `business analysis` | business_analysis, functional_consulting | 9 | **1.000** | 35 | **0.946** |
+| `FUNCTIONAL CONSULTANT` | `functional consulting` | **functional_consulting only** | 9 | **1.000** | 30 | **0.763** |
+| `SALESFORCE FUNCTIONAL CONSULTANT` | `salesforce consulting` | **functional_consulting only** | 9 | **1.000** | 30 | **0.763** |
+
+### The earlier conclusion was half right, and the half that was wrong matters
+
+**"The headline is inert" does NOT survive.** It survives for the paid-search
+path and fails for the free-board gate.
+
+* **Final roles: still perfectly invariant.** `role_jaccard 1.000` across all
+  four headlines, as measured with the flags off. Queries come from skills and
+  the held employment title, and no V3 layer changes that.
+* **Core families and the title gate are NOT invariant.** Declaring
+  `FUNCTIONAL CONSULTANT` instead of `SALESFORCE BUSINESS ANALYST` on an
+  unchanged body removes eight gate entries — `business analysis`,
+  `business systems analyst`, `process analyst`, `requirements analyst`,
+  `systems analyst`, `salesforce business analyst`, `salesforce business`,
+  `salesforce business analysis` — because `business_analysis` falls from CORE
+  to PERIPHERAL and Fix B then re-admits only the one fragment the candidate's
+  own queries already name (`business analyst`).
+
+### Two distinct routes to CORE, and the headline drives both
+
+`role_evidence.build` folds the **headline** into `title_families`
+([role_evidence.py:512](role_evidence.py#L512): `by_title = _title_families(held + headline)`),
+and `family_centrality.is_core` admits a strong family that is named by a held
+title **or** corroborated by the stated target
+([family_centrality.py:88](family_centrality.py#L88)). The replay separates them:
+
+| headline | how `business_analysis` reached CORE |
+|---|---|
+| `SALESFORCE BUSINESS ANALYST` | **by title** — the headline is a title family |
+| `BUSINESS ANALYST` | **by target** — `core_by_target: ['business_analysis']`; the headline changed `target_field`, and `target_families` matched it to the family vocabulary |
+| `FUNCTIONAL CONSULTANT` | **neither** — demoted to peripheral |
+| `SALESFORCE FUNCTIONAL CONSULTANT` | **neither** — demoted to peripheral |
+
+**`target_field` is therefore load-bearing under the live matrix**, and the
+Part 5 claim that it "reaches nothing but the summary line and per-row
+relevance" is **retracted**. It is ungrounded and can only ever widen a gate,
+which is the design — but it is not inert.
+
+### Is this proportionate?
+
+Yes. A gate Jaccard of 0.763 for a genuinely different declared profession is
+the behaviour the product principle asks for, and it is the *only* place the
+engine currently honours the declaration. The engine is still under-sensitive
+to the headline on the search path (`role_jaccard 1.000`), not over-sensitive
+anywhere.
+
+---
+
+## R3 — Thin role review under V3
+
+| role | source evidence | family | role-evidence verdict | central / peripheral | canonical validation | **final** |
+|---|---|---|---|---|---|---|
+| **`salesforce engineer`** | 11 listings, retrieved by **SOQL** (8) — a skills-list claim | `software_engineering` | **REJECTED** — *"needs development; platform evidence exists (salesforce) but no substantive development ownership"*; `missing_work_modes: ['development']`, 0 refuted, 0 delegated | — (family not supported) | accepted | **DROPPED** ✓ |
+| **`sf -data cloud`** | 6 listings, from fragment `data cloud` | `None` | not reached | — | **REJECTED** — *"a leading hyphen is a negation operator on every major board, so this string does not ask for the job it appears to name"* | **DROPPED** ✓ |
+| **`salesforce techno functional consultant`** | **5 listings**; salesforce(5), **soql(5)**, flow builder(3) | `functional_consulting` | **KEPT** — the family is CORE by held title | core | accepted, from fragment `techno functional` | **KEPT** ✗ |
+| **`revenue operations`** | **6 listings**; salesforce(6), sales cloud(6) | **`None`** | **KEPT** — an unrecognised family is a fail-open path | n/a | accepted | **KEPT** ✗ |
+| **`product owner`** | **3 listings**; service cloud(3), salesforce(3), sales cloud(3) | `product` | **KEPT** — `product` has **strong** work-mode support | **peripheral**, and the one fragment Fix B re-admitted | accepted | **KEPT** ✗ |
+
+**V3 removes two of the five, and the two it removes are the right two.** The
+role-evidence gate did exactly what it was built for on `salesforce engineer`:
+SOQL on a skills line is not development ownership, and the rejection record
+quotes the reasoning rather than a score.
+
+The three that survive are each a *different* fail-open path, not one weakness:
+
+* `salesforce techno functional consultant` — "techno" asserts development, but
+  `family_of` resolves the whole string to `functional_consulting`, which the
+  candidate genuinely holds. The gate never sees a development claim to test.
+  **A family-resolution blind spot, not a gate failure.**
+* `revenue operations` — `family_of` returns `None`, and an unrecognised family
+  is deliberately never rejected
+  ([role_evidence.py:619](role_evidence.py#L619)). Working as designed; the
+  design has no answer for a title outside `FAMILIES`.
+* `product owner` — `product` is **strong** on work-mode evidence (requirement
+  gathering, user stories, acceptance criteria, backlog-shaped work), so Fix B
+  correctly classes it peripheral and correctly re-admits the one fragment the
+  candidate's own queries already name. **This is Fix B working**, and the
+  residual question is whether 3 listings should have produced the query at
+  all — a corpus-tail concern (Part 14, Fix 4), not a V3 one.
+
+`MIN_LISTINGS = 10` being denominated in evidence weight rather than rows
+([local_search.py:74](local_search.py#L74)) remains the reason a 3-posting
+fragment clears the floor. Unchanged by V3.
+
+### One inconsistency the replay exposed
+
+`title_gate`'s `own_hints_dropped` for **C** discards
+**`salesforce administrator`** and **`salesforce sales cloud`** — both of which
+are **final search roles** in the same profile. `salesforce administrator` is
+the candidate's highest-lift query (39 listings) and they hold the
+certification; it is dropped because `it_administration` is only *weak* support
+and so never enters Fix B's `considered` set (`strong | by_title`).
+
+So the paid-query path searches for `salesforce administrator` while the
+free-board gate refuses to score it. The two paths disagree about the same
+candidate. Out of scope here; worth its own look.
+
+---
+
+## R4 — Heading defect under the live matrix
+
+Re-measured like-for-like — each run's own concept set and its own market
+separations — with `SWEEP_SEMANTIC_SCOPE=1` and
+`SWEEP_SEMANTIC_SCOPE_NEGATION_VERBS=0`.
+
+**`TOOLS & TECHNOLOGIES` → `TECHNICAL SKILLS`** (Functional résumé, 36 concepts)
+
+| concept | shipped | heading recognised |
+|---|---|---|
+| flow builder | BACKGROUND 2 | SUPPORTING 3 |
+| sales cloud | BACKGROUND 2 | SUPPORTING 3 |
+| salesforce | BACKGROUND 1 | SUPPORTING 2 |
+| service cloud | BACKGROUND 2 | SUPPORTING 3 |
+
+`moved: 4 of 36, total |Δw| 4` — **identical to the V3-off measurement.**
+
+**`TECHNICAL SKILLS` → `TOOLS & TECHNOLOGIES`** (BA résumé, 30 concepts)
+demotes seven: `soql`, `experience builder`, `reports & dashboards`,
+`microsoft excel`, `microsoft powerpoint`, `english`, `hindi` — each
+SUPPORTING 3 → BACKGROUND 2. `total |Δw| 7`. Identical to V3-off.
+
+**`PROFESSIONAL EXPERIENCE` → `CAREER HISTORY`** (BA résumé, 30 concepts)
+
+```
+dashboards  CORE 4 -> SUPPORTING 2      sales cloud    CORE 5 -> SUPPORTING 3
+gap analysis CORE 5 -> SUPPORTING 3     salesforce     CORE 4 -> SUPPORTING 2
+go-live     CORE 5 -> SUPPORTING 3      service cloud  CORE 5 -> SUPPORTING 3
+reports     CORE 4 -> SUPPORTING 2      uat            CORE 5 -> SUPPORTING 3
+
+moved: 8 of 30   total |Δw|: 16
+```
+
+Identical to V3-off. **Root cause 3 is fully independent of the V3 matrix**, as
+the first audit predicted, and it is the more expensive of the two headings:
+two bands off every professional claim in the document.
+
+### One thing the replay added
+
+`assess_all` resolves overlapping concepts, so an unsplit compound **shadows**
+its own atoms: with `salesforce administration & configuration` in the concept
+list, occurrences of `salesforce` inside it are attributed to the longer
+concept. Measured on the Functional résumé, `salesforce` is BACKGROUND 1 with
+the compounds present and SUPPORTING 3 with only atomic concepts.
+
+**The compound defect therefore costs twice** — once by starving search, and
+again by shadowing the atomic concept's evidence in tiering. The first audit
+attributed all of that gap to the heading and to the CRM/Salesforce bullet;
+part of it is root cause 1 a second time.
+
+---
+
+## R5 — What changed and what survived
+
+### Retracted
+
+| earlier claim | replay finding |
+|---|---|
+| "Every V3 step flag is absent and therefore off" | **Wrong.** `render.yaml` is not the live runtime. Nine of ten flags are on. |
+| Part 5: "`target_field` influences exactly two things: which employment rows count toward `years_experience`, and a sentence on the review screen" | **Retracted.** Under the live matrix it also reaches `family_centrality.target_families` → CORE families → title gate. Measured: the `BUSINESS ANALYST` headline keeps `business_analysis` CORE **by target**, not by title. |
+| Part 7 / Part 10: "the headline is inert", `role_jaccard 1.000`, `max |Δw| 0` | **Half retracted.** Final roles and weights stay perfectly invariant. The **title gate does not**: gate Jaccard 1.000 → 0.946 → 0.763 across the four headlines, and CORE families go 2 → 1. |
+| Part 5 / Part 11: "V3 Fix B is not responsible; it is not running" | **The premise was wrong; the conclusion holds.** Fix B *is* running. It is still not responsible for the 1-vs-9 gap — A and B differ only in compound atomisation and have identical family records. |
+| Part 3 / Part 13: the BA profile has 11 roles including `salesforce engineer` and `sf -data cloud` | **Corrected to 9.** V3 drops both. The reported screenshot was right and the first audit's corpus-only run was not production. |
+| Part 13 Q4: four roles admitted "on corpus co-occurrence with no supporting evidence" | **Narrowed to three.** `salesforce engineer` is rejected by the role gate. `product owner` is not unsupported — `product` has strong work-mode evidence and Fix B re-admits it deliberately. |
+
+### Survived unchanged
+
+| claim | replay evidence |
+|---|---|
+| **Root cause 1** — `split_compound` gating on `LOOKUP` alone starves `matching_rows` | A = 1 role, B = 10 roles, identical family records, under the full matrix. Strengthened: every V3 guard is reject-only, so none of them can reach a query that was never proposed. |
+| **Root cause 3** — `TOOLS & TECHNOLOGIES` and `CAREER HISTORY` open no section | Byte-identical deltas under both configurations. Independent of V3. |
+| The 1-vs-9 gap is not caused by the headline | Four headlines, one body, `role_jaccard 1.000`. |
+| The employment title is proportionate | Held title only; unchanged. |
+| Skill-weighting arithmetic is correct | Tiers and bands behaved exactly as the evidence supported in every run. |
+| Determinism | Byte-identical input, two runs under the matrix: identical roles, gate and weights. |
+
+### Strengthened
+
+* **Root cause 1 is more expensive than first measured.** Beyond search
+  starvation it shadows atomic concepts in `assess_all` (R4), and under the
+  live matrix it collapses the ATS title gate to 10 consultant-shaped entries
+  containing no Salesforce term at all (R1).
+* **The `SKILLS` vs `CORE COMPETENCIES` finding is unaffected.** It acts on
+  model section-selection, upstream of every flag in the matrix.
+
+### Unchanged recommendation
+
+Fix 1 and Fix 2 stand as written in Part 14, for the same reasons and with
+larger measured benefit. Fix 3 needs rewording — the declared identity is
+**not** inert; it drives the title gate and nothing else — but that is a
+description change, not a different action.
+
+**Two new items, both out of scope here:**
+
+* the title gate drops `salesforce administrator` and `salesforce sales cloud`
+  while the query list keeps them (R3);
+* `family_of` returns `None` for `revenue operations` and resolves
+  `salesforce techno functional consultant` to `functional_consulting`, so
+  neither reaches the development test (R3).
+
+### Replay reproduction
+
+```
+scratchpad/v3probe.py <fixture> <name> [--atomise]
+```
+
+Sets the full matrix before the first import, runs `generate_local`, then calls
+`make_profile._title_gate` and `family_centrality.families` directly to capture
+the gate and the core/peripheral split, which `generate_local` does not return.
+`--atomise` monkeypatches `skill_concepts.split_compound` **in the harness
+only**. Seven runs: A, B, C and the four headline variants. Nothing in the
+repository was modified by the replay.
