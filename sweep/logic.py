@@ -60,8 +60,9 @@ _VERIFIED_COUNTRIES = ["United States", "United Kingdom", "Canada", "Ireland",
 REMOTE = "Remote"
 
 
-def searchable_locations():
-    """The locations the Configure screen may offer, grouped for the menu.
+def location_groups(scope=None):
+    """The picker's option list: groups of place names, each tagged with the
+    scopes it may be offered under.
 
     Every entry is a config.LINKEDIN_GEO_IDS key. That table is the whole
     guard: "A missing or wrong geoId is NOT a soft failure: LinkedIn ignores
@@ -69,6 +70,29 @@ def searchable_locations():
     the wrong country" — so a picker of free text would be a way to buy the
     United States by typing "Bangalore". Read live rather than copied, so a
     geoId verified (or removed) in config appears (or stops appearing) here.
+
+    Locations NARROW the work scope and must never widen it, so what is on
+    offer depends on which jobs were asked for:
+
+        india   Indian cities only. Offering "United States" under "onsite
+                or hybrid, in India" invites a choice the engine has to
+                throw away afterwards, which is the whole class of bug this
+                screen is being fixed for.
+        global  Indian cities AND the verified countries.
+        remote  nothing — a place cannot narrow "from anywhere".
+
+    `scope=None` is every group there is: the superset the unknown-name check
+    validates against, so a typo still earns the money-protecting refusal
+    rather than being quietly narrowed away.
+
+    Dicts rather than tuples because the picker renders this client-side too
+    — the menu has to change when the scope radio changes, with no round
+    trip — and one table handed to both sides is what stops the two
+    disagreeing about what is on offer.
+
+    No "Anywhere remote" group any more. "Remote" is a work ARRANGEMENT and
+    it is the first question on the screen; offering it again as a place made
+    the two controls answer the same question and disagree.
     """
     import config
     known = list(config.LINKEDIN_GEO_IDS)
@@ -78,24 +102,27 @@ def searchable_locations():
     # is untidy rather than wrong.
     countries = [c for c in known
                  if c not in cities and c not in _INDIA_ALIASES]
-    # No "Anywhere remote" group any more. "Remote" is a work ARRANGEMENT and
-    # it is now the first question on the screen; offering it again as a
-    # place made the two controls answer the same question and disagree —
-    # "India onsite or hybrid" plus a Remote "location" is not a sweep
-    # anything downstream can run. The picker narrows a geography now, and
-    # nothing else.
-    return [("India", cities), ("Countries", countries)]
+    groups = [{"heading": "India", "scopes": ["india", "global"],
+               "names": cities},
+              {"heading": "Countries", "scopes": ["global"],
+               "names": countries}]
+    return [g for g in groups if scope is None or scope in g["scopes"]]
 
 
-def allowed_locations():
-    """Everything searchable_locations() offers, plus REMOTE.
+def searchable_locations(scope=None):
+    """location_groups as (heading, names) pairs, for a server-side render."""
+    return [(g["heading"], g["names"]) for g in location_groups(scope)]
 
-    REMOTE is accepted but no longer offered: a page loaded before it left
-    the menu can still post it, and a 400 on a control the user cannot see
-    is a worse answer than ignoring a token that now means nothing.
+
+def allowed_locations(scope=None):
+    """Every place name this scope may be narrowed to, plus REMOTE.
+
+    REMOTE is accepted but never offered: a page loaded before it left the
+    menu can still post it, and a 400 on a control the user cannot see is a
+    worse answer than ignoring a token that now means nothing.
     _configure_overrides drops it rather than treating it as a place.
     """
-    return {name for _, names in searchable_locations()
+    return {name for _, names in searchable_locations(scope)
             for name in names} | {REMOTE}
 
 
@@ -186,6 +213,15 @@ _SCOPE = {
                "linkedin_locations": _VERIFIED_COUNTRIES,
                "linkedin_remote_only": False},
 }
+
+# Which answer a session starts on when nobody has chosen yet. India,
+# because this beta is India-focused and "onsite or hybrid, in India" is what
+# most of its visitors are actually looking for — it is the first radio on
+# the screen for the same reason.
+#
+# It applies ONLY when no scope has been committed. ensure_scope() checks
+# that, so navigating back to the screen can never overwrite a real choice.
+DEFAULT_SCOPE = "india"
 
 # Sweep's own keys inside a scope entry, in the order a reader wants them.
 SCOPE_KEYS = ("remote_scopes", "work_scope", "location_hints", "locations",
@@ -1026,7 +1062,7 @@ def paid_sites():
     return [s for s in config.SITES if s in config.SITE_RATES]
 
 
-def _configure_overrides(form, current_scope="remote"):
+def _configure_overrides(form, current_scope=DEFAULT_SCOPE):
     """Validate the posted Configure-screen form and map it onto the state
     keys _prefs() understands. Returns {} for a form with no recognised
     field (the plain re-plan the estimate route always does). Raises
@@ -1070,17 +1106,26 @@ def _configure_overrides(form, current_scope="remote"):
                 f"{unknown[0]!r} is not a location this can search. LinkedIn "
                 "needs a verified geoId for each one, or it silently returns "
                 "United States results and bills for them.")
-        # "Remote, from anywhere" has no geography to narrow, and letting a
-        # city narrow it was the most expensive bug on this screen: the
-        # picker replaced ["Remote"] with ["Bengaluru"], LinkedIn lost f_WT=2,
-        # and the sweep paid for onsite rows that finalize() then threw away
-        # for not being remote. The screen hides the picker while remote is
-        # chosen; this is the half that holds when the screen is not there.
-        if scope_now == "remote":
-            picked = []
-        # REMOTE is not a place (see allowed_locations). Dropped rather than
-        # mapped, so a stale post cannot turn an arrangement into a geography.
-        places = [p for p in picked if p != REMOTE]
+        # Locations NARROW the scope; they never widen it. Anything this
+        # scope does not offer is DROPPED, not refused: the client sanitises
+        # on every scope change, so a mismatch here is a stale page, a
+        # forged post, or a no-JS visitor whose hidden field still carries
+        # the last render's picks — and a 400 would strand that last one on
+        # a control they cannot see to correct. What survives is shown back
+        # to them on the very next screen.
+        #
+        # "Remote roles" offers nothing at all, which is the same rule
+        # arriving at its limit. Letting a city narrow it was the most
+        # expensive bug on this screen: the picker replaced ["Remote"] with
+        # ["Bengaluru"], LinkedIn lost f_WT=2, and the sweep paid for onsite
+        # rows that finalize() then threw away for not being remote. The
+        # screen hides the picker while remote is chosen; this is the half
+        # that holds when the screen is not there.
+        #
+        # REMOTE itself is dropped as a non-place either way, so a stale post
+        # cannot turn an arrangement into a geography.
+        offered = allowed_locations(scope_now)
+        places = [p for p in picked if p != REMOTE and p in offered]
         if places:
             # linkedin_locations too: SITES[site].get("locations", ...) means
             # the most expensive site keeps config.py's default otherwise.

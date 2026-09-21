@@ -80,9 +80,13 @@ def make_app(free=True, plan=None, **extra_state):
 
 
 def form(**over):
-    """Exactly what configure.html's own FormData produces in free mode."""
-    base = {"scope": "remote", "locations": "", "max_age_days": "14",
-            "min_comp_usd": "", "avoid": ""}
+    """Exactly what configure.html's own FormData produces in free mode.
+
+    The scope defaults to the app's own default rather than to a literal, so
+    a form posted with nothing changed is genuinely "nothing changed".
+    """
+    base = {"scope": app_module.DEFAULT_SCOPE, "locations": "",
+            "max_age_days": "14", "min_comp_usd": "", "avoid": ""}
     base.update(over)
     return base
 
@@ -298,8 +302,13 @@ class TestDefaults(unittest.TestCase):
         after = self.plan_of(touched.written[-1])
 
         self.assertEqual(before, after)
-        self.assertEqual(before["linkedin"],
-                         [(k, "Remote") for k in DERIVED["role_keywords"]])
+        # And it is the DEFAULT answer's own plan, not config.py's — India,
+        # because sweep.logic.DEFAULT_SCOPE is what a fresh session gets.
+        self.assertEqual(
+            before["linkedin"],
+            [(k, city) for k in DERIVED["role_keywords"]
+             for city in app_module._SCOPE[app_module.DEFAULT_SCOPE]
+             ["linkedin_locations"]])
 
     def test_changing_a_setting_and_changing_it_back_is_a_no_op(self):
         app = make_app(free=False)
@@ -442,8 +451,12 @@ class TestAvoidTerms(unittest.TestCase):
         return {r["title"].rsplit(" ", 1)[-1]: r["score"] for r in rows}
 
     def rendered(self, avoid):
+        # scope=remote deliberately: these fixture rows are worldwide-remote,
+        # and under the india default the arrangement filter would drop both
+        # before any penalty could be read off their order.
         app = make_app()
-        app.test_client().post("/configure", data=form(avoid=avoid))
+        app.test_client().post("/configure",
+                               data=form(scope="remote", avoid=avoid))
         return app.written[-1]
 
     def test_avoiding_a_term_lowers_the_rank_and_removes_nothing(self):
@@ -700,3 +713,275 @@ class FakeProc:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# Location / scope UI correctness — docs/location-scope-ui-correctness.md
+#
+# Three reported problems: the beta is India-focused but started on Remote,
+# the picker offered foreign countries under an India-only sweep, and every
+# checkbox showed the state from before its own click.
+# ---------------------------------------------------------------------------
+def picker_scope(body):
+    """The picker's Alpine state object, as the page hands it over."""
+    return re.search(r"<form class=\"split\".*?x-data='(\{.*?\})'\s*\n",
+                     body, re.S).group(1)
+
+
+def menu_markup(body):
+    """Just the dropdown, so an assertion about the OPTIONS cannot be
+    satisfied by something elsewhere on the page."""
+    return body.split('id="location-menu"', 1)[1].split("</div>", 1)[0]
+
+
+class TestIndiaIsTheDefault(unittest.TestCase):
+    def test_a_fresh_session_starts_on_india(self):
+        app = make_app()
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        self.assertEqual(app_module.DEFAULT_SCOPE, "india")
+        self.assertRegex(body, r'name="scope" value="india"[^>]*checked')
+        self.assertNotRegex(body, r'name="scope" value="remote"[^>]*checked')
+
+    def test_india_is_the_first_answer_on_the_screen(self):
+        body = make_app().test_client().get("/configure").get_data(as_text=True)
+        self.assertEqual(re.findall(r'name="scope" value="(\w+)"', body),
+                         ["india", "remote", "global"])
+
+    def test_the_default_is_what_the_first_profile_is_written_with(self):
+        # ensure_scope() at POST /review, so the plan and the screen agree
+        # before anyone touches anything.
+        app = make_app()
+        app.test_client().get("/configure")
+        self.assertEqual(app.state["scope"], "india")
+        self.assertIn('"work_scope": \'india\'', app.written[-1])
+
+    def test_a_stored_remote_choice_is_not_overwritten(self):
+        app = make_app()
+        app.test_client().post("/configure", data=form(scope="remote"))
+        for _ in range(3):
+            body = app.test_client().get("/configure").get_data(as_text=True)
+            self.assertEqual(app.state["scope"], "remote")
+            self.assertRegex(body, r'name="scope" value="remote"[^>]*checked')
+
+    def test_a_stored_worldwide_choice_is_not_overwritten(self):
+        app = make_app()
+        app.test_client().post("/configure", data=form(scope="global"))
+        app.test_client().get("/configure")
+        app.test_client().get("/confirm")
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        self.assertEqual(app.state["scope"], "global")
+        self.assertRegex(body, r'name="scope" value="global"[^>]*checked')
+
+    def test_changing_an_unrelated_preference_leaves_the_scope_alone(self):
+        app = make_app()
+        app.test_client().post("/configure",
+                               data=form(scope="global", locations="Germany"))
+        app.test_client().post("/configure", data=form(scope="global",
+                                                       locations="Germany",
+                                                       max_age_days="30"))
+        self.assertEqual(app.state["scope"], "global")
+        self.assertEqual(app.state["locations"], ["Germany"])
+        self.assertEqual(app.state["max_age_days"], 30)
+
+
+class TestLocationsNarrowTheScope(unittest.TestCase):
+    """Locations narrow the chosen answer and may never widen it."""
+
+    def offered(self, scope):
+        return {name for g in app_module.location_groups(scope)
+                for name in g["names"]}
+
+    def test_india_offers_indian_cities_only(self):
+        offered = self.offered("india")
+        self.assertEqual(offered, set(app_module.location_groups()[0]["names"]))
+        for city in ("Delhi", "Gurgaon", "Chandigarh", "Bengaluru",
+                     "Hyderabad", "Pune", "Mumbai"):
+            self.assertIn(city, offered)
+
+    def test_india_offers_no_foreign_country(self):
+        offered = self.offered("india")
+        for country in ("United States", "United Kingdom", "Canada", "Ireland",
+                        "Germany", "Netherlands", "France", "Singapore"):
+            self.assertNotIn(country, offered)
+        # And the picker filters to exactly that, rather than the template
+        # rendering one list while the server validates another.
+        body = make_app().test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("g.scopes.indexOf(this.scope) !== -1", picker_scope(body))
+        self.assertIn('x-for="group in offered()"', menu_markup(body))
+
+    def test_worldwide_offers_the_countries_and_the_cities(self):
+        offered = self.offered("global")
+        for country in ("United States", "United Kingdom", "Germany"):
+            self.assertIn(country, offered)
+        self.assertIn("Bengaluru", offered)
+
+    def test_remote_offers_nothing_and_hides_the_picker(self):
+        self.assertEqual(app_module.location_groups("remote"), [])
+        app = make_app()
+        app.test_client().post("/configure", data=form(scope="remote"))
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        panel = re.search(
+            r'<div class="panel" x-show="scope !== .remote."[^>]*>', body).group(0)
+        # Hidden with JavaScript, and already hidden in the served HTML for
+        # the stored answer — so it never flashes on and it is not there at
+        # all for a visitor without Alpine.
+        self.assertIn("display:none", panel)
+
+    def test_the_all_row_is_named_for_the_scope(self):
+        for scope, label in (("india", "Anywhere in India"),
+                             ("global", "Everywhere")):
+            app = make_app()
+            app.test_client().post("/configure", data=form(scope=scope))
+            body = app.test_client().get("/configure").get_data(as_text=True)
+            self.assertIn(f'<b x-text="allLabel()">{label}</b>', body)
+            self.assertIn('this.scope === "india" ? "Anywhere in India"',
+                          picker_scope(body))
+
+
+class TestScopeTransitions(unittest.TestCase):
+    """The server is the authority, whatever the client did or did not do."""
+
+    def committed(self, *posts):
+        app = make_app()
+        client = app.test_client()
+        for data in posts:
+            client.post("/configure", data=data)
+        return app
+
+    def test_worldwide_to_india_drops_the_foreign_picks(self):
+        app = self.committed(
+            form(scope="global", locations="United States, United Kingdom"),
+            # The stale hidden field, exactly as a no-JS browser would repost
+            # it: the client sanitises on the scope change, this is what
+            # holds when the client is not there.
+            form(scope="india", locations="United States, United Kingdom"))
+        self.assertEqual(app.state["scope"], "india")
+        self.assertEqual(app.state["locations"],
+                         app_module._SCOPE["india"]["locations"])
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("picked: []", body)
+        self.assertNotIn("United States", menu_markup(body))
+
+    def test_worldwide_to_india_keeps_an_indian_city(self):
+        app = self.committed(
+            form(scope="global", locations="Bengaluru, United States"),
+            form(scope="india", locations="Bengaluru, United States"))
+        self.assertEqual(app.state["locations"], ["Bengaluru"])
+
+    def test_india_to_worldwide_keeps_the_indian_city(self):
+        app = self.committed(form(scope="india", locations="Bengaluru"),
+                             form(scope="global", locations="Bengaluru"))
+        self.assertEqual(app.state["scope"], "global")
+        self.assertEqual(app.state["locations"], ["Bengaluru"])
+
+    def test_any_scope_to_remote_clears_the_locations(self):
+        app = self.committed(form(scope="india", locations="Bengaluru"),
+                             form(scope="remote", locations="Bengaluru"))
+        self.assertEqual(app.state["locations"],
+                         app_module._SCOPE["remote"]["locations"])
+        body = app.test_client().get("/configure").get_data(as_text=True)
+        self.assertIn("picked: []", body)
+
+    def test_a_forged_india_plus_united_states_is_sanitised(self):
+        app = self.committed(form(scope="india", locations="United States"))
+        self.assertEqual(app.state["locations"],
+                         app_module._SCOPE["india"]["locations"])
+        self.assertNotIn("United States", str(app.written[-1]))
+
+    def test_a_forged_remote_plus_bengaluru_drops_bengaluru(self):
+        app = self.committed(form(scope="remote", locations="Bengaluru"))
+        self.assertEqual(app.state["locations"], ["Remote"])
+        # And LinkedIn still gets its remote filter, which is what that
+        # combination used to cost.
+        self.assertIn('"remote_only": True', app.written[-1])
+
+    def test_an_unverified_name_is_still_refused_not_narrowed(self):
+        # Narrowing is for names this table KNOWS and this scope does not
+        # offer. A name nobody verified is still the money bug it always was.
+        app = make_app()
+        r = app.test_client().post("/configure",
+                                   data=form(scope="india", locations="Atlantis"))
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("verified geoId", r.get_data(as_text=True))
+        # Nothing from the form was applied. (`locations` is not None: the
+        # error page re-renders, and rendering materialises the default
+        # scope — which is the scope's own list, never the rejected name.)
+        self.assertNotIn("Atlantis", str(app.state.get("locations")))
+        self.assertEqual(app.state["locations"],
+                         app_module._SCOPE[app_module.DEFAULT_SCOPE]["locations"])
+
+    def test_the_empty_picker_means_the_whole_scope(self):
+        # "Anywhere in India" / "Everywhere" is the EMPTY LIST, not a stored
+        # location — so it cannot disagree with the individual picks, and
+        # nothing downstream has to know the word.
+        for scope in ("india", "global"):
+            app = self.committed(form(scope=scope, locations="Bengaluru"),
+                                 form(scope=scope, locations=""))
+            self.assertEqual(app.state["locations"],
+                             app_module._SCOPE[scope]["locations"])
+
+
+class TestOneSourceOfTruthForLocations(unittest.TestCase):
+    """The checkbox lag, and the state design that fixes it.
+
+    These are structural: the failure is what a BROWSER does with an Alpine
+    binding, and there is no browser here. So they assert the property that
+    made it possible — a submit-time undo racing a reactive write — rather
+    than the symptom.
+    """
+
+    def body(self, scope="global"):
+        app = make_app()
+        app.test_client().post("/configure",
+                               data=form(scope=scope, locations="Bengaluru"))
+        return app.test_client().get("/configure").get_data(as_text=True)
+
+    def test_no_option_cancels_its_own_click(self):
+        # THE BUG. @click.prevent on a checkbox makes the browser UNDO the
+        # tick it had already applied, and it does that after dispatch — by
+        # which time Alpine has flushed :checked. Every box therefore showed
+        # the state from before its own click and only caught up when the
+        # next click re-ran every binding. @change fires after the browser
+        # has committed the tick, so the two agree.
+        menu = menu_markup(self.body())
+        self.assertNotIn("@click", menu)
+        self.assertEqual(menu.count("@change.stop"), 2)   # the all row + options
+
+    def test_every_view_of_the_selection_reads_the_same_array(self):
+        body = self.body()
+        state = picker_scope(body)
+        # Exactly one array of chosen places in the whole scope.
+        self.assertEqual(len(re.findall(r"\bpicked:", state)), 1)
+        for derived, where in (
+                (r':checked="has\(name\)"', "the checkbox"),
+                (r'x-for="name in picked"', "the chips"),
+                (r'x-text="picked\.length', "the count"),
+                (r"""name="locations" :value="picked\.join""", "the posted value")):
+            self.assertRegex(body, derived, f"{where} does not read `picked`")
+        # And no second store that could drift from it.
+        for twin in ("selected:", "checked:", "chips:", "formLocations:"):
+            self.assertNotIn(twin, state)
+
+    def test_one_press_is_one_toggle(self):
+        # The row is a <label>, which forwards a press to its own input — so
+        # a handler on the row as well would toggle twice. There is none, and
+        # .stop keeps the native change off the form, where it would have
+        # priced the estimate against a hidden input Alpine had not written.
+        menu = menu_markup(self.body())
+        self.assertNotIn("@click", menu)
+        self.assertEqual(menu.count("@change"), menu.count("@change.stop"))
+
+    def test_the_estimate_is_still_asked_after_the_field_is_written(self):
+        self.assertRegex(self.body(),
+                         r"\$nextTick\(\(\) =(&gt;|>) this\.\$dispatch")
+
+    def test_back_navigation_restores_the_exact_selection(self):
+        app = make_app()
+        client = app.test_client()
+        client.post("/configure",
+                    data=form(scope="global", locations="United Kingdom, Germany"))
+        client.get("/confirm")
+        body = client.get("/configure").get_data(as_text=True)
+        self.assertRegex(body, r'name="scope" value="global"[^>]*checked')
+        self.assertIn('picked: ["United Kingdom", "Germany"]', body)
+        self.assertIn('value="United Kingdom, Germany"', body)

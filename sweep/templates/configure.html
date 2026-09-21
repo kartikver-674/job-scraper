@@ -78,7 +78,50 @@
   <form class="split" method="post"
         action="{{ url_for('run') if public_mode and free_only
                   else url_for('configure_post') }}"
-        x-data="{ scope: '{{ scope }}', sent: false }"
+        {# ONE Alpine scope for the whole form, and `picked` is the ONE
+           source of truth for locations: the checkboxes, the chips, the
+           count and the posted value all read it, so none of them can drift
+           from another. It lives here rather than on the picker because the
+           option list depends on `scope`, and a nested scope reaching up for
+           a parent's property is a subtlety this screen does not need.
+
+           narrow() runs on every scope change: locations may only NARROW the
+           chosen scope, so a pick the new scope does not offer is dropped
+           the moment it stops being offered — not left as a chip that the
+           server will silently discard later. #}
+        x-data='{ scope: {{ scope|tojson }}, sent: false, open: false,
+          picked: {{ picked_locations|tojson }},
+          groups: {{ location_groups|tojson }},
+          offered() {
+            return this.groups.filter(g =&gt; g.scopes.indexOf(this.scope) !== -1);
+          },
+          names() {
+            return this.offered().reduce((all, g) =&gt; all.concat(g.names), []);
+          },
+          has(name) { return this.picked.indexOf(name) !== -1 },
+          toggle(name) {
+            const at = this.picked.indexOf(name);
+            if (at === -1) { this.picked.push(name); } else { this.picked.splice(at, 1); }
+            this.priced();
+          },
+          /* "Anywhere in India" / "Everywhere" IS the empty list, so it is
+             mutually exclusive with every individual pick by construction —
+             there is no separate flag that could disagree with the array.
+             The box is forced back on because it cannot be unticked
+             directly: you leave that state by choosing a place. */
+          all(box) { this.picked = []; if (box) { box.checked = true; } this.priced(); },
+          narrow() {
+            const ok = this.names();
+            const kept = this.picked.filter(name =&gt; ok.indexOf(name) !== -1);
+            if (kept.length !== this.picked.length) { this.picked = kept; this.priced(); }
+          },
+          allLabel() { return this.scope === "india" ? "Anywhere in India" : "Everywhere" },
+          priced() {
+            /* The hidden input is written by Alpine on the next tick, so
+               firing the estimate now would price the PREVIOUS pick. */
+            this.$nextTick(() =&gt; this.$dispatch("change"));
+          } }'
+        x-init="$watch('scope', () =&gt; narrow())"
         @submit="sent = true"
         @change="busy = true; err = null;
           fetch('{{ url_for('estimate') }}', {
@@ -161,16 +204,22 @@
           {# Checked from state, not hardcoded: "india" was marked selected on
              every load while _prefs() was defaulting locations to ["Remote"],
              so the control disagreed with the profile it was editing. #}
-          <label class="choice"><input type="radio" name="scope" value="remote"
-                 x-model="scope" {{ 'checked' if scope == 'remote' }}>
-            <span><b>Remote roles</b>
-              <span class="why">Jobs you can do from anywhere, plus remote jobs
-                open to India. Onsite and hybrid roles are left out.</span></span></label>
+          {# India first, and the default for a session that has not chosen
+             yet (sweep.logic.DEFAULT_SCOPE). This beta is India-focused, so
+             the answer most of its visitors want should not be the one they
+             have to go and find. It is a DEFAULT, not an override:
+             ensure_scope() writes it only when no scope has been committed,
+             so coming back to this screen never moves a real choice. #}
           <label class="choice"><input type="radio" name="scope" value="india"
                  x-model="scope" {{ 'checked' if scope == 'india' }}>
             <span><b>Onsite or hybrid, in India</b>
               <span class="why">Jobs at an office in India. Remote-only
                 listings are left out.</span></span></label>
+          <label class="choice"><input type="radio" name="scope" value="remote"
+                 x-model="scope" {{ 'checked' if scope == 'remote' }}>
+            <span><b>Remote roles</b>
+              <span class="why">Jobs you can do from anywhere, plus remote jobs
+                open to India. Onsite and hybrid roles are left out.</span></span></label>
           <label class="choice"><input type="radio" name="scope" value="global"
                  x-model="scope" {{ 'checked' if scope == 'global' }}>
             <span><b>Onsite or hybrid, anywhere in the world</b>
@@ -218,16 +267,20 @@
            {% if scope == 'remote' %}style="display:none"{% endif %}>
         <h2>Locations{% if not public_mode %}{{ costs() }}{% elif not free_only %} <span
           class="affects">affects cost</span>{% endif %}</h2>
+        {# The menu offers only what the chosen answer covers, so this says
+           NARROW rather than "everywhere": under "onsite or hybrid, in
+           India" there is no United States to pick, and saying otherwise
+           would advertise a choice the engine has to throw away. #}
         {% if public_mode %}
-          <p class="muted">Optional. Leave this empty for everywhere the choice
-            above covers, or pick places to narrow it{% if not free_only %}.
-            Each one is searched separately on the paid boards, so the price
-            moves with the count{% endif %}.</p>
+          <p class="muted">Optional — this narrows the choice above, and can
+            never widen it. Leave it on
+            <b x-text="allLabel()">{{ all_locations_label }}</b> to keep all
+            of it{% if not free_only %}. Each place is searched separately on
+            the paid boards, so the price moves with the count{% endif %}.</p>
         {% else %}
-        <p class="muted">Empty means every location the choice above covers.
-          Pick some to narrow it — each one is a separate paid search on
-          LinkedIn and Indeed, so the cost beside this moves with the
-          count.</p>
+        <p class="muted">Narrows the choice above and never widens it. Empty
+          means all of it. Each place is a separate paid search on LinkedIn
+          and Indeed, so the cost beside this moves with the count.</p>
         {% endif %}
         {# Single-quoted for the |tojson rule at the top of this file. #}
         {# The control is a disclosure over a group of checkboxes, and it is
@@ -240,20 +293,11 @@
            aria-expanded moves to the toggle, the menu is a labelled group,
            and the chips sit OUTSIDE the toggle rather than inside it. #}
         <div class="picker" @click.outside="open = false"
-             @keydown.escape="if (open) { open = false; $refs.toggle.focus() }"
-             x-data='{ open: false, picked: {{ picked_locations|tojson }},
-               has(name) { return this.picked.indexOf(name) !== -1 },
-               toggle(name) {
-                 const at = this.picked.indexOf(name);
-                 if (at === -1) { this.picked.push(name); } else { this.picked.splice(at, 1); }
-                 this.changed();
-               },
-               clear() { this.picked = []; this.changed(); },
-               changed() {
-                 /* The hidden input is written by Alpine on the next tick, so
-                    firing the estimate now would price the PREVIOUS pick. */
-                 this.$nextTick(() =&gt; this.$dispatch("change"));
-               } }'>
+             @keydown.escape="if (open) { open = false; $refs.toggle.focus() }">
+          {# The posted value, derived from `picked` like everything else.
+             The server-rendered value is what a no-JS visitor submits; it is
+             also all a no-JS visitor can submit, since the checkboxes below
+             carry no name of their own. #}
           <input type="hidden" name="locations" :value="picked.join(&#39;, &#39;)"
                  value="{{ picked_locations|join(', ') }}">
           <div class="picker-box">
@@ -262,7 +306,8 @@
                     aria-controls="location-menu"
                     @click="open = !open">
               <span class="visually-hidden">Choose locations</span>
-              <span class="muted" x-show="!picked.length">Everywhere</span>
+              <span class="muted" x-show="!picked.length"
+                    x-text="allLabel()">{{ all_locations_label }}</span>
               <span class="meta" x-show="picked.length" x-cloak
                     x-text="picked.length + (picked.length === 1
                             ? &#39; location&#39; : &#39; locations&#39;)"></span>
@@ -278,27 +323,50 @@
               </span>
             </template>
           </div>
+          {# The menu is rendered from `groups`, not from the server's HTML,
+             because it has to change when the scope radio changes and a
+             round trip would lose every other unsaved edit on the screen.
+             One table (sweep.logic.location_groups) drives this and the
+             server's own validation, so the two cannot offer different
+             things.
+
+             @change, NOT @click.prevent. That was the one-click lag: the
+             browser ticks a checkbox before dispatching click, preventDefault
+             makes it UNDO that after dispatch — and Alpine has already
+             flushed :checked by then, so every box ended up showing its
+             state from before its own click, and only caught up when the
+             next click re-ran every binding. @change fires after the browser
+             has committed the tick, so the binding and the box agree.
+
+             .stop so the native change does not ALSO reach the form: that
+             would price the estimate against the hidden input Alpine has not
+             written yet. priced() re-dispatches on the next tick instead.
+
+             No handler on the row. The <label> already forwards a click to
+             its input, so one press is one change is one toggle. #}
           <div class="picker-menu" id="location-menu" role="group"
                aria-label="Locations to search" x-show="open" x-cloak>
-            {# Not a checkbox of its own: "everywhere" is the state of having
-               picked nothing, so it cannot disagree with the list below it. #}
+            {# Not a state of its own: "everywhere" IS the empty list, so it
+               cannot disagree with the options below it. #}
             <label class="choice">
               <input type="checkbox" :checked="!picked.length"
-                     @click.prevent="clear()">
-              <span><b>Everywhere</b>
+                     @change.stop="all($el)">
+              <span><b x-text="allLabel()">{{ all_locations_label }}</b>
                 <span class="why">Everything the choice above covers.</span></span>
             </label>
-            {% for heading, names in location_groups %}
-              <span class="label">{{ heading }}</span>
-              {% for name in names %}
-                <label class="choice">
-                  <input type="checkbox" value="{{ name }}"
-                         :checked="has('{{ name }}')"
-                         @click.prevent="toggle('{{ name }}')">
-                  <span>{{ name }}</span>
-                </label>
-              {% endfor %}
-            {% endfor %}
+            <template x-for="group in offered()" :key="group.heading">
+              <div class="picker-group">
+                <span class="label" x-show="offered().length &gt; 1"
+                      x-text="group.heading"></span>
+                <template x-for="name in group.names" :key="name">
+                  <label class="choice">
+                    <input type="checkbox" :value="name" :checked="has(name)"
+                           @change.stop="toggle(name)">
+                    <span x-text="name"></span>
+                  </label>
+                </template>
+              </div>
+            </template>
           </div>
         </div>
       </div>

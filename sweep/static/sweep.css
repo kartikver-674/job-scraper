@@ -1095,6 +1095,11 @@ td.score {
   padding: var(--s4); background: var(--surface-high);
   border: 1px solid var(--surface-edge); border-radius: var(--radius);
 }
+/* The menu is rendered by one x-for per GROUP and one per option inside
+   it, and Alpine's <template x-for> needs a single root element — so each
+   group gets a wrapper that must not become a flex item of its own, or the
+   headings and options would stack inside it and lose the column gap. */
+.picker-group { display: contents; }
 .picker-menu .label { margin: var(--s3) 0 0; }
 .picker-menu .choice { padding: var(--s2) var(--s3); }
 

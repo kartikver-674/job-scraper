@@ -2869,11 +2869,12 @@ class TestConfigureScreen(Isolated):
         app.test_client().post("/configure", data={"max_age_days": "7"})
         source = writes[-1][1]
         self.assertIn("SITES = {", source)
-        self.assertEqual(app.state["scope"], "remote")
+        # India, because this beta is India-focused — sweep.logic.DEFAULT_SCOPE.
+        self.assertEqual(app.state["scope"], app_module.DEFAULT_SCOPE)
         linkedin = source.split('"linkedin": {', 1)[1].split("},", 1)[0]
-        self.assertIn("'Remote'", linkedin)
-        # And f_WT=2 is stated rather than inferred from that token.
-        self.assertIn('"remote_only": True', linkedin)
+        for city in app_module._SCOPE["india"]["linkedin_locations"]:
+            self.assertIn(f"'{city}'", linkedin)
+        self.assertIn('"work_scope": \'india\'', source)
 
     def test_an_unverified_linkedin_location_is_rejected_and_writes_nothing(self):
         # Scope is a closed enum in production, so this can only be reached
@@ -3091,13 +3092,20 @@ class TestLocationPicker(Isolated):
 
     # ---- what it offers --------------------------------------------------
     def test_only_verified_locations_are_offered(self):
+        # The menu is rendered by the picker from this table rather than by
+        # the template, because it has to change when the scope radio does.
+        # One table drives the menu AND the server's own validation, so the
+        # check belongs on the table.
         import config as live
-        body = self.body()
-        offered = set(re.findall(r'<input type="checkbox" value="([^"]+)"', body))
+        offered = {name for group in app_module.location_groups()
+                   for name in group["names"]}
         self.assertTrue(offered)
         for name in offered:
-            self.assertTrue(name == "Remote" or name in live.LINKEDIN_GEO_IDS,
-                            f"{name} has no verified geoId")
+            self.assertIn(name, live.LINKEDIN_GEO_IDS,
+                          f"{name} has no verified geoId")
+        # And it is what the page hands the picker, verbatim.
+        self.assertIn(json.dumps(app_module.location_groups(),
+                                 sort_keys=True)[:60], self.body())
 
     def test_the_documented_traps_are_not_offered(self):
         body = self.body()
@@ -3132,7 +3140,7 @@ class TestLocationPicker(Isolated):
         # is not offered at all — a place cannot narrow "from anywhere", and
         # letting one try stripped LinkedIn's f_WT=2.
         body = self.body({"profile": "kanav", "cap_usd": 8.41,
-                          "derived": DERIVED, "scope": "india",
+                          "derived": DERIVED, "scope": "global",
                           "locations": ["Delhi", "Germany"],
                           "linkedin_locations": ["Delhi", "Germany"]})
         self.assertIn('picked: ["Delhi", "Germany"]', body)
@@ -3153,7 +3161,7 @@ class TestLocationPicker(Isolated):
         # linkedin_locations is set too.
         app = self._app()
         r = app.test_client().post("/configure", data={
-            "scope": "india", "locations": "Delhi, Germany"})
+            "scope": "global", "locations": "Delhi, Germany"})
         self.assertEqual(r.status_code, 303, r.get_data(as_text=True))
         self.assertEqual(self.state["locations"], ["Delhi", "Germany"])
         self.assertEqual(self.state["linkedin_locations"], ["Delhi", "Germany"])

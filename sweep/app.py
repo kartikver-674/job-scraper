@@ -43,10 +43,10 @@ import scraper  # noqa: E402
 from sweep import exports, public  # noqa: E402
 from sweep.logic import (  # noqa: E402,F401
     SECTIONS, _FormError, _SCOPE, _as_int, _configure_overrides, _parse_int,
-    MAX_AVOID_TERMS, SCOPE_KEYS,
+    MAX_AVOID_TERMS, SCOPE_KEYS, DEFAULT_SCOPE, allowed_locations,
     DEFAULT_SORT, SECTION_CAP, SORTS, _valid_profile_name, and_list,
     bucket_rows, cheapest_rate, fill_pct, key_pills, mask_token, paid_sites,
-    posted_age, remaining_cost, reweighted, searchable_locations, shortlist,
+    posted_age, remaining_cost, reweighted, location_groups, shortlist,
     experience_parts, experience_text, importance_badges, parse_banner,
     pick_activity,
     run_banner, run_phase, scope_label, site_label, sort_rows, step_states,
@@ -840,18 +840,16 @@ def create_app(state=None, extract=None, resume_dir=None,
     def current_scope():
         """Which of the three scopes this session is actually on.
 
-        Unset until the Configure form posts one — and the form's own radio
-        was hardcoded `checked` on "india" while _prefs() defaults
-        `locations` to ["Remote"], so before anyone touched the control the
-        screen claimed India and the profile said Remote. Two answers to one
-        question, and the summary would have printed the wrong one.
+        Unset until something commits one, which ensure_scope() does before
+        the first profile is written — so in practice this falls back only
+        on a session that has not reached the review screen yet. The radio
+        was once hardcoded `checked` on one answer while _prefs() produced
+        another, and the summary duly printed the wrong one.
 
-        "remote" is the honest default because it is what _prefs() produces,
-        not because it is the nicer option.
+        DEFAULT_SCOPE lives in sweep.logic so the radio order, the
+        materialisation and the form validator all read one name.
         """
-        return app.state.get("scope") or "remote"
-
-    DEFAULT_SCOPE = "remote"
+        return app.state.get("scope") or DEFAULT_SCOPE
 
     def ensure_scope():
         """Write the default scope into state, so it is a choice and not a
@@ -1914,7 +1912,17 @@ def create_app(state=None, extract=None, resume_dir=None,
             # Read live from config.LINKEDIN_GEO_IDS: a geoId verified (or
             # removed) there appears (or stops appearing) here, and the form
             # is validated against the same table.
-            location_groups=searchable_locations(),
+            # EVERY group, each tagged with the scopes it belongs to. The
+            # picker renders the menu itself so that changing the scope radio
+            # changes the options with no round trip; one table drives that
+            # and the server's own validation, so they cannot disagree.
+            location_groups=location_groups(),
+            # The no-JS text for the all-locations row and the empty picker.
+            # Alpine re-computes it from the live scope; this is what the
+            # server renders before it boots, and what a visitor without it
+            # keeps.
+            all_locations_label=("Anywhere in India"
+                                 if current_scope() == "india" else "Everywhere"),
             # Only what the user picked — never the scope's own list, which
             # would render as an explicit choice they did not make and post
             # itself back as one.
@@ -1949,15 +1957,23 @@ def create_app(state=None, extract=None, resume_dir=None,
 
         Never the scope's own expansion: rendering six city names the user
         did not pick would show as six explicit choices and post itself back
-        as one. Under "Remote, from anywhere" this is always empty — the
-        picker is not offered there, because a place cannot narrow
-        "anywhere" and a city used to strip LinkedIn's remote filter.
+        as one. Under "Remote roles" this is always empty — the picker is not
+        offered there, because a place cannot narrow "anywhere" and a city
+        used to strip LinkedIn's remote filter.
+
+        Filtered to what THIS scope offers, so a pick left over from a wider
+        one cannot come back as a chip. It cannot normally be in state at all
+        — the validator drops it on the way in — but the render must not be
+        the thing that depends on that.
         """
         scope = current_scope()
         picked = app.state.get("locations")
         if scope == "remote" or not picked:
             return []
-        return [] if picked == _SCOPE[scope]["locations"] else list(picked)
+        if picked == _SCOPE[scope]["locations"]:
+            return []
+        offered = allowed_locations(scope)
+        return [p for p in picked if p in offered]
 
     def _advanced_is_custom():
         """Whether anything behind the Advanced disclosure differs from its
