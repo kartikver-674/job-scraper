@@ -63,7 +63,8 @@ REPO_ROOT = os.path.dirname(HERE)
 # measurement harness (report/demo/main) and nothing else: the benchmark
 # has to score the code that ships, not a copy of it.
 from local_search import (  # noqa: E402,F401
-    CONCEPT, FILLER, MAX_SHARE, MIN_COMPANIES, MIN_EVIDENCE, MIN_LISTINGS,
+    CONCEPT, FILLER, MAX_SHARE, MIN_COMPANIES, MIN_EVIDENCE,
+    MIN_EVIDENCE_WEIGHT,
     NGRAM, _WORD, buys, canonical, canonicalise, corpus_rows, evidence,
     fragments, hints_for, idf, index, keywords_for, matching_rows,
     vocabulary,
@@ -103,7 +104,7 @@ def derive(person, rows, idx=None, total=None, want=12):
         # a missing hint is inventory nobody sees, and hints cost nothing.
         "title_hints": sorted({k for k in keywords} | {
             w for k in keywords for w in k.split()
-            if idx.get(w, {}).get("listings", 0) >= MIN_LISTINGS}),
+            if idx.get(w, {}).get("listings", 0) >= MIN_EVIDENCE_WEIGHT}),
         # Left empty deliberately rather than guessed. Deciding that data
         # engineering is a DIFFERENT CAREER from web development, and not
         # merely an adjacent one, is the semantic judgement the corpus
@@ -276,7 +277,7 @@ def demo():
     # the term comes back. Without these three the guards can all be
     # deleted with the demo still green.
     loose = keywords_for(own, rows, idx, total, want=9, seniority=sen,
-                         min_listings=1)
+                         min_weight=1)
     assert "developer unifi" not in loose, "employers, not frequency"
     assert idx["software engineer"]["listings"] / total > MAX_SHARE
     assert (idx["field ops"]["listings"] / total) < MAX_SHARE, \

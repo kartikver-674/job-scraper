@@ -70,8 +70,25 @@ REACHABLE = 20
 # not something anyone would search for.
 NGRAM = (2, 3)
 
-# A fragment seen fewer times than this is noise rather than a role.
-MIN_LISTINGS = 10
+# The floor a title fragment must clear to be proposed as a role.
+#
+# NOT A POSTING COUNT, despite what the old name (MIN_LISTINGS) said. It is
+# compared against a sum of ROW WEIGHTS, where each matched listing
+# contributes `max(1.0, evidence)` and a real overlap scores 7-18. One
+# posting carrying evidence 17.9 therefore clears a floor of 10 on its own,
+# which is two orders of magnitude below the "seen many times" the old
+# comment claimed. Measured: 54 of 73 admitted corpus roles rest on fewer
+# than ten actual postings (docs/corpus-role-tail-audit.md).
+#
+# The VALUE is unchanged and so is every decision it makes. Only the name
+# now describes the arithmetic.
+MIN_EVIDENCE_WEIGHT = 10
+
+# hints_for's own floor, and this one really is a listing count read
+# straight off the index. Kept as a multiple of the weight floor because
+# that is the relationship the code has always had, not because the two
+# measure the same thing.
+MIN_WORD_LISTINGS = MIN_EVIDENCE_WEIGHT * 5
 
 # ...and a real role name is posted by MANY employers. One company's
 # internal jargon — "engineer a2", "developer unifi" — can be frequent
@@ -365,8 +382,14 @@ def evidence(overlap, vocab, total):
 
 
 def matching_rows(own, rows, need=2, vocab=None, total=None,
-                  min_evidence=MIN_EVIDENCE):
+                  min_evidence=MIN_EVIDENCE, with_company=False):
     """The listings that actually want this person, and how much.
+
+    `with_company` appends the employer to each tuple. Off by default so
+    every existing caller unpacks exactly the three values it always did —
+    the admission counters are the only thing that needs the fourth, and
+    they need it to be the employer of THIS matched row rather than of any
+    row sharing the title.
 
     Retrieval before aggregation. The first version scored every fragment
     in the corpus by how often its listings mentioned one of the person's
@@ -384,7 +407,8 @@ def matching_rows(own, rows, need=2, vocab=None, total=None,
         if len(shared) < need:
             continue
         strength = evidence(shared, vocab, total)
-        row = (title, score, strength)
+        row = ((title, score, strength, _company) if with_company
+               else (title, score, strength))
         if strength >= min_evidence:
             out.append(row)
         else:
@@ -396,16 +420,26 @@ def matching_rows(own, rows, need=2, vocab=None, total=None,
 
 
 def keywords_for(own, rows, idx, total, want=12, need=2,
-                 min_listings=MIN_LISTINGS, seniority=(), vocab=None):
+                 min_weight=MIN_EVIDENCE_WEIGHT, seniority=(), vocab=None,
+                 stats=None):
     """Title fragments distinctive to the listings that want these skills.
 
     Ranked by LIFT — how much more common a fragment is among this
     person's matching listings than in the market at large — rather than
     by raw frequency. Without it the ranking returns "software engineer"
     for everybody, which is both true and useless.
+
+    `stats`, when a dict is passed, is filled with the ADMISSION RECORD for
+    every fragment considered: how many matched postings carried it, how
+    many distinct employers those postings came from, and the summed weight
+    that `min_weight` is actually compared against. It is the provenance a
+    later guard needs in order to ask "how much does this rest on" without
+    recomputing the retrieval. Nothing here reads it; filling it changes no
+    decision.
     """
     vocab = vocab if vocab is not None else vocabulary(rows)
-    matched = matching_rows(own, rows, need, vocab, total)
+    matched = matching_rows(own, rows, need, vocab, total,
+                            with_company=stats is not None)
     if not matched:
         return []
     # Each matched listing counts for how much EVIDENCE it carries, not
@@ -415,33 +449,55 @@ def keywords_for(own, rows, idx, total, want=12, need=2,
     # generalist skill list outvote the speciality that defines someone.
     here = collections.Counter()
     reach = collections.Counter()
+    # The two counts that are NOT weights: how many matched postings carried
+    # the fragment, and how many distinct employers those postings came from.
+    postings = collections.Counter()
+    employers = collections.defaultdict(set)
     weight_total = 0.0
-    for title, score, shared in matched:
+    for row in matched:
+        title, score, shared = row[0], row[1], row[2]
         row_weight = max(1.0, float(shared))
         weight_total += row_weight
         for frag in fragments(title, seniority):
             here[frag] += row_weight
+            postings[frag] += 1
+            if len(row) > 3:
+                employers[frag].add(row[3])
             if score >= REACHABLE:
                 reach[frag] += row_weight
 
     scored = []
-    for frag, mine in here.items():
+    for frag, frag_weight in here.items():
         entry = idx.get(frag)
-        if not entry or mine < min_listings:
+        if stats is not None:
+            stats[frag] = {
+                # One matched ROW each. Rows are not deduplicated by job
+                # identity anywhere in this pipeline, so an advert posted
+                # three times counts three times — see the employer count.
+                "postings": postings[frag],
+                "companies": len(employers[frag]),
+                "weight": round(frag_weight, 3),
+                # What MIN_COMPANIES reads: employers posting this fragment
+                # ANYWHERE in the corpus, matched or not.
+                "corpus_listings": entry["listings"] if entry else 0,
+                "corpus_companies": len(entry["companies"]) if entry else 0,
+            }
+        if not entry or frag_weight < min_weight:
             continue
         if len(entry["companies"]) < MIN_COMPANIES:
             continue
         share = entry["listings"] / total if total else 0.0
         if share > MAX_SHARE:
             continue
-        lift = (mine / weight_total) / share if share and weight_total else 0.0
+        lift = ((frag_weight / weight_total) / share
+                if share and weight_total else 0.0)
         if lift <= 1.0:
             continue
         # Reachability decides between two equally distinctive fragments:
         # being characteristic of this person's market is worth nothing if
         # the rows it draws are not worth reading.
-        quality = reach[frag] / mine
-        scored.append((lift * quality, mine, frag))
+        quality = reach[frag] / frag_weight
+        scored.append((lift * quality, frag_weight, frag))
     scored.sort(key=lambda s: (-s[0], -s[1], s[2]))
 
     # Overlapping fragments buy the same rows twice. "software engineer"
@@ -565,7 +621,7 @@ def hints_for(own, rows, idx, total, seniority=(), floor=20, ceiling=40):
     # real fragment of a title rather than a stray token.
     for fragment in ranked:
         for word in fragment.split():
-            if idx.get(word, {}).get("listings", 0) >= MIN_LISTINGS * 5:
+            if idx.get(word, {}).get("listings", 0) >= MIN_WORD_LISTINGS:
                 add(word)
     return out[:ceiling]
 
@@ -1355,8 +1411,10 @@ def fields_for(person, market, want=12, importance=None, resume_text="",
     held_raw = from_resume(person, seniority)
 
     canonical_trace = []
+    admission = {}
     corpus_raw = canonicalise(
-        keywords_for(own, rows, idx, total, want=want, seniority=seniority),
+        keywords_for(own, rows, idx, total, want=want, seniority=seniority,
+                     stats=admission),
         rows, seniority, trace=canonical_trace)
     # Validated as ONE list, so every guard sees the same input it was
     # measured on. The split below is for ordering only.
@@ -1393,6 +1451,14 @@ def fields_for(person, market, want=12, importance=None, resume_text="",
         # Additive provenance for the replacement boundary; nothing reads it
         # that did not ask for it, and no behaviour changes.
         "canonical_trace": [[frag, title] for frag, title in canonical_trace],
+        # How much each fragment actually rested on: matched postings,
+        # distinct employers among them, and the summed weight the floor is
+        # compared against. Additive provenance — a later guard reads it
+        # rather than recomputing retrieval, and nothing here consults it.
+        "admission": admission,
+        # Which of role_keywords came from the person's own job titles.
+        # Provenance the split above already computes and was throwing away.
+        "held_keywords": held,
         "title_hints": hints_for(own, rows, idx, total, seniority),
     }
 
@@ -1480,11 +1546,11 @@ def demo():
     assert len(matching_rows(both, market.rows, 2, market.vocab,
                              market.total, min_evidence=0.0)) == 300
 
-    # min_listings is a real filter, and is passed rather than patched for
+    # min_weight is a real filter, and is passed rather than patched for
     # the same reason: it is a default argument.
     assert keywords_for(sf, market.rows, market.index, market.total,
                         seniority=market.seniority,
-                        min_listings=10 ** 6) == []
+                        min_weight=10 ** 6) == []
 
     # canonical() turns a fragment into a title people actually post.
     titles = collections.Counter(t for t, _s, _k, _c in market.rows)

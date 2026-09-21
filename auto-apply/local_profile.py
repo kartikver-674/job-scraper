@@ -62,6 +62,7 @@ import local_search
 import orphan_guard
 import role_evidence
 import skill_concepts
+import unknown_family_guard
 
 # The model this was measured on. Bigger models were tried for extraction
 # and did not do better; see bench/extract_models.py. Resolved per call
@@ -242,6 +243,29 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
                 f"{canonical_record['rejected']}")
             log(canonical_guard.explain(canonical_record))
         fields = dict(fields, role_keywords=surviving)
+    # The unknown-family guard. Placed HERE, after canonical revalidation and
+    # before everything else, because this is the narrowest point at which all
+    # five facts are known at once: the proposed title, its matched posting
+    # count, its matched employer count, whether it came from the corpus or
+    # from the person's own job title, and what family_of makes of it.
+    #
+    # After canonical on purpose: `sf -data cloud` is canonical's rejection and
+    # stays canonical's, so the record says which layer took it rather than two
+    # layers claiming the same removal. Before the role gate so the free title
+    # gate in render() receives an already-cleaned set — the point is to stop an
+    # unsupported corpus title becoming a query at all, not to patch it out
+    # downstream.
+    unknown_record = None
+    if unknown_family_guard.enabled():
+        surviving, unknown_record = unknown_family_guard.filter_queries(
+            fields["role_keywords"], fields.get("held_keywords") or (),
+            fields.get("admission") or {}, fields.get("canonical_trace") or ())
+        if unknown_record.get("rejected"):
+            log(f"    unknown-family guard: dropped "
+                f"{len(unknown_record['rejected'])} thin quer(y/ies) "
+                f"{unknown_record['rejected']}")
+            log(unknown_family_guard.explain(unknown_record))
+        fields = dict(fields, role_keywords=surviving)
     # V3 STEP 6. The orphan pass finds a rare skill nobody is searching for and
     # asks the corpus which titles are posted alongside it. That is useful and
     # stays; what it must not do is confer a profession. `git` anchors "flutter
@@ -347,6 +371,9 @@ def generate(resume_text, prefs, model=None, output_dir=None, log=print,
         "orphan_guard_record": orphan_record,
         # V3 Step 7. Additive like the rest; render() emits only PROFILE_NAMES.
         "canonical_guard_record": canonical_record,
+        # The unknown-family guard's own record: every decision with the
+        # posting and employer counts behind it. Additive like the rest.
+        "unknown_family_record": unknown_record,
         # Provenance, for the caller's log and for the tests. render()
         # ignores keys it does not name.
         "local_ranking": fields["ranking"],
