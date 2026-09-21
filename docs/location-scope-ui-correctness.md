@@ -28,26 +28,24 @@ The menu options were:
        @click.prevent="toggle('United States')">
 ```
 
-A checkbox toggles itself *before* the click event is dispatched — the HTML
-spec's **pre-click activation steps** — and `preventDefault()` runs the
-**canceled activation steps**, which restore the checkedness to what it was
-before the click. Those run *after* event dispatch finishes.
+A checkbox toggles itself as part of its own activation, and
+`preventDefault()` **cancels that activation, restoring the checkedness the
+box had before the click**. So `@click.prevent` asks the browser to undo the
+tick at the same time as the handler is changing the application state that
+`:checked` is bound to — and the browser's restore can land after Alpine has
+applied the binding.
 
-Alpine flushes reactive effects on a microtask, and a microtask checkpoint
-happens when each listener returns. So the order was:
+The result on screen was a box showing the state from **before its own
+click**, catching up only on the next interaction — because changing `picked`
+re-runs `:checked` for *every* option, including one whose own restore had
+already happened. That matches the report exactly: the chip updates, the tick
+does not, and the previous tick appears on the following click.
 
-```
-1. browser ticks the box                     checked = true
-2. @click.prevent fires, toggle() runs       picked gains "United States"
-3. microtask: Alpine's :checked effect       checked = true   (already was)
-4. canceled activation steps                 checked = FALSE  ← undone here
-```
-
-Every box therefore displayed the state from **before its own click**. It
-only caught up on the next interaction, because changing `picked` re-ran
-`:checked` for *every* option — including the one whose own revert had
-already happened. Hence "one interaction behind", and hence "sometimes":
-step 3 and step 4 race, and which wins varies.
+**The precise ordering is not instrumented here**, and this document does not
+claim one: no browser was driven and no timing was captured. What is
+established is the mechanism — a cancelled activation that rewrites the same
+property the binding writes — and that removing it removes the symptom's
+cause.
 
 **Nothing was wrong with the state.** `picked` was always correct, which is
 why the chip, the count and the submitted value were always right. Only the
@@ -118,9 +116,23 @@ Locations **narrow** the chosen answer and may never widen it.
 
 | scope | option groups offered | all-row label | picker |
 |---|---|---|---|
-| **Onsite or hybrid, in India** | India (Delhi, Gurgaon, Chandigarh, Bengaluru, Hyderabad, Pune, Mumbai) | **Anywhere in India** | shown |
+| **Onsite or hybrid, in India** | India — 7 cities: Delhi, Gurgaon, Chandigarh, Bengaluru, Hyderabad, Pune, Mumbai | **Anywhere in India** | shown |
 | **Remote roles** | *none* | — | **hidden** |
 | **Onsite or hybrid, anywhere in the world** | India **+** Countries (21 verified geographies) | **Everywhere** | shown |
+
+Two different sets are in play under the India answer, and they are not the
+same size — see §10, which is the review that found it:
+
+| | contents |
+|---|---|
+| the picker's 7 offers (`_INDIA_CITY_NAMES`) | + Chandigarh |
+| the paid **retrieval plan** (`_SCOPE["india"]["locations"]`) | 6 cities, no Chandigarh |
+| the **universe** — what counts as India post-fetch (`HOME_LOCATION_HINTS`) | every Indian spelling config knows |
+
+A city is offered as a narrowing of the **universe**, not of the retrieval
+plan. That is the same shape "Onsite or hybrid, anywhere in the world" has
+had all along: its plan is nine countries, none of them India, and picking
+Bengaluru under it is still a narrowing of "anywhere".
 
 One table, `sweep.logic.location_groups()`, drives the menu **and** the
 server's validation, so the two cannot offer different things:
@@ -153,8 +165,10 @@ data, and the picker filters it.
 Under "onsite or hybrid, in India" no country is rendered as an option row —
 `test_india_offers_no_foreign_country` asserts that — but "United States" does
 appear once in the page source, inside that JSON. It is not selectable, and
-posting it is refused (below). Worth knowing before reading the HTML and
-concluding otherwise.
+posting it anyway is **dropped** by the server, not refused with an error
+(§5 has the reasoning, and §4's measured table shows the result). A name the
+geoId table does not know at all is the one that still earns a hard 400.
+Worth knowing before reading the HTML and concluding otherwise.
 
 ---
 
@@ -368,3 +382,128 @@ not become a flex item and break the menu's column gap.
 * `REMOTE` is still accepted by `allowed_locations()` though never offered,
   so a page loaded before it left the menu does not 400 on a control its
   reader cannot see.
+
+---
+
+## 10. Review of `84b0d27` — the Chandigarh gap
+
+A pre-deploy review asked whether "7 cities offered" and "the six India
+cities" in §4's measured output were the same set. **They are not, and it was
+not a documentation typo.** One real defect, fixed here.
+
+### The questions, answered from the code
+
+1. **What does `_SCOPE["india"]` represent?** Three different things, and the
+   distinction is the whole of this finding:
+   * `locations` / `linkedin_locations` = `["Delhi", "Gurgaon", "Bengaluru",
+     "Hyderabad", "Pune", "Mumbai"]` — **six**. This is the paid *retrieval
+     plan*: which geoIds LinkedIn and Indeed are asked for.
+   * `location_hints` = `LOCATION_MATCH["India"]`, which is
+     `HOME_LOCATION_HINTS` — the free sources' place filter.
+   * `work_scope = "india"` — makes `finalize()` apply
+     `scraper.in_home_country()` to **every** row, paid and free.
+
+   The *universe* "Anywhere in India" means is the last two. The six cities
+   are a cost decision about where to spend, not the boundary of the answer.
+
+2. **What does `location_groups("india")` offer?** **Seven**: the six above
+   **plus Chandigarh** (`_INDIA_CITY_NAMES`, a separate presentation list).
+
+3. **With `picked == []`, what reaches the pipeline?** `SEARCH.locations` and
+   `SITES.linkedin.locations` = the six cities; `LOCATION_HINTS` = the India
+   vocabulary; `SETTINGS.work_scope = "india"`. Indeed's country is `IN` for
+   every one of them.
+
+4. **Is every offered city inside the broad universe?** It was **not**.
+
+5. **Chandigarh specifically:** it was in neither the retrieval plan nor
+   `HOME_LOCATION_HINTS`. Being outside the *plan* is fine — picking a city
+   redirects retrieval, exactly as under the worldwide answer. Being outside
+   `HOME_LOCATION_HINTS` is the bug: `work_scope="india"` filters on
+   `in_home_country()`, so **narrowing to Chandigarh filtered out
+   Chandigarh's own rows.**
+
+6. **Verdict: a correctness issue, not a doc typo.** Introduced by
+   `work_scope` in `c9c7ef1` — before that no post-fetch India test existed
+   and the city worked.
+
+### How much it cost, measured
+
+Not all of it: most Chandigarh rows spell out "India" and survived on that
+word alone. The ones that do not are what was lost.
+
+```
+                  matched by the city filter   dropped by the India filter
+chandigarh                  27                            4
+mohali                      15                            2
+thane                        8                            0
+panchkula / blr / secunderabad / bombay   0                0
+                                                total     6   of 7,132 rows
+```
+
+Six rows — `'Chandigarh'`, `'Chandigarh, Chandigarh'`, `'Mohali, Punjab'`.
+Small, silent, and precisely the rows a user asking for Chandigarh wanted.
+
+The same check found four more fragments with the same shape:
+`blr`, `secunderabad`, `bombay`, `thane` — offered by a city, not recognised
+as India. None had cost anything yet, because no row happened to use them
+without also saying "India".
+
+### The fix
+
+Two data changes in `config.py`. `_SCOPE` is still untouched, so the paid
+plan and the cost of "Anywhere in India" are unchanged.
+
+```python
+HOME_LOCATION_HINTS += ["chandigarh", "mohali", "panchkula",
+                        "secunderabad", "bombay", "thane"]
+LOCATION_MATCH["Bengaluru"] -= ["blr"]
+```
+
+`blr` went the other way: it was added unverified in the earlier patch,
+matches nothing in 7,132 real rows, and a three-letter airport code is not a
+spelling worth widening a *country* test for.
+
+Because `LOCATION_MATCH["India"]` **is** `HOME_LOCATION_HINTS`, one edit
+fixes both the free-path hints for "Anywhere in India" and the post-fetch
+India test.
+
+**Blast radius, measured:** rows counted as India go 3,303 → 3,309 of 7,132
+— exactly the six, and the only newly recognised strings are `'Chandigarh'`,
+`'Chandigarh, Chandigarh'` and `'Mohali, Punjab'`. `HOME_LOCATION_HINTS` also
+feeds the `hires_home` board signal, which becomes correspondingly more
+correct: an employer posting in Chandigarh does hire in India.
+
+### The regression test
+
+`test_every_offered_india_city_is_inside_india` — for every name the picker
+offers under the India scope, every fragment in `LOCATION_MATCH` for it must
+satisfy `in_home_country()`. Structural, so it fails for the **next** city
+added without its spellings, not only for the one that was wrong.
+
+`test_narrowing_to_chandigarh_keeps_chandigarh_rows` drives the same thing
+end to end through `POST /configure` and `finalize()`, on the spelling that
+carries no "India" of its own — and asserts the broad answer covers those
+rows too, since a narrowing may not reach rows its own scope would reject.
+
+Both were checked against the pre-fix config:
+
+```
+revert HOME_LOCATION_HINTS  -> in_home_country('chandigarh') is False — narrowing
+                               to it would filter its own rows out
+                            -> kept ['Full'] != ['Bare', 'Full', 'Mohali']
+restore                     -> OK
+```
+
+### Documentation corrected in the same pass
+
+* §3 said posting "United States" under India is "refused". It is
+  **dropped/sanitised**; only an *unverified* name is a hard 400. §5 and the
+  tests were already right; §3 was not.
+* §1 asserted a specific microtask-versus-cancelled-activation ordering and
+  called it a race. No browser was instrumented, so that claim is withdrawn.
+  The documented cause is now the mechanism alone: `@click.prevent` cancels
+  the checkbox's native activation and can restore the browser's checkedness
+  after the application state has changed.
+* §3's matrix now states all three India sets side by side, so "7 offered"
+  and "6 in the plan" cannot read as a contradiction again.

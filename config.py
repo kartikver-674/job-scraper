@@ -541,10 +541,28 @@ LOCATION_HINTS = []
 # Where YOU are. Not a filter — this is how a company board is checked for
 # whether the employer hires in your country at all
 # (SETTINGS["keep_restricted_if_hires_home"]).
+# INVARIANT: every fragment in LOCATION_MATCH for a city the Search
+# Preferences picker offers under the "in India" scope must be matched by
+# this list. The picker offers those cities as a NARROWING of "anywhere in
+# India", and scraper.in_home_country reads this list to decide what counts
+# as India — so a city spelling missing here is a place the screen lets you
+# narrow to and then filters out again.
+#
+# Chandigarh was exactly that: offered in the picker, absent here, and
+# "Chandigarh" / "Mohali, Punjab" — the spellings that do not also carry the
+# word "India" — were kept by the city filter and dropped by this one.
+# Measured on 7,132 rows in output/: 27 Chandigarh rows, 15 Mohali, 8 Thane,
+# of which 6 lacked "India" and were being lost.
+# sweep/tests/test_search_prefs.py::test_every_offered_india_city_is_inside_india
+# now fails if a later city reopens the gap.
 HOME_LOCATION_HINTS = [
     "india", "delhi", "ncr", "gurgaon", "gurugram", "noida", "bengaluru",
     "bangalore", "hyderabad", "pune", "mumbai", "chennai", "kolkata",
     "ahmedabad",
+    # Chandigarh and its satellites, Hyderabad's twin city, and Mumbai's
+    # older name and its nearest suburb. All plainly India; all reachable
+    # from the picker.
+    "chandigarh", "mohali", "panchkula", "secunderabad", "bombay", "thane",
 ]
 
 # One searchable location NAME -> the text fragments that identify it in a
@@ -579,7 +597,11 @@ LOCATION_MATCH = {
     "Noida": ["noida"],
     "Greater Noida": ["noida", "greater noida"],
     "Chandigarh": ["chandigarh", "mohali", "panchkula"],
-    "Bengaluru": ["bengaluru", "bangalore", "blr"],
+    # No "blr": it was added here unverified and matches nothing in 7,132
+    # real rows. A three-letter airport code is not a spelling worth widening
+    # a location filter for, and it was the one Bengaluru fragment the India
+    # test above did not recognise.
+    "Bengaluru": ["bengaluru", "bangalore"],
     "Hyderabad": ["hyderabad", "secunderabad"],
     "Pune": ["pune"],
     "Mumbai": ["mumbai", "bombay", "navi mumbai", "thane"],

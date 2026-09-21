@@ -809,6 +809,51 @@ class TestLocationsNarrowTheScope(unittest.TestCase):
         self.assertIn("g.scopes.indexOf(this.scope) !== -1", picker_scope(body))
         self.assertIn('x-for="group in offered()"', menu_markup(body))
 
+    def test_every_offered_india_city_is_inside_india(self):
+        """A city offered as a NARROWING of "anywhere in India" must be
+        somewhere the India filter agrees is India.
+
+        Chandigarh was not. The picker offered it, `in_home_country` — which
+        is what work_scope="india" filters on — did not recognise it, and the
+        spellings that do not also carry the word "India" ("Chandigarh",
+        "Mohali, Punjab") were kept by the city filter and dropped by the
+        India one. Six real rows in output/, silently.
+
+        Structural on purpose: this fails for the NEXT city added to the
+        picker without its spellings, not just for the one that was wrong.
+        """
+        offered = [name for group in app_module.location_groups("india")
+                   for name in group["names"]]
+        self.assertTrue(offered)
+        for city in offered:
+            fragments = config.LOCATION_MATCH[city]
+            self.assertTrue(fragments, f"{city} matches nothing")
+            for fragment in fragments:
+                self.assertTrue(
+                    scraper.in_home_country(fragment),
+                    f"the picker offers {city} under the India scope, but "
+                    f"in_home_country({fragment!r}) is False — narrowing to "
+                    f"it would filter its own rows out")
+
+    def test_narrowing_to_chandigarh_keeps_chandigarh_rows(self):
+        # The same thing end to end, through the real route and the real
+        # engine, on the spelling that carries no "India" of its own.
+        rows = [job("React Developer Bare", "Chandigarh"),
+                job("React Developer Full", "Chandigarh, India"),
+                job("React Developer Mohali", "Mohali, Punjab"),
+                job("React Developer Elsewhere", "Pune, Maharashtra")]
+        app = make_app()
+        app.test_client().post("/configure",
+                               data=form(scope="india", locations="Chandigarh"))
+        self.assertEqual(kept(app.written[-1], rows), ["Bare", "Full", "Mohali"])
+
+        # And the broad answer covers them too — a narrowing may not reach
+        # rows its own scope would reject.
+        app = make_app()
+        app.test_client().post("/configure", data=form(scope="india"))
+        self.assertEqual(kept(app.written[-1], rows),
+                         ["Bare", "Elsewhere", "Full", "Mohali"])
+
     def test_worldwide_offers_the_countries_and_the_cities(self):
         offered = self.offered("global")
         for country in ("United States", "United Kingdom", "Germany"):
