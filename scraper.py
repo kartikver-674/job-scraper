@@ -54,6 +54,7 @@ from datetime import datetime, timedelta
 
 import config
 import enrich
+import experience_guard
 import skill_concepts
 import sources
 from sources._http import strip_html as _strip_html
@@ -645,6 +646,21 @@ def score_job(row):
     if floor is not None and floor > SETTINGS["max_experience_years"]:
         excluded = True
 
+    # SWEEP_EXPERIENCE_MISMATCH_GUARD (default off). The gate above compares one
+    # max()-aggregated number against years_experience + 3, which is why a
+    # 3y1m candidate kept 6+ roles: 6 is not > 6. This asks the narrower
+    # question — does the JD CONFIRM an overall minimum the candidate is
+    # materially short of — and only then acts. It never reads the title, never
+    # acts on a preference, and returns "none" for everything it cannot resolve.
+    exp_verdict = None
+    if experience_guard.enabled():
+        exp_verdict = experience_guard.record(
+            experience_guard.assess(text,
+                                    SETTINGS.get("candidate_experience_months")),
+            row.get("Title") or "")
+        if exp_verdict["action"] == "hard_drop":
+            excluded = True
+
     if excluded and SETTINGS["drop_excluded"]:
         return None
 
@@ -681,6 +697,11 @@ def score_job(row):
     # --- Down-ranks that keep the job in the list ---
     if soft_seniority:
         score += SCORING["soft_penalty"]
+    # A one-to-two-year shortfall sinks the row rather than removing it — the
+    # same trade soft_drop_terms makes, and for the same reason: "5+ years" on
+    # an international remote posting is routinely negotiable.
+    if exp_verdict is not None and exp_verdict["action"] == "penalty":
+        score += SCORING["experience_gap_penalty"]
     if excluded:  # only reached when drop_excluded is False
         score += SCORING["drop_penalty"]
 

@@ -900,6 +900,11 @@ SCORING = {
 
     "drop_penalty": -15,   # hard drops, when drop_excluded is False
     "soft_penalty": -4,    # soft title match: sinks it, never removes it
+    # A CONFIRMED overall minimum 1-2 years above the candidate, under
+    # SWEEP_EXPERIENCE_MISMATCH_GUARD. Sized between the two above: a stated
+    # bar is harder evidence than an inflated title, and softer than a title
+    # the candidate can never hold. Inert while the flag is off.
+    "experience_gap_penalty": -8,
 
     # Per hour of timezone gap beyond enrich.TZ_FREE_HOURS. Down-ranks rather
     # than drops, because a wide gap is a cost to weigh, not a disqualifier.
@@ -915,6 +920,12 @@ SETTINGS = {
     "drop_excluded": True,       # True: filter out title-seniority + over-experienced roles
                                  # False: keep them but apply drop_penalty (they sink)
     "max_experience_years": 3,   # roles whose text demands MORE than this (e.g. "5+ years") are dropped/penalized
+    # The candidate's own experience in MONTHS, for experience_guard. Whole
+    # years are floored (2y11m reads as 2), and a gap threshold built on a
+    # floored year hard-drops on eleven months of rounding — so the guard
+    # refuses to run without this. make_profile renders it; None disables the
+    # guard entirely, which is the right default for a hand-written profile.
+    "candidate_experience_months": None,
     # How to combine several "N years" figures in one posting. "max" reads the
     # largest as the real ask; "min" the smallest.
     #

@@ -1079,7 +1079,8 @@ def render(name, data, prefs):
     sections = {
         "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min",
                    "max_results"],
-        "SETTINGS": ["max_experience_years", "min_comp_usd", "max_age_days",
+        "SETTINGS": ["max_experience_years", "candidate_experience_months",
+                     "min_comp_usd", "max_age_days",
                      "remote_scopes", "max_spend_usd", "work_scope"],
         "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
                     "backend_terms", "fullstack_title_terms", "fullstack_bonus",
@@ -1090,6 +1091,14 @@ def render(name, data, prefs):
 
     engine = skill_concepts.engine_version()
     years = _years(data["years_experience"])
+    # experience_months is what local_extract computed and what the review
+    # screen collects; `years` is that same figure floored. Absent, this stays
+    # None and experience_guard does not run at all — years * 12 would put a
+    # 2y11m candidate at 2.0, and the guard's drop threshold is a 2.0-year gap,
+    # so the fallback would hard-drop jobs on eleven months of rounding.
+    months = data.get("experience_months")
+    if not isinstance(months, int) or isinstance(months, bool) or months < 0:
+        months = None
     skills = _weights(data["skill_weights"])
     # The scanned terms and why each was kept, as a comment beside the
     # weights they became. notes carries the count; this carries the
@@ -1280,6 +1289,10 @@ PROFILE_SCHEMA = {{"version": {PROFILE_SCHEMA}, "engine": {engine!r}}}
 SETTINGS = {{
     # Title bands are a label; this reads the years a posting actually demands.
     "max_experience_years": {years + 3},
+    # The same figure at month granularity, which is what experience_guard
+    # needs — years alone are floored, and a gap threshold built on a floored
+    # year drops jobs on eleven months of rounding.
+    "candidate_experience_months": {months},
     "min_comp_usd": {prefs["min_comp_usd"]!r},
 {extra_settings}}}
 
