@@ -500,9 +500,13 @@ def split_compounds(data, log=print):
     if not skill_concepts.enabled():
         return data
     weights, added = data.get("skill_weights") or [], []
+    # Resolved once for the whole list, and by skill_concepts rather than
+    # here: identities() ran before search with the same registry, and the
+    # two stages must not be able to disagree about what an atom is.
+    known = skill_concepts.market_terms()
     out, at = [], {}
     for entry in weights:
-        parts = skill_concepts.split_compound(entry["term"])
+        parts = skill_concepts.split_compound(entry["term"], known)
         for part in parts:
             if part in at:
                 # A half can collide with a term already in the list —

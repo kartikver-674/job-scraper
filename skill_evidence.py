@@ -99,8 +99,29 @@ OTHER = "other"
 _HEADINGS = (
     (SKILLS, r"(technical|core|key|professional)?\s*(skills|competenc\w*|"
              r"technolog\w*|tech\s+stack|toolkit)"),
+    # "Tools & Technologies", "Tools and Platforms". `technolog\w*` above
+    # matches the bare word; these are the prefixed spellings real résumés
+    # use, and the one this module's own docstring names ("T ools &
+    # Platforms:") was never actually recognised. The separator class is
+    # written without a literal "&" requirement so the _SPACELESS variant
+    # still matches — _FOLD strips punctuation before that comparison.
+    (SKILLS, r"tools?\s*(?:[&+/]|and)?\s*(?:technolog\w*|platforms?)"),
+    # "Expertise", "Areas of Expertise", "Skill Set" — three more labels
+    # that opened no section at all, so everything under them was read as a
+    # continuation of whatever came before.
+    (SKILLS, r"(areas?\s*of\s*)?expertise"),
+    (SKILLS, r"skills?\s*set"),
+    # Tried BEFORE the WORK row below, whose second group contains
+    # "career": "Career Objective" is a summary, not an employment section.
+    (SUMMARY, r"career\s*objective"),
     (WORK, r"(professional|work|relevant|industry)?\s*"
            r"(experience|employment|history|career)"),
+    # "Career History" and "Employment History". The row above matches
+    # "history" alone and "career" alone but not the pair, because its
+    # prefix group admits neither word — so a résumé using either spelling
+    # opened NO work section, and nothing in the document could reach CORE.
+    # Measured at two bands off every professional claim.
+    (WORK, r"(career|employment|work)\s*history"),
     (PROJECT, r"(personal|selected|key|academic|side)?\s*(projects?|portfolio)"),
     # Tried before WORK's "relevant experience": "Relevant Coursework" is
     # the heading that leaked, and a résumé that puts it AFTER Experience

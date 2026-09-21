@@ -385,11 +385,89 @@ _SEPARATORS = re.compile(r"\s*[/+&,]\s*|\s+and\s+")
 MIN_PART = 2
 
 
-def split_compound(raw):
+# --------------------------------------------------------------------------
+# The second registry: what the MARKET calls a skill
+# --------------------------------------------------------------------------
+#
+# LOOKUP is hand-curated and developer-tool-shaped. It holds `salesforce`
+# and `soql`; it does not hold `sales cloud`, `service cloud`, `flow
+# builder`, `reports` or `dashboards`, all of which 22,806 real postings
+# name as skills. So "Sales Cloud & Service Cloud" was kept whole, reached
+# local_search.matching_rows as one string matching zero listings, and a
+# Salesforce consultant's whole job search collapsed to their job title
+# (docs/profile-presentation-stability-audit.md, root cause 1).
+#
+# Admitting the market as a SECOND registry fixes that without weakening
+# the rule: a half must still be established by somebody, and "Research &
+# Development" is established by neither.
+#
+# OFF BY DEFAULT. With the flag absent `market_terms()` returns an empty
+# set and every decision below is the one LOOKUP alone made, so v2 is
+# byte-identical — a property the tests assert rather than a claim this
+# comment makes.
+MARKET_SPLIT_FLAG = "SWEEP_MARKET_COMPOUND_SPLIT"
+
+# Resolved once per process. The frozen table is a committed data file, so
+# this is deterministic: no network, no corpus rebuild, no dependency on
+# which sweeps happen to be in output/.
+_MARKET_TERMS = None
+
+
+def market_split_enabled():
+    """Read per call, so a rollback lands on the next request."""
+    return os.environ.get(MARKET_SPLIT_FLAG, "").strip().lower() in (
+        "1", "true", "yes", "on")
+
+
+def market_terms():
+    """The frozen market's skill vocabulary, or an empty set when off.
+
+    Sourced from corpus_signal's committed frequency table rather than from
+    local_search.frozen_market(): the two are the same 367 terms (asserted
+    in the tests), the table is a 15KB plain JSON against a 190KB gzip of
+    22,806 rows, and corpus_signal imports nothing but the standard library
+    — so this leaf module stays a leaf. Importing local_search here would
+    drag the whole corpus machinery into every module that imports
+    skill_concepts, which is most of them.
+
+    Degrades to empty: a missing or unreadable table means "the market
+    abstains", which is exactly the flag-off behaviour.
+    """
+    global _MARKET_TERMS
+    if not market_split_enabled():
+        return frozenset()
+    if _MARKET_TERMS is None:
+        try:
+            import corpus_signal
+            _MARKET_TERMS = frozenset(corpus_signal.frozen_frequencies())
+        except Exception:
+            _MARKET_TERMS = frozenset()
+    return _MARKET_TERMS
+
+
+def _established(part, known):
+    """Is this half a thing somebody already calls a skill?
+
+    The one place the two registries are consulted. Both call sites reach
+    it through `split_compound`, so neither can answer this differently.
+    """
+    return _key(part) in LOOKUP or part in known
+
+
+def split_compound(raw, known=None):
     """One extracted string as the atomic concepts it actually names.
 
     Returns a list, the original string when there is nothing safe to do.
+
+    `known` is the extra registry of established terms. It defaults to
+    `market_terms()` — resolved HERE rather than by the caller, which is
+    what makes this the single authoritative splitter: `identities()` runs
+    before search and `make_profile.split_compounds` runs after it, and
+    neither chooses the registry, so the two stages cannot drift apart.
+    That drift is audit defect V3-C1, already fixed once. The parameter
+    exists so a test can pin a vocabulary; production never passes it.
     """
+    known = market_terms() if known is None else frozenset(known)
     term = re.sub(r"\s+", " ", str(raw or "").strip().lower())
     if not term:
         return []
@@ -406,7 +484,7 @@ def split_compound(raw):
     match = _PARENTHETICAL.search(term)
     if match:
         head, inner = _PARENTHETICAL.sub("", term).strip(), match.group(1).strip()
-        if head and inner and _key(inner) in LOOKUP and _key(head) in LOOKUP:
+        if head and inner and _established(inner, known) and _established(head, known):
             return [head, inner]
         return [term]
 
@@ -427,16 +505,26 @@ def split_compound(raw):
     # purpose. Splitting it would mint a concept out of the unknown half,
     # and keeping it whole loses nothing the scanner cannot recover on its
     # own from the résumé text.
-    if not all(_key(p) in LOOKUP for p in parts):
+    #
+    # `_established` is where the market is admitted. "Research &
+    # Development" and "Foo & Bar" still survive whole, because neither
+    # registry has heard of either half.
+    if not all(_established(p, known) for p in parts):
         return [term]
     return parts
 
 
 def atomize(terms):
-    """Every extracted string, split where it is safe to split."""
+    """Every extracted string, split where it is safe to split.
+
+    The registry is resolved ONCE for the whole list, not per term, so a
+    flag flipped mid-loop cannot atomise half a skill set one way and half
+    the other.
+    """
+    known = market_terms()
     out = []
     for term in terms or ():
-        for part in split_compound(term):
+        for part in split_compound(term, known):
             if part and part not in out:
                 out.append(part)
     return out
