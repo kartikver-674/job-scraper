@@ -3125,15 +3125,23 @@ class TestLocationPicker(Isolated):
         # what an x-for around this field would produce, and which renders
         # as a single tag either way, so the binding is what to check.
         self.assertRegex(
-            body, r'type="hidden" name="locations" :value="picked\.join')
+            body, r'type="hidden" name="locations"[^>]*:value="picked\.join')
 
     def test_the_estimate_is_asked_after_the_field_is_written(self):
         # Alpine writes the hidden input on the NEXT tick, so dispatching the
         # change straight after a pick prices the PREVIOUS selection — the
         # cost panel would trail the control by one click, which on a money
         # display is the whole problem.
+        #
+        # Fired AT the hidden field, not with $dispatch: $dispatch fires at
+        # whichever element the calling expression sits on, so from a
+        # checkbox's own @change handler it re-entered that handler and froze
+        # the page. See test_search_prefs.py, which owns that regression.
         body = self.body()
-        self.assertRegex(body, r"\$nextTick\(\(\) =(&gt;|>) this\.\$dispatch")
+        self.assertRegex(
+            body,
+            r"\$nextTick\(\(\) =(&gt;|>) this\.\$refs\.locationsField"
+            r"\.dispatchEvent")
 
     def test_the_current_pick_comes_back_into_the_control(self):
         # With a scope that HAS a geography. Under "Remote roles" the picker

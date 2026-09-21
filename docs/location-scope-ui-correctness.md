@@ -507,3 +507,127 @@ restore                     -> OK
   after the application state has changed.
 * §3's matrix now states all three India sets side by side, so "7 offered"
   and "6 in the plan" cannot read as a contradiction again.
+
+---
+
+## 11. The picker froze the page — and what finally caught it
+
+Reported after `5df73c1`: "when I open the location accordion it completely
+freezes the webpage, I can't click anything else and just scroll."
+
+### Root cause
+
+`priced()` ended in `this.$dispatch("change")`.
+
+**Alpine binds `$dispatch` to the element whose EXPRESSION is running**, not
+to the `x-data` root. `priced()` is reached from a checkbox's own
+`@change.stop="toggle(name)"` — so `$dispatch` fired a `change` **at that
+same checkbox**, which re-entered that same handler, which called `priced()`
+again.
+
+`.stop` is no defence: it stops *propagation*, not the listener on the
+*target*. Measured in Chrome — **one click produced 3,001 `change` events**
+and the main thread never came back. Scrolling still worked because it is
+compositor-driven, which is exactly what was reported.
+
+It fires at the hidden `locations` field now, which listens for nothing, so
+the event only travels up to the form that re-prices. The depth stepper has
+always dispatched this way, from its own input, for the same reason.
+
+```html
+<input type="hidden" name="locations" x-ref="locationsField" :value="…">
+```
+```js
+priced() {
+  this.$nextTick(() => this.$refs.locationsField.dispatchEvent(
+    new Event("change", { bubbles: true })));
+}
+```
+
+### A second bug, made while fixing the first
+
+The first fix carried the word `checkbox's` in its explanatory comment.
+`x-data` is **single-quoted**, so that apostrophe closed the attribute and
+truncated every method after it. The page threw no error; the menu simply
+rendered its one all-locations row and nothing else. The file's own header
+has warned about this class since it was written, and the repo already had
+`alpine_scope()` — a helper that reads `x-data` through a real HTML parser —
+because the same trap had been hit before.
+
+### How it was found
+
+Neither bug produces a Python failure, and §7 admitted as much: "15 and 17
+are structural, and that is a real limit."
+
+So a real browser was driven — Chrome via `puppeteer-core`, loading the
+actual rendered page with the actual Alpine build. The freeze reproduced on
+the first click inside the open menu; a counter on
+`EventTarget.prototype.dispatchEvent` turned it into a number and a stack.
+
+### `tools/ui_smoke.py`
+
+That harness is now a committed tool rather than a throwaway. It renders
+`/configure` for each scope through the real Flask client, drives Chrome, and
+asserts on the things only a browser can answer:
+
+* the menu renders the expected number of rows (a truncated `x-data`
+  renders one);
+* each option ticks **on its own click**;
+* the tick, the chips, the count and the posted value all agree;
+* **exactly one `change` event per click** — the storm, as a number;
+* the all-locations row clears every pick and stays ticked;
+* no page errors.
+
+It is deliberately **not** in any suite and adds no repo dependency: it needs
+Chrome and `puppeteer-core`, and says how to get them if they are missing.
+
+```
+python tools/ui_smoke.py                 # both scopes
+SWEEP_NODE_MODULES=/tmp/sweep-ui python tools/ui_smoke.py --scope india
+```
+
+Both bugs were re-introduced to confirm the tool fails on them:
+
+```
+$dispatch restored      -> FAIL MAIN THREAD BLOCKED: reading after Delhi
+apostrophe restored     -> FAIL menu rendered 1 rows, expected 8
+                              (a truncated x-data renders only the all-locations row)
+restored                -> ui smoke ok
+```
+
+### Python regressions added
+
+Cheap guards for the same two mistakes, so an ordinary test run catches them:
+
+* `test_nothing_dispatches_an_event_at_something_listening_for_it` — no
+  `$dispatch(` in the scope, the dispatch goes to `$refs.locationsField`, and
+  that field carries no `@change` of its own.
+* `test_the_picker_scope_survives_an_html_parser` — reads `x-data` through
+  `HTMLParser`, asserts all eight methods survived, that the attribute holds
+  no apostrophe, and that its braces balance.
+
+Both mutation-checked.
+
+### Measured after the fix, in Chrome
+
+```
+global: 29 rows   india: 8 rows
+  Delhi / Gurgaon / Chandigarh: tick, chips, count and value agree; 1 change event
+  all-locations row: clears every pick and stays ticked
+  page errors: none
+```
+
+This also settles, by observation rather than by structure, the three things
+§7 could only assert indirectly: the checkbox updates on the same
+interaction (15), every view derives from one array (16), and one press is
+one toggle (17).
+
+### Four tests updated
+
+`test_every_view_of_the_selection_reads_the_same_array`,
+`test_the_estimate_is_still_asked_after_the_field_is_written` (both files)
+and `test_it_posts_one_field_not_a_repeated_one` matched the hidden input's
+old attribute order or the old `$dispatch` call. Each was re-pointed at the
+new markup with its intent unchanged.
+
+Suites after: **sweep 887, auto-apply 1,102, bench 43, deploy 42 — 2,074.**

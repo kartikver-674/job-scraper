@@ -117,9 +117,29 @@
           },
           allLabel() { return this.scope === "india" ? "Anywhere in India" : "Everywhere" },
           priced() {
-            /* The hidden input is written by Alpine on the next tick, so
-               firing the estimate now would price the PREVIOUS pick. */
-            this.$nextTick(() =&gt; this.$dispatch("change"));
+            /* Dispatched from the hidden FIELD, and never with $dispatch.
+               $dispatch fires on the element whose EXPRESSION is running —
+               so called from the @change handler ON a checkbox it dispatched
+               a "change" at that same checkbox, which re-entered that same
+               handler. One click became a storm (measured: 3,001 events)
+               and the page froze. .stop is no help: it stops propagation,
+               not the listener on the target itself.
+
+               NO APOSTROPHES ANYWHERE IN THIS ATTRIBUTE. It is single
+               quoted (see the |tojson note at the top of this file), so one
+               would close it here and truncate every method below — which
+               is exactly what the first draft of this comment did: the menu
+               rendered its one all-locations row and nothing else.
+
+               The hidden field listens for nothing, so the event only
+               travels up to the form, which is the one that re-prices. The
+               depth stepper has always dispatched this way, from its own
+               input, for the same reason.
+
+               On the next tick because Alpine writes :value then, so firing
+               now would price the PREVIOUS pick. */
+            this.$nextTick(() =&gt; this.$refs.locationsField.dispatchEvent(
+              new Event("change", { bubbles: true })));
           } }'
         x-init="$watch('scope', () =&gt; narrow())"
         @submit="sent = true"
@@ -298,7 +318,8 @@
              The server-rendered value is what a no-JS visitor submits; it is
              also all a no-JS visitor can submit, since the checkboxes below
              carry no name of their own. #}
-          <input type="hidden" name="locations" :value="picked.join(&#39;, &#39;)"
+          <input type="hidden" name="locations" x-ref="locationsField"
+                 :value="picked.join(&#39;, &#39;)"
                  value="{{ picked_locations|join(', ') }}">
           <div class="picker-box">
             <button type="button" class="picker-toggle" x-ref="toggle"

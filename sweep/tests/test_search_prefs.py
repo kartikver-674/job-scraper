@@ -1001,7 +1001,7 @@ class TestOneSourceOfTruthForLocations(unittest.TestCase):
                 (r':checked="has\(name\)"', "the checkbox"),
                 (r'x-for="name in picked"', "the chips"),
                 (r'x-text="picked\.length', "the count"),
-                (r"""name="locations" :value="picked\.join""", "the posted value")):
+                (r"""name="locations"[^>]*:value="picked\.join""", "the posted value")):
             self.assertRegex(body, derived, f"{where} does not read `picked`")
         # And no second store that could drift from it.
         for twin in ("selected:", "checked:", "chips:", "formLocations:"):
@@ -1016,9 +1016,69 @@ class TestOneSourceOfTruthForLocations(unittest.TestCase):
         self.assertNotIn("@click", menu)
         self.assertEqual(menu.count("@change"), menu.count("@change.stop"))
 
+    def test_nothing_dispatches_an_event_at_something_listening_for_it(self):
+        """The page froze on the first click inside the open menu.
+
+        `priced()` used `$dispatch("change")`. Alpine binds $dispatch to the
+        element whose EXPRESSION is running — so called from the @change
+        handler ON a checkbox it dispatched a change AT that checkbox, which
+        re-entered that same handler. Measured in Chrome: one click produced
+        3,001 change events and the main thread never came back. `.stop` is
+        no help; it stops propagation, not the listener on the target.
+
+        It dispatches at the hidden field now, which listens for nothing.
+        """
+        body = self.body()
+        scope = picker_scope(body)
+        self.assertNotIn("$dispatch(", scope,
+                         "$dispatch fires at the calling element — from a "
+                         "@change handler that is the element itself")
+        self.assertIn("$refs.locationsField.dispatchEvent", scope)
+        # And the element it fires at must not listen for what it is sent.
+        field = re.search(r'<input type="hidden" name="locations"[^>]*>',
+                          body, re.S).group(0)
+        self.assertIn('x-ref="locationsField"', field)
+        self.assertNotIn("@change", field)
+        self.assertNotIn("x-on:change", field)
+
+    def test_the_picker_scope_survives_an_html_parser(self):
+        """x-data is SINGLE-quoted, so one apostrophe inside it truncates
+        every method after it — silently, with no page error.
+
+        That is not hypothetical: the first fix for the freeze above carried
+        the word "checkbox's" in a comment, the attribute ended there, and
+        the menu rendered its one all-locations row and nothing else.
+        Asserted through a real parser, which is the only thing that sees
+        what the browser sees.
+        """
+        from html.parser import HTMLParser
+
+        scopes = []
+
+        class Scan(HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                d = dict(attrs)
+                if tag == "form" and "split" in (d.get("class") or ""):
+                    scopes.append(d.get("x-data") or "")
+
+        Scan().feed(self.body())
+        self.assertEqual(len(scopes), 1)
+        scope = scopes[0]
+        for method in ("offered(", "names(", "has(", "toggle(", "all(",
+                       "narrow(", "allLabel(", "priced("):
+            self.assertIn(method, scope,
+                          f"{method} did not survive HTML parsing — an "
+                          f"apostrophe closed the attribute before it")
+        self.assertNotIn("'", scope, "an apostrophe would end the attribute")
+        self.assertEqual(scope.count("{"), scope.count("}"), "truncated scope")
+
     def test_the_estimate_is_still_asked_after_the_field_is_written(self):
-        self.assertRegex(self.body(),
-                         r"\$nextTick\(\(\) =(&gt;|>) this\.\$dispatch")
+        # Still on the NEXT tick: Alpine writes the hidden input then, so
+        # firing now would price the previous pick.
+        self.assertRegex(
+            self.body(),
+            r"\$nextTick\(\(\) =(&gt;|>) this\.\$refs\.locationsField"
+            r"\.dispatchEvent")
 
     def test_back_navigation_restores_the_exact_selection(self):
         app = make_app()
