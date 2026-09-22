@@ -104,6 +104,20 @@ Added by the V2-A implementation stage (2026-09-22), documented in
   pass. Reproduce with `bench/search_v2_telemetry_overhead.py`. The denominator
   is local scoring work only, not a whole sweep.
 
+Added by the V2-B2 concurrency experiment (2026-09-23), documented in
+[V2-B2 deterministic Free concurrency](../search-engine-v2-b2-deterministic-free-concurrency.md):
+
+- `free-concurrency-replay.json`: serial and 1/2/3/4 Lever workers over ONE
+  frozen capture of all 21 configured Lever boards, replaying each board's
+  measured latency so completion order differs from registry order. This is the
+  only concurrency arm that may claim parity, and it shows an identical source
+  sequence and an identical final SHA-256 at every worker count. Reproduce with
+  `bench/search_v2_free_concurrency.py --capture` then `--replay`.
+- `free-concurrency-live.json`: the same four arms against the live public Lever
+  API — wall time, per-board durations, failures, retries and peak RSS. Latency
+  and provider behaviour ONLY: inventory changes between arms, so row counts
+  here are not parity evidence. Zero Apify credits. Reproduce with `--live`.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

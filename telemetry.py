@@ -30,6 +30,7 @@ bounded field.
 import json
 import os
 import socket
+import threading
 import time
 import urllib.error
 import uuid
@@ -46,7 +47,36 @@ SCHEMA = "search-v2a.1"
 _CLIP = 200
 
 _run = None     # the active record, or None whenever telemetry is off
-_unit = None    # the work unit currently open, if any
+
+# THREAD SAFETY (added for V2-B2, which fetches Lever boards concurrently).
+#
+# The open work unit used to be a module global — one "current unit" pointer for
+# the whole process. That is correct exactly while acquisition is serial, and
+# silently wrong the moment it is not: two threads in unit() would clobber one
+# another's pointer, and every observed()/retried()/failed() call in between
+# would land its counts on whichever board happened to be current. The result is
+# not a crash, it is a telemetry file that confidently attributes one board's
+# rows and retries to another.
+#
+# Two different kinds of state, so two different mechanisms:
+#
+#   * The OPEN UNIT is thread-confined. Each thread owns its own record from
+#     unit() to __exit__, nothing else touches it, so it needs no lock — and a
+#     lock would not have helped anyway, because the bug was shared IDENTITY,
+#     not unsynchronised mutation.
+#   * The RUN record is shared. Its counters are read-modify-write and its
+#     milestone map is check-then-set, neither of which the GIL makes atomic, so
+#     every mutation of it goes through _LOCK.
+_local = threading.local()      # _local.unit: this thread's open unit, if any
+_LOCK = threading.RLock()       # guards mutation of the shared _run record
+
+
+def _current():
+    return getattr(_local, "unit", None)
+
+
+def _set_current(record):
+    _local.unit = record
 
 
 def enabled():
@@ -76,8 +106,9 @@ def start(path, output_dir, engine_revision=None, profile=""):
     `path` is "free", "paid" or "paid+free" — the audit asked for free-vs-paid
     separation, and a full sweep is genuinely both.
     """
-    global _run, _unit
-    _run, _unit = None, None
+    global _run
+    _run = None
+    _set_current(None)
     if not enabled():
         return None
     _run = {
@@ -129,16 +160,22 @@ def start(path, output_dir, engine_revision=None, profile=""):
 def note(text):
     """An explicit caveat, carried with the record instead of lost in prose."""
     if _run is not None:
-        _run["notes"].append(_clip(text))
+        with _LOCK:
+            _run["notes"].append(_clip(text))
 
 
 def mark(name, granularity="exact"):
     """First-occurrence timestamp. Later calls for the same name are ignored —
     a milestone is the FIRST time something happened."""
-    if _run is None or name in _run["milestones"]:
+    if _run is None:
         return
-    _run["milestones"][name] = round((time.monotonic() - _run["_t0"]) * 1000)
-    _run["milestone_granularity"][name] = granularity
+    # Check-then-set under concurrency: without the lock two threads can both
+    # pass the membership test and the milestone becomes whichever wrote last.
+    with _LOCK:
+        if name in _run["milestones"]:
+            return
+        _run["milestones"][name] = round((time.monotonic() - _run["_t0"]) * 1000)
+        _run["milestone_granularity"][name] = granularity
 
 
 def eligible_progress(count, granularity="checkpoint"):
@@ -172,7 +209,6 @@ class _Unit:
         return self.record
 
     def __exit__(self, exc_type, exc, tb):
-        global _unit
         if self.record is None:
             return False
         self.record["finished_at"] = _now()
@@ -182,25 +218,32 @@ class _Unit:
             self.record["ok"] = False
             self.record["failure_category"] = failure_category(exc)
             self.record["failure"] = _clip(exc)
-        if _run is not None and not self.record["shadow"]:
-            _run["sources_attempted"] += 1
-            _run["sources_succeeded" if self.record["ok"] else "sources_failed"] += 1
-        _unit = None
+        # A deferred unit is not attached to the run yet: its caller holds it and
+        # hands it to attach() in a deterministic order. Counting it here would
+        # count it twice.
+        if not self.record.pop("_deferred", False):
+            _count(self.record)
+        _set_current(None)
         return False        # never suppress; isolation is the caller's job
 
 
 def unit(path, family, board="", query="", location="", country="",
-         requested_limit=None, timeout_s=None, shadow=False):
+         requested_limit=None, timeout_s=None, shadow=False, defer=False):
     """Open a work unit. A no-op context manager when telemetry is off.
 
     `shadow=True` keeps the unit OUT of the sweep's source counters and in its
     own list. A shadow board is not one of the sweep's sources and must never
     make the record say the sweep attempted 142 sources when it attempted 134.
+
+    `defer=True` opens the unit WITHOUT attaching it to the run. The caller gets
+    the record back (from the `with` block) and passes it to attach() later.
+    Concurrent acquisition uses this so the order units appear in the telemetry
+    file is the caller's registry order and not the order threads happened to
+    start — the same reason the rows themselves are merged in registry order.
     """
-    global _unit
     if _run is None:
         return _Unit(None)
-    _unit = {
+    record = {
         "path": path,
         "family": _clip(family),
         "board": _clip(board),
@@ -222,21 +265,51 @@ def unit(path, family, board="", query="", location="", country="",
         "source_gate_count": 0,
         "shadow": shadow,
         "_t0": time.monotonic(),
+        "_deferred": defer,
     }
-    _run["shadow_units" if shadow else "units"].append(_unit)
-    return _Unit(_unit)
+    _set_current(record)
+    if not defer:
+        with _LOCK:
+            _run["shadow_units" if shadow else "units"].append(record)
+    return _Unit(record)
+
+
+def _count(record):
+    """Fold one finished unit into the sweep's source counters."""
+    if _run is None or record.get("shadow"):
+        return
+    with _LOCK:
+        _run["sources_attempted"] += 1
+        _run["sources_succeeded" if record["ok"] else "sources_failed"] += 1
+
+
+def attach(record):
+    """Attach a deferred unit to the run, in the caller's chosen order.
+
+    Called from the coordinating thread once its workers are done, so the units
+    list is ordered by the registry and not by who finished first. A record that
+    was never deferred, or telemetry being off, makes this a no-op.
+    """
+    if _run is None or record is None:
+        return
+    with _LOCK:
+        _run["shadow_units" if record.get("shadow") else "units"].append(record)
+    _count(record)
 
 
 def observed(raw=0, normalized=0, gated=0, requests=0):
     """Counts from inside the open unit. Additive, because one logical unit can
     be several requests (a feed's categories, himalayas' queries)."""
-    if _unit is None:
+    unit_ = _current()
+    if unit_ is None:
         return
-    _unit["raw_count"] += raw
-    _unit["normalized_count"] += normalized
-    _unit["source_gate_count"] += gated
-    _unit["requests"] += requests
-    if raw and not _unit["shadow"]:
+    # No lock: this record belongs to this thread alone between unit() and
+    # __exit__, so nothing else can be mutating it.
+    unit_["raw_count"] += raw
+    unit_["normalized_count"] += normalized
+    unit_["source_gate_count"] += gated
+    unit_["requests"] += requests
+    if raw and not unit_["shadow"]:
         mark("first_raw")
 
 
@@ -248,11 +321,12 @@ def failed(exc):
     This is how a source that failed gets recorded as failed rather than as a
     source that succeeded with zero jobs.
     """
-    if _unit is None:
+    unit_ = _current()
+    if unit_ is None:
         return
-    _unit["ok"] = False
-    _unit["failure_category"] = failure_category(exc)
-    _unit["failure"] = _clip(exc)
+    unit_["ok"] = False
+    unit_["failure_category"] = failure_category(exc)
+    unit_["failure"] = _clip(exc)
 
 
 def partial(reason):
@@ -262,20 +336,23 @@ def partial(reason):
     "filtered to zero" and "one route of several failed" are five different
     states and a single log line made them look like one.
     """
-    if _unit is not None:
-        _unit.setdefault("partial_failures", []).append(_clip(reason))
+    unit_ = _current()
+    if unit_ is not None:
+        unit_.setdefault("partial_failures", []).append(_clip(reason))
 
 
 def retried():
     """One transient HTTP retry inside the open unit — called from sources._http,
     which is the only place that knows a retry happened."""
-    if _unit is not None:
-        _unit["retries"] += 1
+    unit_ = _current()
+    if unit_ is not None:
+        unit_["retries"] += 1
 
 
 def request():
-    if _unit is not None:
-        _unit["requests"] += 1
+    unit_ = _current()
+    if unit_ is not None:
+        unit_["requests"] += 1
 
 
 def paid_run(**fields):
@@ -284,7 +361,8 @@ def paid_run(**fields):
     Allowlisted keys only. A token is not in this list and cannot be added by a
     caller passing one, because unknown keys are dropped rather than stored.
     """
-    if _unit is None:
+    unit_ = _current()
+    if unit_ is None:
         return
     allowed = ("actor_id", "actor_build_id", "actor_run_id", "dataset_id",
                "actor_status", "actor_started_at", "actor_finished_at",
@@ -297,7 +375,7 @@ def paid_run(**fields):
     for key in allowed:
         if key in fields:
             value = fields[key]
-            _unit[key] = value if isinstance(value, (int, float, type(None))) \
+            unit_[key] = value if isinstance(value, (int, float, type(None))) \
                 else _clip(value)
 
 
@@ -335,7 +413,8 @@ def stage(name, rows):
     for row in rows:
         key = row.get("Source") or row.get("source_site") or ""
         counts[key] = counts.get(key, 0) + 1
-    _run["stages"][name] = {"total": len(rows), "by_source": counts}
+    with _LOCK:
+        _run["stages"][name] = {"total": len(rows), "by_source": counts}
 
 
 def identity(raw_rows, job_key, native_key="_native"):
@@ -398,10 +477,11 @@ def finish():
     can fail a sweep is worse than no observer. It reports the miss on stderr
     and the sweep carries on.
     """
-    global _run, _unit
+    global _run
     if _run is None:
         return None
-    record, _run, _unit = _run, None, None
+    record, _run = _run, None
+    _set_current(None)
     record["finished_at"] = _now()
     record["duration_ms"] = round((time.monotonic() - record.pop("_t0")) * 1000)
     record["raw_rows"] = sum(u["raw_count"] for u in record["units"])

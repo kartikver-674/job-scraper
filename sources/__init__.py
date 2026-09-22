@@ -18,7 +18,7 @@ Self-check:
 """
 import telemetry
 
-from . import ats, enterprise, feeds, optum
+from . import ats, concurrency, enterprise, feeds, optum
 
 # A feed adapter is (cfg, keep_title, keep_location) -> [row].
 # Probed and REJECTED, so nobody re-adds it: arbeitnow.com — 100 jobs returned
@@ -45,6 +45,14 @@ def fetch_free(ats_boards, feed_cfg, keep_title, keep_location, is_home=None,
     for platform, boards in (ats_boards or {}).items():
         if platform not in ats.ATS:
             log(f"  {platform:<16} {'-':<22} ! no adapter (see sources/ats.py ATS)")
+            continue
+        # SWEEP_FREE_LEVER_CONCURRENCY (default off), Lever only. Returns the
+        # same rows in the same registry order as the loop below; the only
+        # difference is how many of its boards wait on the network at once.
+        # Every other provider, and every feed, stays on the serial path.
+        if concurrency.applies(platform):
+            rows.extend(concurrency.fetch_boards(
+                platform, boards, keep_title, keep_location, is_home, log))
             continue
         for token, company in boards.items():
             # One work unit per board: the audit had no per-board timestamp,

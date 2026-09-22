@@ -230,6 +230,8 @@ def offline():
     assert len(capped) == 8, f"uncapped queries would rate-limit: {len(capped)}"
     wwr_offline()
     native_offline()
+    from . import concurrency
+    concurrency.demo()
     optum_offline()
     # Same contract for the enterprise adapters: their date shapes and the
     # SuccessFactors row regex fail silently (blank dates, blank titles), so
