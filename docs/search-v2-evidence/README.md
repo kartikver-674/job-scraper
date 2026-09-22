@@ -85,6 +85,25 @@ or uncontrolled crawl. Socket deadlines are not a strict whole-run deadline.
 - `paid-*`: exact synthetic actor inputs/estimates and published contract
   research. Estimated prices are not guaranteed maximum charges.
 
+Added by the V2-A implementation stage (2026-09-22), documented in
+[V2-A telemetry and shadow](../search-engine-v2-a-telemetry-and-shadow.md):
+
+- `shadow-eight-board-replay.json`: the eight recommended Greenhouse boards
+  replayed offline against the frozen snapshots through five synthetic cohorts,
+  with per-board request/raw/fresh/gated/eligible/positive/marginal/top-20
+  attribution. Reproduce with `bench/search_v2_shadow.py` (sockets denied).
+  Its deltas match this audit's; its baseline totals differ by 1–3 rows because
+  the 14-day window moved one day between the snapshot and the replay.
+- `smartrecruiters-pagination.json`: 16 live public requests across five
+  already-configured boards, rows 1–400, with per-page freshness, marginal
+  uniqueness, duplicate overlap and cumulative eligibility. Reproduce with
+  `bench/search_v2_smartrecruiters_pages.py` (`--live`; a dry run prints the
+  exact request list first). Zero Apify cost. Production pagination unchanged.
+- `telemetry-overhead.json`: SWEEP_SEARCH_V2_TELEMETRY off-vs-on over the frozen
+  census, alternating arms, asserting the result set is identical across every
+  pass. Reproduce with `bench/search_v2_telemetry_overhead.py`. The denominator
+  is local scoring work only, not a whole sweep.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

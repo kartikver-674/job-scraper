@@ -1,0 +1,379 @@
+{
+  "status": "MEASURED live public SmartRecruiters API; audit-only, production pagination unchanged",
+  "observed_at": "2026-09-22T01:55:38Z",
+  "fixture": "software_fullstack/india",
+  "policy_sha256": "b125ba08c6beedce8aa3aeb537c1e8be84fd5f56e2239b2426421dbc669b26d3",
+  "page_size": 100,
+  "max_pages": 4,
+  "requests_issued": 16,
+  "apify_cost_usd": 0,
+  "rate_limited": false,
+  "boards": {
+    "renesaselectronics": {
+      "company": "Renesas Electronics",
+      "advertised_total": 916,
+      "pages": [
+        {
+          "page": 0,
+          "offset": 0,
+          "elapsed_ms": 469,
+          "returned": 100,
+          "advertised_total": 916,
+          "fresh_14d": 100,
+          "marginal_unique_vs_earlier_pages": 100,
+          "duplicate_overlap_with_earlier_pages": 0,
+          "candidate_gated": 16,
+          "error": ""
+        },
+        {
+          "page": 1,
+          "offset": 100,
+          "elapsed_ms": 400,
+          "returned": 100,
+          "advertised_total": 916,
+          "fresh_14d": 100,
+          "marginal_unique_vs_earlier_pages": 94,
+          "duplicate_overlap_with_earlier_pages": 6,
+          "candidate_gated": 9,
+          "error": ""
+        },
+        {
+          "page": 2,
+          "offset": 200,
+          "elapsed_ms": 330,
+          "returned": 100,
+          "advertised_total": 916,
+          "fresh_14d": 100,
+          "marginal_unique_vs_earlier_pages": 84,
+          "duplicate_overlap_with_earlier_pages": 16,
+          "candidate_gated": 15,
+          "error": ""
+        },
+        {
+          "page": 3,
+          "offset": 300,
+          "elapsed_ms": 304,
+          "returned": 100,
+          "advertised_total": 916,
+          "fresh_14d": 1,
+          "marginal_unique_vs_earlier_pages": 86,
+          "duplicate_overlap_with_earlier_pages": 14,
+          "candidate_gated": 19,
+          "error": ""
+        }
+      ],
+      "by_depth": {
+        "rows_1_to_100": {
+          "normalized": 100,
+          "candidate_gated": 16,
+          "eligible_final": 1,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_200": {
+          "normalized": 200,
+          "candidate_gated": 25,
+          "eligible_final": 6,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_300": {
+          "normalized": 300,
+          "candidate_gated": 40,
+          "eligible_final": 12,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_400": {
+          "normalized": 400,
+          "candidate_gated": 59,
+          "eligible_final": 12,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        }
+      }
+    },
+    "sia": {
+      "company": "Sia",
+      "advertised_total": 592,
+      "pages": [
+        {
+          "page": 0,
+          "offset": 0,
+          "elapsed_ms": 329,
+          "returned": 100,
+          "advertised_total": 592,
+          "fresh_14d": 100,
+          "marginal_unique_vs_earlier_pages": 100,
+          "duplicate_overlap_with_earlier_pages": 0,
+          "candidate_gated": 8,
+          "error": ""
+        },
+        {
+          "page": 1,
+          "offset": 100,
+          "elapsed_ms": 338,
+          "returned": 100,
+          "advertised_total": 592,
+          "fresh_14d": 93,
+          "marginal_unique_vs_earlier_pages": 95,
+          "duplicate_overlap_with_earlier_pages": 5,
+          "candidate_gated": 10,
+          "error": ""
+        },
+        {
+          "page": 2,
+          "offset": 200,
+          "elapsed_ms": 333,
+          "returned": 100,
+          "advertised_total": 592,
+          "fresh_14d": 0,
+          "marginal_unique_vs_earlier_pages": 87,
+          "duplicate_overlap_with_earlier_pages": 13,
+          "candidate_gated": 9,
+          "error": ""
+        },
+        {
+          "page": 3,
+          "offset": 300,
+          "elapsed_ms": 319,
+          "returned": 100,
+          "advertised_total": 592,
+          "fresh_14d": 0,
+          "marginal_unique_vs_earlier_pages": 95,
+          "duplicate_overlap_with_earlier_pages": 5,
+          "candidate_gated": 6,
+          "error": ""
+        }
+      ],
+      "by_depth": {
+        "rows_1_to_100": {
+          "normalized": 100,
+          "candidate_gated": 8,
+          "eligible_final": 1,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_200": {
+          "normalized": 200,
+          "candidate_gated": 18,
+          "eligible_final": 6,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_300": {
+          "normalized": 300,
+          "candidate_gated": 27,
+          "eligible_final": 6,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_400": {
+          "normalized": 400,
+          "candidate_gated": 33,
+          "eligible_final": 6,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        }
+      }
+    },
+    "metromakro": {
+      "company": "METRO/MAKRO",
+      "advertised_total": 1611,
+      "pages": [
+        {
+          "page": 0,
+          "offset": 0,
+          "elapsed_ms": 361,
+          "returned": 100,
+          "advertised_total": 1611,
+          "fresh_14d": 100,
+          "marginal_unique_vs_earlier_pages": 100,
+          "duplicate_overlap_with_earlier_pages": 0,
+          "candidate_gated": 1,
+          "error": ""
+        },
+        {
+          "page": 1,
+          "offset": 100,
+          "elapsed_ms": 375,
+          "returned": 100,
+          "advertised_total": 1611,
+          "fresh_14d": 100,
+          "marginal_unique_vs_earlier_pages": 81,
+          "duplicate_overlap_with_earlier_pages": 19,
+          "candidate_gated": 0,
+          "error": ""
+        },
+        {
+          "page": 2,
+          "offset": 200,
+          "elapsed_ms": 420,
+          "returned": 100,
+          "advertised_total": 1611,
+          "fresh_14d": 100,
+          "marginal_unique_vs_earlier_pages": 80,
+          "duplicate_overlap_with_earlier_pages": 20,
+          "candidate_gated": 1,
+          "error": ""
+        },
+        {
+          "page": 3,
+          "offset": 300,
+          "elapsed_ms": 382,
+          "returned": 100,
+          "advertised_total": 1611,
+          "fresh_14d": 36,
+          "marginal_unique_vs_earlier_pages": 76,
+          "duplicate_overlap_with_earlier_pages": 24,
+          "candidate_gated": 1,
+          "error": ""
+        }
+      ],
+      "by_depth": {
+        "rows_1_to_100": {
+          "normalized": 100,
+          "candidate_gated": 1,
+          "eligible_final": 1,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_200": {
+          "normalized": 200,
+          "candidate_gated": 1,
+          "eligible_final": 1,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_300": {
+          "normalized": 300,
+          "candidate_gated": 2,
+          "eligible_final": 1,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_400": {
+          "normalized": 400,
+          "candidate_gated": 3,
+          "eligible_final": 1,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        }
+      }
+    },
+    "informagroupplc": {
+      "company": "Informa Group Plc.",
+      "advertised_total": 143,
+      "pages": [
+        {
+          "page": 0,
+          "offset": 0,
+          "elapsed_ms": 343,
+          "returned": 100,
+          "advertised_total": 143,
+          "fresh_14d": 71,
+          "marginal_unique_vs_earlier_pages": 100,
+          "duplicate_overlap_with_earlier_pages": 0,
+          "candidate_gated": 2,
+          "error": ""
+        },
+        {
+          "page": 1,
+          "offset": 100,
+          "elapsed_ms": 319,
+          "returned": 43,
+          "advertised_total": 143,
+          "fresh_14d": 0,
+          "marginal_unique_vs_earlier_pages": 34,
+          "duplicate_overlap_with_earlier_pages": 9,
+          "candidate_gated": 8,
+          "error": ""
+        }
+      ],
+      "by_depth": {
+        "rows_1_to_100": {
+          "normalized": 100,
+          "candidate_gated": 2,
+          "eligible_final": 0,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_200": {
+          "normalized": 143,
+          "candidate_gated": 10,
+          "eligible_final": 0,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        }
+      }
+    },
+    "version1": {
+      "company": "Version 1",
+      "advertised_total": 160,
+      "pages": [
+        {
+          "page": 0,
+          "offset": 0,
+          "elapsed_ms": 355,
+          "returned": 100,
+          "advertised_total": 160,
+          "fresh_14d": 75,
+          "marginal_unique_vs_earlier_pages": 100,
+          "duplicate_overlap_with_earlier_pages": 0,
+          "candidate_gated": 27,
+          "error": ""
+        },
+        {
+          "page": 1,
+          "offset": 100,
+          "elapsed_ms": 316,
+          "returned": 60,
+          "advertised_total": 160,
+          "fresh_14d": 0,
+          "marginal_unique_vs_earlier_pages": 44,
+          "duplicate_overlap_with_earlier_pages": 16,
+          "candidate_gated": 20,
+          "error": ""
+        }
+      ],
+      "by_depth": {
+        "rows_1_to_100": {
+          "normalized": 100,
+          "candidate_gated": 27,
+          "eligible_final": 4,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        },
+        "rows_1_to_200": {
+          "normalized": 160,
+          "candidate_gated": 47,
+          "eligible_final": 4,
+          "positive_score": 0,
+          "score_at_least_10": 0
+        }
+      }
+    }
+  },
+  "summary": {
+    "first_100_only": {
+      "normalized": 500,
+      "candidate_gated": 54,
+      "eligible_final": 7,
+      "positive_score": 0
+    },
+    "all_pages_fetched": {
+      "normalized": 1503,
+      "candidate_gated": 152,
+      "eligible_final": 23,
+      "positive_score": 0
+    },
+    "note": "Per-board sums, not a deduplicated cross-board total, and not deduplicated against the other 129 boards or the paid half. Cross-source overlap can only reduce these figures."
+  },
+  "limits": [
+    "One dated observation. Board inventory changes daily.",
+    "Eligibility is one synthetic fixture's. A different cohort can have a different depth curve, and business/early-career cohorts are untested.",
+    "SmartRecruiters list rows carry no description, so every row here is scored on its TITLE alone \u2014 depth and JD enrichment are entangled, and a low eligible count is not proof the jobs are irrelevant.",
+    "advertised_total is the provider's claim, not verified inventory.",
+    "This measures inventory, not request budget: extra pages cost time on every sweep whether or not they yield."
+  ]
+}

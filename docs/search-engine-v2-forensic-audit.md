@@ -41,6 +41,9 @@ importance is the product premise supplied for this audit; its share of traffic
 cannot be calculated from this checkout.
 
 Companion: [Free source expansion audit](free-source-expansion-audit.md).
+Implemented first stage, with the findings it confirmed, extended and
+corrected: [V2-A telemetry and shadow](search-engine-v2-a-telemetry-and-shadow.md).
+No conclusion below was edited; that document's §19 records every divergence.
 Reproducible evidence: [paid plans](search-v2-evidence/paid-plans.json),
 [paid execution research](search-v2-evidence/paid-engine.md),
 [identity experiments](search-v2-evidence/identity-counterexamples.json).

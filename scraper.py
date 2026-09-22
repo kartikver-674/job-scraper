@@ -57,6 +57,8 @@ import enrich
 import experience_guard
 import skill_concepts
 import sources
+import telemetry
+from sources import shadow
 from sources._http import strip_html as _strip_html
 from config import (SEARCH, SITES, SCORING, SETTINGS, NAUKRI_CITY_IDS,
                     LINKEDIN_GEO_IDS, LINKEDIN_COMPANY_IDS, INDEED_COUNTRIES,
@@ -280,6 +282,15 @@ def fetch_free():
     rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed,
                               is_home_location, optum_cfg=OPTUM,
                               enterprise_cfg=ENTERPRISE)
+    # SWEEP_FREE_SOURCE_SHADOW (default off). Measures the audit's eight
+    # candidate Greenhouse boards and discards every row — sources.shadow.run
+    # returns None, so there is nothing here to merge into `rows` by accident.
+    # Wrapped again on top of its own per-board isolation: a diagnostic must not
+    # be able to fail the sweep somebody is waiting for.
+    try:
+        shadow.run(is_dev_title, location_allowed, is_home_location)
+    except Exception as exc:
+        print(f"  (shadow tranche skipped: {exc})")
     return [_truncate_desc(r) for r in rows]
 
 
@@ -1135,15 +1146,28 @@ def scrape_search(client, site_key, actor_id, search):
     run = client.actor(actor_id).start(
         run_input=run_input, run_timeout=timedelta(minutes=5))
     rc = client.run(run.id)
+    # Recorded the moment they exist. Without a run ID and a build ID no future
+    # measurement can join Sweep's account of a search to Apify's — which is
+    # precisely why the audit's paid cost-per-eligible-job is UNKNOWN. The token
+    # is not among these fields and paid_run() drops anything unlisted.
+    telemetry.paid_run(actor_id=actor_id, actor_run_id=getattr(run, "id", ""),
+                       actor_build_id=getattr(run, "build_id", ""),
+                       actor_started_at=getattr(run, "started_at", ""))
     deadline = time.monotonic() + 360
+    polls = 0
     while time.monotonic() < deadline:
         time.sleep(5)
+        polls += 1
         run = rc.get()
         if run is None or run.status not in ("READY", "RUNNING"):
             break
     else:
         rc.abort()          # deadline blown — stop the run server-side
         run = rc.get()
+    telemetry.paid_run(poll_count=polls,
+                       actor_status=getattr(run, "status", "NO RUN"),
+                       actor_finished_at=getattr(run, "finished_at", ""),
+                       dataset_id=getattr(run, "default_dataset_id", ""))
     if run is None or run.status != "SUCCEEDED":
         status = getattr(run, "status", "NO RUN")
         raise RuntimeError(f"run status {status}")
@@ -1160,6 +1184,8 @@ def scrape_search(client, site_key, actor_id, search):
         row["search_query"] = label
         row["search_rank"] = rank
         rows.append(row)
+    telemetry.paid_run(dataset_retrieved_at=datetime.now().isoformat(
+        timespec="milliseconds"))
     if remote_was_queried(site_key, search):
         # Stamp what the query already guarantees, the same way the remote-only
         # feeds do, so enrich sees it. Their own location text is kept because it
@@ -1259,9 +1285,15 @@ LAST_STATS = {}
 
 def finalize(raw_rows):
     """Score, filter, rank, and dedupe raw normalized rows into output rows."""
+    telemetry.stage("observed_normalized", raw_rows)
     scored = [r for r in (score_job(row) for row in raw_rows) if r is not None]
     if SETTINGS["min_score"] is not None:
         scored = [r for r in scored if r["score"] >= SETTINGS["min_score"]]
+    # Per-source counts at each boundary the engine ALREADY crosses. Nothing is
+    # moved, re-ordered or re-filtered to obtain them; telemetry.stage only
+    # counts the list finalize is holding at that instant, and is a single
+    # `is None` test when the flag is off.
+    telemetry.stage("post_hard_filter_and_score", scored)
 
     # Freshness: drop jobs older than max_age_days.
     stale = 0
@@ -1269,6 +1301,7 @@ def finalize(raw_rows):
         fresh = [r for r in scored if is_recent(r.get("Posted Date"), SETTINGS["max_age_days"])]
         stale = len(scored) - len(fresh)
         scored = fresh
+    telemetry.stage("post_recency", scored)
 
     # Compensation: drop jobs whose disclosed MAX annual pay (in USD) is below
     # the floor. Unknown currency / undisclosed pay is kept — see comp_max_usd.
@@ -1296,6 +1329,7 @@ def finalize(raw_rows):
         ok = [r for r in scored if r.get("eor")]
         no_eor = len(scored) - len(ok)
         scored = ok
+    telemetry.stage("post_salary_reachability_visa_eor", scored)
 
     # Work arrangement, from Sweep's "which jobs should Sweep include" choice.
     # The "remote" answer needs nothing here — it is already expressed as
@@ -1315,14 +1349,23 @@ def finalize(raw_rows):
         ok = [r for r in scored if onsite_or_hybrid(r)]
         wrong_arrangement = len(scored) - len(ok)
         scored = ok
+        telemetry.stage("post_arrangement", scored)
         if scope == "india":
             here = [r for r in scored
                     if in_home_country(r.get("Location") or r.get("location"))]
             off_geography = len(scored) - len(here)
             scored = here
 
+    telemetry.stage("post_location_eligible", scored)
     scored.sort(key=lambda r: r["score"], reverse=True)
     unique = dedupe(scored)  # sorted first, so highest-scored duplicate wins
+    telemetry.stage("final_after_dedupe", unique)
+    # normalized_rows, not raw_rows: by the time finalize sees them the
+    # adapters have already mapped every row into the internal schema. The raw
+    # endpoint counts live per source and are summed in telemetry.finish().
+    telemetry.counts(normalized_rows=len(raw_rows), eligible_rows=len(scored),
+                     final_rows=len(unique))
+    telemetry.eligible_progress(len(unique))
     LAST_STATS.update(stale=stale, low_salary=low_salary, kept=len(unique),
                       unreachable=unreachable, rescued=rescued,
                       no_visa=no_visa, no_eor=no_eor,
@@ -1944,6 +1987,68 @@ def demo():
                              "APIFY_TOKEN_3": "c", "APIFY_TOKEN_4": "d",
                              "APIFY_TOKEN_5": "e"})) == 5
 
+    # --- Telemetry is PASSIVE ------------------------------------------------
+    # The claim that a flag changes nothing is worth exactly as much as the test
+    # behind it. finalize() is the whole funnel — score, every hard filter, sort
+    # and dedupe — so running it twice over one row set with the flag flipped
+    # asserts the property that actually matters: identical rows, identical
+    # order. Not "similar counts": the same list.
+    #
+    # Remote, fresh, and several rows deliberately TIED on score: the sort is
+    # stable, so a tie is broken by arrival order, and arrival order is exactly
+    # what an observer must not perturb. Two of them (Beta Labs / Beta) share a
+    # dedupe key, so which one survives is order-dependent too.
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    def _row(title, company, source, url, desc, location="Remote"):
+        return {"Title": title, "Company": company, "Location": location,
+                "Description": desc, "Posted Date": today, "Source": source,
+                "Job URL": url, "Salary": "", "Experience": ""}
+
+    sample = [
+        _row("Backend Engineer", "Beta Labs", "lever:beta", "https://x/2",
+             "python django"),
+        _row("Engineer, Backend", "Beta", "remoteok", "https://x/3",
+             "python django", "Worldwide"),
+        _row("Full Stack Developer", "Gamma", "greenhouse:gamma", "https://x/4",
+             "react node postgres"),
+        _row("Software Engineer", "Delta", "ashby:delta", "https://x/5",
+             "react node postgres"),
+        _row("Frontend Engineer", "Epsilon", "jobicy", "https://x/6",
+             "react typescript", "Anywhere in the World"),
+        _row("React Native Developer", "Zeta", "himalayas", "https://x/7",
+             "react native typescript"),
+    ]
+    was = os.environ.get(telemetry.FLAG)
+    os.environ.pop(telemetry.FLAG, None)
+    assert not telemetry.enabled()
+    off = finalize([dict(r) for r in sample])
+    off_stats = dict(LAST_STATS)
+    # Guard the guard: a sample that collapses to one row would pass this test
+    # no matter what telemetry did, and the first version of it did exactly
+    # that. Order can only be asserted if there is an order, and a tie can only
+    # be mis-broken if there is a tie.
+    assert len(off) >= 4, f"passivity sample too weak to detect reordering: {off}"
+    assert len({r["score"] for r in off}) < len(off), "no score ties to break"
+
+    os.environ[telemetry.FLAG] = "1"
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        telemetry.start("free", tmp)
+        on = finalize([dict(r) for r in sample])
+        rec = telemetry.record()
+        assert rec["stages"]["final_after_dedupe"]["total"] == len(on), rec["stages"]
+        telemetry.finish()
+    if was is None:
+        os.environ.pop(telemetry.FLAG, None)
+    else:
+        os.environ[telemetry.FLAG] = was
+    assert on == off, "telemetry changed the result set"
+    assert dict(LAST_STATS) == off_stats, "telemetry changed the filter stats"
+    # And the diagnostic native-identity key cannot reach an output row, which
+    # is what makes capturing it safe at all.
+    assert "_native" not in to_output({"_native": {"native_id": "1"}})
+
     print("demo ok")
 
 
@@ -2047,6 +2152,20 @@ def main():
     csv_path = os.path.join(SETTINGS["output_dir"], f"jobs_{stamp}.csv")
     json_path = os.path.join(SETTINGS["output_dir"], f"jobs_{stamp}.json")
 
+    # SWEEP_SEARCH_V2_TELEMETRY (default off). Opened here because this is the
+    # first point at which the sweep knows both what it will run and where it
+    # will write. Everything it records is read off work the engine does anyway.
+    telemetry.start("paid+free" if (plans and run_free) else
+                    ("paid" if plans else "free"),
+                    SETTINGS["output_dir"], profile=config.PROFILE or "")
+    if telemetry.active():
+        telemetry.note("Free holds every row until the last source returns, so "
+                       "its eligible milestones are checkpoint-granular, not "
+                       "streamed. See docs/search-engine-v2-a-telemetry-and-shadow.md.")
+        if shadow.enabled():
+            telemetry.note("Shadow tranche fetched; its rows were discarded and "
+                           "are excluded from the sweep's source counters.")
+
     # Loaded ONCE, before anything is written: --only-new must filter against
     # what EARLIER runs reported, and the ledger is appended to only at the end.
     seen = load_seen()
@@ -2119,20 +2238,45 @@ def main():
                     print(f"  ⚠ spend cap ${budget:.2f} reached (${spent:.2f}) — stopping.")
                     stopped_early = True
                     break
-                try:
-                    rows, cost = scrape_search(client, site_key, actor_id, search)
-                    actual = account_usage_usd(client) if baseline is not None else None
-                    spent = actual - baseline if actual is not None else spent + cost
-                    raw_rows.extend(rows)
-                    emit(raw_rows)                                # checkpoint
-                    with open(done_path, "a") as fh:                        # mark done
-                        fh.write(combo_key + "\n")
-                    done.add(combo_key)
-                    print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
-                          f"(${cost:.3f} actor, ${spent:.2f} billed)")
-                except Exception as exc:  # isolate failures per search
-                    failures.append((site_key, label, str(exc)))
-                    print(f"  [{i}/{len(plan)}] {label:<46} ! {exc}")
+                # One telemetry work unit per paid search. `eff` is read
+                # through effective_search — the same call build_input goes
+                # through — so the depth recorded is the depth actually billed,
+                # not the smaller figure the plan asked for.
+                eff = effective_search(site_key, search)
+                with telemetry.unit(
+                        "paid", site_key, board=actor_id,
+                        query=search.get("keywords") or "(all)",
+                        location=search.get("location") or "",
+                        country=SEARCH.get("country", ""),
+                        requested_limit=eff["max_results"]):
+                    try:
+                        rows, cost = scrape_search(client, site_key, actor_id,
+                                                   search)
+                        actual = (account_usage_usd(client)
+                                  if baseline is not None else None)
+                        before = spent
+                        spent = (actual - baseline if actual is not None
+                                 else spent + cost)
+                        # The actor's self-report AND the account delta, kept
+                        # apart: the audit measured a sweep self-reporting $0.53
+                        # against an account that moved $1.61, and a single
+                        # "cost" field is exactly how that went unnoticed.
+                        telemetry.observed(raw=len(rows), normalized=len(rows),
+                                           gated=len(rows))
+                        telemetry.paid_run(
+                            reported_cost_usd=cost,
+                            billed_delta_usd=round(spent - before, 6))
+                        raw_rows.extend(rows)
+                        emit(raw_rows)                            # checkpoint
+                        with open(done_path, "a") as fh:          # mark done
+                            fh.write(combo_key + "\n")
+                        done.add(combo_key)
+                        print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
+                              f"(${cost:.3f} actor, ${spent:.2f} billed)")
+                    except Exception as exc:  # isolate failures per search
+                        telemetry.failed(exc)
+                        failures.append((site_key, label, str(exc)))
+                        print(f"  [{i}/{len(plan)}] {label:<46} ! {exc}")
         print(f"\nTotal Apify spend this run: ${spent:.2f}"
               + ("" if baseline is None else "  (billed to the account, not self-reported)"))
         # Per-search try/except means a sweep can fail almost entirely and still
@@ -2158,11 +2302,20 @@ def main():
     # --- Free sources (company ATS boards + public remote feeds) ---
     if run_free:
         print("\nfree sources (company boards + remote feeds)")
+        telemetry.mark("free_phase_start")
         raw_rows.extend(fetch_free())
+        telemetry.mark("free_phase_done")
         emit(raw_rows)                                          # checkpoint
 
     pulled = len(raw_rows)
     if pulled == 0:
+        # Written before the exit, deliberately: a sweep that scraped nothing is
+        # the run whose per-source failure categories are most worth having, and
+        # the audit's whole complaint is that this case leaves no trace at all.
+        telemetry.counts(normalized_rows=0, eligible_rows=0, final_rows=0)
+        written = telemetry.finish()
+        if written:
+            print(f"  telemetry: {written}")
         sys.exit("\nNo jobs scraped — nothing to write.")
 
     out_rows = emit(raw_rows)
@@ -2176,6 +2329,15 @@ def main():
     print(f"  {json_path}")
     print(f"  seen.tsv: +{added} new ({len(seen)} known)"
           + ("" if args.only_new else "  — next run: --only-new to skip these"))
+
+    # Identity BEFORE dedupe, over the complete accumulated row set: the audit
+    # could only report the current heuristic's own output, never what it merged
+    # away. job_key is PASSED rather than imported, so a later experiment can
+    # measure an alternative key without touching this file.
+    telemetry.identity(raw_rows, job_key)
+    written = telemetry.finish()
+    if written:
+        print(f"  telemetry: {written}")
 
 
 if __name__ == "__main__":

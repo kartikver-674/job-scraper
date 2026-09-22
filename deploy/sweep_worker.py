@@ -288,6 +288,11 @@ def default_spawn(run_id, run_dir, profile_name, checkout, token):
     if token:
         env["APIFY_TOKEN"] = token
     env["JOB_PROFILE"] = profile_name
+    # The join key between this run's status file and the engine's telemetry
+    # record, when SWEEP_SEARCH_V2_TELEMETRY is on. Inert otherwise: nothing
+    # but telemetry.start() reads it. Not a credential — it is the same run ID
+    # the status file and the run directory already carry.
+    env["SWEEP_RUN_ID"] = run_id
     # A free run holds no credential, so its engine output is safe to keep
     # and worth keeping: it is the only account of what the sweep did.
     if token:

@@ -16,6 +16,8 @@ Self-check:
     python -m sources           # offline: assert the field mapping (no network)
     python -m sources --live     # one real request per platform + feed
 """
+import telemetry
+
 from . import ats, enterprise, feeds, optum
 
 # A feed adapter is (cfg, keep_title, keep_location) -> [row].
@@ -45,14 +47,19 @@ def fetch_free(ats_boards, feed_cfg, keep_title, keep_location, is_home=None,
             log(f"  {platform:<16} {'-':<22} ! no adapter (see sources/ats.py ATS)")
             continue
         for token, company in boards.items():
-            try:
-                got = ats.fetch(platform, token, company, keep_title, keep_location,
-                                is_home)
-                rows.extend(got)
-                home = f" hires-home={got[0]['hires_home']}" if got else ""
-                log(f"  {platform:<16} {company:<22} {len(got):>4} jobs{home}")
-            except Exception as exc:
-                log(f"  {platform:<16} {company:<22} ! {exc}")
+            # One work unit per board: the audit had no per-board timestamp,
+            # request count or failure category to join anything to.
+            with telemetry.unit("free", platform, board=f"{platform}:{token}",
+                                timeout_s=25):
+                try:
+                    got = ats.fetch(platform, token, company, keep_title,
+                                    keep_location, is_home)
+                    rows.extend(got)
+                    home = f" hires-home={got[0]['hires_home']}" if got else ""
+                    log(f"  {platform:<16} {company:<22} {len(got):>4} jobs{home}")
+                except Exception as exc:
+                    telemetry.failed(exc)
+                    log(f"  {platform:<16} {company:<22} ! {exc}")
     for name, cfg in (feed_cfg or {}).items():
         if not cfg.get("enabled"):
             continue
@@ -60,12 +67,14 @@ def fetch_free(ats_boards, feed_cfg, keep_title, keep_location, is_home=None,
         if fetcher is None:
             log(f"  {name:<16} {'-':<22} ! no adapter (see sources.FEED_FETCHERS)")
             continue
-        try:
-            got = fetcher(cfg, keep_title, keep_location)
-            rows.extend(got)
-            log(f"  {name:<16} {'(feed)':<22} {len(got):>4} jobs")
-        except Exception as exc:
-            log(f"  {name:<16} {'(feed)':<22} ! {exc}")
+        with telemetry.unit("free", "feed", board=name, timeout_s=25):
+            try:
+                got = fetcher(cfg, keep_title, keep_location)
+                rows.extend(got)
+                log(f"  {name:<16} {'(feed)':<22} {len(got):>4} jobs")
+            except Exception as exc:
+                telemetry.failed(exc)
+                log(f"  {name:<16} {'(feed)':<22} ! {exc}")
 
     # One employer's own careers site. Isolated like every other source, so an
     # Optum-side markup change can't take a whole sweep down with it.

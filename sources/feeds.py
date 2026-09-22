@@ -11,8 +11,36 @@ returns a whole board of international remote roles.
 from email.utils import parsedate_to_datetime
 from urllib.parse import quote
 
+import telemetry
+
 from ._http import dig, flat, get_json, get_xml, strip_html
 from .ats import BLANK, _date
+
+
+# Provider-native identity — DIAGNOSTIC ONLY. The ATS half of this is
+# sources/ats.py NATIVE; the reasoning is there and applies identically here.
+# The audit recorded "ID dropped" against every one of these feeds: each
+# publishes a stable posting id and its own canonical link, and the field map
+# above keeps neither. Captured under SWEEP_SEARCH_V2_TELEMETRY into the row's
+# "_native" key, which to_output() does not read.
+#
+# wwr is absent on purpose: its rows come from RSS <item> elements, not dicts,
+# so dig() cannot walk them. It is handled inline in wwr() instead.
+NATIVE = {
+    "remoteok": {"native_id": "id", "canonical_url": "url",
+                 "apply_url": "apply_url", "published_at": "date",
+                 "board_company": "company"},
+    "remotive": {"native_id": "id", "canonical_url": "url",
+                 "published_at": "publication_date",
+                 "board_company": "company_name",
+                 "multi_location": "candidate_required_location"},
+    "jobicy": {"native_id": "id", "canonical_url": "url",
+               "published_at": "pubDate", "board_company": "companyName",
+               "multi_location": "jobGeo"},
+    "himalayas": {"native_id": "guid", "apply_url": "applicationLink",
+                  "published_at": "pubDate", "board_company": "companyName",
+                  "multi_location": "locationRestrictions"},
+}
 
 
 def _salary(currency, low, high, period):
@@ -55,12 +83,17 @@ def _json_rows(name, url, list_path, fmap, keep_title, keep_location,
                 row["Description"] += f"\nTags: {tags}"
         if after:
             after(item, row)
+        if telemetry.active():
+            row["_native"] = {field: flat(dig(item, path))
+                              for field, path in NATIVE.get(name, {}).items()}
         # Every feed here is a remote-only board, but the location field carries
         # the SCOPE ("Worldwide" vs "USA Only"), which is the distinction that
         # matters. Keep their text and append the flag so enrich sees both.
         row["Location"] = (row["Location"] + ", Remote").strip(", ")
         if keep_title(row["Title"]) and keep_location(row["Location"]):
             rows.append(row)
+    telemetry.observed(raw=len(items), normalized=len(items), gated=len(rows),
+                       requests=1)
     return rows
 
 
@@ -72,11 +105,14 @@ def remoteok(cfg, keep_title, keep_location):
     stabler of the two anyway.
     """
     rows = []
-    for it in get_json("https://remoteok.com/api"):
+    items = get_json("https://remoteok.com/api")
+    normalized = 0
+    for it in items:
         # The first element is a legal/metadata object, not a job. Detect it by
         # shape rather than by index so a feed reorder can't slip it through.
         if not it.get("id") or not it.get("position"):
             continue
+        normalized += 1
         lo, hi = it.get("salary_min") or 0, it.get("salary_max") or 0
         tags = ", ".join(it.get("tags") or [])
         desc = strip_html(it.get("description", ""))
@@ -98,8 +134,13 @@ def remoteok(cfg, keep_title, keep_location):
             # the only place it's stated, so scoring must see them.
             Description=f"{desc}\nTags: {tags}" if tags else desc,
         )
+        if telemetry.active():
+            row["_native"] = {field: flat(it.get(path))
+                              for field, path in NATIVE["remoteok"].items()}
         if keep_title(row["Title"]) and keep_location(row["Location"]):
             rows.append(row)
+    telemetry.observed(raw=len(items), normalized=normalized, gated=len(rows),
+                       requests=1)
     return rows
 
 
@@ -209,13 +250,49 @@ def _himalayas_extras(item, row):
 
 WWR_FEED = "https://weworkremotely.com/categories/{category}.rss"
 
+# The whole board is NOT a category. WWR publishes its catch-all feed at the
+# ROOT — https://weworkremotely.com/remote-jobs.rss — and the audit measured
+# what asking for it as a category costs: /categories/remote-jobs.rss answers
+# with a 301 whose redirect then fails, wwr() raised on it, and the SEVEN
+# categories that had already returned HTTP 200 went in the bin with it. The
+# canonical route returned 83 items in the same follow-up check.
+# https://weworkremotely.com/remote-job-rss-feed
+WWR_WHOLE_BOARD = "https://weworkremotely.com/remote-jobs.rss"
+
+
+def _wwr_url(category):
+    """Feed URL for one configured WWR entry.
+
+    Split out, and asserted offline in `python -m sources`, because a wrong feed
+    URL here fails at request time on someone else's machine rather than in a
+    test: it is exactly the shape of bug the audit found.
+    """
+    name = (category or "").strip()
+    return (WWR_WHOLE_BOARD if name in ("remote-jobs", "")
+            else WWR_FEED.format(category=name))
+
 
 def wwr(cfg, keep_title, keep_location):
-    """We Work Remotely category RSS feeds (25 newest jobs each, no auth)."""
+    """We Work Remotely category RSS feeds (25 newest jobs each, no auth).
+
+    Each configured feed is isolated. One category failing costs that category
+    and nothing else — before this, it cost every category fetched before it,
+    which is a far more expensive failure than the one that actually happened.
+    A feed where EVERY route fails still raises, so fetch_free reports it as a
+    dead source rather than as a source that legitimately returned zero.
+    """
     rows = []
+    failures = []
     for category in cfg.get("categories", []):
-        root = get_xml(WWR_FEED.format(category=category))
-        for item in root.findall(".//item"):
+        try:
+            root = get_xml(_wwr_url(category))
+        except Exception as exc:
+            failures.append(f"{category}: {exc}")
+            telemetry.partial(f"wwr {category}: {telemetry.failure_category(exc)}")
+            continue
+        items = root.findall(".//item")
+        kept_before = len(rows)
+        for item in items:
             def t(tag):
                 el = item.find(tag)
                 return (el.text or "").strip() if el is not None else ""
@@ -240,6 +317,21 @@ def wwr(cfg, keep_title, keep_location):
                 **{"Posted Date": posted},
                 **{"Job URL": t("link")},
             )
+            if telemetry.active():
+                # RSS, not JSON: <guid> is WWR's own posting identity and
+                # <link> its canonical URL, and the field map keeps neither.
+                row["_native"] = {"native_id": t("guid"),
+                                  "canonical_url": t("link"),
+                                  "published_at": t("pubDate"),
+                                  "multi_location": t("region"),
+                                  "feed_category": category}
             if keep_title(row["Title"]) and keep_location(row["Location"]):
                 rows.append(row)
+        telemetry.observed(raw=len(items), normalized=len(items),
+                           gated=len(rows) - kept_before, requests=1)
+    # Nothing came back from anywhere: that is a failed source, not a source
+    # with no jobs, and the two must not look the same to whoever reads the log.
+    if failures and not rows:
+        raise RuntimeError("wwr: every configured feed failed — "
+                           + "; ".join(failures))
     return rows

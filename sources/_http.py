@@ -12,6 +12,8 @@ import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 
+import telemetry
+
 UA = "Mozilla/5.0 (compatible; job-scraper)"
 _TAG_RE = re.compile(r"<[^>]+>")
 
@@ -41,6 +43,10 @@ def get_bytes(url, timeout=25, retries=2):
         except http.client.HTTPException as exc:
             last = exc
         if attempt < retries:
+            # Counted where it happens: a retry is the difference between a
+            # slow source and a flaky one, and nothing above this frame can see
+            # it. No-op unless telemetry is on.
+            telemetry.retried()
             time.sleep(2 ** attempt)
     raise last
 
@@ -73,6 +79,10 @@ def post_json(url, payload, timeout=25, retries=2, headers=None):
                 http.client.HTTPException) as exc:
             last = exc
         if attempt < retries:
+            # Counted where it happens: a retry is the difference between a
+            # slow source and a flaky one, and nothing above this frame can see
+            # it. No-op unless telemetry is on.
+            telemetry.retried()
             time.sleep(2 ** attempt)
     raise last
 

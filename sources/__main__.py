@@ -56,6 +56,108 @@ def optum_offline():
 
 YES = lambda _: True  # noqa: E731 — keep-everything predicates for the checks
 
+# One WWR category feed, trimmed to the fields the adapter reads. "Company: Role"
+# in <title> is WWR's own packing and the reason the adapter splits on ": ".
+WWR_RSS = """<?xml version="1.0"?><rss><channel>
+<item><title>Acme: Senior Backend Engineer</title>
+<region>Anywhere in the World</region>
+<pubDate>Mon, 21 Sep 2026 10:00:00 +0000</pubDate>
+<link>https://weworkremotely.com/remote-jobs/acme-senior-backend</link>
+<description>&lt;p&gt;Python and Postgres&lt;/p&gt;</description></item>
+</channel></rss>"""
+
+
+def wwr_offline():
+    """The concrete failure the V2 audit measured, and the two separate bugs in it.
+
+    1. The catch-all board was configured as a CATEGORY. WWR serves it from the
+       root, so /categories/remote-jobs.rss 301s into a failure.
+    2. wwr() raised on that failure, which threw away the seven categories that
+       had already answered HTTP 200.
+
+    Both are asserted here rather than on somebody's live sweep, because both
+    only show up at request time.
+    """
+    from . import feeds
+
+    # 1 — routes. The whole board is not under /categories/.
+    assert feeds._wwr_url("remote-programming-jobs") == (
+        "https://weworkremotely.com/categories/remote-programming-jobs.rss")
+    assert feeds._wwr_url("remote-jobs") == feeds.WWR_WHOLE_BOARD
+    assert "/categories/" not in feeds.WWR_WHOLE_BOARD
+    # Every configured category must resolve to a route this adapter can build,
+    # so a new entry in config.FEEDS cannot silently repeat the same bug.
+    import config
+    for category in config.FEEDS["wwr"]["categories"]:
+        url = feeds._wwr_url(category)
+        assert url.startswith("https://weworkremotely.com/") and url.endswith(".rss"), url
+
+    import xml.etree.ElementTree as ET
+
+    calls = []
+    real_get_xml = feeds.get_xml
+
+    def fake(url, **kw):
+        """Offline stand-in: every category answers except the catch-all board,
+        which is the exact route that failed in the audit — and it is configured
+        LAST, so rows from the earlier categories are already in hand."""
+        calls.append(url)
+        if url == feeds.WWR_WHOLE_BOARD:
+            raise OSError("simulated redirect failure")
+        return ET.fromstring(WWR_RSS)
+
+    feeds.get_xml = fake
+    try:
+        cfg = {"categories": ["remote-programming-jobs", "remote-design-jobs",
+                              "remote-jobs"]}
+        # 2 — partial failure keeps what worked. Two categories answered, one
+        # failed: two rows, not zero.
+        rows = feeds.wwr(cfg, YES, YES)
+        assert len(calls) == 3, calls
+        assert len(rows) == 2, f"a failed category erased the successful ones: {rows}"
+
+        # Normalization of a successful row is untouched by any of this.
+        row = rows[0]
+        assert row["Company"] == "Acme", row
+        assert row["Title"] == "Senior Backend Engineer", row
+        assert row["Location"] == "Anywhere in the World", row
+        assert row["Posted Date"] == "2026-09-21", row
+        assert row["Job URL"].endswith("/acme-senior-backend"), row
+        assert row["Description"] == "Python and Postgres", row
+        assert row["Source"] == "wwr", row
+
+        # Total failure still REPORTS as a failure. A dead feed and a feed with
+        # no matching jobs must not look the same to fetch_free's log.
+        try:
+            feeds.wwr({"categories": ["remote-jobs"]}, YES, YES)
+        except RuntimeError as exc:
+            assert "every configured feed failed" in str(exc), exc
+        else:
+            raise AssertionError("a wholly failed WWR feed reported success")
+
+        # Filtered to zero is NOT a failure: every route answered, the
+        # predicates kept nothing. Returns empty, raises nothing.
+        assert feeds.wwr({"categories": ["remote-design-jobs"]},
+                         lambda t: False, YES) == []
+    finally:
+        feeds.get_xml = real_get_xml
+
+
+def native_offline():
+    """Every ATS platform must declare its provider-native identity fields.
+
+    Without this, adding a platform silently adds one the next dedupe audit has
+    no native evidence for — which is the exact hole this table was added to
+    close.
+    """
+    assert set(ats.NATIVE) == set(ats.ATS), (
+        f"no NATIVE identity map for: {set(ats.ATS) - set(ats.NATIVE)}")
+    for platform, fields in ats.NATIVE.items():
+        assert "native_id" in fields, f"{platform} declares no native job id"
+        # The diagnostic map must not shadow a scored field: "_native" is
+        # metadata for a later audit, never an input to scoring.
+        assert not set(fields) & set(ats.BLANK), platform
+
 # Fragments taken verbatim from live responses (2026-07-25).
 FIXTURES = {
     "greenhouse": ({"jobs": [{"title": "Backend Engineer", "absolute_url": "https://x/1",
@@ -126,6 +228,8 @@ def offline():
         "blank queries must fall back to paging, not fetch nothing"
     capped = _himalayas_urls({"queries": [f"q{i}" for i in range(30)]})
     assert len(capped) == 8, f"uncapped queries would rate-limit: {len(capped)}"
+    wwr_offline()
+    native_offline()
     optum_offline()
     # Same contract for the enterprise adapters: their date shapes and the
     # SuccessFactors row regex fail silently (blank dates, blank titles), so
@@ -138,7 +242,14 @@ def offline():
 
 def live():
     """One real request per ATS platform and per feed."""
-    probe = {"greenhouse": {"postman": "Postman"}, "lever": {"cred": "CRED"},
+    # greenhouse:gitlab, not greenhouse:postman. Postman's board returns 404 —
+    # the V2 audit measured it, and a follow-up spot-check reconfirmed it — so
+    # this self-check has been failing on a dead probe board rather than on
+    # anything it was written to catch. GitLab's board is large, public and
+    # stable. config.ATS_BOARDS is deliberately NOT touched here: whether the
+    # Postman token is dead or merely migrated is a registry decision, and one
+    # 404 is not grounds for deleting an employer (see the audit's §4).
+    probe = {"greenhouse": {"gitlab": "GitLab"}, "lever": {"cred": "CRED"},
              "ashby": {"linear": "Linear"}, "smartrecruiters": {"BoschGroup": "Bosch"},
              # Breezy's own board — a public one that is always up, since this
              # asserts every platform in the table answers.
@@ -164,6 +275,43 @@ def live():
     paid = [r for r in rows if r["Salary"]]
     assert paid, "no source reported pay; check the salary field maps in feeds.py"
     print(f"live ok ({len(paid)} rows with pay)")
+
+    # Provider-native identity availability, measured rather than assumed. A
+    # wrong dotted path in ats.NATIVE / feeds.NATIVE fails exactly the way a
+    # wrong path in the field map fails — silently, as a blank — so the only
+    # way to know the map is right is to point it at a real response and count.
+    # This is what makes the identity table in
+    # docs/search-engine-v2-a-telemetry-and-shadow.md evidence and not a guess.
+    import os
+
+    import telemetry
+    os.environ[telemetry.FLAG] = "1"
+    telemetry.start("free", "/tmp")
+    try:
+        native_rows = fetch_free(probe, feed_cfg, YES, YES)
+    finally:
+        telemetry.finish()
+        os.environ.pop(telemetry.FLAG, None)
+    by_source = {}
+    for r in native_rows:
+        by_source.setdefault(r["Source"].split(":")[0], []).append(r)
+    print("\nprovider-native identity fields present (rows with a value / rows):")
+    for source in sorted(by_source):
+        got = by_source[source]
+        fields = sorted({f for r in got for f in (r.get("_native") or {})})
+        if not fields:
+            print(f"  {source:<16} no NATIVE map")
+            continue
+        parts = [f"{f}={sum(1 for r in got if (r.get('_native') or {}).get(f))}"
+                 for f in fields]
+        print(f"  {source:<16} n={len(got):<4} " + " ".join(parts))
+    # A declared field that resolves on NO row is a wrong path, not an absent
+    # provider field — say so loudly rather than publishing a zero as a finding.
+    for source, got in by_source.items():
+        for field in sorted({f for r in got for f in (r.get("_native") or {})}):
+            if not any((r.get("_native") or {}).get(field) for r in got):
+                print(f"  ! {source}.{field} resolved on 0/{len(got)} rows — "
+                      f"verify the path before quoting it as unavailable")
 
 
 if __name__ == "__main__":

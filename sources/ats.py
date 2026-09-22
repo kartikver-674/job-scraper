@@ -15,6 +15,8 @@ Known gaps, deliberately left out rather than guessed at:
   workday   — needs a POST body and a per-tenant hostname, so it can't be a
               row in this table without adding a request-body key.
 """
+import telemetry
+
 from ._http import dig, flat, get_json, strip_html
 
 ATS = {
@@ -73,6 +75,61 @@ ATS = {
     },
 }
 
+# ---------------------------------------------------------------------------
+# Provider-native identity — DIAGNOSTIC ONLY (Search Engine V2-A)
+# ---------------------------------------------------------------------------
+# The identity the engine deduplicates on is a HEURISTIC: requisition number if
+# a source publishes one, else normalized company + sorted title words, else
+# host+path. The V2 audit produced executable counterexamples in both
+# directions — two distinct Bengaluru/Hyderabad requisitions collapsing into
+# one row, and one posting surviving twice under two company spellings.
+#
+# Every one of those counterexamples exists because the native identity the
+# provider DID publish was thrown away during normalization. `_row` builds a
+# row from `map` alone, so a Greenhouse posting's numeric `id` — a stable,
+# employer-namespaced key — never reaches the engine at all.
+#
+# This table records what each provider natively offers, so the NEXT audit can
+# tell "same requisition" from "separate vacancy", "repost", "multi-location
+# posting", "URL alias" and "tracking-URL variation" using facts rather than
+# string heuristics. It is captured under SWEEP_SEARCH_V2_TELEMETRY and stashed
+# on the row under "_native", a key to_output() does not read: it CANNOT reach
+# ranking, dedupe, the CSV or the JSON. Changing dedupe is a separate, later,
+# separately-reviewed decision — this only stops discarding the evidence.
+NATIVE = {
+    "greenhouse": {"native_id": "id", "internal_id": "internal_job_id",
+                   "canonical_url": "absolute_url", "board_company": "company_name",
+                   "multi_location": "offices", "updated_at": "updated_at",
+                   "requisition": "requisition_id"},
+    "lever": {"native_id": "id", "canonical_url": "hostedUrl",
+              "apply_url": "applyUrl", "multi_location": "categories.allLocations",
+              "published_at": "createdAt", "workplace_type": "workplaceType"},
+    "ashby": {"native_id": "id", "canonical_url": "jobUrl",
+              "apply_url": "applyUrl", "multi_location": "secondaryLocations",
+              "published_at": "publishedAt", "remote_flag": "isRemote",
+              # isListed distinguishes a public posting from an unlisted one,
+              # which the audit called out as needing a flag of its own.
+              "is_listed": "isListed", "workplace_type": "workplaceType"},
+    "smartrecruiters": {"native_id": "id", "internal_id": "refNumber",
+                        # uuid is a second provider-side identity, and ref is
+                        # the employer's own. Both were being discarded.
+                        "global_uuid": "uuid", "employer_ref": "ref",
+                        "board_company": "company.identifier",
+                        "multi_location": "location.region",
+                        "published_at": "releasedDate"},
+    "breezy": {"native_id": "id", "friendly_id": "friendly_id",
+               "canonical_url": "url", "multi_location": "locations",
+               "published_at": "published_date"},
+}
+
+# No update timestamp is declared for ashby, smartrecruiters or breezy, and that
+# is a MEASURED absence, not an oversight: `python -m sources --live` reports how
+# many rows each declared field resolves on, an earlier draft of this table
+# guessed `updatedAt` / `lastUpdatedOn` / `updated_date`, and all three resolved
+# on 0 rows. The real payloads carry no such field. Greenhouse's `updated_at` is
+# the only update timestamp any of these five publishes — which is also why the
+# audit warns that Greenhouse "freshness" means last-touched, not newly opened.
+
 # Internal schema every adapter must fill (scraper.py's normalized row shape).
 # hires_home is filled per BOARD, not per job — see fetch().
 BLANK = {"Title": "", "Company": "", "Location": "", "Salary": "",
@@ -105,6 +162,12 @@ def _row(item, platform, token, company, spec):
     # where scraper.is_remote() will see it.
     if spec.get("remote_flag") and dig(item, spec["remote_flag"]) is True:
         row["Location"] = (row["Location"] + ", Remote").lstrip(", ")
+    # Diagnostic only, and only under the telemetry flag — see NATIVE above.
+    # "_native" is not in OUTPUT_COLUMNS and to_output() never reads it, so it
+    # cannot reach ranking, dedupe or a written file.
+    if telemetry.active():
+        row["_native"] = {field: flat(dig(item, path))
+                          for field, path in NATIVE.get(platform, {}).items()}
     return row
 
 
@@ -131,5 +194,11 @@ def fetch(platform, token, company, keep_title, keep_location, is_home=None):
         for row in rows:
             row["hires_home"] = hires_home
 
-    return [r for r in rows
-            if keep_title(r["Title"]) and keep_location(r["Location"])]
+    survivors = [r for r in rows
+                 if keep_title(r["Title"]) and keep_location(r["Location"])]
+    # raw = what the endpoint returned, normalized = what mapped into a row,
+    # gated = what survived the caller's title/location acquisition predicates.
+    # Three different denominators, and the audit had to guess at two of them.
+    telemetry.observed(raw=len(items or []), normalized=len(rows),
+                       gated=len(survivors), requests=1)
+    return survivors

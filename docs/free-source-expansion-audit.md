@@ -2,7 +2,10 @@
 
 2026-09-21 · audit-only · baseline `9dc67cc33f99e5d87bd224498bafd0a336354a4f`.
 No production sources, adapters, preferences, profile/ranking logic or deployment
-were changed. No Apify actor was started. Definitions of **MEASURED**, **VERIFIED**,
+were changed. The first implementation stage acting on this audit is
+[V2-A telemetry and shadow](search-engine-v2-a-telemetry-and-shadow.md), which
+shadow-measured the eight-board tranche of §8 and resolved the SmartRecruiters
+pagination UNKNOWN of §3; no conclusion here was edited. No Apify actor was started. Definitions of **MEASURED**, **VERIFIED**,
 **INFERRED**, **UNKNOWN** and the complete execution trace are in the
 [engine audit](search-engine-v2-forensic-audit.md).
 

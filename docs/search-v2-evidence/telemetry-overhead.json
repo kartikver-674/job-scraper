@@ -1,0 +1,73 @@
+{
+  "status": "MEASURED OFFLINE; local scoring/filter pipeline only, no network",
+  "snapshot": "/tmp/search-v2-current-free-jobs.json",
+  "fixture": "software_fullstack/india",
+  "input_rows_after_acquisition_gate": 3099,
+  "final_rows": 82,
+  "repeats_per_arm": 3,
+  "result_set_identical_across_every_pass": true,
+  "median_wall_seconds": {
+    "telemetry_off": 14.5762,
+    "telemetry_on": 14.5661,
+    "difference": -0.0102,
+    "ratio": 0.9993
+  },
+  "median_process_cpu_seconds": {
+    "telemetry_off": 14.4194,
+    "telemetry_on": 14.4583,
+    "difference": 0.0389,
+    "ratio": 1.0027
+  },
+  "telemetry_record_bytes": 14773,
+  "files_written_per_sweep": 1,
+  "process_peak_rss_platform_units": 367919104,
+  "all_runs": {
+    "off": [
+      {
+        "wall_s": 14.576242667011684,
+        "cpu_s": 14.419364,
+        "final_rows": 82,
+        "record_bytes": 0
+      },
+      {
+        "wall_s": 14.63387537500239,
+        "cpu_s": 14.512862000000005,
+        "final_rows": 82,
+        "record_bytes": 0
+      },
+      {
+        "wall_s": 14.456290625006659,
+        "cpu_s": 14.377732000000002,
+        "final_rows": 82,
+        "record_bytes": 0
+      }
+    ],
+    "on": [
+      {
+        "wall_s": 14.566079249983886,
+        "cpu_s": 14.458275,
+        "final_rows": 82,
+        "record_bytes": 14773
+      },
+      {
+        "wall_s": 14.524160208995454,
+        "cpu_s": 14.411202,
+        "final_rows": 82,
+        "record_bytes": 14773
+      },
+      {
+        "wall_s": 14.62258437499986,
+        "cpu_s": 14.493345000000005,
+        "final_rows": 82,
+        "record_bytes": 14773
+      }
+    ]
+  },
+  "limits": [
+    "Denominator is LOCAL finalize work only. A real sweep is dominated by network time, which telemetry does not add to, so telemetry's share of a whole sweep is smaller than the ratio above.",
+    "One finalize pass. Paid sweeps re-finalize after every search, so the per-sweep cost scales with checkpoint count, not with this single pass.",
+    "Peak RSS is for this whole audit process with the snapshot loaded; it is not production incremental memory.",
+    "Record size grows with SOURCE count, not row count: the funnel stores per-source integers, never rows.",
+    "Wall time on a shared host includes scheduling noise; the CPU figure is the steadier of the two."
+  ]
+}
