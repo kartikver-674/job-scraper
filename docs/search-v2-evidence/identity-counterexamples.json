@@ -1,0 +1,90 @@
+{
+  "method": "MEASURED synthetic counterexamples; no prevalence estimate",
+  "cases": {
+    "different_city_distinct_url_collapses": {
+      "input": 2,
+      "output": 1,
+      "keys": [
+        [
+          "ct",
+          "example",
+          "engineer software"
+        ],
+        [
+          "ct",
+          "example",
+          "engineer software"
+        ]
+      ]
+    },
+    "same_req_across_companies_collapses": {
+      "input": 2,
+      "output": 1,
+      "keys": [
+        [
+          "req",
+          "123"
+        ],
+        [
+          "req",
+          "123"
+        ]
+      ]
+    },
+    "same_url_different_titles_survives": {
+      "input": 2,
+      "output": 2,
+      "keys": [
+        [
+          "ct",
+          "example",
+          "engineer software"
+        ],
+        [
+          "ct",
+          "example",
+          "backend engineer"
+        ]
+      ]
+    },
+    "query_only_job_id_collapses_without_company_title": {
+      "input": 2,
+      "output": 1,
+      "keys": [
+        [
+          "url",
+          "example.test/job"
+        ],
+        [
+          "url",
+          "example.test/job"
+        ]
+      ]
+    },
+    "distinct_req_numbers_survive": {
+      "input": 2,
+      "output": 2,
+      "keys": [
+        [
+          "req",
+          "1"
+        ],
+        [
+          "req",
+          "2"
+        ]
+      ]
+    },
+    "unkeyed_rows_survive": {
+      "input": 2,
+      "output": 2,
+      "keys": [
+        null,
+        null
+      ]
+    }
+  },
+  "network": "blocked",
+  "production_changes": false,
+  "undated_passes_recency": true
+}

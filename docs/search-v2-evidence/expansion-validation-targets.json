@@ -1,0 +1,3652 @@
+[
+ {
+  "provider": "greenhouse",
+  "board_id": "6sense",
+  "company_name": "6sense",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "abnormalsecurity",
+  "company_name": "abnormalsecurity",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "acquia",
+  "company_name": "acquia",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "adyen",
+  "company_name": "adyen",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "airbnb",
+  "company_name": "airbnb",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "airbyte",
+  "company_name": "airbyte",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "algolia",
+  "company_name": "algolia",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "amplitude",
+  "company_name": "amplitude",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "anthropic",
+  "company_name": "anthropic",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "apolloio",
+  "company_name": "apolloio",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "asana",
+  "company_name": "asana",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "brex",
+  "company_name": "brex",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "cohesity",
+  "company_name": "cohesity",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "coinbase",
+  "company_name": "coinbase",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "commercetools",
+  "company_name": "commercetools",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "customerio",
+  "company_name": "customerio",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "deliveroo",
+  "company_name": "deliveroo",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "devrev",
+  "company_name": "devrev",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "doordash",
+  "company_name": "doordash",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "duolingo",
+  "company_name": "duolingo",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "fivetran",
+  "company_name": "fivetran",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "glean",
+  "company_name": "glean",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "groq",
+  "company_name": "groq",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "hightouch",
+  "company_name": "hightouch",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "innovaccer",
+  "company_name": "innovaccer",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "instabase",
+  "company_name": "instabase",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "mixpanel",
+  "company_name": "mixpanel",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "mux",
+  "company_name": "mux",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "myntra",
+  "company_name": "myntra",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "pinterest",
+  "company_name": "pinterest",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "pubmatic",
+  "company_name": "pubmatic",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "quora",
+  "company_name": "quora",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "reddit",
+  "company_name": "reddit",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "redis",
+  "company_name": "redis",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "rubrik",
+  "company_name": "rubrik",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "salesloft",
+  "company_name": "salesloft",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "sentinellabs",
+  "company_name": "sentinellabs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "sentry",
+  "company_name": "sentry",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "sprinklr",
+  "company_name": "sprinklr",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "supabase",
+  "company_name": "supabase",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "temporal",
+  "company_name": "temporal",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "thoughtspot",
+  "company_name": "thoughtspot",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "turing",
+  "company_name": "turing",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "vercel",
+  "company_name": "vercel",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "webflow",
+  "company_name": "webflow",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "zenoti",
+  "company_name": "zenoti",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "u410",
+  "company_name": "u410",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "corporatecareers",
+  "company_name": "corporatecareers",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "jumio",
+  "company_name": "jumio",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "getbuilt",
+  "company_name": "getbuilt",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "nuharborsecurity",
+  "company_name": "nuharborsecurity",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "flyr",
+  "company_name": "flyr",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "ia",
+  "company_name": "ia",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "nextroll",
+  "company_name": "nextroll",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "drsquatch",
+  "company_name": "drsquatch",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "vtex",
+  "company_name": "vtex",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "isidor",
+  "company_name": "isidor",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "findanomaly",
+  "company_name": "findanomaly",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "glidepathventuresllcdbaprospect14",
+  "company_name": "glidepathventuresllcdbaprospect14",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "treasury4",
+  "company_name": "treasury4",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "summittherapeutics",
+  "company_name": "summittherapeutics",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "comstock",
+  "company_name": "comstock",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "econetwork",
+  "company_name": "econetwork",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "group14",
+  "company_name": "group14",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "novacredit",
+  "company_name": "novacredit",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "zetaglobal",
+  "company_name": "zetaglobal",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "watershed",
+  "company_name": "watershed",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "wilsonelser",
+  "company_name": "wilsonelser",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "kaleris",
+  "company_name": "kaleris",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "aplayers",
+  "company_name": "aplayers",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "brainpop",
+  "company_name": "brainpop",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "doordashaustralia",
+  "company_name": "doordashaustralia",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "jusbrasil",
+  "company_name": "jusbrasil",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "wingspan",
+  "company_name": "wingspan",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "arevonenergyimpltest",
+  "company_name": "arevonenergyimpltest",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "science",
+  "company_name": "science",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "reefparking",
+  "company_name": "reefparking",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "lextech",
+  "company_name": "lextech",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "creativefabrica",
+  "company_name": "creativefabrica",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "pointwild",
+  "company_name": "pointwild",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "enveritas",
+  "company_name": "enveritas",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "adroll",
+  "company_name": "adroll",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "sylogist",
+  "company_name": "sylogist",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "reorg",
+  "company_name": "reorg",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "bluebirdbioinc",
+  "company_name": "bluebirdbioinc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "nedforct",
+  "company_name": "nedforct",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "outfit7",
+  "company_name": "outfit7",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "mintmobile",
+  "company_name": "mintmobile",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "appnovation",
+  "company_name": "appnovation",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "worlds",
+  "company_name": "worlds",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "missiontelecom",
+  "company_name": "missiontelecom",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "2kmadrid",
+  "company_name": "2kmadrid",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "apiphani",
+  "company_name": "apiphani",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "trase",
+  "company_name": "trase",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "sandtech",
+  "company_name": "sandtech",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "atlasxhm",
+  "company_name": "atlasxhm",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "netflixanimation",
+  "company_name": "netflixanimation",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "mechanicallicensingcollective",
+  "company_name": "mechanicallicensingcollective",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "solera",
+  "company_name": "solera",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "check",
+  "company_name": "check",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "microblink",
+  "company_name": "microblink",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "hctechnologies",
+  "company_name": "hctechnologies",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "homeconstructionregulatoryauthority",
+  "company_name": "homeconstructionregulatoryauthority",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "kairospower",
+  "company_name": "kairospower",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "dominodatalab",
+  "company_name": "dominodatalab",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "thrivecart",
+  "company_name": "thrivecart",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "aboutfresh",
+  "company_name": "aboutfresh",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "mineral",
+  "company_name": "mineral",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "ilabsinnovationlabsinc",
+  "company_name": "ilabsinnovationlabsinc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "northpointrecoveryholdingsllc",
+  "company_name": "northpointrecoveryholdingsllc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "ponderosa",
+  "company_name": "ponderosa",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "whitewatermidstream",
+  "company_name": "whitewatermidstream",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "swayable",
+  "company_name": "swayable",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "mazetherapeutics",
+  "company_name": "mazetherapeutics",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "lightspeedmanagementcompanyllc",
+  "company_name": "lightspeedmanagementcompanyllc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "charliehealthbehavioralhealthoperations",
+  "company_name": "charliehealthbehavioralhealthoperations",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "scalecomputing",
+  "company_name": "scalecomputing",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "catawiki",
+  "company_name": "catawiki",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "moodhealth",
+  "company_name": "moodhealth",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "phenogyinc",
+  "company_name": "phenogyinc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "pactlabs",
+  "company_name": "pactlabs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "smartersorting",
+  "company_name": "smartersorting",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "crossmediainc",
+  "company_name": "crossmediainc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "thiess",
+  "company_name": "thiess",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "missionbio",
+  "company_name": "missionbio",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "gravitypayments",
+  "company_name": "gravitypayments",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "engine",
+  "company_name": "engine",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "knoetic",
+  "company_name": "knoetic",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "seurat",
+  "company_name": "seurat",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "galagames",
+  "company_name": "galagames",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "rocksteadymusicschool",
+  "company_name": "rocksteadymusicschool",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "primeprotocol",
+  "company_name": "primeprotocol",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "thevirtussolution",
+  "company_name": "thevirtussolution",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "greenpeace",
+  "company_name": "greenpeace",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "theorchard",
+  "company_name": "theorchard",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "nacinternational",
+  "company_name": "nacinternational",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "bitfarms",
+  "company_name": "bitfarms",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "gwkinvestmentmanagementllc",
+  "company_name": "gwkinvestmentmanagementllc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "fsastorecom",
+  "company_name": "fsastorecom",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "greenhouse",
+  "board_id": "affinity",
+  "company_name": "affinity",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "1password",
+  "company_name": "1password",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "airwallex",
+  "company_name": "airwallex",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "algolia",
+  "company_name": "algolia",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "amplitude",
+  "company_name": "amplitude",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "anthropic",
+  "company_name": "anthropic",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "atlan",
+  "company_name": "atlan",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "atlassian",
+  "company_name": "atlassian",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "canva",
+  "company_name": "canva",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "cohere",
+  "company_name": "cohere",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "confluent",
+  "company_name": "confluent",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "dbtlabs",
+  "company_name": "dbtlabs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "dreamgames",
+  "company_name": "dreamgames",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "duolingo",
+  "company_name": "duolingo",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "harness",
+  "company_name": "harness",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "jupiter",
+  "company_name": "jupiter",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "plaid",
+  "company_name": "plaid",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "porter",
+  "company_name": "porter",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "quora",
+  "company_name": "quora",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "reddit",
+  "company_name": "reddit",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "spotify",
+  "company_name": "spotify",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "swiggy",
+  "company_name": "swiggy",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "teikametrics",
+  "company_name": "teikametrics",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "temporal",
+  "company_name": "temporal",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "upstox",
+  "company_name": "upstox",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "lever",
+  "board_id": "bedrockocean",
+  "company_name": "bedrockocean",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "thiga",
+  "company_name": "thiga",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "rezotx",
+  "company_name": "rezotx",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "zeitgold",
+  "company_name": "zeitgold",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "truezerotech",
+  "company_name": "truezerotech",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "framework",
+  "company_name": "framework",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "yubo",
+  "company_name": "yubo",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "shippit",
+  "company_name": "shippit",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "getbuilt",
+  "company_name": "getbuilt",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "startengine",
+  "company_name": "startengine",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "girlswhocode",
+  "company_name": "girlswhocode",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "pockethealth",
+  "company_name": "pockethealth",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "fuellabs",
+  "company_name": "fuellabs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "peerspace",
+  "company_name": "peerspace",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "cybourn",
+  "company_name": "cybourn",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "busaracenter",
+  "company_name": "busaracenter",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "custodiabank",
+  "company_name": "custodiabank",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "3pillarglobal",
+  "company_name": "3pillarglobal",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "rightformula",
+  "company_name": "rightformula",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "vestahousing",
+  "company_name": "vestahousing",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "gomaterials",
+  "company_name": "gomaterials",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "vistarmedia-2",
+  "company_name": "vistarmedia-2",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "humansecurity",
+  "company_name": "humansecurity",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "overmoon",
+  "company_name": "overmoon",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "educative",
+  "company_name": "educative",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "hiro",
+  "company_name": "hiro",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "conversantgroup",
+  "company_name": "conversantgroup",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "hellonanny",
+  "company_name": "hellonanny",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "confluera",
+  "company_name": "confluera",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "paytmpayments",
+  "company_name": "paytmpayments",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "piplabs",
+  "company_name": "piplabs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "amyris",
+  "company_name": "amyris",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "payzen",
+  "company_name": "payzen",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "backflip",
+  "company_name": "backflip",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "f16y",
+  "company_name": "f16y",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "zenysis",
+  "company_name": "zenysis",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "royalambulance",
+  "company_name": "royalambulance",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "loop-health",
+  "company_name": "loop-health",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "purple-technology",
+  "company_name": "purple-technology",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "milltownpartners",
+  "company_name": "milltownpartners",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "notch",
+  "company_name": "notch",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "dollskill",
+  "company_name": "dollskill",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "deepsky",
+  "company_name": "deepsky",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "tackle",
+  "company_name": "tackle",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "nex",
+  "company_name": "nex",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "bioenergydevco",
+  "company_name": "bioenergydevco",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "venusaero",
+  "company_name": "venusaero",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "lyrahealth",
+  "company_name": "lyrahealth",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "nuuds",
+  "company_name": "nuuds",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "vivenu",
+  "company_name": "vivenu",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "algotive",
+  "company_name": "algotive",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "repreach",
+  "company_name": "repreach",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "akabrands",
+  "company_name": "akabrands",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "btc",
+  "company_name": "btc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "scholarsoffinance",
+  "company_name": "scholarsoffinance",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "breakwatertech",
+  "company_name": "breakwatertech",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "aon3d",
+  "company_name": "aon3d",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "loblawagency",
+  "company_name": "loblawagency",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "kogniz",
+  "company_name": "kogniz",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "easystreetcap",
+  "company_name": "easystreetcap",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "exabeam",
+  "company_name": "exabeam",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "smart-working-solutions",
+  "company_name": "smart-working-solutions",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "wintermute-trading",
+  "company_name": "wintermute-trading",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "equativ",
+  "company_name": "equativ",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "trela",
+  "company_name": "trela",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "techquarter",
+  "company_name": "techquarter",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "larian",
+  "company_name": "larian",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "hihello",
+  "company_name": "hihello",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "food52",
+  "company_name": "food52",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "tenstorrent",
+  "company_name": "tenstorrent",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "cagents",
+  "company_name": "cagents",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "revolut",
+  "company_name": "revolut",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "bssp",
+  "company_name": "bssp",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "trueml",
+  "company_name": "trueml",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "partoo",
+  "company_name": "partoo",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "lever",
+  "board_id": "tradecentriccareers",
+  "company_name": "tradecentriccareers",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/lever_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "1password",
+  "company_name": "1password",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "airbyte",
+  "company_name": "airbyte",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "airwallex",
+  "company_name": "airwallex",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "atlan",
+  "company_name": "atlan",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "coder",
+  "company_name": "coder",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "coderabbit",
+  "company_name": "coderabbit",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "cohere",
+  "company_name": "cohere",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "confluent",
+  "company_name": "confluent",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "deel",
+  "company_name": "deel",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "deliveroo",
+  "company_name": "deliveroo",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "ema",
+  "company_name": "ema",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "mercor",
+  "company_name": "mercor",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "modal",
+  "company_name": "modal",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "mux",
+  "company_name": "mux",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "navi",
+  "company_name": "navi",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "perplexity",
+  "company_name": "perplexity",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "plaid",
+  "company_name": "plaid",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "posthog",
+  "company_name": "posthog",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "quora",
+  "company_name": "quora",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "reddit",
+  "company_name": "reddit",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "replit",
+  "company_name": "replit",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "scaler",
+  "company_name": "scaler",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "sentry",
+  "company_name": "sentry",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "snowflake",
+  "company_name": "snowflake",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "supabase",
+  "company_name": "supabase",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "priority_name_present_in_discovered_list"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "italic",
+  "company_name": "italic",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "pragmaplatform",
+  "company_name": "pragmaplatform",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "seconddinner",
+  "company_name": "seconddinner",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "joinbetter",
+  "company_name": "joinbetter",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "lilt-corporate",
+  "company_name": "lilt-corporate",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "lorikeet",
+  "company_name": "lorikeet",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "foodhealthco",
+  "company_name": "foodhealthco",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "farmersd40",
+  "company_name": "farmersd40",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "persimmons-ai",
+  "company_name": "persimmons-ai",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "filmhub",
+  "company_name": "filmhub",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "docs",
+  "company_name": "docs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "hoplynk",
+  "company_name": "hoplynk",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "summerhealth",
+  "company_name": "summerhealth",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "lemon-markets",
+  "company_name": "lemon-markets",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "rad-intel",
+  "company_name": "rad-intel",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "notabene",
+  "company_name": "notabene",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "benepass",
+  "company_name": "benepass",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "coval",
+  "company_name": "coval",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "electricai",
+  "company_name": "electricai",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "themindcompany",
+  "company_name": "themindcompany",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "nextpatient",
+  "company_name": "nextpatient",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "kiwi",
+  "company_name": "kiwi",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "docker",
+  "company_name": "docker",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "statisfy",
+  "company_name": "statisfy",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "comfy-org",
+  "company_name": "comfy-org",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "column",
+  "company_name": "column",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "lindushealth",
+  "company_name": "lindushealth",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "collective",
+  "company_name": "collective",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "stealth-healthtech-startup",
+  "company_name": "stealth-healthtech-startup",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "switchboard-hiring",
+  "company_name": "switchboard-hiring",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "hellobrightline",
+  "company_name": "hellobrightline",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "center",
+  "company_name": "center",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "swarmer",
+  "company_name": "swarmer",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "fundamentalresearchlabs",
+  "company_name": "fundamentalresearchlabs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "livinghr",
+  "company_name": "livinghr",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "injective-labs",
+  "company_name": "injective-labs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "standardbots",
+  "company_name": "standardbots",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "zed",
+  "company_name": "zed",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "beacons",
+  "company_name": "beacons",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "granica",
+  "company_name": "granica",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "clarasight",
+  "company_name": "clarasight",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "everydayagents",
+  "company_name": "everydayagents",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "highbeam",
+  "company_name": "highbeam",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "windborne-systems",
+  "company_name": "windborne-systems",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "vultr",
+  "company_name": "vultr",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "switchboard-foundation",
+  "company_name": "switchboard-foundation",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "qualified-health-pbc",
+  "company_name": "qualified-health-pbc",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "dicefm",
+  "company_name": "dicefm",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "guaranteed",
+  "company_name": "guaranteed",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "mystenlabs",
+  "company_name": "mystenlabs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "instil",
+  "company_name": "instil",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "helpscout",
+  "company_name": "helpscout",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "stackfix",
+  "company_name": "stackfix",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "marcohire",
+  "company_name": "marcohire",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "junior",
+  "company_name": "junior",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "rockerbox",
+  "company_name": "rockerbox",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "inceptive",
+  "company_name": "inceptive",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "slash-financial",
+  "company_name": "slash-financial",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "futureaudioworkshop",
+  "company_name": "futureaudioworkshop",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "coreoftheheart",
+  "company_name": "coreoftheheart",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "passthrough",
+  "company_name": "passthrough",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "claritypediatrics",
+  "company_name": "claritypediatrics",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "vapi",
+  "company_name": "vapi",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "blacksmith",
+  "company_name": "blacksmith",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "jigsaw",
+  "company_name": "jigsaw",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "cassidy",
+  "company_name": "cassidy",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "ironcladhq",
+  "company_name": "ironcladhq",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "procurify",
+  "company_name": "procurify",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "cocodelivery",
+  "company_name": "cocodelivery",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "vantai",
+  "company_name": "vantai",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "bantamcommunications",
+  "company_name": "bantamcommunications",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "develop-health",
+  "company_name": "develop-health",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "rewind",
+  "company_name": "rewind",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "athelas",
+  "company_name": "athelas",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "squads",
+  "company_name": "squads",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "method-crm",
+  "company_name": "method-crm",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "smallstep",
+  "company_name": "smallstep",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "careerstrengo",
+  "company_name": "careerstrengo",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "edsights",
+  "company_name": "edsights",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "tavahealth",
+  "company_name": "tavahealth",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "semgrep",
+  "company_name": "semgrep",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "freeplay",
+  "company_name": "freeplay",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "aurorasolar",
+  "company_name": "aurorasolar",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "matter-labs",
+  "company_name": "matter-labs",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "molecule-software",
+  "company_name": "molecule-software",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "coefficientgiving",
+  "company_name": "coefficientgiving",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "weaviate",
+  "company_name": "weaviate",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "treasuryprime",
+  "company_name": "treasuryprime",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "claim-health",
+  "company_name": "claim-health",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "zzazz",
+  "company_name": "zzazz",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "nationgraph",
+  "company_name": "nationgraph",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "polyester",
+  "company_name": "polyester",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "getground",
+  "company_name": "getground",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "jitter-video",
+  "company_name": "jitter-video",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "ashby",
+  "board_id": "linktree",
+  "company_name": "linktree",
+  "company_name_status": "inferred_from_slug_not_identity_verified",
+  "discovery_source": "https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json",
+  "discovery_type": "third_party_explicit_board_list",
+  "in_baseline": false,
+  "selection": "deterministic_stratified_random"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "BoschGroup",
+  "company_name": "Bosch Group",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/BoschGroup/",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "Freshworks",
+  "company_name": "Freshworks",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/Freshworks?page=1&search=",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "Bosch-HomeComfort",
+  "company_name": "Bosch HomeComfort",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/Bosch-HomeComfort?search=Data+science",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "breezy",
+  "board_id": "skyspecs",
+  "company_name": "SkySpecs",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://skyspecs.breezy.hr/p/7bd1aaa6f49c-staff-software-engineer",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "breezy",
+  "board_id": "delivery-solutions",
+  "company_name": "Delivery Solutions",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://delivery-solutions.breezy.hr/p/466a5e567552-senior-software-engineer-mean-stack",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ }
+]

@@ -1,0 +1,2150 @@
+{
+  "status": "MEASURED OFFLINE public snapshot analysis; heuristic identities, not true opportunity count",
+  "as_of": "2026-09-21",
+  "baseline_sha256": "e237462f1166f979f930d843a1b4a1eca92859a5894fff704dfb9f8ee87e31c3",
+  "expansion_sha256": "ab76a1cdcf1fc883261ec9325076a1ad40b4c9d91bab91e950c5c8956e0336b5",
+  "baseline": {
+    "raw": 12533,
+    "engine_keys": 10062,
+    "url_keys": 9854,
+    "fresh_14d": 6551,
+    "fresh_21d": 7860,
+    "distinct_company_labels": 411,
+    "remote_location_mentions": 2748,
+    "same_engine_key_different_url_groups": 898,
+    "same_engine_key_different_url_location_groups": 754,
+    "rows_in_different_url_groups": 2629,
+    "salary_present": 134,
+    "experience_field_present": 2149
+  },
+  "discovery_additional_identifiers": 15798,
+  "discovery_additional_by_family": {
+    "greenhouse": 8292,
+    "lever": 4349,
+    "ashby": 3140,
+    "smartrecruiters": 13,
+    "breezy": 4
+  },
+  "validation_statuses": {
+    "valid_nonempty": 187,
+    "http_error": 137,
+    "valid_empty_identity_unconfirmed": 14,
+    "fetch_or_schema_error": 27
+  },
+  "expansion": {
+    "raw": 8047,
+    "engine_keys": 6919,
+    "marginal_raw_engine_keys": 6917,
+    "marginal_raw_url_keys": 7282,
+    "fresh_14d": 3195,
+    "request_seconds": 836.89248,
+    "response_bytes": 107531181,
+    "successful_board_median_seconds": 0.72585,
+    "successful_board_mean_seconds": 2.0312282887700537
+  },
+  "per_baseline_source_dates": {
+    "lever:paytm": {
+      "fresh_14d": 47,
+      "fresh_21d": 59,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:meesho": {
+      "fresh_14d": 4,
+      "fresh_21d": 5,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:mindtickle": {
+      "fresh_14d": 3,
+      "fresh_21d": 4,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:hevodata": {
+      "fresh_14d": 5,
+      "fresh_21d": 7,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:zeta": {
+      "fresh_14d": 5,
+      "fresh_21d": 6,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:fampay": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:cred": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:coderio": {
+      "fresh_14d": 5,
+      "fresh_21d": 6,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:rws": {
+      "fresh_14d": 15,
+      "fresh_21d": 20,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:dozee": {
+      "fresh_14d": 5,
+      "fresh_21d": 6,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:pocketfm": {
+      "fresh_14d": 2,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:veeva": {
+      "fresh_14d": 50,
+      "fresh_21d": 91,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:portagepointpartners": {
+      "fresh_14d": 2,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:acceldata": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:sophos": {
+      "fresh_14d": 13,
+      "fresh_21d": 20,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:levelai": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:jumpcloud": {
+      "fresh_14d": 8,
+      "fresh_21d": 11,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:appzen": {
+      "fresh_14d": 2,
+      "fresh_21d": 4,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:cin7": {
+      "fresh_14d": 1,
+      "fresh_21d": 4,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:binance": {
+      "fresh_14d": 39,
+      "fresh_21d": 56,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "lever:biorender": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:groww": {
+      "fresh_14d": 4,
+      "fresh_21d": 5,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:druva": {
+      "fresh_14d": 16,
+      "fresh_21d": 39,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:slice": {
+      "fresh_14d": 18,
+      "fresh_21d": 27,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:gitlab": {
+      "fresh_14d": 213,
+      "fresh_21d": 213,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:databricks": {
+      "fresh_14d": 240,
+      "fresh_21d": 666,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:twilio": {
+      "fresh_14d": 142,
+      "fresh_21d": 142,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:mongodb": {
+      "fresh_14d": 399,
+      "fresh_21d": 399,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:elastic": {
+      "fresh_14d": 357,
+      "fresh_21d": 357,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:datadog": {
+      "fresh_14d": 454,
+      "fresh_21d": 454,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:cloudflare": {
+      "fresh_14d": 142,
+      "fresh_21d": 381,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:stripe": {
+      "fresh_14d": 670,
+      "fresh_21d": 670,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:netradyne": {
+      "fresh_14d": 6,
+      "fresh_21d": 11,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:figma": {
+      "fresh_14d": 27,
+      "fresh_21d": 31,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:roku": {
+      "fresh_14d": 239,
+      "fresh_21d": 242,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:flix": {
+      "fresh_14d": 79,
+      "fresh_21d": 105,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:sumup": {
+      "fresh_14d": 250,
+      "fresh_21d": 274,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:ubiquiti": {
+      "fresh_14d": 19,
+      "fresh_21d": 23,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:justworks": {
+      "fresh_14d": 39,
+      "fresh_21d": 48,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:tide": {
+      "fresh_14d": 80,
+      "fresh_21d": 80,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:bitwarden": {
+      "fresh_14d": 24,
+      "fresh_21d": 35,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:nice": {
+      "fresh_14d": 59,
+      "fresh_21d": 89,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:towerresearchcapital": {
+      "fresh_14d": 16,
+      "fresh_21d": 21,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:dunnhumby": {
+      "fresh_14d": 29,
+      "fresh_21d": 29,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:elsevier": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:iris": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:wise": {
+      "fresh_14d": 2,
+      "fresh_21d": 17,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:capco": {
+      "fresh_14d": 721,
+      "fresh_21d": 721,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:wppproduction": {
+      "fresh_14d": 52,
+      "fresh_21d": 152,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:stratainformationgroup": {
+      "fresh_14d": 1,
+      "fresh_21d": 11,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:indigo": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:mcafee": {
+      "fresh_14d": 0,
+      "fresh_21d": 1,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:unisonconsulting": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:victrix": {
+      "fresh_14d": 2,
+      "fresh_21d": 2,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:okta": {
+      "fresh_14d": 325,
+      "fresh_21d": 325,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:payoneer": {
+      "fresh_14d": 119,
+      "fresh_21d": 119,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:accordionindia": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:netskope": {
+      "fresh_14d": 54,
+      "fresh_21d": 78,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:avathon": {
+      "fresh_14d": 4,
+      "fresh_21d": 5,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:newrelic": {
+      "fresh_14d": 49,
+      "fresh_21d": 49,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:cloudsek": {
+      "fresh_14d": 3,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:komodohealth": {
+      "fresh_14d": 10,
+      "fresh_21d": 16,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:godaddy": {
+      "fresh_14d": 23,
+      "fresh_21d": 28,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:precisionaq": {
+      "fresh_14d": 42,
+      "fresh_21d": 42,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:launchdarkly": {
+      "fresh_14d": 26,
+      "fresh_21d": 29,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:bitgo": {
+      "fresh_14d": 10,
+      "fresh_21d": 17,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:eulerity": {
+      "fresh_14d": 4,
+      "fresh_21d": 5,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:rtingscom": {
+      "fresh_14d": 3,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:fingerprint": {
+      "fresh_14d": 29,
+      "fresh_21d": 29,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:breezeway": {
+      "fresh_14d": 2,
+      "fresh_21d": 2,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:diligent": {
+      "fresh_14d": 1,
+      "fresh_21d": 1,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:cobblestoneenergy": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:shield": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "greenhouse:bold": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:linear": {
+      "fresh_14d": 3,
+      "fresh_21d": 4,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:ramp": {
+      "fresh_14d": 24,
+      "fresh_21d": 39,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:openai": {
+      "fresh_14d": 135,
+      "fresh_21d": 213,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:notion": {
+      "fresh_14d": 8,
+      "fresh_21d": 17,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:teero": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:clickhouse": {
+      "fresh_14d": 40,
+      "fresh_21d": 51,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:tekion": {
+      "fresh_14d": 19,
+      "fresh_21d": 29,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:gradera": {
+      "fresh_14d": 2,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:whisk": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:elevenlabs": {
+      "fresh_14d": 10,
+      "fresh_21d": 19,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:uipath": {
+      "fresh_14d": 18,
+      "fresh_21d": 28,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:glomo": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:clera": {
+      "fresh_14d": 201,
+      "fresh_21d": 201,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:abound": {
+      "fresh_14d": 3,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:maincode": {
+      "fresh_14d": 6,
+      "fresh_21d": 7,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:xero": {
+      "fresh_14d": 39,
+      "fresh_21d": 52,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:solace": {
+      "fresh_14d": 5,
+      "fresh_21d": 9,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:brainco": {
+      "fresh_14d": 2,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:realmalliance": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:nory": {
+      "fresh_14d": 1,
+      "fresh_21d": 1,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:freetrade": {
+      "fresh_14d": 2,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:omni": {
+      "fresh_14d": 22,
+      "fresh_21d": 23,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:attio": {
+      "fresh_14d": 8,
+      "fresh_21d": 9,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:pylon": {
+      "fresh_14d": 5,
+      "fresh_21d": 5,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:vantage": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:sitemate": {
+      "fresh_14d": 7,
+      "fresh_21d": 12,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "ashby:pilgrim": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:jitterbit": {
+      "fresh_14d": 1,
+      "fresh_21d": 8,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:renesaselectronics": {
+      "fresh_14d": 100,
+      "fresh_21d": 100,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:sia": {
+      "fresh_14d": 100,
+      "fresh_21d": 100,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:agileengine": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:jadeglobal": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:version1": {
+      "fresh_14d": 72,
+      "fresh_21d": 81,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:informagroupplc": {
+      "fresh_14d": 89,
+      "fresh_21d": 99,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:quantanite": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:blueoptima": {
+      "fresh_14d": 6,
+      "fresh_21d": 10,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:keywordsstudios": {
+      "fresh_14d": 5,
+      "fresh_21d": 9,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:metromakro": {
+      "fresh_14d": 100,
+      "fresh_21d": 100,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:nisum": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:technogen": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:vichara": {
+      "fresh_14d": 3,
+      "fresh_21d": 3,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:codeyoung": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:capestart": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:genpactindia": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:servicetitan": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:rebelfoods": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:gepworldwide": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:lingaro": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:pentair": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:spottedzebra": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "smartrecruiters:synechron": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "breezy:iqvia": {
+      "fresh_14d": 0,
+      "fresh_21d": 0,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "breezy:anovia": {
+      "fresh_14d": 6,
+      "fresh_21d": 13,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "breezy:foundationhealth": {
+      "fresh_14d": 12,
+      "fresh_21d": 12,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "remoteok": {
+      "fresh_14d": 24,
+      "fresh_21d": 28,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "remotive": {
+      "fresh_14d": 13,
+      "fresh_21d": 15,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "jobicy": {
+      "fresh_14d": 50,
+      "fresh_21d": 50,
+      "unknown_date": 0,
+      "future_date": 0
+    },
+    "himalayas": {
+      "fresh_14d": 200,
+      "fresh_21d": 200,
+      "unknown_date": 0,
+      "future_date": 0
+    }
+  },
+  "per_expansion_source": {
+    "greenhouse:6sense": {
+      "raw": 31,
+      "engine_keys": 30,
+      "marginal_raw_engine_keys": 30,
+      "marginal_raw_url_keys": 31,
+      "fresh_14d": 31
+    },
+    "greenhouse:abnormalsecurity": {
+      "raw": 78,
+      "engine_keys": 74,
+      "marginal_raw_engine_keys": 74,
+      "marginal_raw_url_keys": 78,
+      "fresh_14d": 42
+    },
+    "greenhouse:acquia": {
+      "raw": 10,
+      "engine_keys": 8,
+      "marginal_raw_engine_keys": 8,
+      "marginal_raw_url_keys": 10,
+      "fresh_14d": 7
+    },
+    "greenhouse:adyen": {
+      "raw": 217,
+      "engine_keys": 174,
+      "marginal_raw_engine_keys": 174,
+      "marginal_raw_url_keys": 217,
+      "fresh_14d": 109
+    },
+    "greenhouse:airbnb": {
+      "raw": 167,
+      "engine_keys": 151,
+      "marginal_raw_engine_keys": 151,
+      "marginal_raw_url_keys": 167,
+      "fresh_14d": 167
+    },
+    "greenhouse:algolia": {
+      "raw": 34,
+      "engine_keys": 30,
+      "marginal_raw_engine_keys": 30,
+      "marginal_raw_url_keys": 34,
+      "fresh_14d": 14
+    },
+    "greenhouse:amplitude": {
+      "raw": 38,
+      "engine_keys": 32,
+      "marginal_raw_engine_keys": 32,
+      "marginal_raw_url_keys": 38,
+      "fresh_14d": 19
+    },
+    "greenhouse:anthropic": {
+      "raw": 614,
+      "engine_keys": 567,
+      "marginal_raw_engine_keys": 567,
+      "marginal_raw_url_keys": 614,
+      "fresh_14d": 152
+    },
+    "greenhouse:apolloio": {
+      "raw": 47,
+      "engine_keys": 43,
+      "marginal_raw_engine_keys": 43,
+      "marginal_raw_url_keys": 47,
+      "fresh_14d": 14
+    },
+    "greenhouse:asana": {
+      "raw": 103,
+      "engine_keys": 87,
+      "marginal_raw_engine_keys": 87,
+      "marginal_raw_url_keys": 103,
+      "fresh_14d": 103
+    },
+    "greenhouse:brex": {
+      "raw": 251,
+      "engine_keys": 85,
+      "marginal_raw_engine_keys": 85,
+      "marginal_raw_url_keys": 251,
+      "fresh_14d": 77
+    },
+    "greenhouse:coinbase": {
+      "raw": 217,
+      "engine_keys": 203,
+      "marginal_raw_engine_keys": 203,
+      "marginal_raw_url_keys": 217,
+      "fresh_14d": 100
+    },
+    "greenhouse:commercetools": {
+      "raw": 38,
+      "engine_keys": 16,
+      "marginal_raw_engine_keys": 16,
+      "marginal_raw_url_keys": 38,
+      "fresh_14d": 17
+    },
+    "greenhouse:customerio": {
+      "raw": 27,
+      "engine_keys": 25,
+      "marginal_raw_engine_keys": 25,
+      "marginal_raw_url_keys": 27,
+      "fresh_14d": 8
+    },
+    "greenhouse:deliveroo": {
+      "raw": 125,
+      "engine_keys": 120,
+      "marginal_raw_engine_keys": 120,
+      "marginal_raw_url_keys": 125,
+      "fresh_14d": 125
+    },
+    "greenhouse:devrev": {
+      "raw": 47,
+      "engine_keys": 42,
+      "marginal_raw_engine_keys": 42,
+      "marginal_raw_url_keys": 47,
+      "fresh_14d": 21
+    },
+    "greenhouse:duolingo": {
+      "raw": 81,
+      "engine_keys": 56,
+      "marginal_raw_engine_keys": 56,
+      "marginal_raw_url_keys": 81,
+      "fresh_14d": 12
+    },
+    "greenhouse:fivetran": {
+      "raw": 197,
+      "engine_keys": 115,
+      "marginal_raw_engine_keys": 114,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 191
+    },
+    "greenhouse:hightouch": {
+      "raw": 83,
+      "engine_keys": 77,
+      "marginal_raw_engine_keys": 77,
+      "marginal_raw_url_keys": 83,
+      "fresh_14d": 25
+    },
+    "greenhouse:mixpanel": {
+      "raw": 86,
+      "engine_keys": 51,
+      "marginal_raw_engine_keys": 51,
+      "marginal_raw_url_keys": 86,
+      "fresh_14d": 86
+    },
+    "greenhouse:pinterest": {
+      "raw": 161,
+      "engine_keys": 159,
+      "marginal_raw_engine_keys": 159,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 161
+    },
+    "greenhouse:pubmatic": {
+      "raw": 80,
+      "engine_keys": 68,
+      "marginal_raw_engine_keys": 68,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 80
+    },
+    "greenhouse:reddit": {
+      "raw": 156,
+      "engine_keys": 131,
+      "marginal_raw_engine_keys": 131,
+      "marginal_raw_url_keys": 156,
+      "fresh_14d": 98
+    },
+    "greenhouse:rubrik": {
+      "raw": 133,
+      "engine_keys": 123,
+      "marginal_raw_engine_keys": 123,
+      "marginal_raw_url_keys": 133,
+      "fresh_14d": 54
+    },
+    "greenhouse:salesloft": {
+      "raw": 33,
+      "engine_keys": 29,
+      "marginal_raw_engine_keys": 29,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 18
+    },
+    "greenhouse:sentinellabs": {
+      "raw": 229,
+      "engine_keys": 151,
+      "marginal_raw_engine_keys": 151,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 102
+    },
+    "greenhouse:turing": {
+      "raw": 21,
+      "engine_keys": 18,
+      "marginal_raw_engine_keys": 18,
+      "marginal_raw_url_keys": 21,
+      "fresh_14d": 7
+    },
+    "greenhouse:vercel": {
+      "raw": 84,
+      "engine_keys": 84,
+      "marginal_raw_engine_keys": 84,
+      "marginal_raw_url_keys": 84,
+      "fresh_14d": 84
+    },
+    "greenhouse:webflow": {
+      "raw": 29,
+      "engine_keys": 28,
+      "marginal_raw_engine_keys": 28,
+      "marginal_raw_url_keys": 29,
+      "fresh_14d": 10
+    },
+    "greenhouse:zenoti": {
+      "raw": 51,
+      "engine_keys": 38,
+      "marginal_raw_engine_keys": 38,
+      "marginal_raw_url_keys": 51,
+      "fresh_14d": 16
+    },
+    "greenhouse:corporatecareers": {
+      "raw": 6,
+      "engine_keys": 6,
+      "marginal_raw_engine_keys": 6,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 3
+    },
+    "greenhouse:jumio": {
+      "raw": 27,
+      "engine_keys": 25,
+      "marginal_raw_engine_keys": 25,
+      "marginal_raw_url_keys": 27,
+      "fresh_14d": 9
+    },
+    "greenhouse:getbuilt": {
+      "raw": 14,
+      "engine_keys": 14,
+      "marginal_raw_engine_keys": 14,
+      "marginal_raw_url_keys": 14,
+      "fresh_14d": 7
+    },
+    "greenhouse:nuharborsecurity": {
+      "raw": 16,
+      "engine_keys": 15,
+      "marginal_raw_engine_keys": 15,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 0
+    },
+    "greenhouse:nextroll": {
+      "raw": 2,
+      "engine_keys": 1,
+      "marginal_raw_engine_keys": 1,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 2
+    },
+    "greenhouse:drsquatch": {
+      "raw": 16,
+      "engine_keys": 16,
+      "marginal_raw_engine_keys": 16,
+      "marginal_raw_url_keys": 16,
+      "fresh_14d": 5
+    },
+    "greenhouse:vtex": {
+      "raw": 28,
+      "engine_keys": 24,
+      "marginal_raw_engine_keys": 24,
+      "marginal_raw_url_keys": 28,
+      "fresh_14d": 4
+    },
+    "greenhouse:isidor": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 0
+    },
+    "greenhouse:summittherapeutics": {
+      "raw": 85,
+      "engine_keys": 83,
+      "marginal_raw_engine_keys": 83,
+      "marginal_raw_url_keys": 85,
+      "fresh_14d": 18
+    },
+    "greenhouse:comstock": {
+      "raw": 84,
+      "engine_keys": 73,
+      "marginal_raw_engine_keys": 73,
+      "marginal_raw_url_keys": 84,
+      "fresh_14d": 51
+    },
+    "greenhouse:group14": {
+      "raw": 6,
+      "engine_keys": 6,
+      "marginal_raw_engine_keys": 6,
+      "marginal_raw_url_keys": 6,
+      "fresh_14d": 1
+    },
+    "greenhouse:novacredit": {
+      "raw": 8,
+      "engine_keys": 8,
+      "marginal_raw_engine_keys": 8,
+      "marginal_raw_url_keys": 8,
+      "fresh_14d": 1
+    },
+    "greenhouse:zetaglobal": {
+      "raw": 145,
+      "engine_keys": 108,
+      "marginal_raw_engine_keys": 108,
+      "marginal_raw_url_keys": 145,
+      "fresh_14d": 49
+    },
+    "greenhouse:watershed": {
+      "raw": 8,
+      "engine_keys": 8,
+      "marginal_raw_engine_keys": 8,
+      "marginal_raw_url_keys": 8,
+      "fresh_14d": 0
+    },
+    "greenhouse:wilsonelser": {
+      "raw": 69,
+      "engine_keys": 29,
+      "marginal_raw_engine_keys": 29,
+      "marginal_raw_url_keys": 69,
+      "fresh_14d": 69
+    },
+    "greenhouse:aplayers": {
+      "raw": 9,
+      "engine_keys": 7,
+      "marginal_raw_engine_keys": 7,
+      "marginal_raw_url_keys": 9,
+      "fresh_14d": 0
+    },
+    "greenhouse:brainpop": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 1
+    },
+    "greenhouse:doordashaustralia": {
+      "raw": 32,
+      "engine_keys": 27,
+      "marginal_raw_engine_keys": 27,
+      "marginal_raw_url_keys": 32,
+      "fresh_14d": 32
+    },
+    "greenhouse:jusbrasil": {
+      "raw": 14,
+      "engine_keys": 14,
+      "marginal_raw_engine_keys": 14,
+      "marginal_raw_url_keys": 14,
+      "fresh_14d": 0
+    },
+    "greenhouse:wingspan": {
+      "raw": 3,
+      "engine_keys": 3,
+      "marginal_raw_engine_keys": 3,
+      "marginal_raw_url_keys": 3,
+      "fresh_14d": 1
+    },
+    "greenhouse:arevonenergyimpltest": {
+      "raw": 9,
+      "engine_keys": 9,
+      "marginal_raw_engine_keys": 9,
+      "marginal_raw_url_keys": 9,
+      "fresh_14d": 3
+    },
+    "greenhouse:creativefabrica": {
+      "raw": 17,
+      "engine_keys": 17,
+      "marginal_raw_engine_keys": 17,
+      "marginal_raw_url_keys": 17,
+      "fresh_14d": 6
+    },
+    "greenhouse:pointwild": {
+      "raw": 9,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 9,
+      "fresh_14d": 0
+    },
+    "greenhouse:enveritas": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 3
+    },
+    "greenhouse:outfit7": {
+      "raw": 14,
+      "engine_keys": 14,
+      "marginal_raw_engine_keys": 14,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 8
+    },
+    "greenhouse:appnovation": {
+      "raw": 50,
+      "engine_keys": 31,
+      "marginal_raw_engine_keys": 31,
+      "marginal_raw_url_keys": 50,
+      "fresh_14d": 50
+    },
+    "greenhouse:2kmadrid": {
+      "raw": 12,
+      "engine_keys": 12,
+      "marginal_raw_engine_keys": 12,
+      "marginal_raw_url_keys": 12,
+      "fresh_14d": 12
+    },
+    "greenhouse:apiphani": {
+      "raw": 6,
+      "engine_keys": 6,
+      "marginal_raw_engine_keys": 6,
+      "marginal_raw_url_keys": 6,
+      "fresh_14d": 3
+    },
+    "greenhouse:trase": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 4
+    },
+    "greenhouse:atlasxhm": {
+      "raw": 26,
+      "engine_keys": 17,
+      "marginal_raw_engine_keys": 17,
+      "marginal_raw_url_keys": 26,
+      "fresh_14d": 9
+    },
+    "greenhouse:mechanicallicensingcollective": {
+      "raw": 3,
+      "engine_keys": 3,
+      "marginal_raw_engine_keys": 3,
+      "marginal_raw_url_keys": 3,
+      "fresh_14d": 0
+    },
+    "greenhouse:microblink": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 2
+    },
+    "greenhouse:homeconstructionregulatoryauthority": {
+      "raw": 1,
+      "engine_keys": 1,
+      "marginal_raw_engine_keys": 1,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 0
+    },
+    "greenhouse:kairospower": {
+      "raw": 25,
+      "engine_keys": 25,
+      "marginal_raw_engine_keys": 25,
+      "marginal_raw_url_keys": 25,
+      "fresh_14d": 25
+    },
+    "greenhouse:dominodatalab": {
+      "raw": 22,
+      "engine_keys": 18,
+      "marginal_raw_engine_keys": 18,
+      "marginal_raw_url_keys": 22,
+      "fresh_14d": 22
+    },
+    "greenhouse:northpointrecoveryholdingsllc": {
+      "raw": 58,
+      "engine_keys": 46,
+      "marginal_raw_engine_keys": 46,
+      "marginal_raw_url_keys": 58,
+      "fresh_14d": 30
+    },
+    "greenhouse:ponderosa": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 1
+    },
+    "greenhouse:whitewatermidstream": {
+      "raw": 27,
+      "engine_keys": 18,
+      "marginal_raw_engine_keys": 18,
+      "marginal_raw_url_keys": 27,
+      "fresh_14d": 0
+    },
+    "greenhouse:swayable": {
+      "raw": 15,
+      "engine_keys": 11,
+      "marginal_raw_engine_keys": 11,
+      "marginal_raw_url_keys": 15,
+      "fresh_14d": 4
+    },
+    "greenhouse:mazetherapeutics": {
+      "raw": 15,
+      "engine_keys": 15,
+      "marginal_raw_engine_keys": 15,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 6
+    },
+    "greenhouse:charliehealthbehavioralhealthoperations": {
+      "raw": 24,
+      "engine_keys": 20,
+      "marginal_raw_engine_keys": 20,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 9
+    },
+    "greenhouse:catawiki": {
+      "raw": 47,
+      "engine_keys": 40,
+      "marginal_raw_engine_keys": 40,
+      "marginal_raw_url_keys": 47,
+      "fresh_14d": 47
+    },
+    "greenhouse:moodhealth": {
+      "raw": 46,
+      "engine_keys": 13,
+      "marginal_raw_engine_keys": 13,
+      "marginal_raw_url_keys": 46,
+      "fresh_14d": 21
+    },
+    "greenhouse:phenogyinc": {
+      "raw": 1,
+      "engine_keys": 1,
+      "marginal_raw_engine_keys": 1,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 0
+    },
+    "greenhouse:crossmediainc": {
+      "raw": 15,
+      "engine_keys": 15,
+      "marginal_raw_engine_keys": 15,
+      "marginal_raw_url_keys": 15,
+      "fresh_14d": 5
+    },
+    "greenhouse:thiess": {
+      "raw": 6,
+      "engine_keys": 6,
+      "marginal_raw_engine_keys": 6,
+      "marginal_raw_url_keys": 6,
+      "fresh_14d": 2
+    },
+    "greenhouse:engine": {
+      "raw": 85,
+      "engine_keys": 83,
+      "marginal_raw_engine_keys": 83,
+      "marginal_raw_url_keys": 85,
+      "fresh_14d": 85
+    },
+    "greenhouse:seurat": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 2
+    },
+    "greenhouse:thevirtussolution": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 0
+    },
+    "greenhouse:theorchard": {
+      "raw": 23,
+      "engine_keys": 22,
+      "marginal_raw_engine_keys": 22,
+      "marginal_raw_url_keys": 23,
+      "fresh_14d": 6
+    },
+    "greenhouse:nacinternational": {
+      "raw": 3,
+      "engine_keys": 3,
+      "marginal_raw_engine_keys": 3,
+      "marginal_raw_url_keys": 3,
+      "fresh_14d": 1
+    },
+    "greenhouse:gwkinvestmentmanagementllc": {
+      "raw": 9,
+      "engine_keys": 9,
+      "marginal_raw_engine_keys": 9,
+      "marginal_raw_url_keys": 9,
+      "fresh_14d": 2
+    },
+    "greenhouse:fsastorecom": {
+      "raw": 14,
+      "engine_keys": 14,
+      "marginal_raw_engine_keys": 14,
+      "marginal_raw_url_keys": 14,
+      "fresh_14d": 7
+    },
+    "lever:dreamgames": {
+      "raw": 20,
+      "engine_keys": 20,
+      "marginal_raw_engine_keys": 20,
+      "marginal_raw_url_keys": 20,
+      "fresh_14d": 0
+    },
+    "lever:porter": {
+      "raw": 25,
+      "engine_keys": 24,
+      "marginal_raw_engine_keys": 24,
+      "marginal_raw_url_keys": 25,
+      "fresh_14d": 0
+    },
+    "lever:spotify": {
+      "raw": 71,
+      "engine_keys": 64,
+      "marginal_raw_engine_keys": 64,
+      "marginal_raw_url_keys": 71,
+      "fresh_14d": 13
+    },
+    "lever:teikametrics": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 0
+    },
+    "lever:thiga": {
+      "raw": 15,
+      "engine_keys": 15,
+      "marginal_raw_engine_keys": 15,
+      "marginal_raw_url_keys": 15,
+      "fresh_14d": 1
+    },
+    "lever:rezotx": {
+      "raw": 1,
+      "engine_keys": 1,
+      "marginal_raw_engine_keys": 1,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 0
+    },
+    "lever:truezerotech": {
+      "raw": 40,
+      "engine_keys": 40,
+      "marginal_raw_engine_keys": 40,
+      "marginal_raw_url_keys": 40,
+      "fresh_14d": 2
+    },
+    "lever:startengine": {
+      "raw": 7,
+      "engine_keys": 7,
+      "marginal_raw_engine_keys": 7,
+      "marginal_raw_url_keys": 7,
+      "fresh_14d": 0
+    },
+    "lever:girlswhocode": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 0
+    },
+    "lever:fuellabs": {
+      "raw": 1,
+      "engine_keys": 1,
+      "marginal_raw_engine_keys": 1,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 0
+    },
+    "lever:peerspace": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 1
+    },
+    "lever:cybourn": {
+      "raw": 3,
+      "engine_keys": 3,
+      "marginal_raw_engine_keys": 3,
+      "marginal_raw_url_keys": 3,
+      "fresh_14d": 0
+    },
+    "lever:rightformula": {
+      "raw": 7,
+      "engine_keys": 7,
+      "marginal_raw_engine_keys": 7,
+      "marginal_raw_url_keys": 7,
+      "fresh_14d": 2
+    },
+    "lever:gomaterials": {
+      "raw": 8,
+      "engine_keys": 8,
+      "marginal_raw_engine_keys": 8,
+      "marginal_raw_url_keys": 8,
+      "fresh_14d": 3
+    },
+    "lever:educative": {
+      "raw": 11,
+      "engine_keys": 11,
+      "marginal_raw_engine_keys": 11,
+      "marginal_raw_url_keys": 11,
+      "fresh_14d": 0
+    },
+    "lever:hellonanny": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 1
+    },
+    "lever:confluera": {
+      "raw": 11,
+      "engine_keys": 8,
+      "marginal_raw_engine_keys": 8,
+      "marginal_raw_url_keys": 11,
+      "fresh_14d": 0
+    },
+    "lever:paytmpayments": {
+      "raw": 1000,
+      "engine_keys": 969,
+      "marginal_raw_engine_keys": 969,
+      "marginal_raw_url_keys": 1000,
+      "fresh_14d": 171
+    },
+    "lever:piplabs": {
+      "raw": 1,
+      "engine_keys": 1,
+      "marginal_raw_engine_keys": 1,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 0
+    },
+    "lever:royalambulance": {
+      "raw": 13,
+      "engine_keys": 13,
+      "marginal_raw_engine_keys": 13,
+      "marginal_raw_url_keys": 13,
+      "fresh_14d": 2
+    },
+    "lever:purple-technology": {
+      "raw": 6,
+      "engine_keys": 6,
+      "marginal_raw_engine_keys": 6,
+      "marginal_raw_url_keys": 6,
+      "fresh_14d": 1
+    },
+    "lever:milltownpartners": {
+      "raw": 24,
+      "engine_keys": 17,
+      "marginal_raw_engine_keys": 17,
+      "marginal_raw_url_keys": 24,
+      "fresh_14d": 1
+    },
+    "lever:dollskill": {
+      "raw": 13,
+      "engine_keys": 13,
+      "marginal_raw_engine_keys": 13,
+      "marginal_raw_url_keys": 13,
+      "fresh_14d": 4
+    },
+    "lever:deepsky": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 0
+    },
+    "lever:venusaero": {
+      "raw": 29,
+      "engine_keys": 28,
+      "marginal_raw_engine_keys": 28,
+      "marginal_raw_url_keys": 29,
+      "fresh_14d": 5
+    },
+    "lever:lyrahealth": {
+      "raw": 561,
+      "engine_keys": 505,
+      "marginal_raw_engine_keys": 505,
+      "marginal_raw_url_keys": 561,
+      "fresh_14d": 28
+    },
+    "lever:nuuds": {
+      "raw": 1,
+      "engine_keys": 1,
+      "marginal_raw_engine_keys": 1,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 0
+    },
+    "lever:vivenu": {
+      "raw": 30,
+      "engine_keys": 28,
+      "marginal_raw_engine_keys": 28,
+      "marginal_raw_url_keys": 30,
+      "fresh_14d": 0
+    },
+    "lever:akabrands": {
+      "raw": 7,
+      "engine_keys": 3,
+      "marginal_raw_engine_keys": 3,
+      "marginal_raw_url_keys": 7,
+      "fresh_14d": 0
+    },
+    "lever:kogniz": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 0
+    },
+    "lever:easystreetcap": {
+      "raw": 10,
+      "engine_keys": 10,
+      "marginal_raw_engine_keys": 10,
+      "marginal_raw_url_keys": 10,
+      "fresh_14d": 2
+    },
+    "lever:smart-working-solutions": {
+      "raw": 11,
+      "engine_keys": 11,
+      "marginal_raw_engine_keys": 11,
+      "marginal_raw_url_keys": 11,
+      "fresh_14d": 2
+    },
+    "lever:wintermute-trading": {
+      "raw": 21,
+      "engine_keys": 21,
+      "marginal_raw_engine_keys": 21,
+      "marginal_raw_url_keys": 21,
+      "fresh_14d": 2
+    },
+    "lever:equativ": {
+      "raw": 25,
+      "engine_keys": 23,
+      "marginal_raw_engine_keys": 23,
+      "marginal_raw_url_keys": 25,
+      "fresh_14d": 5
+    },
+    "lever:techquarter": {
+      "raw": 7,
+      "engine_keys": 7,
+      "marginal_raw_engine_keys": 7,
+      "marginal_raw_url_keys": 7,
+      "fresh_14d": 0
+    },
+    "lever:larian": {
+      "raw": 68,
+      "engine_keys": 66,
+      "marginal_raw_engine_keys": 66,
+      "marginal_raw_url_keys": 68,
+      "fresh_14d": 2
+    },
+    "lever:cagents": {
+      "raw": 101,
+      "engine_keys": 62,
+      "marginal_raw_engine_keys": 62,
+      "marginal_raw_url_keys": 101,
+      "fresh_14d": 7
+    },
+    "lever:trueml": {
+      "raw": 13,
+      "engine_keys": 13,
+      "marginal_raw_engine_keys": 13,
+      "marginal_raw_url_keys": 13,
+      "fresh_14d": 3
+    },
+    "ashby:1password": {
+      "raw": 62,
+      "engine_keys": 61,
+      "marginal_raw_engine_keys": 60,
+      "marginal_raw_url_keys": 62,
+      "fresh_14d": 15
+    },
+    "ashby:airbyte": {
+      "raw": 13,
+      "engine_keys": 10,
+      "marginal_raw_engine_keys": 10,
+      "marginal_raw_url_keys": 13,
+      "fresh_14d": 5
+    },
+    "ashby:sentry": {
+      "raw": 44,
+      "engine_keys": 34,
+      "marginal_raw_engine_keys": 34,
+      "marginal_raw_url_keys": 44,
+      "fresh_14d": 10
+    },
+    "ashby:supabase": {
+      "raw": 59,
+      "engine_keys": 58,
+      "marginal_raw_engine_keys": 58,
+      "marginal_raw_url_keys": 59,
+      "fresh_14d": 4
+    },
+    "ashby:seconddinner": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 1
+    },
+    "ashby:lilt-corporate": {
+      "raw": 9,
+      "engine_keys": 9,
+      "marginal_raw_engine_keys": 9,
+      "marginal_raw_url_keys": 9,
+      "fresh_14d": 4
+    },
+    "ashby:lorikeet": {
+      "raw": 7,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 7,
+      "fresh_14d": 3
+    },
+    "ashby:farmersd40": {
+      "raw": 38,
+      "engine_keys": 14,
+      "marginal_raw_engine_keys": 14,
+      "marginal_raw_url_keys": 38,
+      "fresh_14d": 15
+    },
+    "ashby:filmhub": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 0
+    },
+    "ashby:summerhealth": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 0
+    },
+    "ashby:lemon-markets": {
+      "raw": 19,
+      "engine_keys": 19,
+      "marginal_raw_engine_keys": 19,
+      "marginal_raw_url_keys": 19,
+      "fresh_14d": 3
+    },
+    "ashby:benepass": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 1
+    },
+    "ashby:nextpatient": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 0
+    },
+    "ashby:kiwi": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 2
+    },
+    "ashby:docker": {
+      "raw": 64,
+      "engine_keys": 64,
+      "marginal_raw_engine_keys": 64,
+      "marginal_raw_url_keys": 64,
+      "fresh_14d": 10
+    },
+    "ashby:comfy-org": {
+      "raw": 8,
+      "engine_keys": 8,
+      "marginal_raw_engine_keys": 8,
+      "marginal_raw_url_keys": 8,
+      "fresh_14d": 2
+    },
+    "ashby:column": {
+      "raw": 18,
+      "engine_keys": 18,
+      "marginal_raw_engine_keys": 18,
+      "marginal_raw_url_keys": 18,
+      "fresh_14d": 1
+    },
+    "ashby:collective": {
+      "raw": 15,
+      "engine_keys": 15,
+      "marginal_raw_engine_keys": 15,
+      "marginal_raw_url_keys": 15,
+      "fresh_14d": 5
+    },
+    "ashby:stealth-healthtech-startup": {
+      "raw": 15,
+      "engine_keys": 13,
+      "marginal_raw_engine_keys": 13,
+      "marginal_raw_url_keys": 15,
+      "fresh_14d": 1
+    },
+    "ashby:hellobrightline": {
+      "raw": 7,
+      "engine_keys": 7,
+      "marginal_raw_engine_keys": 7,
+      "marginal_raw_url_keys": 7,
+      "fresh_14d": 1
+    },
+    "ashby:livinghr": {
+      "raw": 26,
+      "engine_keys": 25,
+      "marginal_raw_engine_keys": 25,
+      "marginal_raw_url_keys": 26,
+      "fresh_14d": 7
+    },
+    "ashby:injective-labs": {
+      "raw": 7,
+      "engine_keys": 7,
+      "marginal_raw_engine_keys": 7,
+      "marginal_raw_url_keys": 7,
+      "fresh_14d": 1
+    },
+    "ashby:standardbots": {
+      "raw": 34,
+      "engine_keys": 34,
+      "marginal_raw_engine_keys": 34,
+      "marginal_raw_url_keys": 34,
+      "fresh_14d": 6
+    },
+    "ashby:zed": {
+      "raw": 1,
+      "engine_keys": 1,
+      "marginal_raw_engine_keys": 1,
+      "marginal_raw_url_keys": 1,
+      "fresh_14d": 0
+    },
+    "ashby:granica": {
+      "raw": 11,
+      "engine_keys": 11,
+      "marginal_raw_engine_keys": 11,
+      "marginal_raw_url_keys": 11,
+      "fresh_14d": 3
+    },
+    "ashby:clarasight": {
+      "raw": 12,
+      "engine_keys": 12,
+      "marginal_raw_engine_keys": 12,
+      "marginal_raw_url_keys": 12,
+      "fresh_14d": 0
+    },
+    "ashby:highbeam": {
+      "raw": 7,
+      "engine_keys": 7,
+      "marginal_raw_engine_keys": 7,
+      "marginal_raw_url_keys": 7,
+      "fresh_14d": 1
+    },
+    "ashby:windborne-systems": {
+      "raw": 23,
+      "engine_keys": 23,
+      "marginal_raw_engine_keys": 23,
+      "marginal_raw_url_keys": 23,
+      "fresh_14d": 4
+    },
+    "ashby:vultr": {
+      "raw": 50,
+      "engine_keys": 50,
+      "marginal_raw_engine_keys": 50,
+      "marginal_raw_url_keys": 50,
+      "fresh_14d": 15
+    },
+    "ashby:qualified-health-pbc": {
+      "raw": 29,
+      "engine_keys": 29,
+      "marginal_raw_engine_keys": 29,
+      "marginal_raw_url_keys": 29,
+      "fresh_14d": 3
+    },
+    "ashby:mystenlabs": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 3
+    },
+    "ashby:instil": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 0
+    },
+    "ashby:helpscout": {
+      "raw": 10,
+      "engine_keys": 10,
+      "marginal_raw_engine_keys": 10,
+      "marginal_raw_url_keys": 10,
+      "fresh_14d": 2
+    },
+    "ashby:marcohire": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 1
+    },
+    "ashby:junior": {
+      "raw": 21,
+      "engine_keys": 17,
+      "marginal_raw_engine_keys": 17,
+      "marginal_raw_url_keys": 21,
+      "fresh_14d": 2
+    },
+    "ashby:slash-financial": {
+      "raw": 19,
+      "engine_keys": 19,
+      "marginal_raw_engine_keys": 19,
+      "marginal_raw_url_keys": 19,
+      "fresh_14d": 1
+    },
+    "ashby:coreoftheheart": {
+      "raw": 9,
+      "engine_keys": 9,
+      "marginal_raw_engine_keys": 9,
+      "marginal_raw_url_keys": 9,
+      "fresh_14d": 0
+    },
+    "ashby:claritypediatrics": {
+      "raw": 22,
+      "engine_keys": 22,
+      "marginal_raw_engine_keys": 22,
+      "marginal_raw_url_keys": 22,
+      "fresh_14d": 3
+    },
+    "ashby:vapi": {
+      "raw": 31,
+      "engine_keys": 31,
+      "marginal_raw_engine_keys": 31,
+      "marginal_raw_url_keys": 31,
+      "fresh_14d": 3
+    },
+    "ashby:blacksmith": {
+      "raw": 20,
+      "engine_keys": 20,
+      "marginal_raw_engine_keys": 20,
+      "marginal_raw_url_keys": 20,
+      "fresh_14d": 1
+    },
+    "ashby:jigsaw": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 1
+    },
+    "ashby:ironcladhq": {
+      "raw": 35,
+      "engine_keys": 35,
+      "marginal_raw_engine_keys": 35,
+      "marginal_raw_url_keys": 35,
+      "fresh_14d": 9
+    },
+    "ashby:procurify": {
+      "raw": 9,
+      "engine_keys": 9,
+      "marginal_raw_engine_keys": 9,
+      "marginal_raw_url_keys": 9,
+      "fresh_14d": 1
+    },
+    "ashby:cocodelivery": {
+      "raw": 12,
+      "engine_keys": 9,
+      "marginal_raw_engine_keys": 9,
+      "marginal_raw_url_keys": 12,
+      "fresh_14d": 0
+    },
+    "ashby:bantamcommunications": {
+      "raw": 3,
+      "engine_keys": 3,
+      "marginal_raw_engine_keys": 3,
+      "marginal_raw_url_keys": 3,
+      "fresh_14d": 0
+    },
+    "ashby:develop-health": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 0
+    },
+    "ashby:rewind": {
+      "raw": 3,
+      "engine_keys": 3,
+      "marginal_raw_engine_keys": 3,
+      "marginal_raw_url_keys": 3,
+      "fresh_14d": 0
+    },
+    "ashby:squads": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 0
+    },
+    "ashby:method-crm": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 1
+    },
+    "ashby:smallstep": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 0
+    },
+    "ashby:careerstrengo": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 2
+    },
+    "ashby:edsights": {
+      "raw": 6,
+      "engine_keys": 6,
+      "marginal_raw_engine_keys": 6,
+      "marginal_raw_url_keys": 6,
+      "fresh_14d": 2
+    },
+    "ashby:tavahealth": {
+      "raw": 4,
+      "engine_keys": 4,
+      "marginal_raw_engine_keys": 4,
+      "marginal_raw_url_keys": 4,
+      "fresh_14d": 1
+    },
+    "ashby:semgrep": {
+      "raw": 10,
+      "engine_keys": 10,
+      "marginal_raw_engine_keys": 10,
+      "marginal_raw_url_keys": 10,
+      "fresh_14d": 2
+    },
+    "ashby:aurorasolar": {
+      "raw": 14,
+      "engine_keys": 10,
+      "marginal_raw_engine_keys": 10,
+      "marginal_raw_url_keys": 14,
+      "fresh_14d": 5
+    },
+    "ashby:matter-labs": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 1
+    },
+    "ashby:coefficientgiving": {
+      "raw": 5,
+      "engine_keys": 5,
+      "marginal_raw_engine_keys": 5,
+      "marginal_raw_url_keys": 5,
+      "fresh_14d": 1
+    },
+    "ashby:weaviate": {
+      "raw": 3,
+      "engine_keys": 3,
+      "marginal_raw_engine_keys": 3,
+      "marginal_raw_url_keys": 3,
+      "fresh_14d": 2
+    },
+    "ashby:claim-health": {
+      "raw": 9,
+      "engine_keys": 9,
+      "marginal_raw_engine_keys": 9,
+      "marginal_raw_url_keys": 9,
+      "fresh_14d": 1
+    },
+    "ashby:nationgraph": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 0
+    },
+    "ashby:getground": {
+      "raw": 11,
+      "engine_keys": 11,
+      "marginal_raw_engine_keys": 11,
+      "marginal_raw_url_keys": 11,
+      "fresh_14d": 2
+    },
+    "smartrecruiters:BoschGroup": {
+      "raw": 100,
+      "engine_keys": 95,
+      "marginal_raw_engine_keys": 95,
+      "marginal_raw_url_keys": 100,
+      "fresh_14d": 100
+    },
+    "smartrecruiters:Freshworks": {
+      "raw": 100,
+      "engine_keys": 73,
+      "marginal_raw_engine_keys": 73,
+      "marginal_raw_url_keys": 100,
+      "fresh_14d": 39
+    },
+    "smartrecruiters:Bosch-HomeComfort": {
+      "raw": 100,
+      "engine_keys": 83,
+      "marginal_raw_engine_keys": 83,
+      "marginal_raw_url_keys": 100,
+      "fresh_14d": 43
+    },
+    "breezy:skyspecs": {
+      "raw": 17,
+      "engine_keys": 17,
+      "marginal_raw_engine_keys": 17,
+      "marginal_raw_url_keys": 17,
+      "fresh_14d": 7
+    },
+    "breezy:delivery-solutions": {
+      "raw": 2,
+      "engine_keys": 2,
+      "marginal_raw_engine_keys": 2,
+      "marginal_raw_url_keys": 2,
+      "fresh_14d": 0
+    }
+  }
+}

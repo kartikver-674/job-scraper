@@ -1,0 +1,122 @@
+[
+ {
+  "provider": "smartrecruiters",
+  "board_id": "Visa",
+  "company_name": "Visa",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/Visa",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "ServiceNow",
+  "company_name": "ServiceNow",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/ServiceNow",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "Miratech1",
+  "company_name": "Miratech",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/Miratech1/",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "HGS2",
+  "company_name": "HGS",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/HGS2",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "APACTalentAttraction",
+  "company_name": "APAC Talent Attraction",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/APACTalentAttraction",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "JobsForHumanity",
+  "company_name": "Jobs for Humanity",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/JobsForHumanity",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "tminetwork2",
+  "company_name": "TMI Group",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/tminetwork2",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "WebleeTechnologies",
+  "company_name": "Weblee Technologies",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/WebleeTechnologies",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "JAGSAR",
+  "company_name": "JAGSAR",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/JAGSAR",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "smartrecruiters",
+  "board_id": "BringleExcellence",
+  "company_name": "Bringle Excellence",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://careers.smartrecruiters.com/BringleExcellence",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "breezy",
+  "board_id": "75f-apac",
+  "company_name": "75F APAC",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://75f-apac.breezy.hr/",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ },
+ {
+  "provider": "breezy",
+  "board_id": "nexthire",
+  "company_name": "Nexthire",
+  "company_name_status": "primary_board_page",
+  "discovery_source": "https://nexthire.breezy.hr/p/d248f71ecd60-avl-talent-acquisition/apply",
+  "discovery_type": "primary_board_search_result",
+  "in_baseline": false,
+  "selection": "primary_search"
+ }
+]

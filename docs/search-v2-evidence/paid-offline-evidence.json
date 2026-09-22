@@ -1,0 +1,138 @@
+{
+  "status": "MEASURED OFFLINE",
+  "paid_calls": 0,
+  "dedupe_probes": {
+    "case": "synthetic distinct location and URL",
+    "input_rows": 2,
+    "output_rows": 1,
+    "keys": [
+      [
+        "ct",
+        "example",
+        "engineer software"
+      ],
+      [
+        "ct",
+        "example",
+        "engineer software"
+      ]
+    ],
+    "query_id_url_fallback_rows_kept": 1,
+    "same_req_id_different_employers_rows_kept": 1
+  },
+  "historical_redacted_aggregates": [
+    {
+      "artifact": "historical_log_01",
+      "run_total_pulled": [
+        32
+      ],
+      "run_final_rows": [
+        3
+      ],
+      "run_reported_spend_usd": [],
+      "actor_success_log_lines": 0,
+      "actor_failure_log_lines": 0,
+      "timing_available": false,
+      "caveat": "historical console accounting, not invoice; logs may concatenate runs or include free sources; not current-profile quality evidence"
+    },
+    {
+      "artifact": "historical_log_02",
+      "run_total_pulled": [
+        143
+      ],
+      "run_final_rows": [
+        49
+      ],
+      "run_reported_spend_usd": [
+        0.04
+      ],
+      "actor_success_log_lines": 9,
+      "actor_failure_log_lines": 9,
+      "timing_available": false,
+      "caveat": "historical console accounting, not invoice; logs may concatenate runs or include free sources; not current-profile quality evidence"
+    },
+    {
+      "artifact": "historical_log_03",
+      "run_total_pulled": [
+        398
+      ],
+      "run_final_rows": [
+        154
+      ],
+      "run_reported_spend_usd": [
+        1.51
+      ],
+      "actor_success_log_lines": 12,
+      "actor_failure_log_lines": 6,
+      "timing_available": false,
+      "caveat": "historical console accounting, not invoice; logs may concatenate runs or include free sources; not current-profile quality evidence"
+    },
+    {
+      "artifact": "historical_log_04",
+      "run_total_pulled": [
+        884
+      ],
+      "run_final_rows": [
+        222
+      ],
+      "run_reported_spend_usd": [
+        3.18
+      ],
+      "actor_success_log_lines": 50,
+      "actor_failure_log_lines": 0,
+      "timing_available": false,
+      "caveat": "historical console accounting, not invoice; logs may concatenate runs or include free sources; not current-profile quality evidence"
+    },
+    {
+      "artifact": "historical_log_05",
+      "run_total_pulled": [
+        216
+      ],
+      "run_final_rows": [
+        101
+      ],
+      "run_reported_spend_usd": [
+        0.43
+      ],
+      "actor_success_log_lines": 8,
+      "actor_failure_log_lines": 0,
+      "timing_available": false,
+      "caveat": "historical console accounting, not invoice; logs may concatenate runs or include free sources; not current-profile quality evidence"
+    },
+    {
+      "artifact": "historical_log_06",
+      "run_total_pulled": [
+        198,
+        474
+      ],
+      "run_final_rows": [
+        66,
+        38
+      ],
+      "run_reported_spend_usd": [
+        0.05,
+        2.41
+      ],
+      "actor_success_log_lines": 51,
+      "actor_failure_log_lines": 48,
+      "timing_available": false,
+      "caveat": "historical console accounting, not invoice; logs may concatenate runs or include free sources; not current-profile quality evidence"
+    },
+    {
+      "artifact": "historical_log_07",
+      "run_total_pulled": [
+        45
+      ],
+      "run_final_rows": [
+        4
+      ],
+      "run_reported_spend_usd": [
+        0.26
+      ],
+      "actor_success_log_lines": 3,
+      "actor_failure_log_lines": 0,
+      "timing_available": false,
+      "caveat": "historical console accounting, not invoice; logs may concatenate runs or include free sources; not current-profile quality evidence"
+    }
+  ]
+}

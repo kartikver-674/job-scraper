@@ -1,0 +1,3633 @@
+{
+  "status": "MEASURED OFFLINE",
+  "paid_calls": 0,
+  "synthetic_profile_fixtures": [
+    {
+      "case": "software_fullstack",
+      "derived": {
+        "years_experience": 2,
+        "experience_months": 24,
+        "role_keywords": [
+          "Software Engineer",
+          "Full Stack Developer"
+        ],
+        "skill_weights": [
+          {
+            "term": "react",
+            "weight": 5
+          },
+          {
+            "term": "node.js",
+            "weight": 5
+          },
+          {
+            "term": "typescript",
+            "weight": 5
+          }
+        ],
+        "penalty_terms": [],
+        "domain_half_a": [],
+        "domain_half_b": [],
+        "domain_title_terms": [],
+        "domain_bonus": 0,
+        "field_summary": "Synthetic audit fixture",
+        "notes": "No real candidate data",
+        "title_hints": [
+          "Software Engineer",
+          "Full Stack Developer"
+        ],
+        "title_exclude": []
+      },
+      "prefs": {
+        "locations": [
+          "Bengaluru",
+          "Remote"
+        ],
+        "linkedin_locations": [
+          "Bengaluru",
+          "Remote"
+        ],
+        "max_results": 15,
+        "max_age_days": 14,
+        "min_comp_usd": null,
+        "exclude_levels": [],
+        "avoid": [],
+        "sites_enabled": {
+          "linkedin": true,
+          "indeed": true,
+          "naukri": false
+        }
+      },
+      "caveat": "Synthetic candidate inputs, not extraction/generation output; scoring engine and title gates stay frozen"
+    },
+    {
+      "case": "react_native",
+      "derived": {
+        "years_experience": 2,
+        "experience_months": 24,
+        "role_keywords": [
+          "React Native Developer",
+          "React Native Engineer"
+        ],
+        "skill_weights": [
+          {
+            "term": "react native",
+            "weight": 5
+          },
+          {
+            "term": "typescript",
+            "weight": 5
+          },
+          {
+            "term": "javascript",
+            "weight": 3
+          }
+        ],
+        "penalty_terms": [],
+        "domain_half_a": [],
+        "domain_half_b": [],
+        "domain_title_terms": [],
+        "domain_bonus": 0,
+        "field_summary": "Synthetic audit fixture",
+        "notes": "No real candidate data",
+        "title_hints": [
+          "React Native Developer",
+          "React Native Engineer"
+        ],
+        "title_exclude": []
+      },
+      "prefs": {
+        "locations": [
+          "Bengaluru",
+          "Remote"
+        ],
+        "linkedin_locations": [
+          "Bengaluru",
+          "Remote"
+        ],
+        "max_results": 15,
+        "max_age_days": 14,
+        "min_comp_usd": null,
+        "exclude_levels": [],
+        "avoid": [],
+        "sites_enabled": {
+          "linkedin": true,
+          "indeed": true,
+          "naukri": false
+        }
+      },
+      "caveat": "Synthetic candidate inputs, not extraction/generation output; scoring engine and title gates stay frozen"
+    },
+    {
+      "case": "business_salesforce",
+      "derived": {
+        "years_experience": 2,
+        "experience_months": 24,
+        "role_keywords": [
+          "Business Analyst",
+          "Salesforce Functional Consultant",
+          "Salesforce Administrator"
+        ],
+        "skill_weights": [
+          {
+            "term": "salesforce",
+            "weight": 5
+          },
+          {
+            "term": "sales cloud",
+            "weight": 5
+          },
+          {
+            "term": "uat",
+            "weight": 1
+          }
+        ],
+        "penalty_terms": [],
+        "domain_half_a": [],
+        "domain_half_b": [],
+        "domain_title_terms": [],
+        "domain_bonus": 0,
+        "field_summary": "Synthetic audit fixture",
+        "notes": "No real candidate data",
+        "title_hints": [
+          "Business Analyst",
+          "Salesforce Functional Consultant",
+          "Salesforce Administrator"
+        ],
+        "title_exclude": []
+      },
+      "prefs": {
+        "locations": [
+          "Delhi",
+          "Remote"
+        ],
+        "linkedin_locations": [
+          "Delhi",
+          "Remote"
+        ],
+        "max_results": 15,
+        "max_age_days": 14,
+        "min_comp_usd": null,
+        "exclude_levels": [],
+        "avoid": [],
+        "sites_enabled": {
+          "linkedin": true,
+          "indeed": true,
+          "naukri": true
+        }
+      },
+      "caveat": "Synthetic candidate inputs, not extraction/generation output; scoring engine and title gates stay frozen"
+    },
+    {
+      "case": "multiple_roles_locations",
+      "derived": {
+        "years_experience": 2,
+        "experience_months": 24,
+        "role_keywords": [
+          "Software Engineer",
+          "Full Stack Developer",
+          "React Native Developer",
+          "Business Analyst"
+        ],
+        "skill_weights": [
+          {
+            "term": "react",
+            "weight": 5
+          },
+          {
+            "term": "node.js",
+            "weight": 5
+          },
+          {
+            "term": "typescript",
+            "weight": 5
+          }
+        ],
+        "penalty_terms": [],
+        "domain_half_a": [],
+        "domain_half_b": [],
+        "domain_title_terms": [],
+        "domain_bonus": 0,
+        "field_summary": "Synthetic audit fixture",
+        "notes": "No real candidate data",
+        "title_hints": [
+          "Software Engineer",
+          "Full Stack Developer",
+          "React Native Developer",
+          "Business Analyst"
+        ],
+        "title_exclude": []
+      },
+      "prefs": {
+        "locations": [
+          "Bengaluru",
+          "Hyderabad",
+          "Pune",
+          "Remote"
+        ],
+        "linkedin_locations": [
+          "Bengaluru",
+          "Hyderabad",
+          "Pune",
+          "Remote"
+        ],
+        "max_results": 15,
+        "max_age_days": 14,
+        "min_comp_usd": null,
+        "exclude_levels": [],
+        "avoid": [],
+        "sites_enabled": {
+          "linkedin": true,
+          "indeed": true,
+          "naukri": true
+        }
+      },
+      "caveat": "Synthetic candidate inputs, not extraction/generation output; scoring engine and title gates stay frozen"
+    }
+  ],
+  "cases": [
+    {
+      "case": "repository_defaults",
+      "basis": "synthetic lowered SEARCH/SITES inputs; production planner/adapters; no profile generation or scoring changes",
+      "cost_estimate": {
+        "profile": "repository_defaults",
+        "lines": [
+          {
+            "site": "linkedin",
+            "searches": 18,
+            "results": 15,
+            "rate": 0.026999999999999996,
+            "subtotal": 0.486,
+            "free": false
+          },
+          {
+            "site": "indeed",
+            "searches": 72,
+            "results": 15,
+            "rate": 0.09,
+            "subtotal": 6.48,
+            "free": false
+          }
+        ],
+        "total": 6.966,
+        "total_searches": 90,
+        "free_sources": 0
+      },
+      "intended_result_capacity": 1350,
+      "units": [
+        {
+          "source": "linkedin",
+          "query": "Full Stack Developer",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Developer&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Engineer",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Engineer&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Engineer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "MERN Stack Developer",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=MERN+Stack+Developer&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "MERN Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=MERN+Stack+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Developer",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Developer&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Engineer",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Engineer&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Engineer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Developer",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Developer&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Node.js Developer",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Node.js+Developer&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Node.js Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Node.js+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Frontend Developer",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Frontend+Developer&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Frontend Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Frontend+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Software Engineer JavaScript",
+          "location": "India",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer+JavaScript&geoId=102713980&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Software Engineer JavaScript",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer+JavaScript&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Engineer",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Engineer",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Engineer",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Engineer",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Engineer",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Engineer",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Engineer",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Engineer",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Engineer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Engineer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Engineer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Engineer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Engineer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Engineer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Engineer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "MERN Stack Developer",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "MERN Stack Developer",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "MERN Stack Developer",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "MERN Stack Developer",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "MERN Stack Developer",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "MERN Stack Developer",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "MERN Stack Developer",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "MERN Stack Developer",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "MERN Stack Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "MERN Stack Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "MERN Stack Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "MERN Stack Developer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "MERN Stack Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "MERN Stack Developer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "MERN Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "MERN Stack Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Developer",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Developer",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Developer",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Developer",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Developer",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Developer",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Developer",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Developer",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Developer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Developer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Node.js Developer",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Node.js Developer",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Node.js Developer",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Node.js Developer",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Node.js Developer",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Node.js Developer",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Node.js Developer",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Node.js Developer",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Node.js Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Node.js Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Node.js Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Node.js Developer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Node.js Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Node.js Developer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Node.js Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Node.js Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Frontend Developer",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Frontend Developer",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Frontend Developer",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Frontend Developer",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Frontend Developer",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Frontend Developer",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Frontend Developer",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Frontend Developer",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Frontend Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Frontend Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Frontend Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Frontend Developer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Frontend Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Frontend Developer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Frontend Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Frontend Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer JavaScript",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer JavaScript",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer JavaScript",
+          "location": "New Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer JavaScript",
+            "location": "New Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer JavaScript",
+          "location": "Gurgaon",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer JavaScript",
+            "location": "Gurgaon",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer JavaScript",
+          "location": "Noida",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer JavaScript",
+            "location": "Noida",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer JavaScript",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer JavaScript",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer JavaScript",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer JavaScript",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer JavaScript",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer JavaScript",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer JavaScript",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer JavaScript",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        }
+      ]
+    },
+    {
+      "case": "software_fullstack",
+      "basis": "synthetic lowered SEARCH/SITES inputs; production planner/adapters; no profile generation or scoring changes",
+      "cost_estimate": {
+        "profile": "software_fullstack",
+        "lines": [
+          {
+            "site": "linkedin",
+            "searches": 4,
+            "results": 15,
+            "rate": 0.026999999999999996,
+            "subtotal": 0.108,
+            "free": false
+          },
+          {
+            "site": "indeed",
+            "searches": 4,
+            "results": 15,
+            "rate": 0.09,
+            "subtotal": 0.36,
+            "free": false
+          }
+        ],
+        "total": 0.468,
+        "total_searches": 8,
+        "free_sources": 0
+      },
+      "intended_result_capacity": 120,
+      "units": [
+        {
+          "source": "linkedin",
+          "query": "Software Engineer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&geoId=105214831&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Software Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Developer&geoId=105214831&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        }
+      ]
+    },
+    {
+      "case": "react_native",
+      "basis": "synthetic lowered SEARCH/SITES inputs; production planner/adapters; no profile generation or scoring changes",
+      "cost_estimate": {
+        "profile": "react_native",
+        "lines": [
+          {
+            "site": "linkedin",
+            "searches": 4,
+            "results": 15,
+            "rate": 0.026999999999999996,
+            "subtotal": 0.108,
+            "free": false
+          },
+          {
+            "site": "indeed",
+            "searches": 4,
+            "results": 15,
+            "rate": 0.09,
+            "subtotal": 0.36,
+            "free": false
+          }
+        ],
+        "total": 0.468,
+        "total_searches": 8,
+        "free_sources": 0
+      },
+      "intended_result_capacity": 120,
+      "units": [
+        {
+          "source": "linkedin",
+          "query": "React Native Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Developer&geoId=105214831&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Engineer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Engineer&geoId=105214831&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Engineer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Engineer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        }
+      ]
+    },
+    {
+      "case": "business_salesforce",
+      "basis": "synthetic lowered SEARCH/SITES inputs; production planner/adapters; no profile generation or scoring changes",
+      "cost_estimate": {
+        "profile": "business_salesforce",
+        "lines": [
+          {
+            "site": "linkedin",
+            "searches": 6,
+            "results": 15,
+            "rate": 0.026999999999999996,
+            "subtotal": 0.162,
+            "free": false
+          },
+          {
+            "site": "indeed",
+            "searches": 6,
+            "results": 15,
+            "rate": 0.09,
+            "subtotal": 0.54,
+            "free": false
+          },
+          {
+            "site": "naukri",
+            "searches": 6,
+            "results": 50,
+            "rate": 0.5,
+            "subtotal": 3.0,
+            "free": false
+          }
+        ],
+        "total": 3.702,
+        "total_searches": 18,
+        "free_sources": 0
+      },
+      "intended_result_capacity": 480,
+      "units": [
+        {
+          "source": "linkedin",
+          "query": "Business Analyst",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Business+Analyst&geoId=106187582&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Business Analyst",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Business+Analyst&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Salesforce Functional Consultant",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Salesforce+Functional+Consultant&geoId=106187582&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Salesforce Functional Consultant",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Salesforce+Functional+Consultant&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Salesforce Administrator",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Salesforce+Administrator&geoId=106187582&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Salesforce Administrator",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Salesforce+Administrator&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Business Analyst",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Business Analyst",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Business Analyst",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Business Analyst",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Salesforce Functional Consultant",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Salesforce Functional Consultant",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Salesforce Functional Consultant",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Salesforce Functional Consultant",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Salesforce Administrator",
+          "location": "Delhi",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Salesforce Administrator",
+            "location": "Delhi",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Salesforce Administrator",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Salesforce Administrator",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Business Analyst",
+          "location": "Delhi / NCR",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Business Analyst",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "cities": [
+              "9508"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Business Analyst",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Business Analyst",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "workMode": [
+              "remote"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Salesforce Functional Consultant",
+          "location": "Delhi / NCR",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Salesforce Functional Consultant",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "cities": [
+              "9508"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Salesforce Functional Consultant",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Salesforce Functional Consultant",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "workMode": [
+              "remote"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Salesforce Administrator",
+          "location": "Delhi / NCR",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Salesforce Administrator",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "cities": [
+              "9508"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Salesforce Administrator",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Salesforce Administrator",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "workMode": [
+              "remote"
+            ],
+            "experience": "2"
+          }
+        }
+      ]
+    },
+    {
+      "case": "multiple_roles_locations",
+      "basis": "synthetic lowered SEARCH/SITES inputs; production planner/adapters; no profile generation or scoring changes",
+      "cost_estimate": {
+        "profile": "multiple_roles_locations",
+        "lines": [
+          {
+            "site": "linkedin",
+            "searches": 16,
+            "results": 15,
+            "rate": 0.026999999999999996,
+            "subtotal": 0.432,
+            "free": false
+          },
+          {
+            "site": "indeed",
+            "searches": 16,
+            "results": 15,
+            "rate": 0.09,
+            "subtotal": 1.44,
+            "free": false
+          },
+          {
+            "site": "naukri",
+            "searches": 8,
+            "results": 50,
+            "rate": 0.5,
+            "subtotal": 4.0,
+            "free": false
+          }
+        ],
+        "total": 5.872,
+        "total_searches": 40,
+        "free_sources": 0
+      },
+      "intended_result_capacity": 880,
+      "units": [
+        {
+          "source": "linkedin",
+          "query": "Software Engineer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&geoId=105214831&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Software Engineer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&geoId=105556991&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Software Engineer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&geoId=114806696&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Software Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Developer&geoId=105214831&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Developer&geoId=105556991&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Developer&geoId=114806696&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Full Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Full+Stack+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Developer&geoId=105214831&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Developer&geoId=105556991&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Developer&geoId=114806696&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "React Native Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=React+Native+Developer&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Business Analyst",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Business+Analyst&geoId=105214831&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Business Analyst",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Business+Analyst&geoId=105556991&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Business Analyst",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Business+Analyst&geoId=114806696&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "linkedin",
+          "query": "Business Analyst",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "actor_runs": 1,
+          "input": {
+            "urls": [
+              "https://www.linkedin.com/jobs/search/?keywords=Business+Analyst&geoId=102713980&f_WT=2&f_E=3&f_TPR=r1209600"
+            ],
+            "count": 15,
+            "scrapeCompany": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Software Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Software Engineer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Full Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Full Stack Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "React Native Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "React Native Developer",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Business Analyst",
+          "location": "Bengaluru",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Business Analyst",
+            "location": "Bengaluru",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Business Analyst",
+          "location": "Hyderabad",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Business Analyst",
+            "location": "Hyderabad",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Business Analyst",
+          "location": "Pune",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Business Analyst",
+            "location": "Pune",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "indeed",
+          "query": "Business Analyst",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 15,
+          "actor": "misceres/indeed-scraper",
+          "actor_runs": 1,
+          "input": {
+            "position": "Business Analyst",
+            "location": "Remote",
+            "country": "IN",
+            "maxItemsPerSearch": 15,
+            "parseCompanyDetails": false,
+            "saveOnlyUniqueItems": true,
+            "followApplyRedirects": false
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Software Engineer",
+          "location": "Delhi / NCR",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Software Engineer",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "cities": [
+              "9508"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Software Engineer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Software Engineer",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "workMode": [
+              "remote"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Full Stack Developer",
+          "location": "Delhi / NCR",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Full Stack Developer",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "cities": [
+              "9508"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Full Stack Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Full Stack Developer",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "workMode": [
+              "remote"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "React Native Developer",
+          "location": "Delhi / NCR",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "React Native Developer",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "cities": [
+              "9508"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "React Native Developer",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "React Native Developer",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "workMode": [
+              "remote"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Business Analyst",
+          "location": "Delhi / NCR",
+          "country": "IN",
+          "remote_query": false,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Business Analyst",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "cities": [
+              "9508"
+            ],
+            "experience": "2"
+          }
+        },
+        {
+          "source": "naukri",
+          "query": "Business Analyst",
+          "location": "Remote",
+          "country": "IN",
+          "remote_query": true,
+          "max_age_days": 14,
+          "max_results_intended": 50,
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "actor_runs": 1,
+          "input": {
+            "keyword": "Business Analyst",
+            "maxJobs": 50,
+            "fetchDetails": true,
+            "sortBy": "relevance",
+            "freshness": "15",
+            "workMode": [
+              "remote"
+            ],
+            "experience": "2"
+          }
+        }
+      ]
+    }
+  ]
+}
