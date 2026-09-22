@@ -114,7 +114,13 @@ class TestDryRunJsonCarriesDepth(unittest.TestCase):
     before any actor is launched and before any output file is written.
     """
 
-    BILLED_KEY = {"linkedin": "count", "indeed": "maxItemsPerSearch",
+    # linkedin reads limitPerSource, not count: the actor's published schema
+    # defines the former and has never defined the latter, so `count` was the
+    # field this test was checking and the actor was ignoring. Sweep still
+    # sends both at one value (see test_paid_contract.py), so this assertion
+    # would pass either way — pointing it at the authoritative field is the
+    # difference between checking the contract and checking ourselves.
+    BILLED_KEY = {"linkedin": "limitPerSource", "indeed": "maxItemsPerSearch",
                   "naukri": "maxJobs"}
 
     def test_the_reported_depth_is_the_depth_the_actor_is_billed_for(self):

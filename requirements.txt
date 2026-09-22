@@ -1,4 +1,9 @@
-apify-client>=1.7.0
+# >=3.1.0, not >=1.7.0: scraper.scrape_search passes max_total_charge_usd to
+# ActorClient.start() to put a PROVIDER-ENFORCED ceiling on every paid LinkedIn
+# run. 3.1.0 is the version that support was verified against. An older client
+# does not fail quietly — scrape_search refuses to start the run — but that
+# means no paid LinkedIn search can run at all, so the floor belongs here.
+apify-client>=3.1.0
 python-dotenv>=1.0.0
 google-genai>=1.0.0
 pypdf>=4.0.0

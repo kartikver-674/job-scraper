@@ -289,7 +289,11 @@ def paid_run(**fields):
     allowed = ("actor_id", "actor_build_id", "actor_run_id", "dataset_id",
                "actor_status", "actor_started_at", "actor_finished_at",
                "dataset_retrieved_at", "poll_count", "estimated_cost_usd",
-               "reported_cost_usd", "billed_delta_usd")
+               "reported_cost_usd", "billed_delta_usd",
+               # The provider-enforced ceiling this run was started under.
+               # Without it a later cost analysis cannot tell a cheap run from
+               # a run that was cheap because it was capped.
+               "max_total_charge_usd")
     for key in allowed:
         if key in fields:
             value = fields[key]

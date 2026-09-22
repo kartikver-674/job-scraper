@@ -32,6 +32,17 @@ Three of these change what V2-B should do.
    keywords rather than enforced filters. Whether today's actor build *ignores*
    an unknown `count` is **UNKNOWN** and needs one approved paid run to settle
    (§13, §15). No paid behaviour was changed in this stage.
+
+   > **CORRECTED 2026-09-22 by [V2-B1](search-engine-v2-b1-linkedin-paid-safety.md).**
+   > Two errors above. **`f_TPR` does not become a keyword** — the actor's README
+   > lists it, with `f_C`, as "Kept as URL filters" under AI search, so Sweep's
+   > recency window and company targeting stay enforced. And the recommendation
+   > to set `autoConvertToAiSearch=false` is **withdrawn**: LinkedIn itself
+   > removed the classic experience/workplace filters, so the option is the
+   > actor's mitigation, not the cause. Setting it false would drop `f_WT`/`f_E`
+   > rather than enforce them. The depth finding stands and is now fixed:
+   > `limitPerSource` carries the depth and every run starts under a
+   > provider-enforced `maxTotalChargeUsd`.
 2. **MEASURED — SmartRecruiters depth past row 100 buys inventory, not
    relevance.** Rows 101–400 across five current boards tripled normalized rows
    (500 → 1,503) and eligible rows (7 → 23), and produced **zero**
@@ -483,12 +494,12 @@ No actor was run. No credit was spent. Schemas re-fetched 2026-09-22.
 | Multiple queries | **VERIFIED:** one `keywords` string, but `urls` is an array, so multiple queries are expressible as multiple URLs. Sweep sends exactly one. |
 | Multiple locations | **VERIFIED:** via multiple URLs, or `splitByLocation` + `splitCountry`. Sweep sends one URL per location. |
 | Country | **VERIFIED:** not a field. Geography is `geoId` inside the URL — a single value per URL. |
-| Remote filter | **VERIFIED code**, **INFERRED runtime:** Sweep sets `f_WT=2`. With `autoConvertToAiSearch` documented as enabled by default, classic URL filters are "converted to natural language and appended to search keywords" — so `f_WT`/`f_E`/`f_TPR` may be *search terms*, not enforced filters. |
+| Remote filter | **VERIFIED code**, **CORRECTED by V2-B1:** Sweep sets `f_WT=2`. `autoConvertToAiSearch` is on by default and converts classic filters to natural language — but **only the ones LinkedIn removed**. The README's "Kept as URL filters" list is `f_TPR`/`f_TP`, `f_C`, `f_AL`, `f_EA`, so recency and company remain enforced; `f_WT`/`f_E` become search terms. See [V2-B1 §5](search-engine-v2-b1-linkedin-paid-safety.md). |
 | `max_results` semantics | **UNKNOWN / REQUIRES PAID VALIDATION.** Sweep's intended 15 is expressed in a field the schema does not document. Whether the build ignores it, errors, or honours it is unobservable without a run. |
 | Pagination | **UNKNOWN.** Not exposed; depth is a single limit. |
 | Pricing basis visible to Sweep | **VERIFIED code:** `$0.045 / 25` = $0.0018 per intended row (`config.py`, `SITE_RATE_BASIS["linkedin"]=25`). Store: $2/1,000 results + a start event. |
 | Failure isolation if batched | **VERIFIED by inspection:** one URL per run today, so one failure costs one query×location. Batching URLs would merge failure domains and, with only `limitPerSource` available, share one depth budget across sources — and `search_rank` provenance would no longer map to a query. |
-| **Do Sweep's inputs still match the contract?** | **NO.** This is the stage's most consequential finding. |
+| **Do Sweep's inputs still match the contract?** | **NO** at the time of writing. **FIXED 2026-09-22** in [V2-B1](search-engine-v2-b1-linkedin-paid-safety.md): Sweep now sends `limitPerSource` and starts every run under a $0.046 provider-enforced ceiling. |
 
 **The concrete bug, and its size.** If the actor ignores unknown fields, Sweep
 sends no depth limit and a search can return ~1,000 rows. At $2/1,000 that is
@@ -771,3 +782,13 @@ No audit conclusion was edited. Where this stage's evidence differs:
 | "Postman needs board migration discovery" | Still 404, **and** it was silently breaking `python -m sources --live` | **Extends** the audit with a consequence it did not look for. |
 | SmartRecruiters "at least 2,946 advertised rows lie beyond those first pages; fresh/relevant/unique gain is UNKNOWN" | Measured: mostly stale, increasingly duplicated, 0 positive score | **Resolves** an UNKNOWN, in the direction the audit's caution implied. |
 | Ashby/SmartRecruiters/Breezy update timestamps implied available | Measured absent | **Corrects** an assumption this stage itself first made; the audit never claimed them by name. |
+
+**Corrections to THIS document**, made by
+[V2-B1](search-engine-v2-b1-linkedin-paid-safety.md) on 2026-09-22 and recorded
+here rather than silently edited away:
+
+| This document said | V2-B1 measured | Reading |
+|---|---|---|
+| `autoConvertToAiSearch` turns `f_WT`/`f_E`/**`f_TPR`** into keywords | `f_TPR` and `f_C` are explicitly **"Kept as URL filters"** | **Wrong here.** Recency and company targeting were never degraded. Only `f_WT`/`f_E` are converted. |
+| Recommended setting `autoConvertToAiSearch=false` to preserve classic semantics | LinkedIn removed those filters; the option is the actor's mitigation, and its `false` behaviour is undocumented | **Recommendation withdrawn.** False would drop the filters rather than enforce them. The setting is left alone. |
+| §17's paid probe: send `count=15`, maximum UNKNOWN | superseded | **Withdrawn.** [V2-B1 §9](search-engine-v2-b1-linkedin-paid-safety.md) proposes the same probe with the corrected input under a $0.046 enforceable ceiling. |

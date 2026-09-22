@@ -43,6 +43,7 @@ Flags:
 
 import argparse
 import csv
+import inspect
 import json
 import os
 import re
@@ -51,6 +52,7 @@ import time
 import urllib.parse
 from collections import Counter
 from datetime import datetime, timedelta
+from decimal import ROUND_CEILING, Decimal
 
 import config
 import enrich
@@ -962,12 +964,25 @@ def build_input(site_key, s):
             "followApplyRedirects": False,
         }
     if site_key == "linkedin":
+        # The depth field the CURRENT actor documents is limitPerSource. The
+        # published schema has no `count` at all, and it says an omitted limit
+        # scrapes "as many as LinkedIn returns for each search (up to ~1000)" —
+        # so a depth field the actor does not read is not a smaller sweep, it is
+        # an unbounded one. V2-A verified the mismatch; this sends the field the
+        # contract defines.
+        #
+        # `count` is KEPT, at the identical value, as a hedge against an older
+        # build: the audit's retained logs show intended-depth-15 searches
+        # returning 16-18 rows, which is a build that read `count` and honoured
+        # it. Apify's input schema defaults to additionalProperties: true, and
+        # those historical runs succeeded rather than failing validation, so an
+        # unread extra field costs nothing. Both read ONE expression, so the two
+        # can never disagree about depth — asserted in test_paid_contract.py.
+        depth = max(ACTOR_MIN_RESULTS["linkedin"], s["max_results"])
         return {
             "urls": [_build_linkedin_url(s)],
-            # Floored in effective_search, which owns billable depth; this
-            # is belt-and-braces because the actor rejects a lower count,
-            # and it reads the same constant rather than a second literal.
-            "count": max(ACTOR_MIN_RESULTS["linkedin"], s["max_results"]),
+            "limitPerSource": depth,     # authoritative: the documented field
+            "count": depth,              # legacy hedge, same value
             "scrapeCompany": False,
         }
     if site_key == "naukri":
@@ -1075,6 +1090,93 @@ def plan_for_site(site_key, args):
 ACTOR_MIN_RESULTS = {"linkedin": 10}   # apimaestro/linkedin actor requires count >= 10
 
 
+# ---------------------------------------------------------------------------
+# Provider-enforced charge ceiling
+# ---------------------------------------------------------------------------
+# Sweep's spend guard checks `spent >= budget` BEFORE the next run, using the
+# account delta from the PREVIOUS one. It cannot bound the run it is about to
+# start. That was survivable while the depth field was believed to work; V2-A
+# showed the actor does not document `count`, so the true worst case for one
+# "15 result" search was ~1,000 results — about $2.00 where the estimate said
+# $0.027, discovered only after the charge.
+#
+# maxTotalChargeUsd is the provider's own limit on a pay-per-event run. It is
+# passed as a START ARGUMENT, not as actor input: the SDK exposes it as
+# ActorClient.start(max_total_charge_usd=...) and sends it as the
+# `maxTotalChargeUsd` query parameter on POST /v2/acts/.../runs. Putting the
+# same name inside run_input would be an ordinary unread input field and would
+# bound nothing. https://docs.apify.com/api/v2/actors-runs-post
+#
+# Numbers read from the store's own pricing record on 2026-09-22:
+#   https://api.apify.com/v2/acts/curious_coder~linkedin-jobs-scraper
+# Current entry, PAY_PER_EVENT, started 2026-08-14:
+#   apify-default-dataset-item ("result")  FREE $0.002 / paid tiers $0.001
+#   apify-actor-start                      $0.00005, one per GB, minimum one
+#   minimalMaxTotalChargeUsd               $0.001
+#   defaultRunOptions.memoryMbytes         512  (so one start event)
+# FREE-tier prices are used because they are the HIGHEST published: a ceiling
+# computed from the cheaper tier would abort a free-plan account's legitimate
+# run. This is the safe direction to be wrong in.
+ACTOR_CHARGE_MODEL = {
+    "linkedin": {
+        "result_usd": Decimal("0.002"),      # FREE tier, the dearest published
+        "start_usd": Decimal("0.00005"),     # per GB of memory, minimum one
+        # 512MB default bills one start event; two covers a memory bump.
+        "start_events": 2,
+        # Headroom so the ceiling never truncates an honest run. The actor has
+        # historically returned 16-18 rows for an intended 15, so a ceiling at
+        # exactly the intended depth would abort a run that behaved normally.
+        "overshoot": Decimal("1.5"),
+        "provider_minimum_usd": Decimal("0.001"),   # minimalMaxTotalChargeUsd
+    },
+    # Indeed and Naukri are deliberately absent. Their inputs and economics are
+    # unchanged by this patch, Naukri's own minimalMaxTotalChargeUsd is $0.10
+    # against a per-run model Sweep already treats as a floor, and adding a
+    # ceiling there would be a second, unmeasured behaviour change. Absent means
+    # "no ceiling computed", which max_charge_usd reports as None.
+}
+
+# Rounded UP to a tenth of a cent. Coarser than the published $0.00005 event
+# granularity on purpose: rounding up can only ever raise the ceiling, and a
+# figure carried to more decimal places than the model supports would be
+# invented precision.
+CHARGE_CEILING_STEP = Decimal("0.001")
+
+
+def max_charge_usd(site_key, depth):
+    """Provider-enforced maximum charge for ONE run at `depth`, or None.
+
+    None means this site has no charge model, which is not the same as "no
+    limit is needed" — scrape_search decides what to do about it.
+    """
+    model = ACTOR_CHARGE_MODEL.get(site_key)
+    if model is None:
+        return None
+    ceiling = (Decimal(depth) * model["result_usd"] * model["overshoot"]
+               + Decimal(model["start_events"]) * model["start_usd"])
+    ceiling = (ceiling / CHARGE_CEILING_STEP).to_integral_value(
+        rounding=ROUND_CEILING) * CHARGE_CEILING_STEP
+    # The provider refuses a ceiling below its own minimum, and a refused start
+    # is a failed search rather than an unbounded one; raise it instead.
+    return max(ceiling, model["provider_minimum_usd"])
+
+
+def charge_ceiling_supported(actor_client):
+    """Whether this apify-client can actually apply the ceiling.
+
+    requirements.txt asks for a version that has it, but a deployed environment
+    is not a requirements file. Introspected rather than assumed, because the
+    failure it guards against is silent: an older client would raise TypeError
+    only if we passed the argument, and the tempting "handle it" is to drop the
+    argument and run anyway — which is the exact outcome this exists to prevent.
+    """
+    try:
+        return "max_total_charge_usd" in inspect.signature(
+            actor_client.start).parameters
+    except (TypeError, ValueError):
+        return False
+
+
 def effective_search(site_key, search):
     """Apply a site's results_per_run override (some actors, e.g. naukri, have a
     per-run minimum charge so it's wasteful to pull only a few results), then
@@ -1131,9 +1233,10 @@ def scrape_search(client, site_key, actor_id, search):
 
     apify-client 3.x returns a typed Run object (not a dict).
     """
-    run_input = build_input(site_key, effective_search(site_key, search))
+    effective = effective_search(site_key, search)
+    run_input = build_input(site_key, effective)
     # NOTE: results are bounded by the actor's OWN input cap (maxItemsPerSearch /
-    # maxJobs / count). We do NOT pass call(max_items=...) because on actors with a
+    # maxJobs / limitPerSource). We do NOT pass call(max_items=...) because on actors with a
     # per-run minimum charge it errors ("less than allowed minimum of $0.50").
     # Launch non-blocking, then poll with a wall-clock deadline. We deliberately
     # AVOID .call()/.wait_for_finish(): both long-poll with timeout='no_timeout',
@@ -1143,8 +1246,28 @@ def scrape_search(client, site_key, actor_id, search):
     # bounded 5s HTTP timeout + retries, so a stalled poll raises and the caller's
     # per-search try/except moves on. run_timeout also caps the actor server-side.
     # ponytail: fixed 6-min deadline / 5s poll; raise if a legit pull runs longer.
-    run = client.actor(actor_id).start(
-        run_input=run_input, run_timeout=timedelta(minutes=5))
+    #
+    # The charge ceiling is the second half of the depth fix and the half that
+    # does not depend on the actor reading our input at all: run_timeout bounds
+    # the clock, limitPerSource asks for a depth, and maxTotalChargeUsd is the
+    # only one of the three the PROVIDER enforces against the bill.
+    actor = client.actor(actor_id)
+    ceiling = max_charge_usd(site_key, effective["max_results"])
+    start_kwargs = {}
+    if ceiling is not None:
+        if not charge_ceiling_supported(actor):
+            # Fail CLOSED. Starting anyway would be starting the exact run this
+            # guard exists to bound, and the per-search try/except in main()
+            # turns this into one failed search rather than a spent one.
+            raise RuntimeError(
+                f"{site_key}: this apify-client cannot set maxTotalChargeUsd, so "
+                f"the ${ceiling} per-run charge ceiling could not be applied. "
+                f"Refusing to start an unbounded paid run — upgrade apify-client "
+                f"(requirements.txt pins the verified minimum).")
+        start_kwargs["max_total_charge_usd"] = ceiling
+        telemetry.paid_run(max_total_charge_usd=str(ceiling))
+    run = actor.start(run_input=run_input, run_timeout=timedelta(minutes=5),
+                      **start_kwargs)
     rc = client.run(run.id)
     # Recorded the moment they exist. Without a run ID and a build ID no future
     # measurement can join Sweep's account of a search to Apify's — which is
