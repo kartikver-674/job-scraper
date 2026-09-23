@@ -1,0 +1,120 @@
+{
+  "status": "MEASURED OFFLINE; scripted provider, no network, sleeps patched out",
+  "measured_at": "2026-09-24T00:41:55+05:30",
+  "plan": {
+    "searches": 90,
+    "rows_per_search": 15,
+    "providers": [
+      "linkedin",
+      "indeed"
+    ]
+  },
+  "repeats_per_arm": 3,
+  "outputs_identical_across_every_run": true,
+  "outputs_sha256": [
+    "a1d12d3895aa7b338bafaf27b335acc1c27575557cf53c7d927dea7edcc4905a"
+  ],
+  "final_rows": 453,
+  "median": {
+    "off": {
+      "wall_s": 225.2018,
+      "cpu_s": 224.5673,
+      "peak_rss_kb": 65520
+    },
+    "on": {
+      "wall_s": 225.352,
+      "cpu_s": 224.7911,
+      "peak_rss_kb": 63872
+    },
+    "difference": {
+      "wall_s": 0.1502,
+      "cpu_s": 0.2238,
+      "peak_rss_kb": -1648
+    },
+    "ratio": {
+      "wall_s": 1.0007,
+      "cpu_s": 1.001,
+      "peak_rss_kb": 0.9748
+    }
+  },
+  "record_bytes_on": 284554,
+  "paid_units_on": 90,
+  "all_runs": {
+    "off": [
+      {
+        "telemetry": false,
+        "wall_s": 229.6131,
+        "cpu_s": 226.9953,
+        "peak_rss_kb": 64032,
+        "starts": 90,
+        "final_rows": 453,
+        "outputs_sha256": "a1d12d3895aa7b338bafaf27b335acc1c27575557cf53c7d927dea7edcc4905a",
+        "record_bytes": 0,
+        "paid_units": 0
+      },
+      {
+        "telemetry": false,
+        "wall_s": 224.6168,
+        "cpu_s": 224.0608,
+        "peak_rss_kb": 67536,
+        "starts": 90,
+        "final_rows": 453,
+        "outputs_sha256": "a1d12d3895aa7b338bafaf27b335acc1c27575557cf53c7d927dea7edcc4905a",
+        "record_bytes": 0,
+        "paid_units": 0
+      },
+      {
+        "telemetry": false,
+        "wall_s": 225.2018,
+        "cpu_s": 224.5673,
+        "peak_rss_kb": 65520,
+        "starts": 90,
+        "final_rows": 453,
+        "outputs_sha256": "a1d12d3895aa7b338bafaf27b335acc1c27575557cf53c7d927dea7edcc4905a",
+        "record_bytes": 0,
+        "paid_units": 0
+      }
+    ],
+    "on": [
+      {
+        "telemetry": true,
+        "wall_s": 225.6444,
+        "cpu_s": 224.9322,
+        "peak_rss_kb": 63872,
+        "starts": 90,
+        "final_rows": 453,
+        "outputs_sha256": "a1d12d3895aa7b338bafaf27b335acc1c27575557cf53c7d927dea7edcc4905a",
+        "record_bytes": 284554,
+        "paid_units": 90
+      },
+      {
+        "telemetry": true,
+        "wall_s": 225.352,
+        "cpu_s": 224.7911,
+        "peak_rss_kb": 61472,
+        "starts": 90,
+        "final_rows": 453,
+        "outputs_sha256": "a1d12d3895aa7b338bafaf27b335acc1c27575557cf53c7d927dea7edcc4905a",
+        "record_bytes": 284554,
+        "paid_units": 90
+      },
+      {
+        "telemetry": true,
+        "wall_s": 223.7883,
+        "cpu_s": 223.5561,
+        "peak_rss_kb": 67872,
+        "starts": 90,
+        "final_rows": 453,
+        "outputs_sha256": "a1d12d3895aa7b338bafaf27b335acc1c27575557cf53c7d927dea7edcc4905a",
+        "record_bytes": 284554,
+        "paid_units": 90
+      }
+    ]
+  },
+  "limits": [
+    "Telemetry ON here is V2-A and V2-C1 together; the difference to OFF is an upper bound on V2-C1's share.",
+    "The denominator is local work only. Each real search also waits on its actor (~40 s at depth 15, V2-C0), which telemetry does not add to.",
+    "Synthetic rows. Scoring cost grows with description length; these descriptions are ~2 KB, below description_max.",
+    "Peak RSS is the whole child process: interpreter, config, fixtures."
+  ]
+}

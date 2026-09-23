@@ -1,0 +1,291 @@
+{
+  "status": "MEASURED LIVE: paid, authorised with both keys, through the unchanged engine",
+  "stage": "C1",
+  "purpose": "C1 probe B: framework-specific remote search (f_WT=2 within India) under a remote scope. Does a remote shape yield differently from probe A's place shapes (Q6); a third runtime point (Q1); a clean single-run cost-convergence window with the covers-not-equals criterion (Q7-Q8).",
+  "observed_at": "2026-09-23T19:01:18.633+00:00",
+  "engine_exited_at": "2026-09-23T19:01:47.755+00:00",
+  "code_revision": "89c8daa1a121f7c19f6fdc5aa3f4f29e6286ad22-dirty",
+  "provider": "linkedin",
+  "actor": "curious_coder/linkedin-jobs-scraper",
+  "actor_build_numbers": [
+    "1.7.17"
+  ],
+  "shape": {
+    "keywords": "React Developer",
+    "locations": "Remote",
+    "synthetic_case": "software_fullstack",
+    "scope": "remote"
+  },
+  "requested_depth": 15,
+  "charge_ceiling_usd_per_start": "0.046",
+  "actor_starts": 1,
+  "intended_max_usd": "0.046",
+  "exposed_usd_before": "0.138",
+  "cumulative_intended_usd_after": "0.184",
+  "exit": 0,
+  "wall_s": 26.46,
+  "final_rows": 12,
+  "paid_summary": {
+    "schema": "search-v2c1.1",
+    "planned": 1,
+    "attempted": 1,
+    "completed": 1,
+    "failed": 0,
+    "skipped_done": 0,
+    "skipped_budget": 0,
+    "unvisited": 0,
+    "actor_starts": 1,
+    "planned_bounded_exposure_usd": "0.046",
+    "planned_unbounded_units": 0,
+    "attempted_bounded_exposure_usd": "0.046",
+    "attempted_unbounded_units": 0,
+    "paid_phase_ms": 26229,
+    "by_provider": {
+      "linkedin": {
+        "planned": 1,
+        "completed": 1,
+        "failed": 0,
+        "skipped_done": 0,
+        "skipped_budget": 0,
+        "actor_starts": 1,
+        "unit_wall_ms": 23555,
+        "wait_ms": 21425,
+        "dataset_ms": 1098,
+        "checkpoint_ms": 34,
+        "actor_run_time_s": 15.916,
+        "raw": 15,
+        "eligible": 12,
+        "eligible_positive": 12,
+        "final": 12,
+        "final_positive": 12,
+        "final_marginal": 12
+      }
+    },
+    "cost_observed": {
+      "run_record_at_completion": {
+        "usd": 0.01005,
+        "units": 1,
+        "final": false
+      },
+      "account_usage_delta": {
+        "usd": 5e-05,
+        "units": 1,
+        "final": false
+      }
+    },
+    "trace_legend": "one token per dataset position. Removed by: H hard filter or score, S stale, R salary/reachability/visa/EOR, A arrangement, G geography, D dedupe (eligible, another row won); F final. Score: + positive, - zero or less, . not scored. Acquired: n new to the sweep, u repeat within this unit, p repeat of an earlier paid unit, k no job_key. f: the job_key was also acquired free."
+  },
+  "units": [
+    {
+      "unit_id": "paid_000",
+      "plan_index": 0,
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "requested_depth": 15,
+      "charge_ceiling_usd": "0.046",
+      "location_mode": "remote",
+      "company_filter": false,
+      "status": "completed",
+      "funnel": {
+        "requested": 15,
+        "raw": 15,
+        "normalized": 15,
+        "stages": {
+          "observed_normalized": 15,
+          "post_hard_filter_and_score": 12,
+          "post_recency": 12,
+          "post_salary_reachability_visa_eor": 12,
+          "post_location_eligible": 12,
+          "final_after_dedupe": 12
+        },
+        "stale": 0,
+        "eligible": 12,
+        "eligible_positive": 12,
+        "final": 12,
+        "final_positive": 12,
+        "final_marginal": 12,
+        "dedupe_lost": {
+          "same_unit": 0,
+          "other_paid": 0,
+          "free": 0
+        },
+        "acquired": {
+          "new": 15,
+          "repeat_in_unit": 0,
+          "repeat_of_earlier_paid": 0,
+          "unkeyed": 0
+        },
+        "key_also_free": 0
+      },
+      "trace": "H.n. F+n. F+n. F+n. F+n. F+n. F+n. F+n. F+n. H.n. H.n. F+n. F+n. F+n. F+n.",
+      "execution": {
+        "ok": true,
+        "failure_category": "",
+        "started_at": "2026-09-23T19:01:24.120+00:00",
+        "finished_at": "2026-09-23T19:01:47.675+00:00",
+        "duration_ms": 23555,
+        "start_ms": 562,
+        "wait_ms": 21425,
+        "poll_count": 4,
+        "poll_get_ms": 1405,
+        "dataset_ms": 1098,
+        "account_read_ms": 436,
+        "checkpoint_ms": 34,
+        "actor_run_id": "Cgm4Bo5KFEtQqVFXg",
+        "actor_build_id": "kmTE1iuf8N2sZAj8t",
+        "actor_build_number": "1.7.17",
+        "actor_status": "SUCCEEDED",
+        "actor_started_at": "2026-09-23 19:01:24.424000+00:00",
+        "actor_finished_at": "2026-09-23 19:01:40.518000+00:00",
+        "actor_run_time_s": 15.916,
+        "max_total_charge_usd": "0.046",
+        "provider_ceiling_usd": 0.046,
+        "charged_events": {
+          "apify-default-dataset-item": 12,
+          "apify-actor-start": 1
+        },
+        "cost_observations": [
+          {
+            "source": "run_record_at_completion",
+            "usd": 0.01005,
+            "observed_at": "2026-09-23T19:01:46.107+00:00",
+            "final": false
+          },
+          {
+            "source": "account_usage_delta",
+            "usd": 5e-05,
+            "observed_at": "2026-09-23T19:01:47.641+00:00",
+            "final": false
+          }
+        ],
+        "reported_cost_usd": 0.01005,
+        "billed_delta_usd": 5e-05,
+        "budget_view_usd": 5e-05,
+        "budget_basis": "account_delta",
+        "raw_count": 15,
+        "dataset_retrieved_at": "2026-09-24T00:31:47.205"
+      }
+    }
+  ],
+  "cost_convergence": [
+    {
+      "unit_id": "paid_000",
+      "run_id": "Cgm4Bo5KFEtQqVFXg",
+      "actor_finished_at": "2026-09-23 19:01:40.518000+00:00",
+      "engine_readings": [
+        {
+          "source": "run_record_at_completion",
+          "usd": 0.01005,
+          "observed_at": "2026-09-23T19:01:46.107+00:00",
+          "final": false,
+          "s_after_finish": 5.589
+        },
+        {
+          "source": "account_usage_delta",
+          "usd": 5e-05,
+          "observed_at": "2026-09-23T19:01:47.641+00:00",
+          "final": false,
+          "s_after_finish": 7.123
+        }
+      ],
+      "provider_readings": [
+        {
+          "observed_at": "2026-09-23T19:01:48.444+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.024050000000000002,
+          "charged_events": {
+            "apify-default-dataset-item": 12,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 7.926
+        },
+        {
+          "observed_at": "2026-09-23T19:02:03.469+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 22.951
+        },
+        {
+          "observed_at": "2026-09-23T19:02:18.568+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 38.05
+        },
+        {
+          "observed_at": "2026-09-23T19:02:48.453+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 67.935
+        }
+      ],
+      "settled": {
+        "source": "run_record_settled",
+        "usd": 0.03005,
+        "observed_at": "2026-09-23T19:02:03.469+00:00",
+        "s_after_finish": 22.951,
+        "final": true,
+        "basis": "unchanged across the last 3 re-reads"
+      },
+      "events_priced_usd": 0.03005,
+      "charge_ceiling_usd": "0.046"
+    }
+  ],
+  "accounts": [
+    {
+      "account": "APIFY_TOKEN",
+      "settled_runs_usd": 0.03005,
+      "readings": [
+        {
+          "observed_at": "2026-09-23T19:01:48.728+00:00",
+          "delta_usd": 5e-05,
+          "s_after_last_finish": 8.21
+        },
+        {
+          "observed_at": "2026-09-23T19:02:03.818+00:00",
+          "delta_usd": 0.02405,
+          "s_after_last_finish": 23.3
+        },
+        {
+          "observed_at": "2026-09-23T19:02:19.163+00:00",
+          "delta_usd": 0.030059,
+          "s_after_last_finish": 38.645
+        },
+        {
+          "observed_at": "2026-09-23T19:02:48.737+00:00",
+          "delta_usd": 0.030059,
+          "s_after_last_finish": 68.219
+        }
+      ],
+      "covered_at": "2026-09-23T19:02:19.163+00:00",
+      "covered_s_after_last_finish": 38.645,
+      "residual_usd_at_end": 9e-06,
+      "baseline_read_at": "2026-09-23T19:01:20.437+00:00"
+    }
+  ],
+  "run_listing": {
+    "APIFY_TOKEN": [
+      {
+        "id": "Cgm4Bo5KFEtQqVFXg",
+        "status": "SUCCEEDED"
+      }
+    ],
+    "APIFY_TOKEN_2": []
+  },
+  "unexpected_runs": [],
+  "known_actual_usd": 0.03005,
+  "cumulative_known_actual_usd_after": 0.1202,
+  "anomalies": [],
+  "token_absent_from_evidence": true
+}

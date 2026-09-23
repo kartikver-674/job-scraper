@@ -1,0 +1,62 @@
+{
+  "schema": "search-v2-paid-research-ledger.1",
+  "what": "Every live paid actor start made for Search V2 research, with the worst case decided before it and the provider's settled charge after it. Developer evidence only: never authorisation, never read by production, not the production budget. No token, no row content.",
+  "ceiling_usd": "2.00",
+  "ceiling_covers": [
+    "C1",
+    "C2",
+    "C3",
+    "C4"
+  ],
+  "counting": "Running totals include C0's run. The shared C1-C4 ceiling is checked against the all-inclusive total, which is stricter than required, never looser. Free metadata and account GETs are not paid exposure and are not entries.",
+  "entries": [
+    {
+      "stage": "C0",
+      "at": "2026-09-23T17:52:54+00:00",
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "purpose": "Confirm the B1 contract live through the guarded path: limitPerSource/count honoured, maxTotalChargeUsd recorded by the provider (V2-C0 sections 15-16)",
+      "actor_starts": 1,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": "0.046",
+      "intended_max_usd": "0.046",
+      "actual_final_usd": 0.03005,
+      "evidence": "c1-linkedin-contract.json",
+      "status": "completed, no anomaly: 15/15 rows, provider-recorded ceiling 0.046",
+      "cumulative_intended_usd": "0.046",
+      "cumulative_known_actual_usd": 0.03005
+    },
+    {
+      "stage": "C1",
+      "at": "2026-09-23T18:50:04.969+00:00",
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "purpose": "C1 probe A: two related broad engineering queries, India-wide, one sweep. Runtime spread (Q1), yield vs depth (Q2), where engine time beyond actor runtime goes (Q3), per-position fate of real rows (Q4-Q5), overlap between the two shapes (Q6), cost-reading convergence (Q7-Q8).",
+      "actor_starts": 2,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": "0.046",
+      "intended_max_usd": "0.092",
+      "actual_final_usd": 0.0601,
+      "evidence": "c1-probe-a-india-two-shapes.json",
+      "status": "completed, no anomaly: 30/30 rows, provider-recorded ceilings 0.046; account delta covered the runs' settled charge 21.7 s after the last finish and carried +$0.000039 beyond it at +487 s (status re-derived; see the evidence's `reanalysed`)",
+      "cumulative_intended_usd": "0.138",
+      "cumulative_known_actual_usd": 0.09015
+    },
+    {
+      "stage": "C1",
+      "at": "2026-09-23T19:01:18.633+00:00",
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "purpose": "C1 probe B: framework-specific remote search (f_WT=2 within India) under a remote scope. Does a remote shape yield differently from probe A's place shapes (Q6); a third runtime point (Q1); a clean single-run cost-convergence window with the covers-not-equals criterion (Q7-Q8).",
+      "actor_starts": 1,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": "0.046",
+      "intended_max_usd": "0.046",
+      "actual_final_usd": 0.03005,
+      "evidence": "c1-probe-b-remote-react.json",
+      "status": "completed, no anomaly",
+      "cumulative_intended_usd": "0.184",
+      "cumulative_known_actual_usd": 0.1202
+    }
+  ]
+}

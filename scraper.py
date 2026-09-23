@@ -44,6 +44,7 @@ Flags:
 import argparse
 import contextlib
 import csv
+import hashlib
 import inspect
 import json
 import os
@@ -1222,6 +1223,27 @@ def remote_was_queried(site_key, search):
     return site_key == "linkedin" and bool(SITES.get("linkedin", {}).get("remote_only"))
 
 
+def paid_unit_id(n):
+    return f"paid_{n:03d}"
+
+
+def paid_unit(n, site_key, search):
+    """V2-C1: planned paid search `n` as telemetry records it, with the depth
+    and ceiling scrape_search will use. No query text: a fingerprint tells a
+    repeat of one search from a different one without saying what it was."""
+    depth = effective_search(site_key, search)["max_results"]
+    ceiling = max_charge_usd(site_key, depth)
+    shape = "|".join((site_key, search.get("keywords") or "",
+                      search.get("location") or "", search.get("company") or ""))
+    return {"unit_id": paid_unit_id(n), "plan_index": n, "provider": site_key,
+            "actor": SITES[site_key]["actor"], "requested_depth": depth,
+            "charge_ceiling_usd": None if ceiling is None else str(ceiling),
+            "query_fp": hashlib.sha256(shape.encode()).hexdigest()[:12],
+            "location_mode": ("remote" if remote_was_queried(site_key, search)
+                              else "place"),
+            "company_filter": bool(search.get("company"))}
+
+
 def scrape_search(client, site_key, actor_id, search):
     """Run one actor and return (rows, cost_usd).
 
@@ -1260,8 +1282,10 @@ def scrape_search(client, site_key, actor_id, search):
                 f"(requirements.txt pins the verified minimum).")
         start_kwargs["max_total_charge_usd"] = ceiling
         telemetry.paid_run(max_total_charge_usd=str(ceiling))
+    starting = time.monotonic()
     run = actor.start(run_input=run_input, run_timeout=timedelta(minutes=5),
                       **start_kwargs)
+    start_ms = round((time.monotonic() - starting) * 1000)
     rc = client.run(run.id)
     # Recorded the moment they exist. Without a run ID and a build ID no future
     # measurement can join Sweep's account of a search to Apify's — which is
@@ -1269,13 +1293,21 @@ def scrape_search(client, site_key, actor_id, search):
     # is not among these fields and paid_run() drops anything unlisted.
     telemetry.paid_run(actor_id=actor_id, actor_run_id=getattr(run, "id", ""),
                        actor_build_id=getattr(run, "build_id", ""),
-                       actor_started_at=getattr(run, "started_at", ""))
+                       actor_started_at=getattr(run, "started_at", ""),
+                       # V2-C1: the ceiling as the PROVIDER recorded it, read
+                       # off the Run the start call returned.
+                       provider_ceiling_usd=getattr(
+                           getattr(run, "options", None), "max_total_charge_usd", None),
+                       start_ms=start_ms)
     deadline = time.monotonic() + 360
     polls = 0
+    waiting, polling_s = time.monotonic(), 0.0
     while time.monotonic() < deadline:
         time.sleep(5)
         polls += 1
+        asked = time.monotonic()
         run = rc.get()
+        polling_s += time.monotonic() - asked
         if run is None or run.status not in ("READY", "RUNNING"):
             break
     else:
@@ -1284,7 +1316,19 @@ def scrape_search(client, site_key, actor_id, search):
     telemetry.paid_run(poll_count=polls,
                        actor_status=getattr(run, "status", "NO RUN"),
                        actor_finished_at=getattr(run, "finished_at", ""),
-                       dataset_id=getattr(run, "default_dataset_id", ""))
+                       dataset_id=getattr(run, "default_dataset_id", ""),
+                       # V2-C1: where the wait went, and what the terminal Run
+                       # already says — fields of an object in hand, not requests.
+                       wait_ms=round((time.monotonic() - waiting) * 1000),
+                       poll_get_ms=round(polling_s * 1000),
+                       actor_run_time_s=getattr(
+                           getattr(run, "stats", None), "run_time_secs", None),
+                       actor_build_number=getattr(run, "build_number", None),
+                       charged_events=getattr(run, "charged_event_counts", None))
+    # Provisional: C0's run read one result short here against its settled
+    # charge. Recorded before the status check, so a failed run keeps it too.
+    telemetry.cost_observation("run_record_at_completion",
+                               getattr(run, "usage_total_usd", None))
     if run is None or run.status != "SUCCEEDED":
         status = getattr(run, "status", "NO RUN")
         raise RuntimeError(f"run status {status}")
@@ -1295,6 +1339,7 @@ def scrape_search(client, site_key, actor_id, search):
     # the position within this search.
     label = f"{search.get('keywords') or '(all)'} @ {search.get('location') or ''}"
     rows = []
+    reading = time.monotonic()
     for rank, item in enumerate(
             client.dataset(run.default_dataset_id).iterate_items(), 1):
         row = normalize(item, site_key)
@@ -1302,7 +1347,8 @@ def scrape_search(client, site_key, actor_id, search):
         row["search_rank"] = rank
         rows.append(row)
     telemetry.paid_run(dataset_retrieved_at=datetime.now().isoformat(
-        timespec="milliseconds"))
+        timespec="milliseconds"),
+        dataset_ms=round((time.monotonic() - reading) * 1000))  # read + normalize
     if remote_was_queried(site_key, search):
         # Stamp what the query already guarantees, the same way the remote-only
         # feeds do, so enrich sees it. Their own location text is kept because it
@@ -1510,6 +1556,9 @@ def finalize(raw_rows):
     scored, stats = score_and_filter(raw_rows)
     unique = rank_rows(scored)
     telemetry.stage("final_after_dedupe", unique)
+    # V2-C1: which paid unit each survivor came from and what beat the rest,
+    # read off dedupe's own result. A no-op unless the sweep has a paid plan.
+    telemetry.paid_outcome(scored, unique, job_key)
     # normalized_rows, not raw_rows: by the time finalize sees them the
     # adapters have already mapped every row into the internal schema. The raw
     # endpoint counts live per source and are summed in telemetry.finish().
@@ -2435,6 +2484,14 @@ def main():
 
     # --- Paid Apify sites (checkpoint after every search so a stop never loses data) ---
     if plans:
+        telemetry.mark("paid_phase_start")
+        if telemetry.active():
+            # V2-C1: every planned search gets its id now, in the order the
+            # loop below visits them, so one that is skipped, stopped or fails
+            # before any actor run exists still has an identity.
+            telemetry.paid_plan([
+                paid_unit(n, site_key, search) for n, (site_key, search) in
+                enumerate((s, q) for s, p in plans.items() for q in p)])
         from apify_client import ApifyClient
         client = ApifyClient(_require_token())
         # Month-to-date spend BEFORE this sweep. Everything below measures
@@ -2446,12 +2503,15 @@ def main():
             print("  (could not read account usage — spend cap falls back to the "
                   "actor self-report, which undercounts)")
         stopped_early = False
+        n = 0
         for site_key, plan in plans.items():
             if stopped_early:
                 break
             actor_id = SITES[site_key]["actor"]
             print(f"\n{site_key} ({actor_id})")
             for i, search in enumerate(plan, 1):
+                unit_id = paid_unit_id(n)
+                n += 1
                 # The company is part of a combo's identity, not decoration:
                 # four company-filtered searches share an empty keyword and one
                 # location, so without it they collapse to a single key and
@@ -2462,6 +2522,7 @@ def main():
                              f"{search['location']}|{search.get('company') or ''}")
                 if combo_key in done:
                     print(f"  [{i}/{len(plan)}] {label:<46} — skip (done)")
+                    telemetry.paid_status(unit_id, "skipped_done")
                     continue
                 if budget is not None and spent >= budget:
                     print(f"  ⚠ spend cap ${budget:.2f} reached (${spent:.2f}) — stopping.")
@@ -2478,11 +2539,14 @@ def main():
                         location=search.get("location") or "",
                         country=SEARCH.get("country", ""),
                         requested_limit=eff["max_results"]):
+                    telemetry.paid_run(unit_id=unit_id)
                     try:
                         rows, cost = scrape_search(client, site_key, actor_id,
                                                    search)
+                        reading = time.monotonic()
                         actual = (account_usage_usd(client)
                                   if baseline is not None else None)
+                        read_ms = round((time.monotonic() - reading) * 1000)
                         before = spent
                         spent = (actual - baseline if actual is not None
                                  else spent + cost)
@@ -2494,18 +2558,41 @@ def main():
                                            gated=len(rows))
                         telemetry.paid_run(
                             reported_cost_usd=cost,
-                            billed_delta_usd=round(spent - before, 6))
+                            billed_delta_usd=round(spent - before, 6),
+                            # V2-C1: what the budget guard now believes, and
+                            # which reading it believes it from.
+                            budget_view_usd=round(spent, 6),
+                            budget_basis=("account_delta" if actual is not None
+                                          else "run_record_sum"),
+                            account_read_ms=read_ms if baseline is not None else None)
+                        if actual is not None:
+                            telemetry.cost_observation("account_usage_delta",
+                                                       spent - before)
+                        if telemetry.active():
+                            # V2-C1 provenance, the "_native" bargain: a key
+                            # to_output() never reads, only while a record is open.
+                            for position, row in enumerate(rows, 1):
+                                row[telemetry.PAID_UNIT] = (unit_id, position)
                         raw_rows.extend(rows)
+                        writing = time.monotonic()
                         emit(raw_rows)                            # checkpoint
+                        telemetry.paid_run(checkpoint_ms=round(
+                            (time.monotonic() - writing) * 1000))
                         with open(done_path, "a") as fh:          # mark done
                             fh.write(combo_key + "\n")
                         done.add(combo_key)
                         print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
                               f"(${cost:.3f} actor, ${spent:.2f} billed)")
+                        telemetry.paid_status(unit_id, "completed")
                     except Exception as exc:  # isolate failures per search
                         telemetry.failed(exc)
+                        telemetry.paid_run(failure_type=type(exc).__name__)
+                        telemetry.paid_status(unit_id, "failed")
                         failures.append((site_key, label, str(exc)))
                         print(f"  [{i}/{len(plan)}] {label:<46} ! {exc}")
+        if stopped_early:
+            telemetry.paid_unvisited("skipped_budget")
+        telemetry.mark("paid_phase_done")
         print(f"\nTotal Apify spend this run: ${spent:.2f}"
               + ("" if baseline is None else "  (billed to the account, not self-reported)"))
         # Per-search try/except means a sweep can fail almost entirely and still

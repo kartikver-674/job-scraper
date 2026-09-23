@@ -164,6 +164,32 @@ Added by the V2-B5 results-ready stage (2026-09-23), documented in
   every 25 ms). Every socket but loopback denied; zero Apify. Reproduce with
   `bench/search_v2_results_ready.py`.
 
+Added by the V2-C0 and V2-C1 paid stages (2026-09-23/24), documented in
+[V2-C0](../search-engine-v2-c0-paid-dev-safety.md) and
+[V2-C1 paid observability](../search-engine-v2-c1-paid-observability.md).
+**These are the only files here from PAID runs**; every one is also an entry in
+the ledger.
+
+- `paid-research-ledger.json`: every live paid actor start for Search V2
+  research — the worst case decided before it, the settled charge after it,
+  running totals against the shared $2.00 C1–C4 ceiling. Developer evidence
+  only: never authorisation, never read by production. No token, no row content.
+- `c1-linkedin-contract.json` (C0): one LinkedIn start confirming B1's contract.
+- `c1-probe-a-india-two-shapes.json`, `c1-probe-b-remote-react.json` (C1): three
+  LinkedIn starts through the unchanged engine behind C0's guard, synthetic
+  cohort, developer-chosen generic queries. The engine's own per-unit clocks,
+  funnel and one-token-per-position trace; every cost reading with its
+  timestamp and seconds after the run finished; free re-reads until the charge
+  settled. Probe A's `accounts` were re-derived from its recorded readings with
+  a corrected criterion (see its `reanalysed`). Reproduce the form, not the
+  numbers, with `bench/search_v2_paid_probe.py` (spends money; needs both keys).
+- `c1-cross-probe-summary.json`: ranges and yield by position derived from the
+  two probe files; `--summarize`, no request.
+- `c1-paid-telemetry-overhead.json`: OFFLINE. A 90-search paid plan through
+  `scraper.main()` against a scripted Apify stand-in, telemetry off vs on, each
+  arm a fresh process. Zero Apify. Reproduce with
+  `bench/search_v2_paid_overhead.py`.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

@@ -1,0 +1,178 @@
+{
+  "status": "DERIVED from the listed live probe evidence; descriptive, not a provider population",
+  "sample": {
+    "evidence_files": [
+      "c1-probe-a-india-two-shapes.json",
+      "c1-probe-b-remote-react.json"
+    ],
+    "units": 3
+  },
+  "ranges": {
+    "actor_run_time_s": [
+      15.916,
+      34.228
+    ],
+    "unit_wall_s": [
+      23.555,
+      39.289
+    ],
+    "raw": [
+      15,
+      15
+    ],
+    "eligible_rate": [
+      0.8,
+      0.8667
+    ],
+    "positive_rate": [
+      0.3333,
+      0.8
+    ],
+    "final_rate": [
+      0.8,
+      0.8667
+    ],
+    "duplicate_rate": [
+      0.0,
+      0.1333
+    ],
+    "settled_usd": [
+      0.03005,
+      0.03005
+    ],
+    "usd_per_returned": [
+      0.002,
+      0.002
+    ],
+    "usd_per_eligible": [
+      0.0023,
+      0.0025
+    ],
+    "usd_per_positive": [
+      0.0025,
+      0.006
+    ],
+    "usd_per_final": [
+      0.0023,
+      0.0025
+    ]
+  },
+  "yield_by_position": {
+    "1-5": {
+      "rows": 15,
+      "stale": 0,
+      "eligible": 13,
+      "eligible_positive": 8,
+      "final": 13,
+      "duplicate_acquired": 0
+    },
+    "6-10": {
+      "rows": 15,
+      "stale": 0,
+      "eligible": 11,
+      "eligible_positive": 9,
+      "final": 11,
+      "duplicate_acquired": 1
+    },
+    "11-15": {
+      "rows": 15,
+      "stale": 0,
+      "eligible": 14,
+      "eligible_positive": 10,
+      "final": 13,
+      "duplicate_acquired": 1
+    }
+  },
+  "units": [
+    {
+      "evidence": "c1-probe-a-india-two-shapes.json",
+      "unit_id": "paid_000",
+      "shape": {
+        "keywords": "Backend Developer,Full Stack Developer",
+        "locations": "India",
+        "synthetic_case": "software_fullstack",
+        "scope": "india"
+      },
+      "location_mode": "place",
+      "actor_run_time_s": 22.321,
+      "unit_wall_s": 28.473,
+      "raw": 15,
+      "requested": 15,
+      "stale": 0,
+      "eligible": 13,
+      "eligible_positive": 5,
+      "final": 13,
+      "final_marginal": 12,
+      "duplicates_acquired": 0,
+      "settled_usd": 0.03005,
+      "eligible_rate": 0.8667,
+      "positive_rate": 0.3333,
+      "final_rate": 0.8667,
+      "duplicate_rate": 0.0,
+      "usd_per_returned": 0.002,
+      "usd_per_eligible": 0.0023,
+      "usd_per_positive": 0.006,
+      "usd_per_final": 0.0023
+    },
+    {
+      "evidence": "c1-probe-a-india-two-shapes.json",
+      "unit_id": "paid_001",
+      "shape": {
+        "keywords": "Backend Developer,Full Stack Developer",
+        "locations": "India",
+        "synthetic_case": "software_fullstack",
+        "scope": "india"
+      },
+      "location_mode": "place",
+      "actor_run_time_s": 34.228,
+      "unit_wall_s": 39.289,
+      "raw": 15,
+      "requested": 15,
+      "stale": 0,
+      "eligible": 13,
+      "eligible_positive": 10,
+      "final": 12,
+      "final_marginal": 12,
+      "duplicates_acquired": 2,
+      "settled_usd": 0.03005,
+      "eligible_rate": 0.8667,
+      "positive_rate": 0.6667,
+      "final_rate": 0.8,
+      "duplicate_rate": 0.1333,
+      "usd_per_returned": 0.002,
+      "usd_per_eligible": 0.0023,
+      "usd_per_positive": 0.003,
+      "usd_per_final": 0.0025
+    },
+    {
+      "evidence": "c1-probe-b-remote-react.json",
+      "unit_id": "paid_000",
+      "shape": {
+        "keywords": "React Developer",
+        "locations": "Remote",
+        "synthetic_case": "software_fullstack",
+        "scope": "remote"
+      },
+      "location_mode": "remote",
+      "actor_run_time_s": 15.916,
+      "unit_wall_s": 23.555,
+      "raw": 15,
+      "requested": 15,
+      "stale": 0,
+      "eligible": 12,
+      "eligible_positive": 12,
+      "final": 12,
+      "final_marginal": 12,
+      "duplicates_acquired": 0,
+      "settled_usd": 0.03005,
+      "eligible_rate": 0.8,
+      "positive_rate": 0.8,
+      "final_rate": 0.8,
+      "duplicate_rate": 0.0,
+      "usd_per_returned": 0.002,
+      "usd_per_eligible": 0.0025,
+      "usd_per_positive": 0.0025,
+      "usd_per_final": 0.0025
+    }
+  ]
+}

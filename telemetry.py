@@ -27,6 +27,11 @@ profile payload, or any user secret — see _clip() and the allowlisted field
 sets below. There is no free-text sink: every recorded string passes through a
 bounded field. The shadow tranche's evaluation (V2-B3) is counts per board in
 its own section and holds no row, title, company or URL either.
+
+Paid units (V2-C1) add one section per sweep that has a paid plan: each
+planned search's id, provider, actor, depth, ceiling, a query FINGERPRINT (not
+the query), its status, its execution clocks and cost readings, and what its
+rows became — counts and a one-token-per-position code. No row content.
 """
 import json
 import os
@@ -35,7 +40,9 @@ import threading
 import time
 import urllib.error
 import uuid
+from collections import Counter
 from datetime import datetime, timezone
+from decimal import Decimal
 
 FLAG = "SWEEP_SEARCH_V2_TELEMETRY"
 
@@ -356,28 +363,38 @@ def request():
         unit_["requests"] += 1
 
 
+PAID_RUN_FIELDS = (
+    "actor_id", "actor_build_id", "actor_run_id", "dataset_id",
+    "actor_status", "actor_started_at", "actor_finished_at",
+    "dataset_retrieved_at", "poll_count", "estimated_cost_usd",
+    "reported_cost_usd", "billed_delta_usd",
+    # The provider-enforced ceiling this run was started under. Without it a
+    # later cost analysis cannot tell a cheap run from a run that was cheap
+    # because it was capped.
+    "max_total_charge_usd",
+    # V2-C1. Local clocks around work the engine already does, and fields of
+    # Run objects it already holds — never a new request.
+    "unit_id", "start_ms", "wait_ms", "poll_get_ms", "dataset_ms",
+    "account_read_ms", "checkpoint_ms", "actor_run_time_s",
+    "actor_build_number", "provider_ceiling_usd", "charged_events",
+    "budget_view_usd", "budget_basis", "failure_type")
+
+
 def paid_run(**fields):
     """Actor-run metadata for the open paid unit.
 
-    Allowlisted keys only. A token is not in this list and cannot be added by a
-    caller passing one, because unknown keys are dropped rather than stored.
+    Allowlisted keys only (PAID_RUN_FIELDS). A token is not in the list and
+    cannot be added by a caller passing one: unknown keys are dropped.
     """
     unit_ = _current()
     if unit_ is None:
         return
-    allowed = ("actor_id", "actor_build_id", "actor_run_id", "dataset_id",
-               "actor_status", "actor_started_at", "actor_finished_at",
-               "dataset_retrieved_at", "poll_count", "estimated_cost_usd",
-               "reported_cost_usd", "billed_delta_usd",
-               # The provider-enforced ceiling this run was started under.
-               # Without it a later cost analysis cannot tell a cheap run from
-               # a run that was cheap because it was capped.
-               "max_total_charge_usd")
-    for key in allowed:
+    for key in PAID_RUN_FIELDS:
         if key in fields:
             value = fields[key]
-            unit_[key] = value if isinstance(value, (int, float, type(None))) \
-                else _clip(value)
+            unit_[key] = (_bounded(value) if isinstance(value, dict) else value
+                          if isinstance(value, (int, float, type(None)))
+                          else _clip(value))
 
 
 def failure_category(exc):
@@ -416,6 +433,8 @@ def stage(name, rows):
         counts[key] = counts.get(key, 0) + 1
     with _LOCK:
         _run["stages"][name] = {"total": len(rows), "by_source": counts}
+    if "_paid_ix" in _run:
+        _guarded(_paid_reach, name, rows)
 
 
 def identity(raw_rows, job_key, native_key="_native"):
@@ -431,6 +450,8 @@ def identity(raw_rows, job_key, native_key="_native"):
         return
     seen = set()
     per_source = {}
+    track = "_paid_ix" in _run
+    paid_keys = []      # (paid provenance or None, key) per row, arrival order
     for row in raw_rows:
         name = row.get("Source") or ""
         rec = per_source.setdefault(name, {
@@ -438,6 +459,8 @@ def identity(raw_rows, job_key, native_key="_native"):
             "unkeyed": 0, "native": {}})
         rec["rows"] += 1
         key = job_key(row)
+        if track:
+            paid_keys.append((row.get(PAID_UNIT), key))
         if key is None:
             rec["unkeyed"] += 1
         else:
@@ -457,6 +480,8 @@ def identity(raw_rows, job_key, native_key="_native"):
         "note": "current engine job_key, before dedupe; not verified opportunity "
                 "identity — see the V2 forensic audit",
     }
+    if track:
+        _guarded(_paid_acquired, paid_keys)
 
 
 def counts(**fields):
@@ -493,6 +518,306 @@ def _bounded(value):
 
 
 # ---------------------------------------------------------------------------
+# Paid units (V2-C1) — planned vs executed, and what each actor start yielded
+# ---------------------------------------------------------------------------
+PAID_SCHEMA = "search-v2c1.1"
+
+# What scraper stamps on a paid row while a record is open: (unit_id, position
+# in that run's dataset). The "_native" bargain again — to_output() never reads
+# it, so it cannot reach the CSV or the JSON, and nothing that keys, scores,
+# ranks or dedupes a row looks at it.
+PAID_UNIT = "_paid_unit"
+
+# Which cost reading may ever be called final. V2-C0's one live run read
+# $0.02805 on its terminal poll and $0.01405 as an account delta against a
+# settled $0.03005, so neither reading production takes is final, and the one
+# that can be is taken only by the research probe, after the fact.
+COST_SOURCES = {
+    "run_record_at_completion": False,  # usageTotalUsd of the terminal poll's Run
+    "account_usage_delta": False,       # month-to-date account usage across the unit
+    "run_record_settled": True,         # research probe: re-read until it stops moving
+}
+
+# score_and_filter's boundaries in order. A paid row's trace letter is the LAST
+# one it reached, which names what removed it.
+PAID_STAGES = ("observed_normalized", "post_hard_filter_and_score", "post_recency",
+               "post_salary_reachability_visa_eor", "post_arrangement",
+               "post_location_eligible", "final_after_dedupe")
+_REACH_CODE = dict(zip(PAID_STAGES, "HSRAGDF"))
+_ACQUIRED_CODE = {"new": "n", "repeat_in_unit": "u",
+                  "repeat_of_earlier_paid": "p", "unkeyed": "k"}
+TRACE_LEGEND = ("one token per dataset position. Removed by: H hard filter or "
+                "score, S stale, R salary/reachability/visa/EOR, A arrangement, "
+                "G geography, D dedupe (eligible, another row won); F final. "
+                "Score: + positive, - zero or less, . not scored. Acquired: n new "
+                "to the sweep, u repeat within this unit, p repeat of an earlier "
+                "paid unit, k no job_key. f: the job_key was also acquired free.")
+
+
+def _guarded(fn, *args):
+    """A V2-C1 hook that cannot fail the sweep. These run inside finalize() and
+    the paid loop's per-search try, where an exception would turn a search that
+    succeeded into one that failed; a miss becomes a note in the record."""
+    try:
+        fn(*args)
+    except Exception as exc:
+        note(f"paid telemetry skipped in {getattr(fn, '__name__', 'a hook')}: "
+             f"{type(exc).__name__}")
+
+
+def paid_plan(units):
+    """Every planned paid search, before anything runs (scraper.paid_unit)."""
+    if _run is not None:
+        _guarded(_paid_plan, units)
+
+
+def _paid_plan(units):
+    entries = [dict(_bounded(u), status="planned") for u in units]
+    with _LOCK:
+        _run["paid_units"] = entries
+        _run["_paid_ix"] = {e["unit_id"]: e for e in entries}
+
+
+def paid_status(unit_id, status):
+    """completed | failed | skipped_done | skipped_budget, from the paid loop."""
+    if _run is not None:
+        entry = _run.get("_paid_ix", {}).get(unit_id)
+        if entry is not None:
+            entry["status"] = status
+
+
+def paid_unvisited(status):
+    """Every unit the loop never reached — it only stops early at the spend cap."""
+    if _run is not None:
+        for entry in _run.get("paid_units", ()):
+            if entry["status"] == "planned":
+                entry["status"] = status
+
+
+def cost_observation(source, usd):
+    """One cost reading for the open paid unit, kept apart from every other.
+
+    Never summed into, averaged with or overwritten by another source. `final`
+    comes from COST_SOURCES, not from the caller, so a provisional reading
+    cannot be recorded as final. A reading that does not exist is not
+    recorded at all — never as 0.
+    """
+    unit_ = _current()
+    if unit_ is None or usd is None or source not in COST_SOURCES:
+        return
+    try:
+        usd = round(float(usd), 6)
+    except (TypeError, ValueError):
+        return
+    unit_.setdefault("cost_observations", []).append(
+        {"source": source, "usd": usd, "observed_at": _now(),
+         "final": COST_SOURCES[source]})
+
+
+def _paid_reach(name, rows):
+    """From stage(): the last boundary each paid row reached in this pass, and
+    its score sign once scored. A pass starts at the first boundary, so what
+    survives is the last finalize pass — the one over the complete row set."""
+    first = name == PAID_STAGES[0]
+    if first:
+        _run["_paid_pos"], _run["_paid_stages"] = {}, []
+    positions = _run.setdefault("_paid_pos", {})
+    _run.setdefault("_paid_stages", []).append(name)
+    for row in rows:
+        where = row.get(PAID_UNIT)
+        if where is None:
+            continue
+        p = positions.setdefault(where, {})
+        p["reach"] = name
+        if not first and "score" in row:
+            p["positive"] = row["score"] > 0
+
+
+def paid_outcome(eligible, final, job_key):
+    """What dedupe did to each eligible paid row, read off dedupe's own result.
+
+    `final` is the survivor list, so this names the row that won rather than
+    re-deciding it: a paid row missing from `final` lost to the survivor that
+    holds its job_key — in the same unit, another paid unit, or a free source.
+    A survivor is credited to its own unit only, so one final job is counted
+    once. `marginal`: no other unit and no free source had an eligible row with
+    that job_key, so without this unit the job would not be in the result.
+    """
+    if _run is not None and "_paid_ix" in _run:
+        _guarded(_paid_outcome, eligible, final, job_key)
+
+
+def _paid_outcome(eligible, final, job_key):
+    positions = _run.setdefault("_paid_pos", {})
+    keys = {id(r): job_key(r) for r in eligible}
+    kept = {id(r) for r in final}
+    survivor, origins = {}, {}
+    for r in final:
+        if keys.get(id(r)) is not None:
+            survivor[keys[id(r)]] = r
+    for r in eligible:
+        if keys[id(r)] is not None:
+            where = r.get(PAID_UNIT)
+            origins.setdefault(keys[id(r)], set()).add(where[0] if where else None)
+    for r in eligible:
+        where = r.get(PAID_UNIT)
+        if where is None:
+            continue
+        p, key = positions.setdefault(where, {}), keys[id(r)]
+        if id(r) in kept:
+            p["marginal"] = key is None or origins[key] == {where[0]}
+        else:
+            won = survivor[key].get(PAID_UNIT)
+            p["lost_to"] = ("free" if won is None else
+                            "same_unit" if won[0] == where[0] else "other_paid")
+
+
+def _paid_acquired(paid_keys):
+    """From identity(): each paid row's job_key against what the sweep had
+    already acquired, in arrival order — paid units in plan order, then free —
+    so repeat work shows before any filter or score touches it."""
+    positions = _run.setdefault("_paid_pos", {})
+    free = {key for where, key in paid_keys if where is None and key is not None}
+    seen, per_unit = set(), {}
+    for where, key in paid_keys:
+        if where is None:
+            continue
+        mine = per_unit.setdefault(where[0], set())
+        p = positions.setdefault(where, {})
+        p["acquired"] = ("unkeyed" if key is None else
+                         "repeat_in_unit" if key in mine else
+                         "repeat_of_earlier_paid" if key in seen else "new")
+        p["key_also_free"] = key is not None and key in free
+        if key is not None:
+            mine.add(key)
+            seen.add(key)
+
+
+def _paid_finish(record):
+    """paid_units[i] gets its funnel and trace; paid_summary the sweep-level
+    planned-vs-executed view. Execution facts stay in the unit's units[]
+    record, joined by unit_id, rather than being written twice."""
+    positions = record.get("_paid_pos") or {}
+    seen = set(record.get("_paid_stages") or ())
+    stages = [s for s in PAID_STAGES if s in seen]
+    executed = {u.get("unit_id"): u for u in record["units"]
+                if u.get("path") == "paid" and u.get("unit_id")}
+    by_unit = {}
+    for (unit_id, position), p in positions.items():
+        by_unit.setdefault(unit_id, []).append((position, p))
+    for entry in record["paid_units"]:
+        rows = [p for _, p in sorted(by_unit.get(entry["unit_id"], []),
+                                     key=lambda t: t[0])]
+        entry["funnel"] = _funnel(entry, executed.get(entry["unit_id"]), rows, stages)
+        entry["trace"] = (None if entry["funnel"] is None
+                          else " ".join(_token(p) for p in rows))
+    record["paid_summary"] = _paid_summary(record, executed)
+
+
+def _funnel(entry, ex, rows, stages):
+    """None when there are no rows to follow — never executed, or failed.
+    Zeros only for a run that really returned nothing."""
+    if ex is None or not ex.get("ok"):
+        return None
+    ix = {s: i for i, s in enumerate(PAID_STAGES)}
+    reached = [ix.get(p.get("reach"), -1) for p in rows]
+    counts = {s: sum(1 for r in reached if r >= ix[s]) for s in stages}
+    eligible = [p for p in rows if p.get("reach") in PAID_STAGES[-2:]]
+    final = [p for p in rows if p.get("reach") == PAID_STAGES[-1]]
+    lost = Counter(p["lost_to"] for p in eligible if "lost_to" in p)
+    known = all("acquired" in p for p in rows)
+    acquired = Counter(p.get("acquired") for p in rows)
+    return {
+        "requested": entry.get("requested_depth"),
+        "raw": ex.get("raw_count"),
+        "normalized": len(rows),
+        "stages": counts,
+        "stale": (counts["post_hard_filter_and_score"] - counts["post_recency"]
+                  if "post_recency" in counts else None),
+        "eligible": len(eligible),
+        "eligible_positive": sum(1 for p in eligible if p.get("positive")),
+        "final": len(final),
+        "final_positive": sum(1 for p in final if p.get("positive")),
+        "final_marginal": sum(1 for p in final if p.get("marginal")),
+        "dedupe_lost": {k: lost.get(k, 0) for k in ("same_unit", "other_paid", "free")},
+        "acquired": ({k: acquired.get(k, 0) for k in _ACQUIRED_CODE} if known else None),
+        "key_also_free": (sum(1 for p in rows if p.get("key_also_free"))
+                          if known else None),
+    }
+
+
+def _token(p):
+    score = "." if "positive" not in p else "+" if p["positive"] else "-"
+    return (_REACH_CODE.get(p.get("reach"), "?") + score
+            + _ACQUIRED_CODE.get(p.get("acquired"), "?")
+            + ("f" if p.get("key_also_free") else "."))
+
+
+def _exposure(units):
+    """Worst case = sum of provider ceilings. An unbounded unit is counted,
+    never priced."""
+    bounded = sum((Decimal(u["charge_ceiling_usd"]) for u in units
+                   if u.get("charge_ceiling_usd")), Decimal(0))
+    return str(bounded), sum(1 for u in units if not u.get("charge_ceiling_usd"))
+
+
+def _paid_summary(record, executed):
+    units = record["paid_units"]
+    status = Counter(u["status"] for u in units)
+    attempted = [u for u in units if u["status"] in ("completed", "failed")]
+    providers, costs = {}, {}
+    for u in units:
+        ex, f = executed.get(u["unit_id"]) or {}, u.get("funnel") or {}
+        p = providers.setdefault(u["provider"], dict.fromkeys((
+            "planned", "completed", "failed", "skipped_done", "skipped_budget",
+            "actor_starts", "unit_wall_ms", "wait_ms", "dataset_ms",
+            "checkpoint_ms", "actor_run_time_s", "raw", "eligible",
+            "eligible_positive", "final", "final_positive", "final_marginal"), 0))
+        p["planned"] += 1
+        if u["status"] in p:
+            p[u["status"]] += 1
+        p["actor_starts"] += 1 if ex.get("actor_run_id") else 0
+        p["unit_wall_ms"] += ex.get("duration_ms") or 0
+        for key in ("wait_ms", "dataset_ms", "checkpoint_ms"):
+            p[key] += ex.get(key) or 0
+        p["actor_run_time_s"] = round(p["actor_run_time_s"]
+                                      + (ex.get("actor_run_time_s") or 0), 3)
+        for key in ("raw", "eligible", "eligible_positive", "final",
+                    "final_positive", "final_marginal"):
+            p[key] += f.get(key) or 0
+        for obs in ex.get("cost_observations") or ():
+            c = costs.setdefault(obs["source"], {"usd": 0.0, "units": 0,
+                                                 "final": obs["final"]})
+            c["usd"] = round(c["usd"] + obs["usd"], 6)
+            c["units"] += 1
+    planned_usd, planned_unbounded = _exposure(units)
+    attempted_usd, attempted_unbounded = _exposure(attempted)
+    marks = record["milestones"]
+    return {
+        "schema": PAID_SCHEMA,
+        "planned": len(units),
+        "attempted": len(attempted),
+        "completed": status["completed"],
+        "failed": status["failed"],
+        "skipped_done": status["skipped_done"],
+        "skipped_budget": status["skipped_budget"],
+        "unvisited": status["planned"],
+        "actor_starts": sum(p["actor_starts"] for p in providers.values()),
+        "planned_bounded_exposure_usd": planned_usd,
+        "planned_unbounded_units": planned_unbounded,
+        "attempted_bounded_exposure_usd": attempted_usd,
+        "attempted_unbounded_units": attempted_unbounded,
+        "paid_phase_ms": (marks["paid_phase_done"] - marks["paid_phase_start"]
+                          if {"paid_phase_start", "paid_phase_done"} <= set(marks)
+                          else None),
+        "by_provider": providers,
+        # Sums of provisional readings are provisional; `final` says so.
+        "cost_observed": costs,
+        "trace_legend": TRACE_LEGEND,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Close
 # ---------------------------------------------------------------------------
 def finish():
@@ -515,6 +840,13 @@ def finish():
         # the wait SWEEP_RESULTS_READY_EARLY takes off the user's screen.
         record["post_result_ms"] = record["duration_ms"] - ready
     record["raw_rows"] = sum(u["raw_count"] for u in record["units"])
+    if "paid_units" in record:
+        try:
+            _paid_finish(record)
+        except Exception as exc:
+            record["notes"].append(f"paid units not assembled: {type(exc).__name__}")
+    for key in ("_paid_ix", "_paid_pos", "_paid_stages"):
+        record.pop(key, None)
     path = os.path.join(record["output_dir"], "telemetry",
                         f"sweep_{record['sweep_id']}.json")
     try:
@@ -597,7 +929,12 @@ def demo():
                  lambda: note("n"), lambda: eligible_progress(50),
                  lambda: paid_run(actor_id="a"), lambda: partial("p"),
                  lambda: failed(ValueError("v")),
-                 lambda: identity([{}], lambda r: None)):
+                 lambda: identity([{}], lambda r: None),
+                 lambda: paid_plan([{"unit_id": "paid_000"}]),
+                 lambda: paid_status("paid_000", "completed"),
+                 lambda: paid_unvisited("skipped_budget"),
+                 lambda: cost_observation("account_usage_delta", 1.0),
+                 lambda: paid_outcome([{}], [{}], lambda r: None)):
         call()
     with unit("free", "nothing"):
         pass
