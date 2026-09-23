@@ -560,9 +560,14 @@ class ShadowIndependence(unittest.TestCase):
                 self.assertFalse(concurrency.applies("greenhouse"), token)
 
     def test_shadow_is_greenhouse_so_it_cannot_enter_the_lever_path(self):
+        """Since V2-B4 Greenhouse has a concurrent path of its own, behind its
+        own switch — so the property is now: the LEVER switch never routes
+        Greenhouse there, and shadow never calls this module at all (pinned
+        with the Greenhouse switch on in test_free_concurrency_greenhouse)."""
         from sources import shadow
         self.assertEqual(set(shadow.BOARDS), {"greenhouse"})
-        self.assertNotIn("greenhouse", concurrency.PROVIDERS)
+        with _env(**{concurrency.FLAG: "1", concurrency.GREENHOUSE_FLAG: None}):
+            self.assertFalse(concurrency.applies("greenhouse"))
 
     def test_concurrency_flag_does_not_enable_shadow(self):
         from sources import shadow

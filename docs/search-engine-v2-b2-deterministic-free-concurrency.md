@@ -74,7 +74,14 @@ for token, company in boards.items():
 ```
 
 `concurrency.applies(platform)` is `enabled() and platform in PROVIDERS`, and
-`PROVIDERS = ("lever",)`. Everything else — Greenhouse, Ashby, SmartRecruiters,
+`PROVIDERS = ("lever",)`.
+
+> **EXTENDED 2026-09-23 by [V2-B4](search-engine-v2-b4-greenhouse-concurrency.md).**
+> The provider scope is now a table, `ENV`, giving Lever and Greenhouse each
+> their own switch and worker count; `applies(platform)` reads that provider's
+> pair. Lever's names, defaults, clamp, executor, merge and telemetry are
+> unchanged, and Greenhouse stays serial unless `SWEEP_FREE_GREENHOUSE_CONCURRENCY`
+> is set. Everything else — Greenhouse, Ashby, SmartRecruiters,
 Breezy, all five feeds, Optum, the enterprise employers, the shadow tranche and
 every paid actor — takes the path it took before, byte for byte.
 

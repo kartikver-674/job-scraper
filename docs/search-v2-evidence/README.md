@@ -137,6 +137,21 @@ Added by the V2-B3 shadow evaluation (2026-09-23), documented in
   byte-identical in every arm. Reproduce with `--sweep`, which refuses to run
   unless the paid plan is empty (see that document's §18 for why).
 
+Added by the V2-B4 Greenhouse concurrency stage (2026-09-23), documented in
+[V2-B4 Greenhouse concurrency](../search-engine-v2-b4-greenhouse-concurrency.md):
+
+- `greenhouse-concurrency-replay.json`: serial and 1/2/4/6/8 workers over ONE
+  frozen capture of all 54 production Greenhouse boards, replaying each board's
+  recorded latency and recorded error (Postman's 404 replays as a 404), each arm
+  under its own telemetry record. Rows, final output and telemetry units are
+  compared field by field; all arms identical. Includes a labelled synthetic
+  collision arm. Reproduce with `bench/search_v2_free_concurrency.py --provider
+  greenhouse --capture` then `--replay --collision`.
+- `greenhouse-concurrency-live.json`: serial/2/4/6/8 against the live public
+  Greenhouse API, each arm in a fresh process so peak RSS is per arm. Latency,
+  failures, retries, 429s and memory ONLY; not parity. Zero Apify credits.
+  Reproduce with `--provider greenhouse --live`.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

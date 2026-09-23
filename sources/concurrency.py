@@ -1,7 +1,13 @@
-"""Bounded, deterministic concurrency for ONE free provider's board fetches.
+"""Bounded, deterministic concurrency for a free provider's board fetches.
 
-    SWEEP_FREE_LEVER_CONCURRENCY=1     default OFF
-    SWEEP_FREE_LEVER_WORKERS=4         default 4, clamped to 1..8
+    SWEEP_FREE_LEVER_CONCURRENCY=1          default OFF   (V2-B2)
+    SWEEP_FREE_LEVER_WORKERS=4              default 4, clamped to 1..8
+    SWEEP_FREE_GREENHOUSE_CONCURRENCY=1     default OFF   (V2-B4)
+    SWEEP_FREE_GREENHOUSE_WORKERS=4         default 4, clamped to 1..8
+
+Each provider family has its own switch and its own worker count, so turning
+one on can never change the other: Lever's executor, merge and telemetry are
+exactly what V2-B2 shipped whatever the Greenhouse settings say.
 
 Three real production Free Sweeps say the same thing. Lever's 21 boards cost
 ~80 source-seconds a run at a 3.14s median and an 8.17s p95, against Greenhouse's
@@ -9,11 +15,18 @@ Three real production Free Sweeps say the same thing. Lever's 21 boards cost
 retries and zero failures. Lever is not flaky, it is slow, and a slow
 independent HTTP GET is the one thing waiting in parallel actually fixes.
 
+Greenhouse is the opposite shape — 54 fast boards, ~42 summed seconds a sweep,
+0 retries in 162 production fetches — so it gets the same machinery behind its
+own flag, measured before anyone switches it on (docs/search-engine-v2-b4-
+greenhouse-concurrency.md). The eight B3 shadow boards are Greenhouse too, and
+they never come through here: sources/shadow.py calls the adapter directly,
+serially, after the results are written.
+
 WHAT THIS IS NOT. It does not reorder, prioritise, skip, cache or drop a board.
-It does not touch any other provider, the feeds, or anything paid. Every board
-configured is still fetched, with the same adapter, the same timeout and the
-same retry policy. The only thing that changes is how many of them are waiting
-on the network at once.
+It does not touch any provider without its own switch, the feeds, the shadow
+tranche, or anything paid. Every board configured is still fetched, with the
+same adapter, the same timeout and the same retry policy. The only thing that
+changes is how many of them are waiting on the network at once.
 
 DETERMINISM IS THE WHOLE DESIGN, not a property bolted on afterwards:
 
@@ -40,39 +53,48 @@ import telemetry
 
 from . import ats
 
-FLAG = "SWEEP_FREE_LEVER_CONCURRENCY"
-WORKERS_ENV = "SWEEP_FREE_LEVER_WORKERS"
-
-# The ONLY providers this path may ever touch. Lever is here because production
-# telemetry measured it as the cost; nothing else has earned a second execution
-# model. Adding a name here is a deliberate, separately reviewed decision, which
-# is why the scope is a constant and not an argument.
-PROVIDERS = ("lever",)
+# The ONLY providers this path may ever touch, each with (switch, worker count).
+# Lever is here because production telemetry measured it as the cost (V2-B2);
+# Greenhouse because it is the next-largest summed wait (V2-B4). Adding a name is
+# a deliberate, separately reviewed decision, which is why the scope is a
+# constant and not an argument.
+ENV = {
+    "lever": ("SWEEP_FREE_LEVER_CONCURRENCY", "SWEEP_FREE_LEVER_WORKERS"),
+    "greenhouse": ("SWEEP_FREE_GREENHOUSE_CONCURRENCY",
+                   "SWEEP_FREE_GREENHOUSE_WORKERS"),
+}
+PROVIDERS = tuple(ENV)
+FLAG, WORKERS_ENV = ENV["lever"]                  # V2-B2's names, unchanged
+GREENHOUSE_FLAG, GREENHOUSE_WORKERS_ENV = ENV["greenhouse"]
 
 DEFAULT_WORKERS = 4
-# Lever's 21 boards are one provider's servers. The measured experiment is 2-4;
-# the cap exists so a typo in an environment variable cannot turn a bounded
-# experiment into 21 simultaneous requests at somebody else's host.
+# Every provider's boards are one provider's servers. The measured experiments
+# are 2-4; the cap exists so a typo in an environment variable cannot turn a
+# bounded experiment into dozens of simultaneous requests at somebody else's host.
 MAX_WORKERS = 8
 MIN_WORKERS = 1
 
 BoardResult = namedtuple("BoardResult", "token company rows error unit")
 
 
-def enabled():
-    """Read per call, so a rollback lands on the next sweep."""
-    return os.environ.get(FLAG, "").strip().lower() in ("1", "true", "yes", "on")
+def enabled(platform="lever"):
+    """This provider's switch, read per call so a rollback lands on the next
+    sweep. A provider with no switch is never enabled."""
+    if platform not in ENV:
+        return False
+    return os.environ.get(ENV[platform][0], "").strip().lower() in (
+        "1", "true", "yes", "on")
 
 
-def workers():
-    """Configured worker count, clamped into MIN_WORKERS..MAX_WORKERS.
+def workers(platform="lever"):
+    """This provider's worker count, clamped into MIN_WORKERS..MAX_WORKERS.
 
     Clamped rather than rejected: this is a latency knob on a path that is off
     by default, and refusing to run a sweep over a bad number would turn a
     performance setting into an outage. A nonsense value falls back to the
     default instead.
     """
-    raw = os.environ.get(WORKERS_ENV, "").strip()
+    raw = os.environ.get(ENV[platform][1], "").strip()
     if not raw:
         return DEFAULT_WORKERS
     try:
@@ -88,7 +110,7 @@ def applies(platform):
     Both halves in one place so `fetch_free` asks one question, and so the
     provider scope can be asserted without reaching into fetch_free.
     """
-    return enabled() and platform in PROVIDERS
+    return platform in ENV and enabled(platform)
 
 
 def _fetch_one(platform, token, company, keep_title, keep_location, is_home):
@@ -123,7 +145,7 @@ def fetch_boards(platform, boards, keep_title, keep_location, is_home=None,
     items = list(boards.items())            # frozen: registry order is the contract
     if not items:
         return []
-    with ThreadPoolExecutor(max_workers=workers(),
+    with ThreadPoolExecutor(max_workers=workers(platform),
                             thread_name_prefix=f"sweep-{platform}") as pool:
         futures = [pool.submit(_fetch_one, platform, token, company,
                                keep_title, keep_location, is_home)
@@ -147,15 +169,26 @@ def fetch_boards(platform, boards, keep_title, keep_location, is_home=None,
 
 def demo():
     """Offline self-check: `python -m sources.concurrency`."""
-    was = {k: os.environ.get(k) for k in (FLAG, WORKERS_ENV)}
+    names = [name for pair in ENV.values() for name in pair]
+    was = {k: os.environ.get(k) for k in names}
     try:
-        os.environ.pop(FLAG, None)
-        assert not enabled() and not applies("lever"), "concurrency defaults ON"
+        for name in names:
+            os.environ.pop(name, None)
+        for provider in PROVIDERS:
+            assert not applies(provider), f"{provider} concurrency defaults ON"
 
         os.environ[FLAG] = "1"
         assert applies("lever")
         for other in ("greenhouse", "ashby", "smartrecruiters", "breezy", "feed"):
             assert not applies(other), other
+
+        # Each switch and each worker count is its own: neither moves the other.
+        os.environ.pop(FLAG)
+        os.environ[GREENHOUSE_FLAG] = "1"
+        os.environ[GREENHOUSE_WORKERS_ENV] = "2"
+        assert applies("greenhouse") and not applies("lever")
+        assert workers("greenhouse") == 2 and workers("lever") == DEFAULT_WORKERS
+        os.environ[FLAG] = "1"
 
         os.environ.pop(WORKERS_ENV, None)
         assert workers() == DEFAULT_WORKERS

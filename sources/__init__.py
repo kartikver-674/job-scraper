@@ -46,10 +46,11 @@ def fetch_free(ats_boards, feed_cfg, keep_title, keep_location, is_home=None,
         if platform not in ats.ATS:
             log(f"  {platform:<16} {'-':<22} ! no adapter (see sources/ats.py ATS)")
             continue
-        # SWEEP_FREE_LEVER_CONCURRENCY (default off), Lever only. Returns the
-        # same rows in the same registry order as the loop below; the only
-        # difference is how many of its boards wait on the network at once.
-        # Every other provider, and every feed, stays on the serial path.
+        # SWEEP_FREE_LEVER_CONCURRENCY / SWEEP_FREE_GREENHOUSE_CONCURRENCY
+        # (both default off, each its own switch). Returns the same rows in the
+        # same registry order as the loop below; the only difference is how
+        # many of that provider's boards wait on the network at once. Every
+        # other provider, and every feed, stays on the serial path.
         if concurrency.applies(platform):
             rows.extend(concurrency.fetch_boards(
                 platform, boards, keep_title, keep_location, is_home, log))

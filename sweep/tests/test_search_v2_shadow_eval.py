@@ -135,16 +135,21 @@ def _env(**values):
 
 
 @contextlib.contextmanager
-def _served(table, fail=(), calls=None):
-    """ats.get_json answered from `table`; boards in `fail` raise HTTP 503."""
+def _served(table, fail=(), calls=None, delay=None, status=503, done=None):
+    """ats.get_json answered from `table`; boards in `fail` raise HTTP
+    `status`. `delay` sleeps per board, `done` records completion order —
+    what a concurrency test needs to make completion order visible."""
     real = ats.get_json
 
     def fake(url, *a, **kw):
         board, body = table[url]
         if calls is not None:
             calls.append(board)
+        time.sleep((delay or {}).get(board, 0))
+        if done is not None:
+            done.append(board)
         if board in fail:
-            raise urllib.error.HTTPError(url, 503, "unavailable", None, None)
+            raise urllib.error.HTTPError(url, status, "unavailable", None, None)
         return copy.deepcopy(body)
     ats.get_json = fake
     try:
@@ -154,7 +159,8 @@ def _served(table, fail=(), calls=None):
 
 
 BASE_ENV = {telemetry.FLAG: "1", shadow.FLAG: None, concurrency.FLAG: None,
-            concurrency.WORKERS_ENV: None, experience_guard.FLAG: None,
+            concurrency.WORKERS_ENV: None, concurrency.GREENHOUSE_FLAG: None,
+            concurrency.GREENHOUSE_WORKERS_ENV: None, experience_guard.FLAG: None,
             "APIFY_TOKEN": None}
 
 
@@ -178,7 +184,8 @@ class Result:
         self.log = log
 
 
-def sweep(env=None, fail=(), table=None, before=None, registry=None):
+def sweep(env=None, fail=(), table=None, before=None, registry=None,
+          delay=None, status=503, done=None):
     """scraper.main() end to end, offline: a free sweep over REGISTRY with
     every response a fixture. Returns what is left on disk."""
     out = tempfile.mkdtemp()
@@ -194,7 +201,7 @@ def sweep(env=None, fail=(), table=None, before=None, registry=None):
         scraper.SETTINGS["output_dir"] = out
         log = io.StringIO()
         with _env(**dict(BASE_ENV, **(env or {}))), \
-                _served(table or routes(), fail, calls), \
+                _served(table or routes(), fail, calls, delay, status, done), \
                 contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
             scraper.main()
         return Result(out, calls, log.getvalue())
