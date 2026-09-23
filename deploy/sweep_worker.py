@@ -32,6 +32,9 @@ Three rules shape everything below.
 
 Runs are deleted after TTL_SECONDS (48h), and never while they are
 queued or running.
+
+A run's RESULT can be final before its process is (V2-B5): the status then
+carries results_ready while state stays running. See results_ready().
 """
 
 import ast
@@ -524,6 +527,31 @@ def done_combos(output_dir):
         return []
 
 
+# scraper.READY_MARKER. The engine renames it into place once the CSV, the
+# JSON and the seen ledger are final, when SWEEP_RESULTS_READY_EARLY is set
+# in its environment — which is this process's, see default_spawn.
+READY_MARKER = ".results_ready"
+
+
+def results_ready(output_dir):
+    """The engine's word that the result is final, as status fields.
+
+    Result availability, NOT execution: the child may still be running,
+    the run stays RUNNING, and nothing in Queue reads this — the slot, the
+    queue behind it and the janitor all still wait for the process to exit.
+    Absent rather than false without a marker, so a run that never published
+    one reports exactly what it always did, and Render waits for DONE.
+    """
+    try:
+        with open(os.path.join(output_dir, READY_MARKER), encoding="utf-8") as fh:
+            at = json.load(fh)["at"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return {}
+    if not isinstance(at, (int, float)) or isinstance(at, bool):
+        return {}
+    return {"results_ready": True, "results_ready_at": at}
+
+
 def rows_since(output_dir, since=0, limit=500):
     """Rows the engine has written so far, newest file first.
 
@@ -589,11 +617,12 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
     def public(status):
         """What Render may see. No token — there is none to leak here,
         because one was never written to this file."""
+        output_dir = store.output_dir(status["run_id"])
         return {k: v for k, v in status.items() if k != "owner"} | {
             "queue_position": queue.position(status["run_id"]),
             # The finished-search ledger, so the progress grid on the other
             # side can fill in as each search completes.
-            "done": done_combos(store.output_dir(status["run_id"]))}
+            "done": done_combos(output_dir)} | results_ready(output_dir)
 
     @app.errorhandler(Refused)
     def refused(exc):

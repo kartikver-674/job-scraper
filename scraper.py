@@ -42,6 +42,7 @@ Flags:
 """
 
 import argparse
+import contextlib
 import csv
 import inspect
 import json
@@ -1599,14 +1600,58 @@ def record_seen(out_rows, seen, today):
     return len(new)
 
 
+@contextlib.contextmanager
+def _replaced(path, **open_kw):
+    """Write `path` whole or not at all (V2-B5).
+
+    The public worker serves the newest CSV to whoever asks, at any moment,
+    and truncate-then-write left a window in which that was half a file — and
+    a crash inside it left the half for good. Written beside the target and
+    renamed over it, a reader sees the previous complete file or the new one.
+    The temp name ends in .tmp, so no *.csv / jobs_*.json glob can pick it up.
+    """
+    tmp = f"{path}.{os.getpid()}.tmp"
+    try:
+        with open(tmp, "w", **open_kw) as fh:
+            yield fh
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.remove(tmp)
+        raise
+
+
 def write_outputs(out_rows, csv_path, json_path):
     os.makedirs(SETTINGS["output_dir"], exist_ok=True)
-    with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
+    with _replaced(csv_path, newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=OUTPUT_COLUMNS)
         writer.writeheader()
         writer.writerows(out_rows)
-    with open(json_path, "w", encoding="utf-8") as f:
+    with _replaced(json_path, encoding="utf-8") as f:
         json.dump(out_rows, f, indent=2, ensure_ascii=False)
+
+
+# SWEEP_RESULTS_READY_EARLY (V2-B5, default off). The worker marks a run done
+# when this process exits, and a sweep's last seconds — the shadow tranche,
+# the telemetry record — cannot change what the user gets. With the flag on,
+# main() says so the moment the result is final, and the worker tells Render.
+READY_FLAG = "SWEEP_RESULTS_READY_EARLY"
+# Read under the same name by deploy/sweep_worker.py, beside .done_combos.
+READY_MARKER = ".results_ready"
+
+
+def results_ready_early():
+    return os.environ.get(READY_FLAG, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def publish_results_ready():
+    """The marker, written the way the outputs are: whole or not at all."""
+    path = os.path.join(SETTINGS["output_dir"], READY_MARKER)
+    with _replaced(path, encoding="utf-8") as fh:
+        json.dump({"at": time.time()}, fh)
+    return path
 
 
 def print_summary(pulled, after_dedupe, out_rows):
@@ -2333,6 +2378,11 @@ def main():
     stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
     csv_path = os.path.join(SETTINGS["output_dir"], f"jobs_{stamp}.csv")
     json_path = os.path.join(SETTINGS["output_dir"], f"jobs_{stamp}.json")
+    # An earlier run's marker would vouch for files this one has not written.
+    # The worker's directory is per run so it never holds one; a console
+    # profile's is reused.
+    with contextlib.suppress(OSError):
+        os.remove(os.path.join(SETTINGS["output_dir"], READY_MARKER))
 
     # SWEEP_SEARCH_V2_TELEMETRY (default off). Opened here because this is the
     # first point at which the sweep knows both what it will run and where it
@@ -2508,6 +2558,19 @@ def main():
     print(f"  {json_path}")
     print(f"  seen.tsv: +{added} new ({len(seen)} known)"
           + ("" if args.only_new else "  — next run: --only-new to skip these"))
+
+    # The user's result is final here: CSV and JSON renamed into place, the
+    # ledger appended, and nothing below writes any of the three. Marked
+    # whenever telemetry is on, so the tail after it is measured whether or
+    # not it is hidden; published only under SWEEP_RESULTS_READY_EARLY. A
+    # marker that cannot be written costs the early signal, never the sweep:
+    # the worker still says done when this process exits.
+    telemetry.mark("results_ready")
+    if results_ready_early():
+        try:
+            publish_results_ready()
+        except OSError as exc:
+            print(f"  (results-ready marker not written: {exc})")
 
     # SWEEP_FREE_SOURCE_SHADOW (default off). Only now, with the CSV, the JSON
     # and the seen ledger all written: no shadow request is made while any

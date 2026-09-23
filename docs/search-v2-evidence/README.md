@@ -152,6 +152,18 @@ Added by the V2-B4 Greenhouse concurrency stage (2026-09-23), documented in
   failures, retries, 429s and memory ONLY; not parity. Zero Apify credits.
   Reproduce with `--provider greenhouse --live`.
 
+Added by the V2-B5 results-ready stage (2026-09-23), documented in
+[V2-B5 early results ready](../search-engine-v2-b5-early-results-ready.md):
+
+- `results-ready-hidden-wait.json`: the offline stack the B5 tests drive — the
+  real worker on loopback, the public Render app pointed at it, and
+  `scraper.main()` on fixtures as the worker's child — with a known post-result
+  tail injected as a per-board shadow delay (0, 4 and 12 s; flag off and on;
+  three runs per arm). Per run: when the marker was published, when the worker
+  recorded the exit, and when Render's `/progress` first said finished (polled
+  every 25 ms). Every socket but loopback denied; zero Apify. Reproduce with
+  `bench/search_v2_results_ready.py`.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

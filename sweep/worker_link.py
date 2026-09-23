@@ -203,6 +203,24 @@ def injections(app):
         # which of the two zeroes it is looking at.
         return status.get("queue_position") or None
 
+    def read_ready():
+        """Whether the worker says this run's result is final although its
+        engine is still running (V2-B5).
+
+        False — wait for the process, as before — whenever the field is
+        absent: a worker or an engine older than this, the flag off, or the
+        worker not answering. Strictly `True`, so no other value in a status
+        body can move a visitor to their results. From the same cached
+        status the rest of the poll reads, so it costs no extra call.
+        """
+        run_id = public.current_run_id()
+        if not run_id:
+            return False
+        try:
+            return _status(run_id).get("results_ready") is True
+        except worker_client.WorkerError:
+            return False
+
     def read_spend():
         # Never called on the free path (snapshot() returns early), and
         # there is no account to poll if it were.
@@ -214,7 +232,8 @@ def injections(app):
     return {"fetch_plan": fetch_plan, "start_sweep": start_sweep,
             "read_live": read_live, "read_rows": read_rows,
             "read_done": read_done, "read_spend": read_spend,
-            "read_queue": read_queue, "list_sweeps": list_sweeps}
+            "read_queue": read_queue, "read_ready": read_ready,
+            "list_sweeps": list_sweeps}
 
 
 def owned_status():

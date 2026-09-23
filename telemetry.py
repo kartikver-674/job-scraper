@@ -509,6 +509,11 @@ def finish():
     _set_current(None)
     record["finished_at"] = _now()
     record["duration_ms"] = round((time.monotonic() - record.pop("_t0")) * 1000)
+    ready = record["milestones"].get("results_ready")
+    if ready is not None:
+        # V2-B5: how long the sweep ran after the user's result was final —
+        # the wait SWEEP_RESULTS_READY_EARLY takes off the user's screen.
+        record["post_result_ms"] = record["duration_ms"] - ready
     record["raw_rows"] = sum(u["raw_count"] for u in record["units"])
     path = os.path.join(record["output_dir"], "telemetry",
                         f"sweep_{record['sweep_id']}.json")

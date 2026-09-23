@@ -161,7 +161,7 @@ def _served(table, fail=(), calls=None, delay=None, status=503, done=None):
 BASE_ENV = {telemetry.FLAG: "1", shadow.FLAG: None, concurrency.FLAG: None,
             concurrency.WORKERS_ENV: None, concurrency.GREENHOUSE_FLAG: None,
             concurrency.GREENHOUSE_WORKERS_ENV: None, experience_guard.FLAG: None,
-            "APIFY_TOKEN": None}
+            scraper.READY_FLAG: None, "APIFY_TOKEN": None}
 
 
 class Result:

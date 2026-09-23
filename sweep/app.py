@@ -215,7 +215,7 @@ def create_app(state=None, extract=None, resume_dir=None,
                read_done=None, now=None, read_rows=None, read_live=None,
                start_rescore=None, hour_now=None, profile_exists=None,
                wall_now=None, list_sweeps=None, start_merge=None,
-               read_queue=None):
+               read_queue=None, read_ready=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -291,6 +291,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         read_spend = read_spend or remote["read_spend"]
         list_sweeps = list_sweeps or remote["list_sweeps"]
         read_queue = read_queue or remote["read_queue"]
+        read_ready = read_ready or remote["read_ready"]
 
     # Public mode: every extraction is two GPU calls on the operator's
     # Modal account, so the daily limit wraps the CALL, not the route —
@@ -306,6 +307,12 @@ def create_app(state=None, extract=None, resume_dir=None,
         # is a fact here rather than a missing reading.
         def read_queue():
             return None
+
+    if read_ready is None:
+        # Nor anything to say a local result is final early: it is final
+        # when its child exits, exactly as before.
+        def read_ready():
+            return False
 
     if profile_exists is None:
         def profile_exists(name):
@@ -775,7 +782,14 @@ def create_app(state=None, extract=None, resume_dir=None,
         screen ends up offering results for a sweep still running.
         """
         proc = app.state.get("proc")
-        running_now = proc is not None and proc.poll() is None
+        # What the USER is waiting for, which is the process — until the
+        # worker says the result is final while the engine is still busy with
+        # work that cannot change it (V2-B5). From here the screen reads
+        # exactly as it will once the process exits, so the page moves on by
+        # its usual route. _sweep_in_flight() still asks the process, so
+        # nothing new can start meanwhile.
+        running_now = (proc is not None and proc.poll() is None
+                       and not read_ready())
         p["finished"] = (not running_now) and p["outstanding"] == 0
         p["interrupted"] = (not running_now) and p["outstanding"] > 0
         # The engine works through the free sources AFTER the paid searches,
@@ -1104,9 +1118,13 @@ def create_app(state=None, extract=None, resume_dir=None,
             return None
         if not status:
             return None
+        state = status.get("state")
+        if state == "running" and status.get("results_ready") is True:
+            # Same reading _liveness makes: the result is final, and the
+            # engine's last seconds are not the visitor's to wait through.
+            state = "done"
         return run_banner(
-            run_phase(status.get("state"),
-                      queued=bool(status.get("queue_position"))),
+            run_phase(state, queued=bool(status.get("queue_position"))),
             queue_position=status.get("queue_position") or 0,
             found=app.state.get("live_found") or None,
             # A "Sweep complete" strip above the jobs it is pointing at is
