@@ -1,0 +1,97 @@
+{
+  "status": "MEASURED LIVE: paid, authorised with both keys, through the unchanged engine",
+  "observed_at": "2026-09-23T17:53:41+00:00",
+  "site": "linkedin",
+  "keywords": "Software Engineer",
+  "location": "Bengaluru",
+  "searches": 1,
+  "max_usd": "0.05",
+  "exposed_usd_before": "0",
+  "exit": 0,
+  "wall_s": 53.47,
+  "final_rows": 1,
+  "units": [
+    {
+      "family": "linkedin",
+      "board": "curious_coder/linkedin-jobs-scraper",
+      "query": "Software Engineer",
+      "location": "Bengaluru",
+      "requested_limit": 15,
+      "ok": true,
+      "failure_category": "",
+      "failure": "",
+      "duration_ms": 47096,
+      "raw_count": 15,
+      "actor_run_id": "QthNSmbc1XE5pB7o9",
+      "actor_build_id": "kmTE1iuf8N2sZAj8t",
+      "actor_status": "SUCCEEDED",
+      "poll_count": 8,
+      "max_total_charge_usd": "0.046",
+      "reported_cost_usd": 0.028050000000000002,
+      "billed_delta_usd": 0.01405,
+      "actor_started_at": "2026-09-23 17:52:53.999000+00:00",
+      "actor_finished_at": "2026-09-23 17:53:33.780000+00:00"
+    }
+  ],
+  "provider": [
+    {
+      "status": "SUCCEEDED",
+      "build_number": "1.7.17",
+      "run_time_secs": 39.606,
+      "max_total_charge_usd": 0.046,
+      "charged_event_counts": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      },
+      "usage_total_usd": 0.03005,
+      "pricing_info": {
+        "apify_margin_percentage": 0.2,
+        "created_at": "2026-07-31T03:25:46.142000Z",
+        "started_at": "2026-08-14T03:25:44.416000Z",
+        "notified_about_future_change_at": "2026-07-31T03:32:09.207000Z",
+        "notified_about_change_at": "2026-08-19T08:06:18.517000Z",
+        "reason_for_change": "This price change only affects users on Apify free plan. Paying users are not affected. \n\nAn additional negligible cost per actor start is added which is just $0.05 per 1000 actor starts.",
+        "is_price_change_notification_suppressed": false,
+        "force_contains_significant_price_change": null,
+        "pricing_model": "PAY_PER_EVENT",
+        "pricing_per_event": {
+          "actor_charge_events": {
+            "apify-default-dataset-item": {
+              "event_title": "result",
+              "event_description": "Single result in the default dataset.",
+              "event_price_usd": 0.002,
+              "event_tiered_pricing_usd": null,
+              "is_primary_event": true,
+              "is_one_time_event": false
+            },
+            "apify-actor-start": {
+              "event_title": "Actor Start",
+              "event_description": "Charged when the Actor starts running. Number of events charged depends on Actor memory (one event per GB, minimum one event).",
+              "event_price_usd": 5e-05,
+              "event_tiered_pricing_usd": null,
+              "is_primary_event": null,
+              "is_one_time_event": true
+            }
+          }
+        },
+        "minimal_max_total_charge_usd": 0.001
+      },
+      "input": {
+        "urls": [
+          "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&geoId=105214831&f_E=3&f_TPR=r1209600"
+        ],
+        "limitPerSource": 15,
+        "count": 15,
+        "scrapeCompany": false,
+        "datePosted": "anyTime",
+        "companyIds": [],
+        "under10Applicants": false,
+        "autoConvertToAiSearch": true,
+        "splitByLocation": false
+      },
+      "dataset_items": 15
+    }
+  ],
+  "provider_reread_at": "2026-09-23T17:55:31+00:00",
+  "provider_reread_note": "Same finished run re-read with free GETs so the full input record (Sweep's fields plus the actor's schema defaults) is kept; no actor was started."
+}

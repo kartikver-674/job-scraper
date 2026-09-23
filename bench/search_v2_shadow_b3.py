@@ -19,8 +19,9 @@
 --sweep    NETWORK, FREE ONLY. Worker-shaped `scraper.py --profile X --yes`
            child processes over four public boards: shadow off, on, on with
            production's Lever settings, and every flag off. The user's CSV and
-           JSON must be byte-identical in all four. See PAID_MARKERS for how a
-           paid search is made impossible rather than merely unintended.
+           JSON must be byte-identical in all four. Each child runs through
+           bench/paid_guard.py, which refuses any paid plan this harness cannot
+           authorise; PAID_MARKERS kills a child on top of that.
 
     .venv/bin/python -m bench.search_v2_shadow_b3 --frozen \\
         --baseline /tmp/search-v2-current-free-jobs.json \\
@@ -396,9 +397,11 @@ def live(args):
 
 # Real sweeps must be FREE by construction. `--site free` leaves the paid plan
 # empty, every paid site is disabled in the profile as the worker's free_prefs
-# does, a --dry-run pre-check proves the plan is empty, and a paid marker in the
-# log kills the run. Unsetting APIFY_TOKEN is NOT a guard: _require_token()
-# calls load_dotenv() — which is how an unguarded check once ran paid searches.
+# does, each child runs through bench/paid_guard.py (whose dry run of that
+# exact invocation must show no paid search, since this harness never
+# authorises one), and a paid marker in the log kills the run. Unsetting
+# APIFY_TOKEN is NOT a guard: the engine's credential step calls load_dotenv(),
+# which is how an unguarded check once ran paid searches.
 PAID_MARKERS = ("Total Apify spend", "curious_coder", "misceres", "linkedin (",
                 "indeed (", "naukri (")
 SWEEP_ARMS = {
@@ -418,6 +421,7 @@ def sweep(args):
     user's CSV and JSON must be byte-identical in every arm."""
     import glob
     import subprocess
+    from bench import paid_guard
     work = Path(tempfile.mkdtemp())
     python = sys.executable
     base = {k: v for k, v in os.environ.items()
@@ -435,20 +439,19 @@ def sweep(args):
                 '"GitLab", "groww": "Groww"}, "ashby": {"linear": "Linear"}, '
                 '"smartrecruiters": {}, "breezy": {}}\nFEEDS = {}\n'
                 f'SETTINGS = {{"output_dir": {str(work / arm)!r}}}\n')
-        plan = subprocess.run([python, "scraper.py", "--profile", "b3sweep_off",
-                               "--site", "free", "--dry-run", "--json"], cwd=ROOT,
-                              env=base, capture_output=True, text=True, timeout=120)
-        sites = json.loads(plan.stdout.strip().splitlines()[-1])["sites"]
-        if sites:
-            raise SystemExit(f"refusing: the paid plan is not empty ({sites})")
         for arm, flags in SWEEP_ARMS.items():
             log_path = work / f"{arm}.log"
             started = time.perf_counter()
             with open(log_path, "w") as log:
+                # Through the developer paid guard (V2-C0): the child asks the
+                # engine's own dry run what this arm would run and stops before
+                # any client if it holds a paid search. This harness never
+                # passes --allow-paid, and `base` drops SWEEP_*, so no paid plan
+                # can be authorised here.
                 child = subprocess.Popen(
-                    [python, "-u", "scraper.py", "--profile", f"b3sweep_{arm}",
-                     "--site", "free", "--yes"], cwd=ROOT, stdout=log,
-                    stderr=subprocess.STDOUT,
+                    paid_guard.engine_argv(["--profile", f"b3sweep_{arm}",
+                                            "--site", "free", "--yes"], python=python),
+                    cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
                     env=dict(base, SWEEP_RUN_ID=f"b3sweep{arm}", **flags))
                 while child.poll() is None:
                     time.sleep(0.5)
@@ -456,6 +459,9 @@ def sweep(args):
                             time.perf_counter() - started > 300:
                         child.kill()
                         raise SystemExit(f"{arm}: killed (paid marker or timeout)")
+            if child.returncode:
+                raise SystemExit(f"{arm}: the engine exited {child.returncode}\n"
+                                 + log_path.read_text()[-2000:])
 
             def one(pattern, arm=arm):
                 found = glob.glob(str(work / arm / pattern))
