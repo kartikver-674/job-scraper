@@ -1,0 +1,632 @@
+{
+  "status": "MEASURED OFFLINE, sockets denied; synthetic cohorts, frozen snapshots; not real-candidate validation",
+  "replayed_on": "2026-09-23",
+  "baseline_snapshot_sha256": "e237462f1166f979f930d843a1b4a1eca92859a5894fff704dfb9f8ee87e31c3",
+  "expansion_snapshot_sha256": "ab76a1cdcf1fc883261ec9325076a1ad40b4c9d91bab91e950c5c8956e0336b5",
+  "shadow_raw_rows": 876,
+  "top_n": 20,
+  "live_equals_offline_in_every_case": true,
+  "cases": {
+    "software_fullstack/india": {
+      "policy_sha256": "eea09f1d382c016e5b912837f7ae6dd16fc13fa999b63cb808bde9c5d606a368",
+      "production_gated_rows": 3099,
+      "shadow_gated_rows": 253,
+      "totals": {
+        "eligible": 16,
+        "baseline_final": 81,
+        "combined_final": 95,
+        "baseline_positive": 19,
+        "combined_positive": 22,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 17,
+        "top_n_new": 3
+      },
+      "offline_combined_final": 95,
+      "live_equals_offline": true,
+      "mismatches": [],
+      "cost_seconds": {
+        "production_finalize_cpu_one_pass": 14.334,
+        "production_free_tail_cpu_two_passes": 28.668,
+        "evaluator_cpu": 1.301,
+        "evaluator_wall": 1.331,
+        "evaluator_share_of_free_tail_cpu": 0.0454
+      },
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 71,
+          "fresh": 67,
+          "eligible": 8,
+          "eligible_positive": 1,
+          "final_new": 6,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 8,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 24,
+          "fresh": 13,
+          "eligible": 3,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 19,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 4,
+          "eligible": 2,
+          "eligible_positive": 1,
+          "final_new": 2,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 20,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 56,
+          "fresh": 18,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 27,
+          "fresh": 27,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 3,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 20,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 63,
+          "key_overlap": 0
+        }
+      }
+    },
+    "software_fullstack/remote": {
+      "policy_sha256": "54f674f24811fcab2dd279c806444c08df62ae4700d578159fffdbe47fd63124",
+      "production_gated_rows": 3099,
+      "shadow_gated_rows": 253,
+      "totals": {
+        "eligible": 32,
+        "baseline_final": 293,
+        "combined_final": 317,
+        "baseline_positive": 39,
+        "combined_positive": 44,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 18,
+        "top_n_new": 2
+      },
+      "offline_combined_final": 317,
+      "live_equals_offline": true,
+      "mismatches": [],
+      "cost_seconds": {
+        "production_finalize_cpu_one_pass": 14.185,
+        "production_free_tail_cpu_two_passes": 28.369,
+        "evaluator_cpu": 1.295,
+        "evaluator_wall": 1.298,
+        "evaluator_share_of_free_tail_cpu": 0.0457
+      },
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 71,
+          "fresh": 67,
+          "eligible": 6,
+          "eligible_positive": 0,
+          "final_new": 5,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 124,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 24,
+          "fresh": 13,
+          "eligible": 6,
+          "eligible_positive": 2,
+          "final_new": 5,
+          "final_new_positive": 2,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 6,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 4,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 56,
+          "fresh": 18,
+          "eligible": 9,
+          "eligible_positive": 1,
+          "final_new": 4,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 14,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 27,
+          "fresh": 27,
+          "eligible": 1,
+          "eligible_positive": 1,
+          "final_new": 1,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 31,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 3,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 130,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 4,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 32,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 20,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 286,
+          "key_overlap": 0
+        }
+      }
+    },
+    "react_native/india": {
+      "policy_sha256": "0f688d59592b4cb156adf05efa806cb6421eb545baa15bc5247602e75b7f4019",
+      "production_gated_rows": 3099,
+      "shadow_gated_rows": 253,
+      "totals": {
+        "eligible": 16,
+        "baseline_final": 81,
+        "combined_final": 95,
+        "baseline_positive": 19,
+        "combined_positive": 21,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 18,
+        "top_n_new": 2
+      },
+      "offline_combined_final": 95,
+      "live_equals_offline": true,
+      "mismatches": [],
+      "cost_seconds": {
+        "production_finalize_cpu_one_pass": 14.243,
+        "production_free_tail_cpu_two_passes": 28.487,
+        "evaluator_cpu": 1.29,
+        "evaluator_wall": 1.293,
+        "evaluator_share_of_free_tail_cpu": 0.0453
+      },
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 71,
+          "fresh": 67,
+          "eligible": 8,
+          "eligible_positive": 1,
+          "final_new": 6,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 7,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 24,
+          "fresh": 13,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 59,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 4,
+          "eligible": 2,
+          "eligible_positive": 0,
+          "final_new": 2,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 62,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 56,
+          "fresh": 18,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 27,
+          "fresh": 27,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 3,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 20,
+          "eligible": 3,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 17,
+          "key_overlap": 0
+        }
+      }
+    },
+    "business_salesforce/india": {
+      "policy_sha256": "0f11f01c603fb9834bedb387d081ac25452dca2d536ce5f81a2e37a388d5f31e",
+      "production_gated_rows": 3194,
+      "shadow_gated_rows": 254,
+      "totals": {
+        "eligible": 16,
+        "baseline_final": 89,
+        "combined_final": 103,
+        "baseline_positive": 7,
+        "combined_positive": 8,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 19,
+        "top_n_new": 1
+      },
+      "offline_combined_final": 103,
+      "live_equals_offline": true,
+      "mismatches": [],
+      "cost_seconds": {
+        "production_finalize_cpu_one_pass": 14.594,
+        "production_free_tail_cpu_two_passes": 29.189,
+        "evaluator_cpu": 1.303,
+        "evaluator_wall": 1.308,
+        "evaluator_share_of_free_tail_cpu": 0.0447
+      },
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 71,
+          "fresh": 67,
+          "eligible": 8,
+          "eligible_positive": 0,
+          "final_new": 6,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 57,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 25,
+          "fresh": 13,
+          "eligible": 3,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 4,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 4,
+          "eligible": 2,
+          "eligible_positive": 0,
+          "final_new": 2,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 62,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 56,
+          "fresh": 18,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 27,
+          "fresh": 27,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 3,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 20,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 63,
+          "key_overlap": 0
+        }
+      }
+    },
+    "multiple_roles_locations/india": {
+      "policy_sha256": "b3b599f0906299ad8e9848d266e54f0a6740add2073b14db6328785132070da1",
+      "production_gated_rows": 3194,
+      "shadow_gated_rows": 254,
+      "totals": {
+        "eligible": 16,
+        "baseline_final": 89,
+        "combined_final": 103,
+        "baseline_positive": 19,
+        "combined_positive": 22,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 17,
+        "top_n_new": 3
+      },
+      "offline_combined_final": 103,
+      "live_equals_offline": true,
+      "mismatches": [],
+      "cost_seconds": {
+        "production_finalize_cpu_one_pass": 14.59,
+        "production_free_tail_cpu_two_passes": 29.18,
+        "evaluator_cpu": 1.303,
+        "evaluator_wall": 1.317,
+        "evaluator_share_of_free_tail_cpu": 0.0447
+      },
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 71,
+          "fresh": 67,
+          "eligible": 8,
+          "eligible_positive": 1,
+          "final_new": 6,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 8,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 25,
+          "fresh": 13,
+          "eligible": 3,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 19,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 4,
+          "eligible": 2,
+          "eligible_positive": 1,
+          "final_new": 2,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 1,
+          "best_new_rank": 20,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 56,
+          "fresh": 18,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 27,
+          "fresh": 27,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 3,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 20,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 70,
+          "key_overlap": 0
+        }
+      }
+    }
+  },
+  "limits": [
+    "The recency window moves with the replay date, so absolute counts differ from V2-A's 2026-09-22 replay; the comparison that matters here is live evaluator vs offline replay on the SAME date.",
+    "CPU is this machine's; Oracle's A1 cores are slower per thread. The evaluator-to-finalize RATIO is the portable figure.",
+    "Frozen rows predate native-id capture, so native-identity and native-overlap fields are 0 here; --live measures them.",
+    "Shadow rows are modelled as arriving after every production row, so exact score ties go to production (conservative for shadow)."
+  ]
+}

@@ -284,15 +284,8 @@ def fetch_free():
     rows = sources.fetch_free(ATS_BOARDS, FEEDS, is_dev_title, location_allowed,
                               is_home_location, optum_cfg=OPTUM,
                               enterprise_cfg=ENTERPRISE)
-    # SWEEP_FREE_SOURCE_SHADOW (default off). Measures the audit's eight
-    # candidate Greenhouse boards and discards every row — sources.shadow.run
-    # returns None, so there is nothing here to merge into `rows` by accident.
-    # Wrapped again on top of its own per-board isolation: a diagnostic must not
-    # be able to fail the sweep somebody is waiting for.
-    try:
-        shadow.run(is_dev_title, location_allowed, is_home_location)
-    except Exception as exc:
-        print(f"  (shadow tranche skipped: {exc})")
+    # The shadow tranche is NOT fetched here any more (V2-B3). It runs from
+    # main() once the results are written — see the call there.
     return [_truncate_desc(r) for r in rows]
 
 
@@ -1406,9 +1399,21 @@ def to_output(row):
 LAST_STATS = {}
 
 
-def finalize(raw_rows):
-    """Score, filter, rank, and dedupe raw normalized rows into output rows."""
-    telemetry.stage("observed_normalized", raw_rows)
+def score_and_filter(raw_rows, stage=None):
+    """Score, then every hard filter finalize applies, in finalize's order.
+    Returns (the rows still eligible, in arrival order; the filter counts).
+
+    finalize() is this plus rank_rows() and to_output(). Split out for Search
+    V2-B3 so the shadow evaluator (sources/shadow.py) runs the SAME chain
+    rather than a copy of it: a filter added here reaches both callers, and
+    there is no second list of predicates to drift out of step.
+
+    `stage` receives the boundary counts. The default is telemetry — the
+    production pass. A diagnostic pass passes its own collector, so it cannot
+    overwrite the production funnel in the telemetry record.
+    """
+    stage = stage or telemetry.stage
+    stage("observed_normalized", raw_rows)
     scored = [r for r in (score_job(row) for row in raw_rows) if r is not None]
     if SETTINGS["min_score"] is not None:
         scored = [r for r in scored if r["score"] >= SETTINGS["min_score"]]
@@ -1416,7 +1421,7 @@ def finalize(raw_rows):
     # moved, re-ordered or re-filtered to obtain them; telemetry.stage only
     # counts the list finalize is holding at that instant, and is a single
     # `is None` test when the flag is off.
-    telemetry.stage("post_hard_filter_and_score", scored)
+    stage("post_hard_filter_and_score", scored)
 
     # Freshness: drop jobs older than max_age_days.
     stale = 0
@@ -1424,7 +1429,7 @@ def finalize(raw_rows):
         fresh = [r for r in scored if is_recent(r.get("Posted Date"), SETTINGS["max_age_days"])]
         stale = len(scored) - len(fresh)
         scored = fresh
-    telemetry.stage("post_recency", scored)
+    stage("post_recency", scored)
 
     # Compensation: drop jobs whose disclosed MAX annual pay (in USD) is below
     # the floor. Unknown currency / undisclosed pay is kept — see comp_max_usd.
@@ -1452,7 +1457,7 @@ def finalize(raw_rows):
         ok = [r for r in scored if r.get("eor")]
         no_eor = len(scored) - len(ok)
         scored = ok
-    telemetry.stage("post_salary_reachability_visa_eor", scored)
+    stage("post_salary_reachability_visa_eor", scored)
 
     # Work arrangement, from Sweep's "which jobs should Sweep include" choice.
     # The "remote" answer needs nothing here — it is already expressed as
@@ -1472,16 +1477,37 @@ def finalize(raw_rows):
         ok = [r for r in scored if onsite_or_hybrid(r)]
         wrong_arrangement = len(scored) - len(ok)
         scored = ok
-        telemetry.stage("post_arrangement", scored)
+        stage("post_arrangement", scored)
         if scope == "india":
             here = [r for r in scored
                     if in_home_country(r.get("Location") or r.get("location"))]
             off_geography = len(scored) - len(here)
             scored = here
 
-    telemetry.stage("post_location_eligible", scored)
-    scored.sort(key=lambda r: r["score"], reverse=True)
-    unique = dedupe(scored)  # sorted first, so highest-scored duplicate wins
+    stage("post_location_eligible", scored)
+    return scored, {"stale": stale, "low_salary": low_salary,
+                    "unreachable": unreachable, "rescued": rescued,
+                    "no_visa": no_visa, "no_eor": no_eor,
+                    "wrong_arrangement": wrong_arrangement,
+                    "off_geography": off_geography}
+
+
+def rank_rows(rows):
+    """Best first, then one row per posting: the order a user is shown.
+
+    Sorts `rows` IN PLACE, exactly as finalize always has. The sort is stable,
+    so equal scores keep arrival order, and arrival order is what decides which
+    of two duplicates dedupe keeps. Split out beside score_and_filter so the
+    shadow evaluator ranks by this function, not by a second copy of it.
+    """
+    rows.sort(key=lambda r: r["score"], reverse=True)
+    return dedupe(rows)  # sorted first, so highest-scored duplicate wins
+
+
+def finalize(raw_rows):
+    """Score, filter, rank, and dedupe raw normalized rows into output rows."""
+    scored, stats = score_and_filter(raw_rows)
+    unique = rank_rows(scored)
     telemetry.stage("final_after_dedupe", unique)
     # normalized_rows, not raw_rows: by the time finalize sees them the
     # adapters have already mapped every row into the internal schema. The raw
@@ -1489,12 +1515,45 @@ def finalize(raw_rows):
     telemetry.counts(normalized_rows=len(raw_rows), eligible_rows=len(scored),
                      final_rows=len(unique))
     telemetry.eligible_progress(len(unique))
-    LAST_STATS.update(stale=stale, low_salary=low_salary, kept=len(unique),
-                      unreachable=unreachable, rescued=rescued,
-                      no_visa=no_visa, no_eor=no_eor,
-                      wrong_arrangement=wrong_arrangement,
-                      off_geography=off_geography)
+    LAST_STATS.update(stale=stats["stale"], low_salary=stats["low_salary"],
+                      kept=len(unique),
+                      unreachable=stats["unreachable"], rescued=stats["rescued"],
+                      no_visa=stats["no_visa"], no_eor=stats["no_eor"],
+                      wrong_arrangement=stats["wrong_arrangement"],
+                      off_geography=stats["off_geography"])
     return [to_output(r) for r in unique]
+
+
+def shadow_engine(final_rows, production_rows):
+    """What sources/shadow.py judges a shadow row with: this sweep's own
+    functions, handed over rather than re-implemented, and the finished result
+    it is judged against.
+
+    Nothing here is a second copy of a rule. score_and_filter and rank_rows ARE
+    finalize; the only wrapper is the one that keeps a diagnostic from leaving
+    a trace in module state a production summary reads.
+    """
+    def isolated(rows, stage):
+        # experience_guard.record() appends every acted-on verdict to a module
+        # list when that guard is on. It is off in production; if it is ever
+        # on, a shadow row's verdict must still not land in the sweep's record.
+        mark = len(experience_guard.DROPPED)
+        try:
+            return score_and_filter(rows, stage)
+        finally:
+            del experience_guard.DROPPED[mark:]
+
+    days = SETTINGS["max_age_days"]
+    return shadow.Engine(
+        final_rows=final_rows, production_rows=production_rows,
+        prepare=_truncate_desc, score_and_filter=isolated, rank_rows=rank_rows,
+        job_key=job_key, to_output=to_output,
+        recent=None if days is None else (lambda d: is_recent(d, days)),
+        # Search SCOPE only — what the user chose, never what the résumé says —
+        # so the aggregator can group sweeps without a profile property.
+        scope={"work_scope": SETTINGS["work_scope"],
+               "remote_scopes": list(SETTINGS["remote_scopes"] or []),
+               "max_age_days": days})
 
 
 # ---------------------------------------------------------------------------
@@ -2285,9 +2344,6 @@ def main():
         telemetry.note("Free holds every row until the last source returns, so "
                        "its eligible milestones are checkpoint-granular, not "
                        "streamed. See docs/search-engine-v2-a-telemetry-and-shadow.md.")
-        if shadow.enabled():
-            telemetry.note("Shadow tranche fetched; its rows were discarded and "
-                           "are excluded from the sweep's source counters.")
 
     # Loaded ONCE, before anything is written: --only-new must filter against
     # what EARLIER runs reported, and the ledger is appended to only at the end.
@@ -2452,6 +2508,23 @@ def main():
     print(f"  {json_path}")
     print(f"  seen.tsv: +{added} new ({len(seen)} known)"
           + ("" if args.only_new else "  — next run: --only-new to skip these"))
+
+    # SWEEP_FREE_SOURCE_SHADOW (default off). Only now, with the CSV, the JSON
+    # and the seen ledger all written: no shadow request is made while any
+    # production output can still change. The eight boards are judged against
+    # out_rows by this sweep's own rules, and only counts come back — into the
+    # telemetry record; shadow.run returns None, so there is nothing here to
+    # merge. Wrapped on top of shadow's own per-board and evaluation isolation.
+    if run_free and shadow.enabled():
+        print("\nshadow tranche (diagnostic only — not in the results above)")
+        telemetry.note("Shadow tranche fetched after the results were written "
+                       "and judged in isolation; its rows never reach them and "
+                       "it is excluded from source counters.")
+        try:
+            shadow.run(is_dev_title, location_allowed, is_home_location,
+                       engine=shadow_engine(out_rows, raw_rows))
+        except Exception as exc:
+            print(f"  (shadow tranche skipped: {exc})")
 
     # Identity BEFORE dedupe, over the complete accumulated row set: the audit
     # could only report the current heuristic's own output, never what it merged

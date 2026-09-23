@@ -1,0 +1,200 @@
+{
+  "status": "MEASURED LIVE: worker-shaped FREE sweeps over four public boards; paid plan verified empty; no Apify",
+  "observed_at": "2026-09-23T12:04:04+00:00",
+  "arms": {
+    "off": {
+      "flags": {
+        "SWEEP_SEARCH_V2_TELEMETRY": "1"
+      },
+      "exit": 0,
+      "wall_s": 6.56,
+      "csv_identical_to_off": true,
+      "json_identical_to_off": true,
+      "final_rows": 38,
+      "telemetry_record_written": true,
+      "record_bytes": 5208,
+      "sources_attempted": 4,
+      "shadow_units": 0,
+      "free_phase_ms": 4116,
+      "sweep_ms": 6141,
+      "shadow_unit_ms_requests_retries": {},
+      "shadow_status": null,
+      "shadow_cost": null,
+      "shadow_totals": null
+    },
+    "on": {
+      "flags": {
+        "SWEEP_SEARCH_V2_TELEMETRY": "1",
+        "SWEEP_FREE_SOURCE_SHADOW": "1"
+      },
+      "exit": 0,
+      "wall_s": 17.17,
+      "csv_identical_to_off": true,
+      "json_identical_to_off": true,
+      "final_rows": 38,
+      "telemetry_record_written": true,
+      "record_bytes": 18773,
+      "sources_attempted": 4,
+      "shadow_units": 8,
+      "free_phase_ms": 3654,
+      "sweep_ms": 16651,
+      "shadow_unit_ms_requests_retries": {
+        "greenhouse:fivetran": [
+          1089,
+          1,
+          0
+        ],
+        "greenhouse:abnormalsecurity": [
+          475,
+          1,
+          0
+        ],
+        "greenhouse:apolloio": [
+          440,
+          1,
+          0
+        ],
+        "greenhouse:brex": [
+          765,
+          1,
+          0
+        ],
+        "greenhouse:vercel": [
+          496,
+          1,
+          0
+        ],
+        "greenhouse:jumio": [
+          482,
+          1,
+          0
+        ],
+        "greenhouse:catawiki": [
+          5249,
+          1,
+          0
+        ],
+        "greenhouse:zetaglobal": [
+          744,
+          1,
+          0
+        ]
+      },
+      "shadow_status": "evaluated",
+      "shadow_cost": {
+        "fetch_wall_ms": 9742,
+        "evaluation_wall_ms": 1296,
+        "evaluation_cpu_ms": 1293,
+        "peak_rss_kb_before": 80336,
+        "peak_rss_kb_after": 106272
+      },
+      "shadow_totals": {
+        "eligible": 10,
+        "baseline_final": 38,
+        "combined_final": 48,
+        "baseline_positive": 23,
+        "combined_positive": 30,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 14,
+        "top_n_new": 6
+      }
+    },
+    "production_like": {
+      "flags": {
+        "SWEEP_SEARCH_V2_TELEMETRY": "1",
+        "SWEEP_FREE_SOURCE_SHADOW": "1",
+        "SWEEP_FREE_LEVER_CONCURRENCY": "1",
+        "SWEEP_FREE_LEVER_WORKERS": "4"
+      },
+      "exit": 0,
+      "wall_s": 39.36,
+      "csv_identical_to_off": true,
+      "json_identical_to_off": true,
+      "final_rows": 38,
+      "telemetry_record_written": true,
+      "record_bytes": 18814,
+      "sources_attempted": 4,
+      "shadow_units": 8,
+      "free_phase_ms": 3195,
+      "sweep_ms": 38658,
+      "shadow_unit_ms_requests_retries": {
+        "greenhouse:fivetran": [
+          27089,
+          1,
+          1
+        ],
+        "greenhouse:abnormalsecurity": [
+          683,
+          1,
+          0
+        ],
+        "greenhouse:apolloio": [
+          449,
+          1,
+          0
+        ],
+        "greenhouse:brex": [
+          789,
+          1,
+          0
+        ],
+        "greenhouse:vercel": [
+          1504,
+          1,
+          0
+        ],
+        "greenhouse:jumio": [
+          501,
+          1,
+          0
+        ],
+        "greenhouse:catawiki": [
+          468,
+          1,
+          0
+        ],
+        "greenhouse:zetaglobal": [
+          735,
+          1,
+          0
+        ]
+      },
+      "shadow_status": "evaluated",
+      "shadow_cost": {
+        "fetch_wall_ms": 32219,
+        "evaluation_wall_ms": 1299,
+        "evaluation_cpu_ms": 1294,
+        "peak_rss_kb_before": 81376,
+        "peak_rss_kb_after": 105392
+      },
+      "shadow_totals": {
+        "eligible": 10,
+        "baseline_final": 38,
+        "combined_final": 48,
+        "baseline_positive": 23,
+        "combined_positive": 30,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 14,
+        "top_n_new": 6
+      }
+    },
+    "all_off": {
+      "flags": {},
+      "exit": 0,
+      "wall_s": 7.08,
+      "csv_identical_to_off": true,
+      "json_identical_to_off": true,
+      "final_rows": 38,
+      "telemetry_record_written": false,
+      "record_bytes": 0,
+      "sources_attempted": null,
+      "shadow_units": 0,
+      "free_phase_ms": null,
+      "sweep_ms": null,
+      "shadow_unit_ms_requests_retries": {},
+      "shadow_status": null,
+      "shadow_cost": null,
+      "shadow_totals": null
+    }
+  }
+}

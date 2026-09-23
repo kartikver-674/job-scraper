@@ -118,6 +118,25 @@ Added by the V2-B2 concurrency experiment (2026-09-23), documented in
   and provider behaviour ONLY: inventory changes between arms, so row counts
   here are not parity evidence. Zero Apify credits. Reproduce with `--live`.
 
+Added by the V2-B3 shadow evaluation (2026-09-23), documented in
+[V2-B3 shadow production evaluation](../search-engine-v2-b3-shadow-production-evaluation.md):
+
+- `shadow-b3-frozen-equivalence.json`: for all five synthetic cohorts, the
+  production evaluator (`sources.shadow.evaluate`) against V2-A's offline method
+  (`finalize(baseline + shadow)`) on the SAME date — every board, stage and count
+  agrees — plus evaluator CPU beside one production finalize pass. Sockets
+  denied. Reproduce with `bench/search_v2_shadow_b3.py --frozen`.
+- `shadow-b3-live-benchmark.json`: one public pass over the eight boards (19
+  GETs, zero Apify): latency, failures, raw rows, native-id coverage, overlap
+  with the frozen baseline, native-id persistence since 2026-09-21, one sampled
+  job page per board, and the live rows judged under each cohort against its
+  frozen baseline. Reproduce with `--live --reach 1`. One dated observation.
+- `shadow-b3-free-sweep-parity.json`: worker-shaped FREE sweeps (`scraper.py
+  --profile X --yes`, plus `--site free`) over four public boards — shadow off,
+  on, on with production's Lever settings, all flags off. CSV and JSON
+  byte-identical in every arm. Reproduce with `--sweep`, which refuses to run
+  unless the paid plan is empty (see that document's §18 for why).
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

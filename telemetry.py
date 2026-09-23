@@ -25,7 +25,8 @@ and dataset IDs, and the search keyword/location strings the console already
 prints. It NEVER writes an Apify token, résumé text, a job description, a full
 profile payload, or any user secret — see _clip() and the allowlisted field
 sets below. There is no free-text sink: every recorded string passes through a
-bounded field.
+bounded field. The shadow tranche's evaluation (V2-B3) is counts per board in
+its own section and holds no row, title, company or URL either.
 """
 import json
 import os
@@ -465,6 +466,30 @@ def counts(**fields):
     for key in ("raw_rows", "normalized_rows", "eligible_rows", "final_rows"):
         if key in fields:
             _run[key] = fields[key]
+
+
+def shadow_evaluation(section):
+    """The shadow tranche's evaluation (sources/shadow.py, V2-B3), as its own
+    top-level section — beside the production fields, never inside them.
+
+    Absent from every record where shadow did not run, so a sweep with the
+    flag off writes exactly what it wrote before. Bounded on the way in like
+    everything else here: numbers, booleans and None pass, every string is
+    clipped, and nothing but plain containers survives.
+    """
+    if _run is not None:
+        with _LOCK:
+            _run["shadow_evaluation"] = _bounded(section)
+
+
+def _bounded(value):
+    if isinstance(value, dict):
+        return {_clip(k): _bounded(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_bounded(v) for v in value]
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return _clip(value)
 
 
 # ---------------------------------------------------------------------------

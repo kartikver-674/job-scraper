@@ -213,28 +213,44 @@ class ShadowIsIsolated(unittest.TestCase):
         self.assertEqual(calls, [], "shadow fetched with the flag off")
 
     def test_run_returns_none_even_when_boards_yield_rows(self):
-        """The return type IS the safety property: there is no row set to merge."""
+        """The return type IS the safety property: there is no row set to merge.
+
+        Under a telemetry record: since V2-B3, shadow with nowhere to record
+        fetches nothing, so without one this would pass without ever fetching.
+        """
+        calls = []
         real = ats.fetch
-        ats.fetch = lambda *a, **kw: [{"Title": "Engineer", "Source": "x"}]
+        ats.fetch = lambda *a, **kw: calls.append(a) or [
+            {"Title": "Engineer", "Source": "x"}]
         try:
-            with _set(shadow.FLAG, "1"):
+            with tempfile.TemporaryDirectory() as tmp, \
+                    _set(telemetry.FLAG, "1"), _set(shadow.FLAG, "1"):
+                telemetry.start("free", tmp)
                 self.assertIsNone(
                     shadow.run(lambda t: True, lambda l: True, log=lambda *a: None))
+                telemetry.finish()
         finally:
             ats.fetch = real
+        self.assertEqual(len(calls), 8, "the boards were never fetched")
 
     def test_a_failing_shadow_board_cannot_fail_the_sweep(self):
+        calls = []
         real = ats.fetch
 
         def boom(*a, **kw):
+            calls.append(a)
             raise RuntimeError("shadow board exploded")
         ats.fetch = boom
         try:
-            with _set(shadow.FLAG, "1"):
+            with tempfile.TemporaryDirectory() as tmp, \
+                    _set(telemetry.FLAG, "1"), _set(shadow.FLAG, "1"):
+                telemetry.start("free", tmp)
                 self.assertIsNone(
                     shadow.run(lambda t: True, lambda l: True, log=lambda *a: None))
+                telemetry.finish()
         finally:
             ats.fetch = real
+        self.assertEqual(len(calls), 8, "a failure stopped the other boards")
 
     def test_shadow_units_do_not_inflate_sweep_source_counts(self):
         real = ats.fetch

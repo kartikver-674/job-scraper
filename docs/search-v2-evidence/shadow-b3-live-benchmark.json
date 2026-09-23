@@ -1,0 +1,856 @@
+{
+  "status": "MEASURED LIVE: one public pass over the eight boards, no Apify. One dated observation, not longitudinal evidence.",
+  "observed_at": "2026-09-23T11:44:10+00:00",
+  "requests": 19,
+  "live_snapshot_sha256": "a593bd4c190702b322643a2245377892b9b5144f6268f813a45b764acae714ce",
+  "live_snapshot_committed": false,
+  "baseline_snapshot_sha256": "e237462f1166f979f930d843a1b4a1eca92859a5894fff704dfb9f8ee87e31c3",
+  "expansion_snapshot_sha256": "ab76a1cdcf1fc883261ec9325076a1ad40b4c9d91bab91e950c5c8956e0336b5",
+  "summed_request_ms": 5045,
+  "raw_rows": 888,
+  "boards": {
+    "greenhouse:fivetran": {
+      "ok": true,
+      "failure_category": "",
+      "request_ms": 1230,
+      "retries": 0,
+      "raw": 198,
+      "normalized": 198,
+      "fresh_14d": 192,
+      "native_id": 198,
+      "native_id_distinct": 198,
+      "internal_id": 197,
+      "url": 198,
+      "url_carries_native_id": 198,
+      "url_ats_hosted": 0,
+      "key_overlap_with_frozen_baseline_raw": 1,
+      "vs_frozen_2026_09_21": {
+        "frozen_rows": 197,
+        "frozen_rows_with_extractable_id": 197,
+        "persisted_ids": 191,
+        "gone_ids": 6,
+        "new_ids": 7,
+        "persisted_id_title_changed": 4,
+        "gone_id_whose_title_returned_under_a_new_id": 0
+      },
+      "reach": [
+        {
+          "published": {
+            "url": "https://www.fivetran.com/careers/job?gh_jid=8002744003",
+            "status": 200,
+            "error": "",
+            "landed_on": "employer",
+            "redirected": false,
+            "ms": 158
+          },
+          "provider_by_native_id": {
+            "url": "https://job-boards.greenhouse.io/fivetran/jobs/8002744003",
+            "status": 200,
+            "error": "",
+            "landed_on": "employer",
+            "redirected": true,
+            "ms": 674
+          }
+        }
+      ]
+    },
+    "greenhouse:abnormalsecurity": {
+      "ok": true,
+      "failure_category": "",
+      "request_ms": 452,
+      "retries": 0,
+      "raw": 82,
+      "normalized": 82,
+      "fresh_14d": 48,
+      "native_id": 82,
+      "native_id_distinct": 82,
+      "internal_id": 82,
+      "url": 82,
+      "url_carries_native_id": 82,
+      "url_ats_hosted": 0,
+      "key_overlap_with_frozen_baseline_raw": 0,
+      "vs_frozen_2026_09_21": {
+        "frozen_rows": 78,
+        "frozen_rows_with_extractable_id": 78,
+        "persisted_ids": 76,
+        "gone_ids": 2,
+        "new_ids": 6,
+        "persisted_id_title_changed": 1,
+        "gone_id_whose_title_returned_under_a_new_id": 0
+      },
+      "reach": [
+        {
+          "published": {
+            "url": "https://abnormal.ai/careers/jobs/8003007003?gh_jid=8003007003",
+            "status": 200,
+            "error": "",
+            "landed_on": "employer",
+            "redirected": false,
+            "ms": 593
+          },
+          "provider_by_native_id": {
+            "url": "https://job-boards.greenhouse.io/abnormalsecurity/jobs/8003007003",
+            "status": 200,
+            "error": "",
+            "landed_on": "employer",
+            "redirected": true,
+            "ms": 1024
+          }
+        }
+      ]
+    },
+    "greenhouse:apolloio": {
+      "ok": true,
+      "failure_category": "",
+      "request_ms": 603,
+      "retries": 0,
+      "raw": 49,
+      "normalized": 49,
+      "fresh_14d": 16,
+      "native_id": 49,
+      "native_id_distinct": 49,
+      "internal_id": 49,
+      "url": 49,
+      "url_carries_native_id": 49,
+      "url_ats_hosted": 49,
+      "key_overlap_with_frozen_baseline_raw": 0,
+      "vs_frozen_2026_09_21": {
+        "frozen_rows": 47,
+        "frozen_rows_with_extractable_id": 47,
+        "persisted_ids": 46,
+        "gone_ids": 1,
+        "new_ids": 3,
+        "persisted_id_title_changed": 3,
+        "gone_id_whose_title_returned_under_a_new_id": 0
+      },
+      "reach": [
+        {
+          "published": {
+            "url": "https://job-boards.greenhouse.io/apolloio/jobs/6205967004",
+            "status": 200,
+            "error": "",
+            "landed_on": "greenhouse",
+            "redirected": false,
+            "ms": 435
+          }
+        }
+      ]
+    },
+    "greenhouse:brex": {
+      "ok": true,
+      "failure_category": "",
+      "request_ms": 777,
+      "retries": 0,
+      "raw": 253,
+      "normalized": 253,
+      "fresh_14d": 77,
+      "native_id": 253,
+      "native_id_distinct": 253,
+      "internal_id": 253,
+      "url": 253,
+      "url_carries_native_id": 253,
+      "url_ats_hosted": 0,
+      "key_overlap_with_frozen_baseline_raw": 0,
+      "vs_frozen_2026_09_21": {
+        "frozen_rows": 251,
+        "frozen_rows_with_extractable_id": 251,
+        "persisted_ids": 246,
+        "gone_ids": 5,
+        "new_ids": 7,
+        "persisted_id_title_changed": 4,
+        "gone_id_whose_title_returned_under_a_new_id": 0
+      },
+      "reach": [
+        {
+          "published": {
+            "url": "https://www.brex.com/careers/8834122002?gh_jid=8834122002",
+            "status": 200,
+            "error": "",
+            "landed_on": "employer",
+            "redirected": false,
+            "ms": 574
+          },
+          "provider_by_native_id": {
+            "url": "https://job-boards.greenhouse.io/brex/jobs/8834122002",
+            "status": 200,
+            "error": "",
+            "landed_on": "employer",
+            "redirected": true,
+            "ms": 660
+          }
+        }
+      ]
+    },
+    "greenhouse:vercel": {
+      "ok": true,
+      "failure_category": "",
+      "request_ms": 462,
+      "retries": 0,
+      "raw": 89,
+      "normalized": 89,
+      "fresh_14d": 89,
+      "native_id": 89,
+      "native_id_distinct": 89,
+      "internal_id": 89,
+      "url": 89,
+      "url_carries_native_id": 89,
+      "url_ats_hosted": 89,
+      "key_overlap_with_frozen_baseline_raw": 0,
+      "vs_frozen_2026_09_21": {
+        "frozen_rows": 84,
+        "frozen_rows_with_extractable_id": 84,
+        "persisted_ids": 83,
+        "gone_ids": 1,
+        "new_ids": 6,
+        "persisted_id_title_changed": 7,
+        "gone_id_whose_title_returned_under_a_new_id": 1
+      },
+      "reach": [
+        {
+          "published": {
+            "url": "https://job-boards.greenhouse.io/vercel/jobs/6206023004",
+            "status": 200,
+            "error": "",
+            "landed_on": "greenhouse",
+            "redirected": false,
+            "ms": 541
+          }
+        }
+      ]
+    },
+    "greenhouse:jumio": {
+      "ok": true,
+      "failure_category": "",
+      "request_ms": 396,
+      "retries": 0,
+      "raw": 27,
+      "normalized": 27,
+      "fresh_14d": 8,
+      "native_id": 27,
+      "native_id_distinct": 27,
+      "internal_id": 27,
+      "url": 27,
+      "url_carries_native_id": 27,
+      "url_ats_hosted": 27,
+      "key_overlap_with_frozen_baseline_raw": 0,
+      "vs_frozen_2026_09_21": {
+        "frozen_rows": 27,
+        "frozen_rows_with_extractable_id": 27,
+        "persisted_ids": 27,
+        "gone_ids": 0,
+        "new_ids": 0,
+        "persisted_id_title_changed": 0,
+        "gone_id_whose_title_returned_under_a_new_id": 0
+      },
+      "reach": [
+        {
+          "published": {
+            "url": "https://job-boards.greenhouse.io/jumio/jobs/4733339005",
+            "status": 200,
+            "error": "",
+            "landed_on": "greenhouse",
+            "redirected": false,
+            "ms": 451
+          }
+        }
+      ]
+    },
+    "greenhouse:catawiki": {
+      "ok": true,
+      "failure_category": "",
+      "request_ms": 437,
+      "retries": 0,
+      "raw": 46,
+      "normalized": 46,
+      "fresh_14d": 46,
+      "native_id": 46,
+      "native_id_distinct": 46,
+      "internal_id": 46,
+      "url": 46,
+      "url_carries_native_id": 46,
+      "url_ats_hosted": 46,
+      "key_overlap_with_frozen_baseline_raw": 0,
+      "vs_frozen_2026_09_21": {
+        "frozen_rows": 47,
+        "frozen_rows_with_extractable_id": 47,
+        "persisted_ids": 45,
+        "gone_ids": 2,
+        "new_ids": 1,
+        "persisted_id_title_changed": 0,
+        "gone_id_whose_title_returned_under_a_new_id": 0
+      },
+      "reach": [
+        {
+          "published": {
+            "url": "https://job-boards.greenhouse.io/catawiki/jobs/8222715",
+            "status": 200,
+            "error": "",
+            "landed_on": "greenhouse",
+            "redirected": false,
+            "ms": 578
+          }
+        }
+      ]
+    },
+    "greenhouse:zetaglobal": {
+      "ok": true,
+      "failure_category": "",
+      "request_ms": 688,
+      "retries": 0,
+      "raw": 144,
+      "normalized": 144,
+      "fresh_14d": 54,
+      "native_id": 144,
+      "native_id_distinct": 144,
+      "internal_id": 144,
+      "url": 144,
+      "url_carries_native_id": 144,
+      "url_ats_hosted": 144,
+      "key_overlap_with_frozen_baseline_raw": 0,
+      "vs_frozen_2026_09_21": {
+        "frozen_rows": 145,
+        "frozen_rows_with_extractable_id": 145,
+        "persisted_ids": 143,
+        "gone_ids": 2,
+        "new_ids": 1,
+        "persisted_id_title_changed": 0,
+        "gone_id_whose_title_returned_under_a_new_id": 0
+      },
+      "reach": [
+        {
+          "published": {
+            "url": "https://job-boards.greenhouse.io/zetaglobal/jobs/6196727004",
+            "status": 200,
+            "error": "",
+            "landed_on": "greenhouse",
+            "redirected": false,
+            "ms": 472
+          }
+        }
+      ]
+    }
+  },
+  "cohorts_live_shadow_vs_frozen_baseline": {
+    "software_fullstack/india": {
+      "totals": {
+        "eligible": 16,
+        "baseline_final": 81,
+        "combined_final": 96,
+        "baseline_positive": 19,
+        "combined_positive": 22,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 17,
+        "top_n_new": 3
+      },
+      "evaluator_cpu_s": 1.323,
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 70,
+          "fresh": 66,
+          "eligible": 8,
+          "eligible_positive": 1,
+          "final_new": 7,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 8,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 25,
+          "fresh": 15,
+          "eligible": 3,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 19,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 5,
+          "eligible": 2,
+          "eligible_positive": 1,
+          "final_new": 2,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 20,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 57,
+          "fresh": 19,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 34,
+          "fresh": 34,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 4,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 21,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 64,
+          "key_overlap": 0
+        }
+      }
+    },
+    "software_fullstack/remote": {
+      "totals": {
+        "eligible": 31,
+        "baseline_final": 293,
+        "combined_final": 317,
+        "baseline_positive": 39,
+        "combined_positive": 44,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 18,
+        "top_n_new": 2
+      },
+      "evaluator_cpu_s": 1.321,
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 70,
+          "fresh": 66,
+          "eligible": 4,
+          "eligible_positive": 0,
+          "final_new": 4,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 124,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 25,
+          "fresh": 15,
+          "eligible": 7,
+          "eligible_positive": 2,
+          "final_new": 6,
+          "final_new_positive": 2,
+          "top_n_new": 1,
+          "best_new_rank": 6,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 5,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 57,
+          "fresh": 19,
+          "eligible": 9,
+          "eligible_positive": 1,
+          "final_new": 4,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 14,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 34,
+          "fresh": 34,
+          "eligible": 1,
+          "eligible_positive": 1,
+          "final_new": 1,
+          "final_new_positive": 1,
+          "top_n_new": 0,
+          "best_new_rank": 31,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 4,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 130,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 4,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "top_n_new": 0,
+          "best_new_rank": 32,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 21,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 286,
+          "key_overlap": 0
+        }
+      }
+    },
+    "react_native/india": {
+      "totals": {
+        "eligible": 16,
+        "baseline_final": 81,
+        "combined_final": 96,
+        "baseline_positive": 19,
+        "combined_positive": 21,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 18,
+        "top_n_new": 2
+      },
+      "evaluator_cpu_s": 1.321,
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 70,
+          "fresh": 66,
+          "eligible": 8,
+          "eligible_positive": 1,
+          "final_new": 7,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 7,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 25,
+          "fresh": 15,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 60,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 5,
+          "eligible": 2,
+          "eligible_positive": 0,
+          "final_new": 2,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 63,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 57,
+          "fresh": 19,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 34,
+          "fresh": 34,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 4,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 21,
+          "eligible": 3,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 17,
+          "key_overlap": 0
+        }
+      }
+    },
+    "business_salesforce/india": {
+      "totals": {
+        "eligible": 16,
+        "baseline_final": 89,
+        "combined_final": 104,
+        "baseline_positive": 7,
+        "combined_positive": 8,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 19,
+        "top_n_new": 1
+      },
+      "evaluator_cpu_s": 1.328,
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 70,
+          "fresh": 66,
+          "eligible": 8,
+          "eligible_positive": 0,
+          "final_new": 7,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 57,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 26,
+          "fresh": 15,
+          "eligible": 3,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 4,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 5,
+          "eligible": 2,
+          "eligible_positive": 0,
+          "final_new": 2,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 63,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 57,
+          "fresh": 19,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 34,
+          "fresh": 34,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 4,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 21,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 64,
+          "key_overlap": 0
+        }
+      }
+    },
+    "multiple_roles_locations/india": {
+      "totals": {
+        "eligible": 16,
+        "baseline_final": 89,
+        "combined_final": 104,
+        "baseline_positive": 19,
+        "combined_positive": 22,
+        "baseline_top_n": 20,
+        "baseline_top_n_retained": 17,
+        "top_n_new": 3
+      },
+      "evaluator_cpu_s": 1.329,
+      "by_board": {
+        "greenhouse:fivetran": {
+          "gated": 70,
+          "fresh": 66,
+          "eligible": 8,
+          "eligible_positive": 1,
+          "final_new": 7,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 8,
+          "key_overlap": 1
+        },
+        "greenhouse:abnormalsecurity": {
+          "gated": 26,
+          "fresh": 15,
+          "eligible": 3,
+          "eligible_positive": 1,
+          "final_new": 3,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 19,
+          "key_overlap": 0
+        },
+        "greenhouse:apolloio": {
+          "gated": 8,
+          "fresh": 5,
+          "eligible": 2,
+          "eligible_positive": 1,
+          "final_new": 2,
+          "final_new_positive": 1,
+          "top_n_new": 1,
+          "best_new_rank": 20,
+          "key_overlap": 0
+        },
+        "greenhouse:brex": {
+          "gated": 57,
+          "fresh": 19,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:vercel": {
+          "gated": 34,
+          "fresh": 34,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:jumio": {
+          "gated": 12,
+          "fresh": 4,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:catawiki": {
+          "gated": 6,
+          "fresh": 6,
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap": 0
+        },
+        "greenhouse:zetaglobal": {
+          "gated": 49,
+          "fresh": 21,
+          "eligible": 3,
+          "eligible_positive": 0,
+          "final_new": 3,
+          "final_new_positive": 0,
+          "top_n_new": 0,
+          "best_new_rank": 71,
+          "key_overlap": 0
+        }
+      }
+    }
+  },
+  "limits": [
+    "Cohort rows judge LIVE shadow inventory against a FROZEN 2026-09-21 baseline result: mixed dates, so overlap is understated where a posting moved between snapshots.",
+    "Native-id persistence compares ids parsed from 2026-09-21 URLs with native ids captured today. An id absent from a URL is not compared.",
+    "Title-returned-under-a-new-id is by title key within one board; multi-location postings sharing a title make it approximate.",
+    "A job page answering HTTP 200 does not prove the vacancy is open."
+  ]
+}

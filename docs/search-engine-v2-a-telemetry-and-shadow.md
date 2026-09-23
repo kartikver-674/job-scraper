@@ -321,6 +321,13 @@ failed as required.
 | Disabled instantly | environment variable, read per call |
 | 134-source behaviour unchanged | asserted by `test_registry_size_unchanged` (129 boards + 5 feeds) and `test_shadow_boards_are_not_in_the_production_registry` |
 
+> **SUPERSEDED 2026-09-23 by [V2-B3](search-engine-v2-b3-shadow-production-evaluation.md).**
+> Shadow now runs after the results are written (no longer inside
+> `fetch_free()`), and it does compute eligibility, positive-score, new-final
+> and top-20 entry — in isolation, through the production chain itself, writing
+> counts only. The cost this paragraph feared was measured at ~1.3 s CPU per
+> sweep, and the live evaluator equals the offline replay below on every count.
+
 **What production shadow deliberately does not compute:** eligibility,
 positive-score, marginal-unique and top-set entry. Answering those means running
 score + every hard filter + sort + dedupe a second time over a different row
@@ -383,6 +390,12 @@ Two readings, and both belong in a V2-B decision:
   contribute one in the *remote* fixture; Zeta Global contributes one in React
   Native. So "four boards are worthless" is **false** — it is cohort-specific,
   and picking the three winners would be fitting to one fixture.
+
+  > **CORRECTED 2026-09-23 by [V2-B3](search-engine-v2-b3-shadow-production-evaluation.md) §0.6.**
+  > Replayed two days later, Jumio's single remote positive row has aged out of
+  > the 14-day window — in the frozen replay and in live data alike. Seven of
+  > the eight contribute somewhere; Jumio contributes nothing today. The reading
+  > above still holds and is stronger for it: one snapshot cannot decide a board.
 
 **Cohort coverage gap.** Early-career, non-software and business/operations
 outside the Salesforce fixture are **not covered**: no frozen fixture exists.
