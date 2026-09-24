@@ -1,0 +1,584 @@
+{
+  "status": "MEASURED LIVE: paid, authorised with both keys, through the unchanged engine",
+  "stage": "C3",
+  "purpose": "C3 live multi-URL canary: ONE LinkedIn actor start carrying TWO logical searches (SWEEP_PAID_COMPACTION=1, batch size 2, C2 scheduler at 1 worker; engine cap max_spend_usd 0.092 = the batch's summed ceiling). Questions only the provider can answer: does build 1.7.17 accept 2 URLs in one run; does limitPerSource hold per URL with count=30 (15+15); does every item's inputUrl name exactly its own source; can per-source rank be reconstructed; does the actor dedupe jobs across sources within one run; is maxTotalChargeUsd 0.092 accepted and recorded; runtime of one 2-URL run against C2's two concurrent single runs of the same two queries; 429s / SDK retries. Same queries as C1 probe A and the C2 canary, for comparability and a likely shared job.",
+  "observed_at": "2026-09-24T06:55:29.816+00:00",
+  "engine_exited_at": "2026-09-24T06:56:24.890+00:00",
+  "code_revision": "429b7b6fb946c463a44224543b4946bae0e00c34-dirty",
+  "provider": "linkedin",
+  "actor": "curious_coder/linkedin-jobs-scraper",
+  "actor_build_numbers": [],
+  "shape": {
+    "keywords": "Backend Developer,Full Stack Developer",
+    "locations": "India",
+    "synthetic_case": "software_fullstack",
+    "scope": "india"
+  },
+  "requested_depth": 15,
+  "charge_ceiling_usd_per_start": "0.092",
+  "actor_starts": 1,
+  "logical_units": 2,
+  "batch_size": 2,
+  "batch_attribution": [
+    {
+      "run_id": "oh6QhN2TjFi0sc8wJ",
+      "input": {
+        "limitPerSource": 15,
+        "count": 30,
+        "scrapeCompany": false,
+        "datePosted": "anyTime",
+        "companyIds": [],
+        "under10Applicants": false,
+        "autoConvertToAiSearch": true,
+        "splitByLocation": false,
+        "url_count": 2
+      },
+      "items": 30,
+      "items_per_source": [
+        15,
+        15
+      ],
+      "unattributed_items": 0,
+      "source_sequence_in_dataset_order": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "linkedin_position_by_source_in_dataset_order": [
+        [
+          16,
+          15,
+          13,
+          12,
+          14,
+          6,
+          11,
+          9,
+          4,
+          8,
+          10,
+          5,
+          3,
+          1,
+          2
+        ],
+        [
+          15,
+          13,
+          11,
+          10,
+          12,
+          9,
+          7,
+          8,
+          14,
+          3,
+          6,
+          4,
+          2,
+          1,
+          5
+        ]
+      ],
+      "positions_are_1_to_n_per_source": [
+        false,
+        true
+      ],
+      "linkedin_ids_in_more_than_one_source": 0,
+      "distinct_linkedin_ids": 30
+    }
+  ],
+  "intended_max_usd": "0.092",
+  "exposed_usd_before": "0.276",
+  "cumulative_intended_usd_after": "0.368",
+  "exit": 0,
+  "wall_s": 53.21,
+  "final_rows": 27,
+  "paid_workers": 1,
+  "sweep_budget_usd": "0.092",
+  "paid_execution": {
+    "mode": "reservation_scheduler",
+    "workers": 1,
+    "exposure": {
+      "budget_usd": "0.092",
+      "committed_usd": "0.092",
+      "pending_usd": "0.000",
+      "pending_peak_usd": "0.092",
+      "unbounded_observed_usd": "0",
+      "observed_usd": "0.058051",
+      "view_usd": "0.092",
+      "committed_starts": 1,
+      "released_before_network": 0,
+      "blocked": 0
+    },
+    "peak_in_flight": 1,
+    "peak_buffered": 1,
+    "buffered_wait_ms": {
+      "total": 319,
+      "max": 319
+    },
+    "checkpoint": {
+      "passes": 2,
+      "wall_ms": 121,
+      "cpu_ms": 119
+    },
+    "segments": [
+      {
+        "provider": "linkedin",
+        "bounded": true,
+        "workers": 1,
+        "searches": 2,
+        "sent": 2,
+        "wall_ms": 50285
+      }
+    ],
+    "units": [
+      {
+        "unit_id": "paid_000",
+        "provider": "linkedin",
+        "bounded": true,
+        "reservation": "committed",
+        "reserved_usd": null,
+        "reserved_at": "2026-09-24T06:55:34.554+00:00",
+        "committed_at": "2026-09-24T06:55:34.556+00:00",
+        "released_at": null,
+        "execution_ms": 49905,
+        "buffered_wait_ms": 0,
+        "merge_ms": 318,
+        "checkpoint_cpu_ms": 59,
+        "sdk": null,
+        "batch_id": "batch_000"
+      },
+      {
+        "unit_id": "paid_001",
+        "provider": "linkedin",
+        "bounded": true,
+        "reservation": "committed",
+        "reserved_usd": null,
+        "reserved_at": "2026-09-24T06:55:34.554+00:00",
+        "committed_at": "2026-09-24T06:55:34.556+00:00",
+        "released_at": null,
+        "execution_ms": 49905,
+        "buffered_wait_ms": 319,
+        "merge_ms": 61,
+        "checkpoint_cpu_ms": 60,
+        "sdk": null,
+        "batch_id": "batch_000"
+      }
+    ],
+    "compaction": {
+      "batch_size": {
+        "linkedin": 2
+      },
+      "physical_sends": 1,
+      "logical_sends": 2,
+      "batches": [
+        {
+          "batch_id": "batch_000",
+          "provider": "linkedin",
+          "members": [
+            "paid_000",
+            "paid_001"
+          ],
+          "size": 2,
+          "reservation": "committed",
+          "reserved_usd": "0.092",
+          "reserved_at": "2026-09-24T06:55:34.554+00:00",
+          "committed_at": "2026-09-24T06:55:34.556+00:00",
+          "released_at": null,
+          "status": "completed",
+          "failure_type": null,
+          "rows_by_member": {
+            "paid_000": 15,
+            "paid_001": 15
+          },
+          "execution_ms": 49905,
+          "sdk": {
+            "calls": 12,
+            "requests": 12,
+            "rate_limit_errors": 0
+          }
+        }
+      ]
+    },
+    "schema": "search-v2c2.1"
+  },
+  "paid_batches": [
+    {
+      "batch_id": "batch_000",
+      "provider": "linkedin",
+      "members": [
+        "paid_000",
+        "paid_001"
+      ],
+      "actor_id": "curious_coder/linkedin-jobs-scraper",
+      "actor_build_id": "kmTE1iuf8N2sZAj8t",
+      "actor_run_id": "oh6QhN2TjFi0sc8wJ",
+      "dataset_id": "0iEiw6itIJlbEv2eM",
+      "actor_status": "SUCCEEDED",
+      "actor_started_at": "2026-09-24 06:55:35.510000+00:00",
+      "actor_finished_at": "2026-09-24 06:56:20.919000+00:00",
+      "dataset_retrieved_at": "2026-09-24T12:26:24.459",
+      "poll_count": 9,
+      "reported_cost_usd": 0.058050000000000004,
+      "billed_delta_usd": 0.058051,
+      "max_total_charge_usd": "0.092",
+      "start_ms": 1265,
+      "wait_ms": 47510,
+      "poll_get_ms": 2468,
+      "dataset_ms": 1128,
+      "account_read_ms": 258,
+      "actor_run_time_s": 45.162,
+      "actor_build_number": "1.7.17",
+      "provider_ceiling_usd": 0.092,
+      "charged_events": {
+        "apify-default-dataset-item": 29,
+        "apify-actor-start": 1
+      },
+      "budget_view_usd": 0.058051,
+      "budget_basis": "account_delta",
+      "ok": true,
+      "failure_category": "",
+      "cost_observations": [
+        {
+          "source": "run_record_at_completion",
+          "usd": 0.05805,
+          "observed_at": "2026-09-24T06:56:23.331+00:00",
+          "final": false
+        },
+        {
+          "source": "account_usage_delta",
+          "usd": 0.058051,
+          "observed_at": "2026-09-24T06:56:24.717+00:00",
+          "final": false
+        }
+      ]
+    }
+  ],
+  "provider_overlap": {
+    "pairs": [],
+    "peak_concurrent_at_provider": 0,
+    "runs_with_clocks": 0
+  },
+  "paid_summary": {
+    "schema": "search-v2c3.1",
+    "planned": 2,
+    "attempted": 2,
+    "completed": 2,
+    "failed": 0,
+    "skipped_done": 0,
+    "skipped_budget": 0,
+    "unvisited": 0,
+    "actor_starts": 2,
+    "physical_actor_starts": 1,
+    "planned_bounded_exposure_usd": "0.092",
+    "planned_unbounded_units": 0,
+    "attempted_bounded_exposure_usd": "0.092",
+    "attempted_unbounded_units": 0,
+    "paid_phase_ms": 52958,
+    "by_provider": {
+      "linkedin": {
+        "planned": 2,
+        "completed": 2,
+        "failed": 0,
+        "skipped_done": 0,
+        "skipped_budget": 0,
+        "actor_starts": 2,
+        "unit_wall_ms": 100508,
+        "wait_ms": 47510,
+        "dataset_ms": 1128,
+        "checkpoint_ms": 121,
+        "actor_run_time_s": 45.162,
+        "raw": 30,
+        "eligible": 27,
+        "eligible_positive": 15,
+        "final": 27,
+        "final_positive": 15,
+        "final_marginal": 27,
+        "physical_actor_starts": 1
+      }
+    },
+    "cost_observed": {
+      "run_record_at_completion": {
+        "usd": 0.05805,
+        "units": 1,
+        "final": false
+      },
+      "account_usage_delta": {
+        "usd": 0.058051,
+        "units": 1,
+        "final": false
+      }
+    },
+    "trace_legend": "one token per dataset position. Removed by: H hard filter or score, S stale, R salary/reachability/visa/EOR, A arrangement, G geography, D dedupe (eligible, another row won); F final. Score: + positive, - zero or less, . not scored. Acquired: n new to the sweep, u repeat within this unit, p repeat of an earlier paid unit, k no job_key. f: the job_key was also acquired free."
+  },
+  "units": [
+    {
+      "unit_id": "paid_000",
+      "plan_index": 0,
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "requested_depth": 15,
+      "charge_ceiling_usd": "0.046",
+      "location_mode": "place",
+      "company_filter": false,
+      "status": "completed",
+      "funnel": {
+        "requested": 15,
+        "raw": 15,
+        "normalized": 15,
+        "stages": {
+          "observed_normalized": 15,
+          "post_hard_filter_and_score": 13,
+          "post_recency": 13,
+          "post_salary_reachability_visa_eor": 13,
+          "post_arrangement": 13,
+          "post_location_eligible": 13,
+          "final_after_dedupe": 13
+        },
+        "stale": 0,
+        "eligible": 13,
+        "eligible_positive": 4,
+        "final": 13,
+        "final_positive": 4,
+        "final_marginal": 13,
+        "dedupe_lost": {
+          "same_unit": 0,
+          "other_paid": 0,
+          "free": 0
+        },
+        "acquired": {
+          "new": 15,
+          "repeat_in_unit": 0,
+          "repeat_of_earlier_paid": 0,
+          "unkeyed": 0
+        },
+        "key_also_free": 0
+      },
+      "trace": "H.n. F+n. F-n. F-n. F-n. H.n. F-n. F-n. F+n. F-n. F+n. F-n. F+n. F-n. F-n.",
+      "execution": {
+        "ok": true,
+        "failure_category": "",
+        "started_at": "2026-09-24T06:56:24.459+00:00",
+        "finished_at": "2026-09-24T06:56:24.777+00:00",
+        "duration_ms": 50224,
+        "checkpoint_ms": 60,
+        "actor_run_id": "oh6QhN2TjFi0sc8wJ",
+        "actor_build_id": "kmTE1iuf8N2sZAj8t",
+        "actor_status": "SUCCEEDED",
+        "raw_count": 15,
+        "batch_id": "batch_000"
+      }
+    },
+    {
+      "unit_id": "paid_001",
+      "plan_index": 1,
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "requested_depth": 15,
+      "charge_ceiling_usd": "0.046",
+      "location_mode": "place",
+      "company_filter": false,
+      "status": "completed",
+      "funnel": {
+        "requested": 15,
+        "raw": 15,
+        "normalized": 15,
+        "stages": {
+          "observed_normalized": 15,
+          "post_hard_filter_and_score": 14,
+          "post_recency": 14,
+          "post_salary_reachability_visa_eor": 14,
+          "post_arrangement": 14,
+          "post_location_eligible": 14,
+          "final_after_dedupe": 14
+        },
+        "stale": 0,
+        "eligible": 14,
+        "eligible_positive": 11,
+        "final": 14,
+        "final_positive": 11,
+        "final_marginal": 14,
+        "dedupe_lost": {
+          "same_unit": 0,
+          "other_paid": 0,
+          "free": 0
+        },
+        "acquired": {
+          "new": 15,
+          "repeat_in_unit": 0,
+          "repeat_of_earlier_paid": 0,
+          "unkeyed": 0
+        },
+        "key_also_free": 0
+      },
+      "trace": "F+n. F+n. F+n. F+n. F+n. F-n. F+n. F+n. F-n. H.n. F+n. F-n. F+n. F+n. F+n.",
+      "execution": {
+        "ok": true,
+        "failure_category": "",
+        "started_at": "2026-09-24T06:56:24.459+00:00",
+        "finished_at": "2026-09-24T06:56:24.838+00:00",
+        "duration_ms": 50284,
+        "checkpoint_ms": 61,
+        "actor_run_id": "oh6QhN2TjFi0sc8wJ",
+        "actor_build_id": "kmTE1iuf8N2sZAj8t",
+        "actor_status": "SUCCEEDED",
+        "raw_count": 15,
+        "batch_id": "batch_000"
+      }
+    }
+  ],
+  "cost_convergence": [
+    {
+      "unit_id": null,
+      "unit_ids": [
+        "paid_000",
+        "paid_001"
+      ],
+      "batch_id": "batch_000",
+      "run_id": "oh6QhN2TjFi0sc8wJ",
+      "actor_finished_at": "2026-09-24 06:56:20.919000+00:00",
+      "engine_readings": [
+        {
+          "source": "run_record_at_completion",
+          "usd": 0.05805,
+          "observed_at": "2026-09-24T06:56:23.331+00:00",
+          "final": false,
+          "s_after_finish": 2.412
+        },
+        {
+          "source": "account_usage_delta",
+          "usd": 0.058051,
+          "observed_at": "2026-09-24T06:56:24.717+00:00",
+          "final": false,
+          "s_after_finish": 3.798
+        }
+      ],
+      "provider_readings": [
+        {
+          "observed_at": "2026-09-24T06:56:25.460+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.058050000000000004,
+          "charged_events": {
+            "apify-default-dataset-item": 29,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 4.541
+        },
+        {
+          "observed_at": "2026-09-24T06:56:40.432+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.06005,
+          "charged_events": {
+            "apify-default-dataset-item": 30,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 19.513
+        },
+        {
+          "observed_at": "2026-09-24T06:56:55.425+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.06005,
+          "charged_events": {
+            "apify-default-dataset-item": 30,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 34.506
+        },
+        {
+          "observed_at": "2026-09-24T06:57:25.494+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.06005,
+          "charged_events": {
+            "apify-default-dataset-item": 30,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 64.575
+        }
+      ],
+      "settled": {
+        "source": "run_record_settled",
+        "usd": 0.06005,
+        "observed_at": "2026-09-24T06:56:40.432+00:00",
+        "s_after_finish": 19.513,
+        "final": true,
+        "basis": "unchanged across the last 3 re-reads"
+      },
+      "events_priced_usd": 0.06005,
+      "charge_ceiling_usd": "0.092"
+    }
+  ],
+  "accounts": [
+    {
+      "account": "APIFY_TOKEN",
+      "settled_runs_usd": 0.06005,
+      "readings": [
+        {
+          "observed_at": "2026-09-24T06:56:25.796+00:00",
+          "delta_usd": 0.058051,
+          "s_after_last_finish": 4.877
+        },
+        {
+          "observed_at": "2026-09-24T06:56:40.701+00:00",
+          "delta_usd": 0.060051,
+          "s_after_last_finish": 19.782
+        },
+        {
+          "observed_at": "2026-09-24T06:56:55.693+00:00",
+          "delta_usd": 0.060067,
+          "s_after_last_finish": 34.774
+        },
+        {
+          "observed_at": "2026-09-24T06:57:25.790+00:00",
+          "delta_usd": 0.060067,
+          "s_after_last_finish": 64.871
+        }
+      ],
+      "covered_at": "2026-09-24T06:56:40.701+00:00",
+      "covered_s_after_last_finish": 19.782,
+      "residual_usd_at_end": 1.7e-05,
+      "baseline_read_at": "2026-09-24T06:55:30.937+00:00"
+    }
+  ],
+  "run_listing": {
+    "APIFY_TOKEN": [
+      {
+        "id": "oh6QhN2TjFi0sc8wJ",
+        "status": "SUCCEEDED"
+      }
+    ],
+    "APIFY_TOKEN_2": []
+  },
+  "unexpected_runs": [],
+  "known_actual_usd": 0.06005,
+  "cumulative_known_actual_usd_after": 0.24035,
+  "anomalies": [],
+  "token_absent_from_evidence": true
+}

@@ -1,0 +1,1285 @@
+{
+  "status": "MEASURED OFFLINE: the current planner and adapters; no client, no network",
+  "measured_at": "2026-09-24T12:42:43+05:30",
+  "code_revision": "429b7b6fb946c463a44224543b4946bae0e00c34-dirty",
+  "categories": {
+    "1_exact_execution_duplicate": "identical provider input \u2014 the only category C3 may remove",
+    "2_structural_overlap": "different inputs that may return overlapping jobs \u2014 candidates only",
+    "3_observed_result_overlap": "C1 telemetry repeat_of_earlier_paid",
+    "4_final_result_overlap": "a final job one unit lost to another",
+    "5_semantic_similarity_only": "queries that sound related, no evidence"
+  },
+  "plans": [
+    {
+      "plan": "repository_defaults",
+      "logical_searches": 90,
+      "current_physical_starts": 90,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 18,
+          "keywords": 9,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 18
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.046"
+          ],
+          "exact_unique_inputs": 18,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 18,
+            "2": 9,
+            "3": 6,
+            "4": 5
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 9,
+            "semantic_only_keyword_pairs": 8,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  2,
+                  3
+                ],
+                [
+                  4,
+                  5
+                ]
+              ],
+              "semantic_only": [
+                [
+                  0,
+                  2
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  6,
+                  8
+                ]
+              ]
+            }
+          }
+        },
+        "indeed": {
+          "actor": "misceres/indeed-scraper",
+          "logical_searches": 72,
+          "keywords": 9,
+          "locations": 8,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 72
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 72,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 72,
+            "2": 72,
+            "3": 72,
+            "4": 72
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 189,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 32,
+            "examples": {
+              "structural": [
+                [
+                  18,
+                  19
+                ],
+                [
+                  18,
+                  20
+                ],
+                [
+                  18,
+                  21
+                ]
+              ],
+              "remote_within_place": [],
+              "semantic_only": [
+                [
+                  18,
+                  26
+                ],
+                [
+                  19,
+                  27
+                ],
+                [
+                  20,
+                  28
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "estimate_usd": 6.966,
+      "public_spend_cap": {
+        "cap_usd": "8.71",
+        "estimate_usd": 6.966,
+        "linkedin_searches": 18,
+        "linkedin_ceiling_usd": "0.046",
+        "linkedin_admitted_c2": 18,
+        "linkedin_admitted_c3_prototype_size2": 18,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 18,
+        "linkedin_admitted_c3_prototype_size3": 18,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 18,
+        "linkedin_admitted_c3_prototype_size4": 18,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 18
+      }
+    },
+    {
+      "plan": "software_fullstack",
+      "logical_searches": 8,
+      "current_physical_starts": 8,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 4,
+          "keywords": 2,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 4
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.046"
+          ],
+          "exact_unique_inputs": 4,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 4,
+            "2": 2,
+            "3": 2,
+            "4": 1
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        },
+        "indeed": {
+          "actor": "misceres/indeed-scraper",
+          "logical_searches": 4,
+          "keywords": 2,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 4
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 4,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 4,
+            "2": 4,
+            "3": 4,
+            "4": 4
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        }
+      },
+      "estimate_usd": 0.468,
+      "public_spend_cap": {
+        "cap_usd": "0.59",
+        "estimate_usd": 0.468,
+        "linkedin_searches": 4,
+        "linkedin_ceiling_usd": "0.046",
+        "linkedin_admitted_c2": 4,
+        "linkedin_admitted_c3_prototype_size2": 4,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 4,
+        "linkedin_admitted_c3_prototype_size3": 4,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 4,
+        "linkedin_admitted_c3_prototype_size4": 4,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 4
+      }
+    },
+    {
+      "plan": "react_native",
+      "logical_searches": 8,
+      "current_physical_starts": 8,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 4,
+          "keywords": 2,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 4
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.046"
+          ],
+          "exact_unique_inputs": 4,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 4,
+            "2": 2,
+            "3": 2,
+            "4": 1
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 2,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": [
+                [
+                  0,
+                  2
+                ],
+                [
+                  1,
+                  3
+                ]
+              ]
+            }
+          }
+        },
+        "indeed": {
+          "actor": "misceres/indeed-scraper",
+          "logical_searches": 4,
+          "keywords": 2,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 4
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 4,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 4,
+            "2": 4,
+            "3": 4,
+            "4": 4
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 2,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": [
+                [
+                  4,
+                  6
+                ],
+                [
+                  5,
+                  7
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "estimate_usd": 0.468,
+      "public_spend_cap": {
+        "cap_usd": "0.59",
+        "estimate_usd": 0.468,
+        "linkedin_searches": 4,
+        "linkedin_ceiling_usd": "0.046",
+        "linkedin_admitted_c2": 4,
+        "linkedin_admitted_c3_prototype_size2": 4,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 4,
+        "linkedin_admitted_c3_prototype_size3": 4,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 4,
+        "linkedin_admitted_c3_prototype_size4": 4,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 4
+      }
+    },
+    {
+      "plan": "business_salesforce",
+      "logical_searches": 18,
+      "current_physical_starts": 18,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 6,
+          "keywords": 3,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 6
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.046"
+          ],
+          "exact_unique_inputs": 6,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 6,
+            "2": 3,
+            "3": 2,
+            "4": 2
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        },
+        "indeed": {
+          "actor": "misceres/indeed-scraper",
+          "logical_searches": 6,
+          "keywords": 3,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 6
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 6,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 6,
+            "2": 6,
+            "3": 6,
+            "4": 6
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        },
+        "naukri": {
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "logical_searches": 6,
+          "keywords": 3,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "50": 6
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 6,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 6,
+            "2": 6,
+            "3": 6,
+            "4": 6
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        }
+      },
+      "estimate_usd": 3.702,
+      "public_spend_cap": {
+        "cap_usd": "4.63",
+        "estimate_usd": 3.702,
+        "linkedin_searches": 6,
+        "linkedin_ceiling_usd": "0.046",
+        "linkedin_admitted_c2": 6,
+        "linkedin_admitted_c3_prototype_size2": 6,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 6,
+        "linkedin_admitted_c3_prototype_size3": 6,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 6,
+        "linkedin_admitted_c3_prototype_size4": 6,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 6
+      }
+    },
+    {
+      "plan": "multiple_roles_locations",
+      "logical_searches": 40,
+      "current_physical_starts": 40,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 16,
+          "keywords": 4,
+          "locations": 4,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 16
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.046"
+          ],
+          "exact_unique_inputs": 16,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 16,
+            "2": 8,
+            "3": 6,
+            "4": 4
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 12,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  2
+                ],
+                [
+                  1,
+                  2
+                ]
+              ],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        },
+        "indeed": {
+          "actor": "misceres/indeed-scraper",
+          "logical_searches": 16,
+          "keywords": 4,
+          "locations": 4,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 16
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 16,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 16,
+            "2": 16,
+            "3": 16,
+            "4": 16
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 12,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [
+                [
+                  16,
+                  17
+                ],
+                [
+                  16,
+                  18
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        },
+        "naukri": {
+          "actor": "muhammetakkurtt/naukri-job-scraper",
+          "logical_searches": 8,
+          "keywords": 4,
+          "locations": 2,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "50": 8
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 8,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 8,
+            "2": 8,
+            "3": 8,
+            "4": 8
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        }
+      },
+      "estimate_usd": 5.872,
+      "public_spend_cap": {
+        "cap_usd": "7.34",
+        "estimate_usd": 5.872,
+        "linkedin_searches": 16,
+        "linkedin_ceiling_usd": "0.046",
+        "linkedin_admitted_c2": 16,
+        "linkedin_admitted_c3_prototype_size2": 16,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 16,
+        "linkedin_admitted_c3_prototype_size3": 16,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 16,
+        "linkedin_admitted_c3_prototype_size4": 16,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 16
+      }
+    },
+    {
+      "plan": "public_scope_india__software_fullstack",
+      "logical_searches": 24,
+      "current_physical_starts": 24,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 12,
+          "keywords": 2,
+          "locations": 6,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 12
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.046"
+          ],
+          "exact_unique_inputs": 12,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 12,
+            "2": 6,
+            "3": 4,
+            "4": 3
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 30,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  2
+                ],
+                [
+                  0,
+                  3
+                ]
+              ],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        },
+        "indeed": {
+          "actor": "misceres/indeed-scraper",
+          "logical_searches": 12,
+          "keywords": 2,
+          "locations": 6,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 12
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 12,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 12,
+            "2": 12,
+            "3": 12,
+            "4": 12
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 30,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [
+                [
+                  12,
+                  13
+                ],
+                [
+                  12,
+                  14
+                ],
+                [
+                  12,
+                  15
+                ]
+              ],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        }
+      },
+      "estimate_usd": 1.404,
+      "public_spend_cap": {
+        "cap_usd": "1.75",
+        "estimate_usd": 1.404,
+        "linkedin_searches": 12,
+        "linkedin_ceiling_usd": "0.046",
+        "linkedin_admitted_c2": 12,
+        "linkedin_admitted_c3_prototype_size2": 12,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 12,
+        "linkedin_admitted_c3_prototype_size3": 12,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 12,
+        "linkedin_admitted_c3_prototype_size4": 12,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 12
+      }
+    },
+    {
+      "plan": "public_scope_remote__software_fullstack",
+      "logical_searches": 4,
+      "current_physical_starts": 4,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 2,
+          "keywords": 2,
+          "locations": 1,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 2
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.046"
+          ],
+          "exact_unique_inputs": 2,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 2,
+            "2": 1,
+            "3": 1,
+            "4": 1
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        },
+        "indeed": {
+          "actor": "misceres/indeed-scraper",
+          "logical_searches": 2,
+          "keywords": 2,
+          "locations": 1,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 2
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 2,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 2,
+            "2": 2,
+            "3": 2,
+            "4": 2
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        }
+      },
+      "estimate_usd": 0.234,
+      "public_spend_cap": {
+        "cap_usd": "0.5",
+        "estimate_usd": 0.234,
+        "linkedin_searches": 2,
+        "linkedin_ceiling_usd": "0.046",
+        "linkedin_admitted_c2": 2,
+        "linkedin_admitted_c3_prototype_size2": 2,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 2,
+        "linkedin_admitted_c3_prototype_size3": 2,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 2,
+        "linkedin_admitted_c3_prototype_size4": 2,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 2
+      }
+    },
+    {
+      "plan": "public_scope_global__software_fullstack",
+      "logical_searches": 36,
+      "current_physical_starts": 36,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 18,
+          "keywords": 2,
+          "locations": 9,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 18
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.046"
+          ],
+          "exact_unique_inputs": 18,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 18,
+            "2": 9,
+            "3": 6,
+            "4": 5
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        },
+        "indeed": {
+          "actor": "misceres/indeed-scraper",
+          "logical_searches": 18,
+          "keywords": 2,
+          "locations": 9,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "15": 18
+          },
+          "bounded": false,
+          "ceiling_usd_each": [],
+          "exact_unique_inputs": 18,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 18,
+            "2": 18,
+            "3": 18,
+            "4": 18
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        }
+      },
+      "estimate_usd": 2.106,
+      "public_spend_cap": {
+        "cap_usd": "2.63",
+        "estimate_usd": 2.106,
+        "linkedin_searches": 18,
+        "linkedin_ceiling_usd": "0.046",
+        "linkedin_admitted_c2": 18,
+        "linkedin_admitted_c3_prototype_size2": 18,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 18,
+        "linkedin_admitted_c3_prototype_size3": 18,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 18,
+        "linkedin_admitted_c3_prototype_size4": 18,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 18
+      }
+    },
+    {
+      "plan": "profile_bigtech_paid",
+      "logical_searches": 4,
+      "current_physical_starts": 4,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 4,
+          "keywords": 1,
+          "locations": 1,
+          "companies": 4,
+          "company_filtered": 4,
+          "depth": {
+            "120": 4
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.361"
+          ],
+          "exact_unique_inputs": 4,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 4,
+            "2": 2,
+            "3": 2,
+            "4": 1
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        }
+      },
+      "estimate_usd": 0.864,
+      "public_spend_cap": {
+        "cap_usd": "1.08",
+        "estimate_usd": 0.864,
+        "linkedin_searches": 4,
+        "linkedin_ceiling_usd": "0.361",
+        "linkedin_admitted_c2": 2,
+        "linkedin_admitted_c3_prototype_size2": 2,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 2,
+        "linkedin_admitted_c3_prototype_size3": 2,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 0,
+        "linkedin_admitted_c3_prototype_size4": 2,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 0
+      }
+    },
+    {
+      "plan": "profile_bigtech_capgemini",
+      "logical_searches": 1,
+      "current_physical_starts": 1,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 1,
+          "keywords": 1,
+          "locations": 1,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "120": 1
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.361"
+          ],
+          "exact_unique_inputs": 1,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 0,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": []
+            }
+          }
+        }
+      },
+      "estimate_usd": 0.216,
+      "public_spend_cap": {
+        "cap_usd": "0.5",
+        "estimate_usd": 0.216,
+        "linkedin_searches": 1,
+        "linkedin_ceiling_usd": "0.361",
+        "linkedin_admitted_c2": 1,
+        "linkedin_admitted_c3_prototype_size2": 1,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 1,
+        "linkedin_admitted_c3_prototype_size3": 1,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 1,
+        "linkedin_admitted_c3_prototype_size4": 1,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 1
+      }
+    },
+    {
+      "plan": "profile_global_all",
+      "logical_searches": 80,
+      "current_physical_starts": 80,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 80,
+          "keywords": 8,
+          "locations": 10,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "25": 80
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.076"
+          ],
+          "exact_unique_inputs": 80,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 80,
+            "2": 40,
+            "3": 27,
+            "4": 20
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 20,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": [
+                [
+                  0,
+                  10
+                ],
+                [
+                  1,
+                  11
+                ],
+                [
+                  2,
+                  12
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "estimate_usd": 3.6,
+      "public_spend_cap": {
+        "cap_usd": "4.5",
+        "estimate_usd": 3.6,
+        "linkedin_searches": 80,
+        "linkedin_ceiling_usd": "0.076",
+        "linkedin_admitted_c2": 59,
+        "linkedin_admitted_c3_prototype_size2": 59,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 58,
+        "linkedin_admitted_c3_prototype_size3": 59,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 57,
+        "linkedin_admitted_c3_prototype_size4": 59,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 56
+      }
+    },
+    {
+      "plan": "profile_global_remote",
+      "logical_searches": 84,
+      "current_physical_starts": 84,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 84,
+          "keywords": 7,
+          "locations": 12,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "25": 84
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.076"
+          ],
+          "exact_unique_inputs": 84,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 84,
+            "2": 42,
+            "3": 28,
+            "4": 21
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 24,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": [
+                [
+                  0,
+                  12
+                ],
+                [
+                  1,
+                  13
+                ],
+                [
+                  2,
+                  14
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "estimate_usd": 3.78,
+      "public_spend_cap": {
+        "cap_usd": "4.72",
+        "estimate_usd": 3.78,
+        "linkedin_searches": 84,
+        "linkedin_ceiling_usd": "0.076",
+        "linkedin_admitted_c2": 62,
+        "linkedin_admitted_c3_prototype_size2": 62,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 62,
+        "linkedin_admitted_c3_prototype_size3": 62,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 60,
+        "linkedin_admitted_c3_prototype_size4": 62,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 60
+      }
+    },
+    {
+      "plan": "profile_india_remote",
+      "logical_searches": 9,
+      "current_physical_starts": 9,
+      "by_provider": {
+        "linkedin": {
+          "actor": "curious_coder/linkedin-jobs-scraper",
+          "logical_searches": 9,
+          "keywords": 9,
+          "locations": 1,
+          "companies": 1,
+          "company_filtered": 0,
+          "depth": {
+            "25": 9
+          },
+          "bounded": true,
+          "ceiling_usd_each": [
+            "0.076"
+          ],
+          "exact_unique_inputs": 9,
+          "exact_execution_duplicates": [],
+          "repeated_combos": [],
+          "hypothetical_physical_starts_by_batch_size": {
+            "1": 9,
+            "2": 5,
+            "3": 3,
+            "4": 3
+          },
+          "overlap_candidates": {
+            "same_keyword_two_places_one_market_pairs": 0,
+            "linkedin_place_with_and_without_remote_pairs": 0,
+            "semantic_only_keyword_pairs": 2,
+            "examples": {
+              "structural": [],
+              "remote_within_place": [],
+              "semantic_only": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  3,
+                  4
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "estimate_usd": 0.405,
+      "public_spend_cap": {
+        "cap_usd": "0.51",
+        "estimate_usd": 0.405,
+        "linkedin_searches": 9,
+        "linkedin_ceiling_usd": "0.076",
+        "linkedin_admitted_c2": 6,
+        "linkedin_admitted_c3_prototype_size2": 6,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size2": 6,
+        "linkedin_admitted_c3_prototype_size3": 6,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size3": 6,
+        "linkedin_admitted_c3_prototype_size4": 6,
+        "linkedin_admitted_if_batches_were_all_or_nothing_size4": 4
+      }
+    }
+  ],
+  "observed_overlap": [
+    {
+      "evidence": "c1-probe-a-india-two-shapes.json",
+      "unit_id": "paid_000",
+      "location_mode": "place",
+      "raw": 15,
+      "repeat_of_earlier_paid": 0,
+      "final": 13,
+      "final_marginal": 12,
+      "lost_to_other_paid": 0,
+      "sample": "one run of one sweep"
+    },
+    {
+      "evidence": "c1-probe-a-india-two-shapes.json",
+      "unit_id": "paid_001",
+      "location_mode": "place",
+      "raw": 15,
+      "repeat_of_earlier_paid": 2,
+      "final": 12,
+      "final_marginal": 12,
+      "lost_to_other_paid": 1,
+      "sample": "one run of one sweep"
+    },
+    {
+      "evidence": "c1-probe-b-remote-react.json",
+      "unit_id": "paid_000",
+      "location_mode": "remote",
+      "raw": 15,
+      "repeat_of_earlier_paid": 0,
+      "final": 12,
+      "final_marginal": 12,
+      "lost_to_other_paid": 0,
+      "sample": "one run of one sweep"
+    },
+    {
+      "evidence": "c2-live-concurrency-canary.json",
+      "unit_id": "paid_000",
+      "location_mode": "place",
+      "raw": 15,
+      "repeat_of_earlier_paid": 0,
+      "final": 13,
+      "final_marginal": 12,
+      "lost_to_other_paid": 0,
+      "sample": "one run of one sweep"
+    },
+    {
+      "evidence": "c2-live-concurrency-canary.json",
+      "unit_id": "paid_001",
+      "location_mode": "place",
+      "raw": 15,
+      "repeat_of_earlier_paid": 1,
+      "final": 13,
+      "final_marginal": 13,
+      "lost_to_other_paid": 1,
+      "sample": "one run of one sweep"
+    },
+    {
+      "evidence": "c3-live-batch-canary.json",
+      "unit_id": "paid_000",
+      "location_mode": "place",
+      "raw": 15,
+      "repeat_of_earlier_paid": 0,
+      "final": 13,
+      "final_marginal": 13,
+      "lost_to_other_paid": 0,
+      "sample": "one run of one sweep; batched \u2014 the actor hid the overlap (docs \u00a77)"
+    },
+    {
+      "evidence": "c3-live-batch-canary.json",
+      "unit_id": "paid_001",
+      "location_mode": "place",
+      "raw": 15,
+      "repeat_of_earlier_paid": 0,
+      "final": 14,
+      "final_marginal": 14,
+      "lost_to_other_paid": 0,
+      "sample": "one run of one sweep; batched \u2014 the actor hid the overlap (docs \u00a77)"
+    }
+  ]
+}

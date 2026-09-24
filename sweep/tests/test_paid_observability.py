@@ -753,6 +753,9 @@ LEDGER_KEYS = {"stage", "at", "provider", "actor", "purpose", "actor_starts",
                "requested_depth", "ceiling_usd_per_start", "intended_max_usd",
                "actual_final_usd", "evidence", "status", "cumulative_intended_usd",
                "cumulative_known_actual_usd"}
+# V2-C3's one entry is a start that carried two searches, so it also says how
+# many logical searches that was and the batch size; actor_starts is physical.
+LEDGER_BATCH_KEYS = {"logical_units", "batch_size"}
 
 
 def probe_args(**over):
@@ -822,7 +825,7 @@ class ResearchLedger(unittest.TestCase):
         ledger = json.loads(text)
         intended = actual = Decimal(0)
         for e in ledger["entries"]:
-            self.assertEqual(set(e), LEDGER_KEYS)
+            self.assertIn(set(e), (LEDGER_KEYS, LEDGER_KEYS | LEDGER_BATCH_KEYS))
             intended += Decimal(e["intended_max_usd"])
             self.assertEqual(Decimal(e["cumulative_intended_usd"]), intended)
             if e["actual_final_usd"] is not None:

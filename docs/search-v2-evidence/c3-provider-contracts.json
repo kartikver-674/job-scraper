@@ -1,0 +1,479 @@
+{
+  "status": "VERIFIED from the providers' public records (free, unauthenticated GETs) and MEASURED on runs the C0-C3 probes made (free authenticated GETs); counts, indexes and LinkedIn's own position parameter only \u2014 no job id, URL, token or row content",
+  "read_at": "2026-09-24",
+  "linkedin": {
+    "actor": "curious_coder/linkedin-jobs-scraper",
+    "latest_build": {
+      "buildId": "kmTE1iuf8N2sZAj8t",
+      "finishedAt": "2026-09-23T12:09:00.628Z",
+      "buildNumberInt": 10700017,
+      "buildNumber": "1.7.17"
+    },
+    "source_code_hidden": true,
+    "pricing": {
+      "model": "PAY_PER_EVENT",
+      "result_usd_free_tier": 0.002,
+      "result_usd_paid_tiers": 0.001,
+      "actor_start_usd": 5e-05,
+      "actor_start_rule": "Charged when the Actor starts running. Number of events charged depends on Actor memory (one event per GB, minimum one event).",
+      "minimal_max_total_charge_usd": 0.001,
+      "default_memory_mb": 512
+    },
+    "schema": {
+      "urls": "Go to [public linkedin jobs search page](https://www.linkedin.com/jobs/search/) on incognito window (to access public version), search with required filters and once you are done, copy the full URL from address bar and pass it here. You can pass multiple search URLs.",
+      "limitPerSource": "Maximum number of jobs to scrape from each input URL (or from the AI search filters when no URLs are provided). Leave empty to scrape as many as LinkedIn returns for each search (up to ~1000).",
+      "count_in_schema": false,
+      "fields": [
+        "autoConvertToAiSearch",
+        "companyIds",
+        "datePosted",
+        "distance",
+        "geoId",
+        "keywords",
+        "limitPerSource",
+        "location",
+        "scrapeCompany",
+        "splitByLocation",
+        "splitCountry",
+        "under10Applicants",
+        "urls"
+      ]
+    },
+    "changelog": [
+      "- New: `limitPerSource` \u2014 max jobs scraped per input URL / AI search filter set",
+      "- Change: `count` removed from the input form (still accepted as a global max for backward compatibility)",
+      "- Remove duplicate jobs"
+    ],
+    "readme_split_by_location": "It will also ignore duplicate jobs",
+    "readme_output_fields_documented_source_field": false,
+    "measured_on_single_url_runs": {
+      "runs": {
+        "C0": {
+          "run": "QthNSmbc1XE5pB7o9",
+          "items": 15,
+          "every_inputUrl_equals_the_input_url": true,
+          "inputUrl_present_on_every_item": true,
+          "distinct_ids": 15,
+          "link_position_by_dataset_index": [
+            15,
+            13,
+            14,
+            9,
+            10,
+            8,
+            7,
+            6,
+            4,
+            12,
+            5,
+            3,
+            2,
+            1,
+            11
+          ],
+          "positions_are_a_permutation_of_1_to_n": true
+        },
+        "C1_A1": {
+          "run": "ZdC0fF33XiJEEiarL",
+          "items": 15,
+          "every_inputUrl_equals_the_input_url": true,
+          "inputUrl_present_on_every_item": true,
+          "distinct_ids": 15,
+          "link_position_by_dataset_index": [
+            15,
+            14,
+            13,
+            12,
+            11,
+            10,
+            6,
+            8,
+            4,
+            9,
+            5,
+            3,
+            7,
+            2,
+            1
+          ],
+          "positions_are_a_permutation_of_1_to_n": true
+        },
+        "C1_A2": {
+          "run": "yc6JeY2hICKz3Bq2J",
+          "items": 15,
+          "every_inputUrl_equals_the_input_url": true,
+          "inputUrl_present_on_every_item": true,
+          "distinct_ids": 15,
+          "link_position_by_dataset_index": [
+            14,
+            11,
+            15,
+            13,
+            10,
+            8,
+            7,
+            9,
+            5,
+            3,
+            4,
+            2,
+            1,
+            12,
+            6
+          ],
+          "positions_are_a_permutation_of_1_to_n": true
+        },
+        "C1_B": {
+          "run": "Cgm4Bo5KFEtQqVFXg",
+          "items": 15,
+          "every_inputUrl_equals_the_input_url": true,
+          "inputUrl_present_on_every_item": true,
+          "distinct_ids": 15,
+          "link_position_by_dataset_index": [
+            13,
+            15,
+            12,
+            14,
+            11,
+            9,
+            7,
+            5,
+            8,
+            6,
+            10,
+            1,
+            3,
+            4,
+            2
+          ],
+          "positions_are_a_permutation_of_1_to_n": true
+        },
+        "C2_000": {
+          "run": "bCfByvJrRfnpCwvx6",
+          "items": 15,
+          "every_inputUrl_equals_the_input_url": true,
+          "inputUrl_present_on_every_item": true,
+          "distinct_ids": 15,
+          "link_position_by_dataset_index": [
+            12,
+            15,
+            10,
+            13,
+            8,
+            9,
+            7,
+            6,
+            5,
+            14,
+            11,
+            2,
+            1,
+            4,
+            3
+          ],
+          "positions_are_a_permutation_of_1_to_n": true
+        },
+        "C2_001": {
+          "run": "FAejWhRqDC4jfqx0l",
+          "items": 15,
+          "every_inputUrl_equals_the_input_url": true,
+          "inputUrl_present_on_every_item": true,
+          "distinct_ids": 15,
+          "link_position_by_dataset_index": [
+            13,
+            12,
+            11,
+            14,
+            15,
+            8,
+            10,
+            9,
+            4,
+            6,
+            7,
+            1,
+            3,
+            5,
+            2
+          ],
+          "positions_are_a_permutation_of_1_to_n": true
+        }
+      },
+      "summary": "90 of 90 items across 6 runs carry inputUrl equal to the run's one input URL; in every run LinkedIn's position parameter is a permutation of 1..15 and dataset order is NOT position order"
+    },
+    "measured_in_the_c3_batch": [
+      {
+        "run_id": "oh6QhN2TjFi0sc8wJ",
+        "input": {
+          "limitPerSource": 15,
+          "count": 30,
+          "scrapeCompany": false,
+          "datePosted": "anyTime",
+          "companyIds": [],
+          "under10Applicants": false,
+          "autoConvertToAiSearch": true,
+          "splitByLocation": false,
+          "url_count": 2
+        },
+        "items": 30,
+        "items_per_source": [
+          15,
+          15
+        ],
+        "unattributed_items": 0,
+        "source_sequence_in_dataset_order": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          1,
+          1
+        ],
+        "linkedin_position_by_source_in_dataset_order": [
+          [
+            16,
+            15,
+            13,
+            12,
+            14,
+            6,
+            11,
+            9,
+            4,
+            8,
+            10,
+            5,
+            3,
+            1,
+            2
+          ],
+          [
+            15,
+            13,
+            11,
+            10,
+            12,
+            9,
+            7,
+            8,
+            14,
+            3,
+            6,
+            4,
+            2,
+            1,
+            5
+          ]
+        ],
+        "positions_are_1_to_n_per_source": [
+          false,
+          true
+        ],
+        "linkedin_ids_in_more_than_one_source": 0,
+        "distinct_linkedin_ids": 30
+      }
+    ],
+    "cross_source_dedupe": {
+      "batch_run": {
+        "items": 30,
+        "ids_under_both_sources": 0
+      },
+      "C2 canary (03:23 UTC)": {
+        "ids_shared_between_the_two_separate_runs": 1,
+        "shared": [
+          {
+            "backend_alone_position": 7,
+            "fullstack_alone_position": 2,
+            "in_batch_under": [
+              {
+                "source": "fullstack",
+                "position": 2
+              }
+            ]
+          }
+        ],
+        "backend_alone_positions_1_to_15": true,
+        "fullstack_alone_positions_1_to_15": true
+      },
+      "C1 probe A (previous evening)": {
+        "ids_shared_between_the_two_separate_runs": 2,
+        "shared": [
+          {
+            "backend_alone_position": 15,
+            "fullstack_alone_position": 5,
+            "in_batch_under": []
+          },
+          {
+            "backend_alone_position": 7,
+            "fullstack_alone_position": 2,
+            "in_batch_under": [
+              {
+                "source": "fullstack",
+                "position": 2
+              }
+            ]
+          }
+        ],
+        "backend_alone_positions_1_to_15": true,
+        "fullstack_alone_positions_1_to_15": true
+      }
+    },
+    "cross_source_dedupe_reading": "The job both queries shared when run separately \u2014 at Backend Developer position 7 and Full Stack Developer position 2, in C1 probe A AND the C2 canary \u2014 appears in the batch only under Full Stack Developer; Backend Developer's position 7 is absent and its position 16 present. The actor dedupes across sources within one run and back-fills the source that lost a job; the copy kept went to the LATER-planned source, whose items the actor pushed first. MEASURED, one batched run; that the owner of a shared job depends on the actor's internal timing is INFERRED from its going against URL order.",
+    "c1_c2_traces_rebucketed": {
+      "units": [
+        {
+          "evidence": "c1-probe-a-india-two-shapes.json",
+          "unit_id": "paid_000",
+          "run_id": "ZdC0fF33XiJEEiarL"
+        },
+        {
+          "evidence": "c1-probe-a-india-two-shapes.json",
+          "unit_id": "paid_001",
+          "run_id": "yc6JeY2hICKz3Bq2J"
+        },
+        {
+          "evidence": "c1-probe-b-remote-react.json",
+          "unit_id": "paid_000",
+          "run_id": "Cgm4Bo5KFEtQqVFXg"
+        },
+        {
+          "evidence": "c2-live-concurrency-canary.json",
+          "unit_id": "paid_000",
+          "run_id": "bCfByvJrRfnpCwvx6"
+        },
+        {
+          "evidence": "c2-live-concurrency-canary.json",
+          "unit_id": "paid_001",
+          "run_id": "FAejWhRqDC4jfqx0l"
+        }
+      ],
+      "by_dataset_index_as_c1_reported": {
+        "1-5": {
+          "rows": 25,
+          "eligible": 22,
+          "eligible_positive": 13,
+          "final": 22,
+          "acquired_repeat": 0
+        },
+        "6-10": {
+          "rows": 25,
+          "eligible": 20,
+          "eligible_positive": 14,
+          "final": 20,
+          "acquired_repeat": 1
+        },
+        "11-15": {
+          "rows": 25,
+          "eligible": 23,
+          "eligible_positive": 16,
+          "final": 21,
+          "acquired_repeat": 2
+        }
+      },
+      "by_linkedin_position": {
+        "1-5": {
+          "rows": 25,
+          "eligible": 22,
+          "eligible_positive": 14,
+          "final": 20,
+          "acquired_repeat": 3
+        },
+        "6-10": {
+          "rows": 25,
+          "eligible": 21,
+          "eligible_positive": 15,
+          "final": 21,
+          "acquired_repeat": 0
+        },
+        "11-15": {
+          "rows": 25,
+          "eligible": 22,
+          "eligible_positive": 14,
+          "final": 22,
+          "acquired_repeat": 0
+        }
+      }
+    }
+  },
+  "indeed": {
+    "actor": "misceres/indeed-scraper",
+    "latest_build": {
+      "buildId": "QCL4zRJXp3sSD0xkl",
+      "finishedAt": "2026-09-22T13:27:45.471Z",
+      "buildNumberInt": 111,
+      "buildNumber": "0.0.111"
+    },
+    "pricing": {
+      "model": "PAY_PER_EVENT",
+      "since": "2026-03-26T11:34:26.075Z",
+      "result_event": "Cost per every job listing returned.",
+      "result_usd_by_tier": {
+        "FREE": 0.006,
+        "BRONZE": 0.005,
+        "SILVER": 0.004,
+        "GOLD": 0.003,
+        "PLATINUM": 0.002,
+        "DIAMOND": 0.001
+      },
+      "minimal_max_total_charge_usd": null,
+      "default_memory_mb": 4096
+    },
+    "schema": {
+      "position": "Any combination of positions or keywords for search. Can be used together with Start URLs - both will be scraped independently, each limited by Max job listings per search.",
+      "maxItemsPerSearch": "Maximum number of job listings to scrape for each keyword search and each Start URL. When both are used together, each is limited independently by this value.",
+      "startUrls": "List of URLs that will be scraped. Can be main website URL, category/search URLs, company jobs URL (in the format of `https://www.indeed.com/cmp/Google/jobs`) or detail/product URLs. Can be combined with keyword search - both will execute independently.",
+      "saveOnlyUniqueItems": "If true, only unique job listings will be scraped."
+    }
+  },
+  "naukri": {
+    "actor": "muhammetakkurtt/naukri-job-scraper",
+    "latest_build": {
+      "buildId": "aCqZ06wjBPaLnfXI4",
+      "finishedAt": "2026-09-11T11:16:19.723Z",
+      "buildNumberInt": 56,
+      "buildNumber": "0.0.56"
+    },
+    "pricing": {
+      "model": "PAY_PER_EVENT",
+      "since": "2026-09-11T17:47:07.526Z",
+      "events_free_tier_usd": {
+        "actor-start": 0.001,
+        "job_item": 0.0015,
+        "job_item_detailed": 0.003
+      },
+      "minimal_max_total_charge_usd": 0.1,
+      "default_memory_mb": 128
+    },
+    "schema": {
+      "keyword": "The keyword to be used for searching job listings in manual mode. Ignored when searchUrl or jobIds is provided.",
+      "searchUrl": "Paste a Naukri.com OR NaukriGulf.com search results URL to override keyword and manual filters. Supports keyword, location, and keyword+location URLs. The URL must match the selected Job Board. Ignored when jobIds is provided.",
+      "maxJobs": "The maximum number of job listings to scrape",
+      "cities": "Cities to filter jobs (multiple selection possible)",
+      "fetchDetails": "If enabled, fetches detailed job information (full description, requirements, etc.) instead of basic search results."
+    }
+  }
+}

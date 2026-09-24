@@ -206,6 +206,27 @@ Added by V2-C2 (2026-09-24),
   arm a fresh process against the thread-safe scripted stand-in. Zero Apify.
   Reproduce with `bench/search_v2_paid_concurrency.py`.
 
+Added by V2-C3 (2026-09-24),
+[paid plan compaction](../search-engine-v2-c3-paid-plan-compaction.md) — outcome:
+no compaction shipped:
+
+- `c3-paid-plan-audit.json`: OFFLINE. Thirteen plans (repository defaults, the
+  four synthetic cohorts, the public app's three work scopes, five generic
+  profiles) through the current planner and adapters: logical searches, exact
+  execution duplicates (none), structure, depth, bounded vs unbounded, overlap
+  candidates, hypothetical physical starts per batch size, and the public spend
+  cap's admission. Reproduce with `bench/search_v2_paid_compaction.py`.
+- `c3-provider-contracts.json`: the LinkedIn, Indeed and Naukri actors' public
+  records (free GETs), and content-free measurements on runs C0-C3 made:
+  `inputUrl` on every item, LinkedIn's own `position` against dataset order,
+  the cross-source dedupe comparison, C1/C2 traces re-bucketed by position.
+- `c3-live-batch-canary.json` (C3, PAID): one LinkedIn start carrying two
+  searches, through the C3 prototype behind C0's two keys, C1 probe A's and the
+  C2 canary's queries. A ledger entry.
+- `c3-batching-prototype.patch`: the exact code the canary ran (engine,
+  telemetry, probe, tests) — not merged; kept so the evidence is reproducible.
+- `c3-prototype-mutations.json`: the prototype's 16 mutation checks.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

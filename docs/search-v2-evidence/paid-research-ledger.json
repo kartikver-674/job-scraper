@@ -73,6 +73,24 @@
       "status": "completed, no anomaly",
       "cumulative_intended_usd": "0.276",
       "cumulative_known_actual_usd": 0.1803
+    },
+    {
+      "stage": "C3",
+      "at": "2026-09-24T06:55:29.816+00:00",
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "purpose": "C3 live multi-URL canary: ONE LinkedIn actor start carrying TWO logical searches (SWEEP_PAID_COMPACTION=1, batch size 2, C2 scheduler at 1 worker; engine cap max_spend_usd 0.092 = the batch's summed ceiling). Questions only the provider can answer: does build 1.7.17 accept 2 URLs in one run; does limitPerSource hold per URL with count=30 (15+15); does every item's inputUrl name exactly its own source; can per-source rank be reconstructed; does the actor dedupe jobs across sources within one run; is maxTotalChargeUsd 0.092 accepted and recorded; runtime of one 2-URL run against C2's two concurrent single runs of the same two queries; 429s / SDK retries. Same queries as C1 probe A and the C2 canary, for comparability and a likely shared job.",
+      "actor_starts": 1,
+      "logical_units": 2,
+      "batch_size": 2,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": "0.092",
+      "intended_max_usd": "0.092",
+      "actual_final_usd": 0.06005,
+      "evidence": "c3-live-batch-canary.json",
+      "status": "completed, no engine anomaly: one start carried both URLs, 15/15 per source, every item named its own source in inputUrl, provider-recorded ceiling 0.092, 0 SDK retries or 429s. CONTRACT FINDING: the actor dedupes jobs ACROSS sources within one run and back-fills the source that lost one (Backend position 7 absent, 16 present; the job both queries shared in C1 and C2 went only to the later-planned source), so batching is not semantics-preserving \u2014 see c3-linkedin-contract.json. No further batching research.",
+      "cumulative_intended_usd": "0.368",
+      "cumulative_known_actual_usd": 0.24035
     }
   ]
 }

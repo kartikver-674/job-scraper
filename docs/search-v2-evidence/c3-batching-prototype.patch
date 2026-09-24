@@ -1,0 +1,1851 @@
+diff --git a/bench/search_v2_paid_probe.py b/bench/search_v2_paid_probe.py
+index 28629f1..a70c806 100644
+--- a/bench/search_v2_paid_probe.py
++++ b/bench/search_v2_paid_probe.py
+@@ -73,7 +73,8 @@ EXECUTION = ("ok", "failure_category", "failure_type", "started_at", "finished_a
+              "actor_started_at", "actor_finished_at", "actor_run_time_s",
+              "max_total_charge_usd", "provider_ceiling_usd", "charged_events",
+              "cost_observations", "reported_cost_usd", "billed_delta_usd",
+-             "budget_view_usd", "budget_basis", "raw_count", "dataset_retrieved_at")
++             "budget_view_usd", "budget_basis", "raw_count", "dataset_retrieved_at",
++             "batch_id")
+ 
+ 
+ def _now():
+@@ -188,17 +189,75 @@ def child_env(args, name):
+     """The guarded child's environment. The C2 scheduling mode is set here and
+     only here: --paid-workers N turns SWEEP_PAID_CONCURRENCY on at N workers;
+     without it both variables are removed, so a leftover in the developer's
+-    shell cannot change what the evidence says ran. Neither is a spending key:
+-    the guard still needs --allow-paid and SWEEP_ALLOW_PAID_BENCH=1."""
++    shell cannot change what the evidence says ran. V2-C3's --batch-size N
++    likewise sets SWEEP_PAID_COMPACTION and the provider's batch size, or
++    removes them. None is a spending key: the guard still needs --allow-paid
++    and SWEEP_ALLOW_PAID_BENCH=1."""
++    import scraper
++    sizes = [spec["size_env"] for spec in scraper.PAID_BATCHING.values()]
+     env = dict(os.environ, SWEEP_SEARCH_V2_TELEMETRY="1", SWEEP_RUN_ID=name)
+     env.pop("SWEEP_EXPERIENCE_MISMATCH_GUARD", None)       # off, as in production
+-    for key in ("SWEEP_PAID_CONCURRENCY", "SWEEP_PAID_WORKERS"):
++    for key in ("SWEEP_PAID_CONCURRENCY", "SWEEP_PAID_WORKERS",
++                scraper.PAID_COMPACTION_FLAG, *sizes):
+         env.pop(key, None)
+     if args.paid_workers is not None:
+         env.update(SWEEP_PAID_CONCURRENCY="1", SWEEP_PAID_WORKERS=str(args.paid_workers))
++    if getattr(args, "batch_size", None) is not None:
++        env[scraper.PAID_COMPACTION_FLAG] = "1"
++        env[scraper.PAID_BATCHING[args.site]["size_env"]] = str(args.batch_size)
+     return env
+ 
+ 
++def physical_runs(units):
++    """[(run id, [unit ids])] in plan order: a run V2-C3 shared between
++    searches is ONE run — read once, priced once, counted once."""
++    out = {}
++    for u in units:
++        rid = (u.get("execution") or {}).get("actor_run_id")
++        if rid:
++            out.setdefault(rid, []).append(u["unit_id"])
++    return list(out.items())
++
++
++def run_ceiling(units, unit_ids):
++    """What a run was started under: the sum of its searches' own ceilings."""
++    return sum((Decimal(u["charge_ceiling_usd"]) for u in units
++                if u["unit_id"] in unit_ids and u.get("charge_ceiling_usd")), Decimal(0))
++
++
++def batch_attribution(client, run_id):
++    """V2-C3, free GETs on one shared run: what the actor was given (without
++    its URLs) and how its results name their sources. Counts, indexes and
++    LinkedIn's own `position` only — no URL, no job id, no row content."""
++    import urllib.parse
++    run = client.run(run_id).get()
++    given = (client.key_value_store(run.default_key_value_store_id)
++             .get_record("INPUT") or {}).get("value") or {}
++    urls = list(given.get("urls") or [])
++    items = list(client.dataset(run.default_dataset_id).iterate_items())
++    source = [urls.index(i["inputUrl"]) if i.get("inputUrl") in urls else None
++              for i in items]
++    positions = [[] for _ in urls]
++    ids = [set() for _ in urls]
++    for k, item in zip(source, items):
++        if k is not None:
++            query = urllib.parse.parse_qs(urllib.parse.urlparse(item.get("link") or "").query)
++            positions[k].append(int(query["position"][0]) if "position" in query else None)
++            ids[k].add(item.get("id"))
++    shared = set.intersection(*ids) if len(ids) > 1 else set()
++    return {"run_id": run_id,
++            "input": dict({k: v for k, v in given.items() if k != "urls"},
++                          url_count=len(urls)),
++            "items": len(items), "items_per_source": [len(p) for p in positions],
++            "unattributed_items": source.count(None),
++            "source_sequence_in_dataset_order": source,
++            "linkedin_position_by_source_in_dataset_order": positions,
++            "positions_are_1_to_n_per_source": [
++                sorted(p) == list(range(1, len(p) + 1)) for p in positions],
++            "linkedin_ids_in_more_than_one_source": len(shared),
++            "distinct_linkedin_ids": len(set().union(*ids)) if ids else 0}
++
++
+ def overlap(units):
+     """How the runs overlapped at the provider, from the provider's own
+     start/finish clocks: pairwise overlap and the most in flight at once."""
+@@ -365,8 +424,8 @@ def probe(args):
+         shutil.rmtree(work, ignore_errors=True)
+ 
+     units = paid_view(record)
+-    run_ids = [u["execution"]["actor_run_id"] for u in units
+-               if (u.get("execution") or {}).get("actor_run_id")]
++    physical = physical_runs(units)
++    run_ids = [rid for rid, _ in physical]
+     if not run_ids:                    # refused, or nothing started: no evidence
+         sys.exit(code or "No actor run was started; nothing to record.")
+ 
+@@ -390,12 +449,23 @@ def probe(args):
+     unexpected = [r["id"] for rows in listing.values() for r in rows
+                   if r["id"] not in run_ids]
+ 
++    # V2-C3: a shared run's readings live on the run (paid_batches[]), not on
++    # the searches it served; every physical run is read, priced and counted
++    # exactly once.
++    holds = {b["batch_id"]: b for b in
++             ((record.get("paid_execution") or {}).get("compaction") or {})
++             .get("batches") or []}
++    batches = {b.get("actor_run_id"): dict(b, rows_by_member=holds.get(
++        b["batch_id"], {}).get("rows_by_member") or {})
++        for b in record.get("paid_batches") or []}
++    by_id = {u["unit_id"]: u for u in units}
+     convergence, settled_total = [], Decimal(0)
+-    for u in units:
+-        ex = u.get("execution") or {}
+-        rid = ex.get("actor_run_id")
++    for rid, members in physical:
+         if rid not in runs:
+             continue
++        batch = batches.get(rid)
++        ex = batch or by_id[members[0]].get("execution") or {}
++        who = batch["batch_id"] if batch else members[0]
+         readings = runs[rid]
+         for r in readings:
+             r["s_after_finish"] = _seconds(r["observed_at"], ex.get("actor_finished_at"))
+@@ -411,23 +481,38 @@ def probe(args):
+         if settled:
+             settled_total += Decimal(str(settled["usd"]))
+         else:
+-            anomalies.append(f"{u['unit_id']}: run charge still moving at the end "
++            anomalies.append(f"{who}: run charge still moving at the end "
+                              f"of the {args.observe_s}s window")
+-        ceiling = u.get("charge_ceiling_usd")
++        ceiling = run_ceiling(units, members)
+         if ceiling and ex.get("provider_ceiling_usd") != float(ceiling):
+-            anomalies.append(f"{u['unit_id']}: provider ceiling "
++            anomalies.append(f"{who}: provider ceiling "
+                              f"{ex.get('provider_ceiling_usd')} != configured {ceiling}")
++        convergence.append({"unit_id": members[0] if len(members) == 1 else None,
++                            "unit_ids": members, "batch_id": batch and batch["batch_id"],
++                            "run_id": rid,
++                            "actor_finished_at": ex.get("actor_finished_at"),
++                            "engine_readings": engine, "provider_readings": readings,
++                            "settled": settled, "events_priced_usd": _priced(last[rid]),
++                            "charge_ceiling_usd": str(ceiling) if ceiling else None})
++    for u in units:
++        if not (u.get("execution") or {}).get("actor_run_id"):
++            continue
+         funnel = u.get("funnel") or {}
+         if funnel and funnel.get("raw") != u.get("requested_depth"):
+             anomalies.append(f"{u['unit_id']}: returned {funnel.get('raw')} rows for "
+                              f"depth {u.get('requested_depth')}")
+         if u["status"] != "completed":
+             anomalies.append(f"{u['unit_id']}: status {u['status']}")
+-        convergence.append({"unit_id": u["unit_id"], "run_id": rid,
+-                            "actor_finished_at": ex.get("actor_finished_at"),
+-                            "engine_readings": engine, "provider_readings": readings,
+-                            "settled": settled, "events_priced_usd": _priced(last[rid]),
+-                            "charge_ceiling_usd": ceiling})
++    attribution = []
++    for rid in batches:
++        if rid in owned:
++            attribution.append(batch_attribution(owned[rid][1], rid))
++            got = attribution[-1]
++            engine_rows = list(batches[rid].get("rows_by_member", {}).values())
++            if got["unattributed_items"] or got["items_per_source"] != engine_rows:
++                anomalies.append(f"{batches[rid]['batch_id']}: attribution "
++                                 f"{got['items_per_source']} (+{got['unattributed_items']} "
++                                 f"unattributed) vs the engine's {engine_rows}")
+     last_finish = max((c["actor_finished_at"] for c in convergence), default=None)
+     accounts_view = []
+     for acct_name, readings in acct.items():
+@@ -445,6 +530,8 @@ def probe(args):
+         anomalies.append(f"unexpected runs on the account(s): {unexpected}")
+ 
+     summary = record.get("paid_summary") or {}
++    logical = sum(len(m) for _, m in physical)
++    ceilings = sorted({str(run_ceiling(units, m)) for _, m in physical})
+     entries = (ledger or {}).get("entries") or []
+     before_actual = Decimal(str(entries[-1]["cumulative_known_actual_usd"])) \
+         if entries else Decimal(0)
+@@ -462,8 +549,12 @@ def probe(args):
+         "shape": {"keywords": args.keywords, "locations": args.location,
+                   "synthetic_case": args.case, "scope": args.scope},
+         "requested_depth": units[0]["requested_depth"],
+-        "charge_ceiling_usd_per_start": units[0]["charge_ceiling_usd"],
+-        "actor_starts": len(run_ids), "intended_max_usd": intended,
++        "charge_ceiling_usd_per_start": ceilings[0] if len(ceilings) == 1 else ceilings,
++        # V2-C3: physical starts and the logical searches they carried, apart.
++        "actor_starts": len(run_ids), "logical_units": logical,
++        "batch_size": getattr(args, "batch_size", None),
++        "batch_attribution": attribution,
++        "intended_max_usd": intended,
+         "exposed_usd_before": args.exposed_usd,
+         "cumulative_intended_usd_after": str(Decimal(str(args.exposed_usd))
+                                              + Decimal(intended or "0")),
+@@ -472,6 +563,7 @@ def probe(args):
+         # scheduler's section, and how the runs overlapped at the provider.
+         "paid_workers": args.paid_workers, "sweep_budget_usd": args.sweep_budget,
+         "paid_execution": record.get("paid_execution"),
++        "paid_batches": record.get("paid_batches"),
+         "provider_overlap": overlap(units),
+         "paid_summary": summary, "units": units,
+         "cost_convergence": convergence, "accounts": accounts_view,
+@@ -490,6 +582,8 @@ def probe(args):
+         entry = {"stage": args.stage, "at": began, "provider": args.site,
+                  "actor": out["actor"], "purpose": args.purpose,
+                  "actor_starts": len(run_ids),
++                 "logical_units": logical,
++                 "batch_size": out["batch_size"] or 1,
+                  "requested_depth": out["requested_depth"],
+                  "ceiling_usd_per_start": out["charge_ceiling_usd_per_start"],
+                  "intended_max_usd": intended,
+@@ -605,9 +699,15 @@ def main():
+                     help="V2-C2: run the child with SWEEP_PAID_CONCURRENCY at N workers")
+     ap.add_argument("--sweep-budget",
+                     help="V2-C2: the engine's own cap (max_spend_usd) in the profile")
++    ap.add_argument("--batch-size", type=int,
++                    help="V2-C3: run the child with SWEEP_PAID_COMPACTION at N searches "
++                         "per start (needs --paid-workers: a mode of C2's scheduler)")
+     ap.add_argument("--ledger", default=str(LEDGER))
+     ap.add_argument("--output", required=True)
+     args = ap.parse_args()
++    if args.batch_size is not None and args.paid_workers is None:
++        ap.error("--batch-size needs --paid-workers: compaction runs only inside "
++                 "the C2 scheduler, where a shared start is held at its ceiling")
+     if args.summarize:
+         out = summarize(args.summarize)
+         Path(args.output).write_text(json.dumps(out, indent=2) + "\n")
+diff --git a/scraper.py b/scraper.py
+index 7082723..87a33c9 100644
+--- a/scraper.py
++++ b/scraper.py
+@@ -1256,7 +1256,48 @@ def scrape_search(client, site_key, actor_id, search, before_start=None):
+     serial loop passes nothing.
+     """
+     effective = effective_search(site_key, search)
+-    run_input = build_input(site_key, effective)
++    run = _run_to_terminal(client, site_key, actor_id, build_input(site_key, effective),
++                           max_charge_usd(site_key, effective["max_results"]),
++                           before_start)
++    cost = float(run.usage_total_usd or 0)
++    if not run.default_dataset_id:
++        return [], cost
++    reading = time.monotonic()
++    rows = _rows_of(site_key, search,
++                    client.dataset(run.default_dataset_id).iterate_items())
++    telemetry.paid_run(dataset_retrieved_at=datetime.now().isoformat(
++        timespec="milliseconds"),
++        dataset_ms=round((time.monotonic() - reading) * 1000))  # read + normalize
++    return rows, cost
++
++
++def _rows_of(site_key, search, items):
++    """One search's dataset items as engine rows, in dataset order: normalized,
++    labelled with the search, ranked within it, and stamped remote when the
++    query itself was."""
++    # enumerate: the dataset preserves the actor's result order, so the index IS
++    # the position within this search.
++    label = f"{search.get('keywords') or '(all)'} @ {search.get('location') or ''}"
++    rows = []
++    for rank, item in enumerate(items, 1):
++        row = normalize(item, site_key)
++        row["search_query"] = label
++        row["search_rank"] = rank
++        rows.append(row)
++    if remote_was_queried(site_key, search):
++        # Stamp what the query already guarantees, the same way the remote-only
++        # feeds do, so enrich sees it. Their own location text is kept because it
++        # still carries the SCOPE (a city means the remote role is locked to that
++        # country), which is the distinction that decides reachability.
++        for row in rows:
++            row["Location"] = (row["Location"] + ", Remote").strip(", ")
++    return rows
++
++
++def _run_to_terminal(client, site_key, actor_id, run_input, ceiling, before_start):
++    """Start one actor run under `ceiling` and poll it to a terminal state:
++    the Run if it SUCCEEDED, else raise. The provider half of a paid search,
++    shared by one search (scrape_search) and several (scrape_batch)."""
+     # NOTE: results are bounded by the actor's OWN input cap (maxItemsPerSearch /
+     # maxJobs / limitPerSource). We do NOT pass call(max_items=...) because on actors with a
+     # per-run minimum charge it errors ("less than allowed minimum of $0.50").
+@@ -1274,7 +1315,6 @@ def scrape_search(client, site_key, actor_id, search, before_start=None):
+     # the clock, limitPerSource asks for a depth, and maxTotalChargeUsd is the
+     # only one of the three the PROVIDER enforces against the bill.
+     actor = client.actor(actor_id)
+-    ceiling = max_charge_usd(site_key, effective["max_results"])
+     start_kwargs = {}
+     if ceiling is not None:
+         if not charge_ceiling_supported(actor):
+@@ -1340,31 +1380,7 @@ def scrape_search(client, site_key, actor_id, search, before_start=None):
+     if run is None or run.status != "SUCCEEDED":
+         status = getattr(run, "status", "NO RUN")
+         raise RuntimeError(f"run status {status}")
+-    cost = float(run.usage_total_usd or 0)
+-    if not run.default_dataset_id:
+-        return [], cost
+-    # enumerate: the dataset preserves the actor's result order, so the index IS
+-    # the position within this search.
+-    label = f"{search.get('keywords') or '(all)'} @ {search.get('location') or ''}"
+-    rows = []
+-    reading = time.monotonic()
+-    for rank, item in enumerate(
+-            client.dataset(run.default_dataset_id).iterate_items(), 1):
+-        row = normalize(item, site_key)
+-        row["search_query"] = label
+-        row["search_rank"] = rank
+-        rows.append(row)
+-    telemetry.paid_run(dataset_retrieved_at=datetime.now().isoformat(
+-        timespec="milliseconds"),
+-        dataset_ms=round((time.monotonic() - reading) * 1000))  # read + normalize
+-    if remote_was_queried(site_key, search):
+-        # Stamp what the query already guarantees, the same way the remote-only
+-        # feeds do, so enrich sees it. Their own location text is kept because it
+-        # still carries the SCOPE (a city means the remote role is locked to that
+-        # country), which is the distinction that decides reachability.
+-        for row in rows:
+-            row["Location"] = (row["Location"] + ", Remote").strip(", ")
+-    return rows, cost
++    return run
+ 
+ 
+ # ===========================================================================
+@@ -1391,14 +1407,116 @@ def paid_concurrency():
+ 
+ 
+ def paid_workers():
++    return _clamped_env(PAID_WORKERS_ENV, PAID_WORKERS_DEFAULT, PAID_WORKERS_MAX)
++
++
++def _clamped_env(name, default, top):
+     """Clamped, never rejected — the free providers' rule (sources/concurrency):
+     a bad number falls back to the default instead of failing a sweep."""
+-    raw = os.environ.get(PAID_WORKERS_ENV, "").strip()
++    raw = os.environ.get(name, "").strip()
+     try:
+-        n = int(raw) if raw else PAID_WORKERS_DEFAULT
++        n = int(raw) if raw else default
+     except ValueError:
+-        return PAID_WORKERS_DEFAULT
+-    return max(1, min(PAID_WORKERS_MAX, n))
++        return default
++    return max(1, min(top, n))
++
++
++# ===========================================================================
++# V2-C3 — several logical searches, one provider start
++# ===========================================================================
++# SWEEP_PAID_COMPACTION (default OFF), a mode of V2-C2's scheduler: it acts
++# only when SWEEP_PAID_CONCURRENCY runs the paid phase, because a shared start
++# must be held at its full ceiling like any other. On, a run of CONTIGUOUS
++# planned searches of a provider below — none done today, none a repeat of one
++# in flight, their actor inputs identical but for the search URL — shares ONE
++# actor start, at the sum of their ceilings. Each keeps its URL, its depth,
++# its own rows and ranks, its checkpoint and its done marker. The plan, its
++# order and its depth do not change; only how many starts buy it.
++# See docs/search-engine-v2-c3-paid-plan-compaction.md.
++PAID_COMPACTION_FLAG = "SWEEP_PAID_COMPACTION"
++# Only a provider whose contract was checked for all three of: several sources
++# in one run, a depth limit per source, and every result naming its source.
++# curious_coder/linkedin-jobs-scraper, build 1.7.17: `urls` "You can pass
++# multiple search URLs"; limitPerSource "Maximum number of jobs to scrape from
++# each input URL"; `count` "still accepted as a global max" (changelog
++# 2026-08-08); and every dataset item carries `inputUrl`, the input URL it
++# came from — undocumented, measured on every item of every run C0-C2 made.
++PAID_BATCHING = {
++    "linkedin": {"size_env": "SWEEP_PAID_LINKEDIN_BATCH_SIZE",
++                 "source_field": "inputUrl"},
++}
++PAID_BATCH_SIZE_DEFAULT = 2
++# One failed start fails every search in it; four bounds that blast radius.
++PAID_BATCH_SIZE_MAX = 4
++
++
++def paid_compaction():
++    return os.environ.get(PAID_COMPACTION_FLAG, "").strip().lower() in (
++        "1", "true", "yes", "on")
++
++
++def paid_batch_size(site_key):
++    """Searches per start: 1 for any provider not in PAID_BATCHING, whatever
++    any variable says, so no setting can batch an unverified contract."""
++    spec = PAID_BATCHING.get(site_key)
++    if spec is None:
++        return 1
++    return _clamped_env(spec["size_env"], PAID_BATCH_SIZE_DEFAULT, PAID_BATCH_SIZE_MAX)
++
++
++def build_batch_input(site_key, searches):
++    """One actor input for several searches of one provider, or None when they
++    cannot share a run. Built from each search's own build_input(), so every
++    URL is the one it would have sent alone; the inputs must be identical but
++    for that URL, and the URLs distinct, or no result could be told apart.
++    limitPerSource keeps each search's own depth; `count`, the actor's GLOBAL
++    cap, becomes their sum, so it can never bind before a search's own limit."""
++    if site_key not in PAID_BATCHING:
++        return None
++    inputs = [build_input(site_key, effective_search(site_key, s)) for s in searches]
++    shared = [{k: v for k, v in i.items() if k != "urls"} for i in inputs]
++    urls = [url for i in inputs for url in i["urls"]]
++    if (any(s != shared[0] for s in shared) or len(urls) != len(inputs)
++            or len(set(urls)) != len(urls)):
++        return None
++    return dict(inputs[0], urls=urls, count=sum(i["count"] for i in inputs))
++
++
++def scrape_batch(client, site_key, actor_id, searches, before_start=None):
++    """V2-C3: ONE actor run for several searches. Returns (rows per search, in
++    the order given; the run's cost). Each search's rows are exactly what
++    _rows_of makes of the results that name its URL, ranked within it in
++    dataset order — the rank a run of its own would have given them.
++
++    Ownership is read, never inferred: every result must name one of this
++    run's URLs in the provider's source field, or the run is refused whole and
++    no row is attributed to anyone. The ceiling is the sum of the searches'
++    own ceilings, each already with its overshoot allowance."""
++    run_input = build_batch_input(site_key, searches)
++    if run_input is None:
++        raise ValueError(f"{site_key}: these searches cannot share one start")
++    ceiling = sum(max_charge_usd(site_key, effective_search(site_key, s)["max_results"])
++                  for s in searches)
++    run = _run_to_terminal(client, site_key, actor_id, run_input, ceiling, before_start)
++    cost = float(run.usage_total_usd or 0)
++    reading = time.monotonic()
++    items = (list(client.dataset(run.default_dataset_id).iterate_items())
++             if run.default_dataset_id else [])
++    field = PAID_BATCHING[site_key]["source_field"]
++    owner = {url: k for k, url in enumerate(run_input["urls"])}
++    unowned = sum(1 for item in items
++                  if not isinstance(item.get(field), str) or item[field] not in owner)
++    if unowned:
++        raise RuntimeError(f"{unowned} of {len(items)} results of this batched run "
++                           f"name none of its {len(owner)} search URLs; none attributed")
++    mine = [[] for _ in searches]
++    for item in items:
++        mine[owner[item[field]]].append(item)
++    rows = [_rows_of(site_key, s, m) for s, m in zip(searches, mine)]
++    telemetry.paid_run(dataset_retrieved_at=datetime.now().isoformat(
++        timespec="milliseconds"),
++        dataset_ms=round((time.monotonic() - reading) * 1000))  # read + normalize
++    return rows, cost
+ 
+ 
+ def _utc_now():
+@@ -1456,6 +1574,20 @@ class PaidExposure:
+                                    "reserved_at": _utc_now()}
+             return True
+ 
++    def fit(self, ceilings):
++        """V2-C3: how many of these leading ceilings fit together now, held
++        nothing. Only the coordinator raises the view and a worker can only
++        lower it, so a reserve() of what fits, right after, cannot fail."""
++        with self._lock:
++            if self.budget is None:
++                return len(ceilings)
++            view, total = self.view(), Decimal(0)
++            for k, ceiling in enumerate(ceilings):
++                total += ceiling
++                if view + total > self.budget:
++                    return k
++            return len(ceilings)
++
+     def admit(self, unit_id):
+         """An unbounded start has no ceiling to hold. It gets the pre-C2 test —
+         stop once the budget is reached — on the C2 view, so every ceiling
+@@ -1515,7 +1647,16 @@ class PaidExposure:
+ 
+ PaidEntry = namedtuple("PaidEntry", "n i of unit_id site_key actor_id search "
+                                     "label combo_key ceiling")
+-PaidResult = namedtuple("PaidResult", "n rows cost error record opened finished sdk")
++# `batch` (V2-C3): the shared state of the start a batched search came from.
++PaidResult = namedtuple("PaidResult", "n rows cost error record opened finished sdk "
++                                      "batch", defaults=(None,))
++PaidBatch = namedtuple("PaidBatch", "batch_id entries ceiling")
++PaidBatchResult = namedtuple("PaidBatchResult", "batch rows cost error record members "
++                                                "opened finished sdk")
++# What a batched search's own unit record may hold of the run it shared: the
++# ids that join the two. Its cost readings and clocks stay on the run, once.
++BATCH_JOIN_FIELDS = ("actor_id", "actor_run_id", "actor_build_id", "actor_status",
++                     "dataset_id")
+ 
+ 
+ def _sdk_counts(client):
+@@ -1567,6 +1708,80 @@ def _paid_worker(entry, make_client, exposure, results):
+                                time.monotonic(), sdk))
+ 
+ 
++def _batch_from(entries, start, size, done, in_flight):
++    """V2-C3: the searches that may share entries[start]'s start — it and the
++    ones right after it in plan order, up to `size`, stopping at the first that
++    is done today, a repeat of one in flight or already taken, or whose input
++    would differ from the others' but for its URL. Always a contiguous run of
++    the plan: never reordered, never skipping ahead to fill a batch."""
++    batch = [entries[start]]
++    for e in entries[start + 1:start + size]:
++        if (e.combo_key in done or e.combo_key in in_flight
++                or any(e.combo_key == b.combo_key for b in batch)
++                or build_batch_input(e.site_key, [b.search for b in batch + [e]]) is None):
++            break
++        batch.append(e)
++    return batch
++
++
++def _paid_batch_worker(batch, make_client, exposure, results):
++    """V2-C3: _paid_worker for a batch — one client, one start, one hold under
++    the batch's id. The run's own telemetry lands on a physical record the
++    coordinator files under paid_execution; each search gets its own deferred
++    unit, joined to the run by ids alone, so no cost or clock of the run is
++    written twice."""
++    opened = time.monotonic()
++    rows = cost = error = record = sdk = None
++    lead = batch.entries[0]
++    try:
++        with telemetry.unit("paid", lead.site_key, board=lead.actor_id,
++                            country=SEARCH.get("country", ""), defer=True) as record:
++            client = make_client()
++            try:
++                rows, cost = scrape_batch(
++                    client, lead.site_key, lead.actor_id,
++                    [e.search for e in batch.entries],
++                    before_start=lambda: exposure.commit(batch.batch_id))
++            finally:
++                sdk = _sdk_counts(client)
++    except BaseException as exc:        # the coordinator decides what it means
++        error = exc
++    finally:
++        exposure.release(batch.batch_id)    # a no-op once the start was attempted
++        members = []
++        for e in batch.entries:
++            eff = effective_search(e.site_key, e.search)
++            with telemetry.unit("paid", e.site_key, board=e.actor_id,
++                                query=e.search.get("keywords") or "(all)",
++                                location=e.search.get("location") or "",
++                                country=SEARCH.get("country", ""),
++                                requested_limit=eff["max_results"], defer=True) as unit:
++                telemetry.paid_run(unit_id=e.unit_id, batch_id=batch.batch_id,
++                                   **{k: record[k] for k in BATCH_JOIN_FIELDS
++                                      if record is not None and k in record})
++            members.append(unit)
++        results.put(PaidBatchResult(batch, rows, cost, error, record, members,
++                                    opened, time.monotonic(), sdk))
++
++
++def _members_of(r, state):
++    """V2-C3: a batch's result as one PaidResult per search, in plan order. A
++    failed run fails every search in it. A search that no result named fails
++    too, and is never marked done: the provider reports no per-source status,
++    so "searched, found nothing" and "never searched" look alike."""
++    out = []
++    for k, (e, unit) in enumerate(zip(r.batch.entries, r.members)):
++        rows = None if r.rows is None else r.rows[k]
++        error = r.error
++        if error is None and not rows:
++            error = RuntimeError("no result of its batched run named this search; "
++                                 "not marked done — the provider does not say it "
++                                 "was searched")
++        out.append(PaidResult(e.n, rows, r.cost, error, unit, r.opened, r.finished,
++                              None, state))
++    return out
++
++
+ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+                   raw_rows, done, done_path, today, emit, failures):
+     """The paid phase under SWEEP_PAID_CONCURRENCY. Returns (spent,
+@@ -1598,6 +1813,9 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+     checkpoint = {"passes": 0, "wall_ms": 0, "cpu_ms": 0}
+     visited, segments = [], []
+     n = 0
++    # V2-C3, read once like the flag above it. None: every start is C2's.
++    sizes = {s: paid_batch_size(s) for s in plans} if paid_compaction() else None
++    compacted, sends = {}, {"physical": 0, "logical": 0}
+ 
+     def integrate(e, r):
+         nonlocal spent
+@@ -1614,28 +1832,38 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+             try:
+                 if r.error is not None:
+                     raise r.error
+-                rows, cost = r.rows, r.cost
+-                reading = time.monotonic()
+-                actual = (account_usage_usd(account_client)
+-                          if baseline is not None else None)
+-                read_ms = round((time.monotonic() - reading) * 1000)
+-                before = spent
+-                spent = (actual - baseline if actual is not None
+-                         else spent + cost)
+-                exposure.observe(spent, None if e.ceiling is not None
+-                                 else spent - before)
++                rows, cost, batch = r.rows, r.cost, r.batch
++                # V2-C3: one account reading per START. A batch's is taken by
++                # its first search to integrate and filed on the run's own
++                # record: its cost is the run's, not any one search's.
++                read = batch is None or not batch["read"]
++                if read:
++                    reading = time.monotonic()
++                    actual = (account_usage_usd(account_client)
++                              if baseline is not None else None)
++                    read_ms = round((time.monotonic() - reading) * 1000)
++                    before = spent
++                    spent = (actual - baseline if actual is not None
++                             else spent + cost)
++                    exposure.observe(spent, None if e.ceiling is not None
++                                     else spent - before)
+                 telemetry.observed(raw=len(rows), normalized=len(rows),
+                                    gated=len(rows))
+-                telemetry.paid_run(
+-                    reported_cost_usd=cost,
+-                    billed_delta_usd=round(spent - before, 6),
+-                    budget_view_usd=round(spent, 6),
+-                    budget_basis=("account_delta" if actual is not None
+-                                  else "run_record_sum"),
+-                    account_read_ms=read_ms if baseline is not None else None)
+-                if actual is not None:
+-                    telemetry.cost_observation("account_usage_delta",
+-                                               spent - before)
++                if read:
++                    with (contextlib.nullcontext() if batch is None
++                          else telemetry.resumed(batch["record"])):
++                        telemetry.paid_run(
++                            reported_cost_usd=cost,
++                            billed_delta_usd=round(spent - before, 6),
++                            budget_view_usd=round(spent, 6),
++                            budget_basis=("account_delta" if actual is not None
++                                          else "run_record_sum"),
++                            account_read_ms=read_ms if baseline is not None else None)
++                        if actual is not None:
++                            telemetry.cost_observation("account_usage_delta",
++                                                       spent - before)
++                    if batch is not None:
++                        batch["read"] = True
+                 if telemetry.active():
+                     for position, row in enumerate(rows, 1):
+                         row[telemetry.PAID_UNIT] = (e.unit_id, position)
+@@ -1651,8 +1879,10 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+                 with open(done_path, "a") as fh:              # mark done
+                     fh.write(e.combo_key + "\n")
+                 done.add(e.combo_key)
+-                print(f"  [{e.i}/{e.of}] {e.label:<46} {len(rows):>3} jobs  "
+-                      f"(${cost:.3f} actor, ${spent:.2f} billed)")
++                paid = (f"(${cost:.3f} actor, ${spent:.2f} billed)" if batch is None
++                        else f"({batch['id']}: ${cost:.3f} actor for {batch['size']} "
++                             f"searches, ${spent:.2f} billed)")
++                print(f"  [{e.i}/{e.of}] {e.label:<46} {len(rows):>3} jobs  {paid}")
+                 telemetry.paid_status(e.unit_id, "completed")
+             except Exception as exc:  # isolate failures per search
+                 telemetry.failed(exc)
+@@ -1661,16 +1891,20 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+                 failures.append((e.site_key, e.label, str(exc)))
+                 print(f"  [{e.i}/{e.of}] {e.label:<46} ! {exc}")
+         telemetry.attach(r.record)
+-        held = exposure.units.get(e.unit_id, {})
++        # A batched search holds nothing of its own: the batch's one hold, at
++        # the sum of its ceilings, is the reservation, reported once, there.
++        held = exposure.units.get(e.unit_id if r.batch is None else r.batch["id"], {})
+         visited.append(dict(
+             seen, reservation=held.get("state"),
+-            reserved_usd=None if held.get("usd") is None else str(held["usd"]),
++            reserved_usd=(None if held.get("usd") is None or r.batch is not None
++                          else str(held["usd"])),
+             reserved_at=held.get("reserved_at"), committed_at=held.get("committed_at"),
+             released_at=held.get("released_at"),
+             execution_ms=round((r.finished - r.opened) * 1000),
+             buffered_wait_ms=round((began - r.finished) * 1000),
+             merge_ms=round((time.monotonic() - began) * 1000),
+-            checkpoint_cpu_ms=cpu_ms, sdk=r.sdk))
++            checkpoint_cpu_ms=cpu_ms, sdk=r.sdk,
++            **({} if r.batch is None else {"batch_id": r.batch["id"]})))
+ 
+     for site_key, plan in plans.items():
+         if stopped_early:
+@@ -1690,6 +1924,9 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+             n += 1
+         bounded = all(e.ceiling is not None for e in entries)
+         width = workers if bounded else 1
++        # V2-C3: searches per start. Only for a provider-bounded site, whatever
++        # PAID_BATCHING says: a shared start is held at the sum of ceilings.
++        size = sizes.get(site_key, 1) if sizes is not None and bounded else 1
+         first = entries[0].n
+         head = sent = running = 0       # next to integrate, next to send, in flight
+         waiting, open_keys, refused = {}, set(), None
+@@ -1712,6 +1949,33 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+                     sent += 1
+                     continue
+                 if running < width:
++                    # V2-C3: the next searches that may share this start,
++                    # shrunk to as many as the budget holds — so a batch never
++                    # admits fewer searches than one-at-a-time would. One that
++                    # fits alone is a C2 start, exactly.
++                    batch = (_batch_from(entries, sent, size, done, open_keys)
++                             if size > 1 else [e])
++                    if len(batch) > 1:
++                        batch = batch[:exposure.fit([b.ceiling for b in batch])]
++                    if len(batch) > 1:
++                        held = PaidBatch(f"batch_{len(compacted):03d}", batch,
++                                         sum(b.ceiling for b in batch))
++                        exposure.reserve(held.batch_id, held.ceiling)  # fit() said so
++                        compacted[held.batch_id] = {
++                            "id": held.batch_id, "size": len(batch), "record": None,
++                            "read": False, "provider": site_key,
++                            "members": [b.unit_id for b in batch]}
++                        open_keys.update(b.combo_key for b in batch)
++                        threading.Thread(target=_paid_batch_worker,
++                                         args=(held, make_client, exposure, results),
++                                         name=f"sweep-paid-{held.batch_id}",
++                                         daemon=True).start()
++                        sends["physical"] += 1
++                        sends["logical"] += len(batch)
++                        running += 1
++                        peak["in_flight"] = max(peak["in_flight"], running)
++                        sent += len(batch)
++                        continue
+                     if not (exposure.reserve(e.unit_id, e.ceiling)
+                             if e.ceiling is not None else exposure.admit(e.unit_id)):
+                         refused = e
+@@ -1721,6 +1985,8 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+                                      args=(e, make_client, exposure, results),
+                                      name=f"sweep-paid-{e.unit_id}",
+                                      daemon=True).start()
++                    sends["physical"] += 1
++                    sends["logical"] += 1
+                     running += 1
+                     peak["in_flight"] = max(peak["in_flight"], running)
+                     sent += 1
+@@ -1729,7 +1995,16 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+                 break
+             r = results.get()
+             running -= 1
+-            waiting[r.n - first] = r
++            if isinstance(r, PaidBatchResult):
++                # One result per search it carried, each waiting at its own
++                # plan position: integration order stays the plan's.
++                state = compacted[r.batch.batch_id]
++                state["record"] = r.record
++                state["result"] = r
++                for member in _members_of(r, state):
++                    waiting[member.n - first] = member
++            else:
++                waiting[r.n - first] = r
+             peak["buffered"] = max(peak["buffered"], sum(
+                 1 for k, v in waiting.items() if v is not None and k != head))
+         segments.append({"provider": site_key, "bounded": bounded, "workers": width,
+@@ -1752,15 +2027,64 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+     print(f"\n  held for {held['committed_starts']} provider-bounded start(s): "
+           f"${held['committed_usd']} of ceiling (exposure, not spend)")
+     waits = [u["buffered_wait_ms"] for u in visited if "buffered_wait_ms" in u]
+-    telemetry.paid_execution({
++    section = {
+         "mode": "reservation_scheduler", "workers": workers,
+         "exposure": held, "peak_in_flight": peak["in_flight"],
+         "peak_buffered": peak["buffered"],
+         "buffered_wait_ms": {"total": sum(waits), "max": max(waits, default=0)},
+-        "checkpoint": checkpoint, "segments": segments, "units": visited})
++        "checkpoint": checkpoint, "segments": segments, "units": visited}
++    if sizes is not None:
++        # Physical starts beside logical searches, so the two cannot be read
++        # as one another: a send is one worker, one provider start request.
++        section["compaction"] = {
++            "batch_size": sizes, "physical_sends": sends["physical"],
++            "logical_sends": sends["logical"],
++            "batches": [_batch_hold(s, exposure) for s in compacted.values()]}
++        # A shared run's own readings — its costs among them — go beside
++        # paid_execution, never inside it: that section is exposure only.
++        telemetry.paid_batches([_batch_run(s) for s in compacted.values()])
++    telemetry.paid_execution(section)
+     return spent, stopped_early, site_key
+ 
+ 
++# A shared run's own record, as the top-level paid_batches[] files it — once,
++# for the run. Ids, clocks, states, counts and amounts only.
++BATCH_RUN_FIELDS = tuple(f for f in telemetry.PAID_RUN_FIELDS
++                         if f not in ("unit_id", "batch_id")) + (
++    "ok", "failure_category", "cost_observations")
++
++
++def _batch_hold(state, exposure):
++    """V2-C3: one shared start as the scheduler saw it — its one hold (the sum
++    of its searches' ceilings) and what each search received. No cost here."""
++    held, r = exposure.units.get(state["id"], {}), state.get("result")
++    out = {"batch_id": state["id"], "provider": state["provider"],
++           "members": state["members"], "size": state["size"],
++           "reservation": held.get("state"),
++           "reserved_usd": None if held.get("usd") is None else str(held["usd"]),
++           "reserved_at": held.get("reserved_at"),
++           "committed_at": held.get("committed_at"),
++           "released_at": held.get("released_at")}
++    if r is not None:
++        out.update(
++            status="completed" if r.error is None else "failed",
++            failure_type=None if r.error is None else type(r.error).__name__,
++            rows_by_member={u: None if r.rows is None else len(rows)
++                            for u, rows in zip(state["members"],
++                                               r.rows or [None] * state["size"])},
++            execution_ms=round((r.finished - r.opened) * 1000), sdk=r.sdk)
++    return out
++
++
++def _batch_run(state):
++    """V2-C3: one shared start as the provider ran it — the run's own fields
++    and cost readings, which belong to no single search it served."""
++    run = state.get("record") or {}
++    return {"batch_id": state["id"], "provider": state["provider"],
++            "members": state["members"],
++            **{k: run[k] for k in BATCH_RUN_FIELDS if k in run}}
++
++
+ def print_plan(plans):
+     """plans: dict of {site_key: [search, ...]}."""
+     total_runs = sum(len(p) for p in plans.values())
+diff --git a/sweep/tests/test_search_v2_shadow_eval.py b/sweep/tests/test_search_v2_shadow_eval.py
+index 9f9249f..c3c930f 100644
+--- a/sweep/tests/test_search_v2_shadow_eval.py
++++ b/sweep/tests/test_search_v2_shadow_eval.py
+@@ -162,7 +162,9 @@ BASE_ENV = {telemetry.FLAG: "1", shadow.FLAG: None, concurrency.FLAG: None,
+             concurrency.WORKERS_ENV: None, concurrency.GREENHOUSE_FLAG: None,
+             concurrency.GREENHOUSE_WORKERS_ENV: None, experience_guard.FLAG: None,
+             scraper.READY_FLAG: None, scraper.PAID_CONCURRENCY_FLAG: None,
+-            scraper.PAID_WORKERS_ENV: None, "APIFY_TOKEN": None}
++            scraper.PAID_WORKERS_ENV: None, scraper.PAID_COMPACTION_FLAG: None,
++            **{spec["size_env"]: None for spec in scraper.PAID_BATCHING.values()},
++            "APIFY_TOKEN": None}
+ 
+ 
+ class Result:
+diff --git a/telemetry.py b/telemetry.py
+index 526e9f5..e17b35f 100644
+--- a/telemetry.py
++++ b/telemetry.py
+@@ -407,7 +407,10 @@ PAID_RUN_FIELDS = (
+     "unit_id", "start_ms", "wait_ms", "poll_get_ms", "dataset_ms",
+     "account_read_ms", "checkpoint_ms", "actor_run_time_s",
+     "actor_build_number", "provider_ceiling_usd", "charged_events",
+-    "budget_view_usd", "budget_basis", "failure_type")
++    "budget_view_usd", "budget_basis", "failure_type",
++    # V2-C3: the shared start a batched search was bought in. Its costs and
++    # clocks are the run's, filed once under paid_execution.compaction.
++    "batch_id")
+ 
+ 
+ def paid_run(**fields):
+@@ -724,6 +727,10 @@ def _paid_acquired(paid_keys):
+ 
+ 
+ PAID_EXECUTION_SCHEMA = "search-v2c2.1"
++# paid_summary's schema when V2-C3 compaction ran: every C1 field keeps its
++# meaning, and physical_actor_starts, a shared run's readings and its clocks
++# are added — counted once per run, beside the logical counts.
++PAID_COMPACTION_SCHEMA = "search-v2c3.1"
+ 
+ 
+ def paid_execution(section):
+@@ -738,6 +745,17 @@ def paid_execution(section):
+                                           schema=PAID_EXECUTION_SCHEMA)
+ 
+ 
++def paid_batches(runs):
++    """V2-C3's own section: one record per start several searches shared —
++    the run's ids, clocks and cost readings, which belong to no single search
++    it served and so are written once, here. Each search's unit names its
++    batch_id. Present whenever compaction ran (an empty list when nothing
++    shared a start); absent otherwise."""
++    if _run is not None:
++        with _LOCK:
++            _run["paid_batches"] = _bounded(runs)
++
++
+ def _paid_finish(record):
+     """paid_units[i] gets its funnel and trace; paid_summary the sweep-level
+     planned-vs-executed view. Execution facts stay in the unit's units[]
+@@ -835,11 +853,38 @@ def _paid_summary(record, executed):
+                                                  "final": obs["final"]})
+             c["usd"] = round(c["usd"] + obs["usd"], 6)
+             c["units"] += 1
++    compaction = record.get("paid_batches")
++    physical = {}
++    if compaction is not None:
++        # V2-C3: `actor_starts` keeps its C1 meaning — logical units that had
++        # an actor run — and physical starts are counted beside it, as the
++        # distinct runs those units were bought in. A shared run's readings
++        # live on the run and are folded in once, never once per search.
++        for u in units:
++            run_id = (executed.get(u["unit_id"]) or {}).get("actor_run_id")
++            if run_id:
++                physical.setdefault(u["provider"], set()).add(run_id)
++        for p, counts in providers.items():
++            counts["physical_actor_starts"] = len(physical.get(p, ()))
++        for run in compaction:
++            p = providers.get(run.get("provider"))
++            if p is not None:
++                for key in ("wait_ms", "dataset_ms"):
++                    p[key] += run.get(key) or 0
++                p["actor_run_time_s"] = round(p["actor_run_time_s"]
++                                              + (run.get("actor_run_time_s") or 0), 3)
++            for obs in run.get("cost_observations") or ():
++                c = costs.setdefault(obs["source"], {"usd": 0.0, "units": 0,
++                                                     "final": obs["final"]})
++                c["usd"] = round(c["usd"] + obs["usd"], 6)
++                c["units"] += 1
+     planned_usd, planned_unbounded = _exposure(units)
+     attempted_usd, attempted_unbounded = _exposure(attempted)
+     marks = record["milestones"]
++    extra = {} if compaction is None else {
++        "physical_actor_starts": sum(len(r) for r in physical.values())}
+     return {
+-        "schema": PAID_SCHEMA,
++        "schema": PAID_SCHEMA if compaction is None else PAID_COMPACTION_SCHEMA,
+         "planned": len(units),
+         "attempted": len(attempted),
+         "completed": status["completed"],
+@@ -848,6 +893,7 @@ def _paid_summary(record, executed):
+         "skipped_budget": status["skipped_budget"],
+         "unvisited": status["planned"],
+         "actor_starts": sum(p["actor_starts"] for p in providers.values()),
++        **extra,
+         "planned_bounded_exposure_usd": planned_usd,
+         "planned_unbounded_units": planned_unbounded,
+         "attempted_bounded_exposure_usd": attempted_usd,
+@@ -980,7 +1026,8 @@ def demo():
+                  lambda: paid_unvisited("skipped_budget"),
+                  lambda: cost_observation("account_usage_delta", 1.0),
+                  lambda: paid_outcome([{}], [{}], lambda r: None),
+-                 lambda: paid_execution({"workers": 2})):
++                 lambda: paid_execution({"workers": 2}),
++                 lambda: paid_batches([{"batch_id": "batch_000"}])):
+         call()
+     with resumed(None, time.monotonic()) as nothing:
+         assert nothing is None and _current() is None
+diff --git a/sweep/tests/test_paid_compaction.py b/sweep/tests/test_paid_compaction.py
+new file mode 100644
+index 0000000..9482525
+--- /dev/null
++++ b/sweep/tests/test_paid_compaction.py
+@@ -0,0 +1,912 @@
++"""Search Engine V2-C3: several logical paid searches, one provider start — and
++the plan, the depth, the attribution, the bytes, the budget and the resume
++semantics stay what V2-C2 made them.
++
++Under SWEEP_PAID_COMPACTION (inside V2-C2's scheduler) a contiguous run of
++compatible LinkedIn searches shares one actor start, held at the sum of their
++ceilings; every result is attributed by the source URL it names, or the run is
++refused whole; each search keeps its rows, ranks, checkpoint and done marker.
++
++NO REAL CREDENTIAL AND NO REAL CLIENT. As in V2-C2: scraper.main() in-process
++against a thread-safe scripted stand-in, _require_token patched, sockets denied.
++BatchClient extends C2's KeyedClient with the provider contract C3 relies on,
++as read from curious_coder/linkedin-jobs-scraper build 1.7.17 and measured on
++every item of every run C0-C2 made: several URLs per run, `limitPerSource` a
++limit per URL, `count` a GLOBAL cap, and every item naming its source URL in
++`inputUrl`.
++"""
++import contextlib
++import copy
++import csv
++import io
++import json
++import math
++import os
++import re
++import shutil
++import tempfile
++import threading
++import unittest
++from collections import Counter
++from decimal import Decimal
++from pathlib import Path
++from types import SimpleNamespace
++from unittest import mock
++
++import scraper
++import telemetry
++from bench import paid_guard
++from bench import search_v2_paid_probe as probe
++from sweep.tests import test_paid_concurrency as c2
++from sweep.tests import test_paid_observability as c1
++from sweep.tests import test_search_v2_shadow_eval as b3
++
++ROOT = Path(__file__).resolve().parents[2]
++LINKEDIN, INDEED = c2.LINKEDIN, c2.INDEED
++TODAY, TOKEN, SERIAL = c2.TODAY, c2.TOKEN, c2.SERIAL
++CEILING = Decimal("0.046")
++LI_SIZE = scraper.PAID_BATCHING["linkedin"]["size_env"]
++Script, KW, solo, twin, label = c1.Script, c2.KW, c2.solo, c2.twin, c2.label
++_sleep = c2._sleep
++
++
++def setUpModule():
++    c2.setUpModule()
++
++
++def tearDownModule():
++    c2.tearDownModule()
++
++
++# ---------------------------------------------------------------------------
++# The provider, with the multi-source contract
++# ---------------------------------------------------------------------------
++class BatchClient(c2.KeyedClient):
++    """KeyedClient, plus runs of several URLs as the LinkedIn actor makes them.
++
++    A multi-URL start is matched to its searches' own Scripts through each
++    search's single-URL input. Its dataset is their items, each stamped with
++    the URL it came from (`inputUrl`), cut to `limitPerSource` per URL and
++    then to `count` overall, in `dataset_order`: "plan" (search after search),
++    "reverse" (the LAST search's rows first) or "interleave". A Script's
++    `source` overrides its items' inputUrl: None removes it, a string replaces
++    it. The batch run lasts as long as its slowest search, bills their sum."""
++
++    dataset_order = "plan"
++
++    def _start(self, actor_id, run_input, ceiling):
++        urls = run_input.get("urls") or []
++        if len(urls) <= 1:
++            return super()._start(actor_id, run_input, ceiling)
++        members = [self.by_input[c2.input_key(actor_id, dict(
++            run_input, urls=[u], count=run_input["limitPerSource"]))] for u in urls]
++        self._log("start", actor_id, copy.deepcopy(run_input), ceiling)
++        scripts = [s for _, s in members]
++        _sleep(max(s.delay.get("start", 0) for s in scripts))
++        failing = [s.start_error for s in scripts if s.start_error]
++        if failing:
++            raise failing[0]
++        per = []
++        for script, url in zip(scripts, urls):
++            items = []
++            for item in copy.deepcopy(script.items[:run_input["limitPerSource"]]):
++                source = getattr(script, "source", url)
++                if source is None:
++                    item.pop("inputUrl", None)
++                else:
++                    item["inputUrl"] = source
++                items.append(item)
++            per.append(items)
++        if self.dataset_order == "reverse":
++            per = per[::-1]
++        items = ([i for group in itertools_zip_longest(per) for i in group]
++                 if self.dataset_order == "interleave" else [i for group in per for i in group])
++        combined = Script(
++            items[:run_input["count"]],
++            status=next((s.status for s in scripts if s.status != "SUCCEEDED"),
++                        "SUCCEEDED"),
++            usage=round(sum(s.usage for s in scripts), 6),
++            polls=max(s.polls for s in scripts),
++            run_time=max(s.run_time for s in scripts),
++            delay={k: max(s.delay.get(k, 0) for s in scripts) for k in ("get", "dataset")})
++        combined.crash_on_poll = any(getattr(s, "crash_on_poll", False) for s in scripts)
++        run_id = f"run_{members[0][0] + 1}"
++        with self._lock:
++            self.runs[run_id] = [combined, 0, actor_id, True]
++            for key in (actor_id, "*"):
++                self.live[key] += 1
++                self.peak[key] = max(self.peak[key], self.live[key])
++        return SimpleNamespace(
++            id=run_id, build_id=f"build_{run_id}", started_at="2026-09-24T00:00:00Z",
++            options=SimpleNamespace(max_total_charge_usd=(
++                None if ceiling is None else float(ceiling))))
++
++    def _get(self, run_id):
++        if getattr(self.runs[run_id][0], "crash_on_poll", False):
++            raise c2.Crash("after the batched start, before its result")
++        return super()._get(run_id)
++
++
++def itertools_zip_longest(groups):
++    from itertools import zip_longest
++    return ([x for x in row if x is not None] for row in zip_longest(*groups))
++
++
++def c3_sweep(scripts, *, batch=2, workers=2, order="plan", env=None, **kw):
++    """c2_sweep with SWEEP_PAID_COMPACTION at `batch` searches per start (None:
++    the variables unset, i.e. V2-C2) against BatchClient."""
++    env = dict(env or {})
++    if batch is not None:
++        env.update({scraper.PAID_COMPACTION_FLAG: "1", LI_SIZE: str(batch)})
++    client = type("Client", (BatchClient,), {"dataset_order": order})
++    with mock.patch.object(c2, "KeyedClient", client):
++        return c2.c2_sweep(scripts, workers=workers, env=env, **kw)
++
++
++def urls_started(got):
++    """Per start, the keyword indexes of its URLs, in the order sent."""
++    out = []
++    for call in got.client.kinds("start"):
++        out.append([next(i for i, k in enumerate(KW) if k.split()[0] + "+" in u)
++                    for u in call[2]["urls"]])
++    return out
++
++
++def compaction(got):
++    return got.execution["compaction"]
++
++
++def by_unit(got):
++    return {u["unit_id"]: u for u in got.telemetry["units"] if u["path"] == "paid"}
++
++
++def labels(got):
++    return [r["search_query"] for r in got.rows] if got.csv else []
++
++
++def untimed(value):
++    """A record less its clocks, as C2's serial-parity test compares them."""
++    if isinstance(value, dict):
++        return {k: untimed(v) for k, v in value.items()
++                if not re.search(r"(_ms|_at)$", k)}
++    if isinstance(value, list):
++        return [untimed(v) for v in value]
++    return value
++
++
++# ===========================================================================
++# The switches
++# ===========================================================================
++class Switches(unittest.TestCase):
++
++    def test_default_off_and_the_size_clamp(self):
++        with b3._env(**{scraper.PAID_COMPACTION_FLAG: None}):
++            self.assertFalse(scraper.paid_compaction())
++        for value, on in (("1", True), ("true", True), ("ON", True), (" yes ", True),
++                          ("0", False), ("", False), ("off", False), ("2", False)):
++            with b3._env(**{scraper.PAID_COMPACTION_FLAG: value}):
++                self.assertEqual(scraper.paid_compaction(), on, value)
++        for value, n in ((None, 2), ("", 2), ("1", 1), ("2", 2), ("3", 3), ("4", 4),
++                         ("0", 1), ("-3", 1), ("99", 4), ("banana", 2), ("2.5", 2)):
++            with b3._env(**{LI_SIZE: value}):
++                self.assertEqual(scraper.paid_batch_size("linkedin"), n, value)
++
++    def test_only_a_verified_provider_can_batch_whatever_the_environment(self):
++        self.assertEqual(set(scraper.PAID_BATCHING), {"linkedin"})
++        with b3._env(**{LI_SIZE: "4", "SWEEP_PAID_INDEED_BATCH_SIZE": "4",
++                        "SWEEP_PAID_NAUKRI_BATCH_SIZE": "4"}):
++            self.assertEqual(scraper.paid_batch_size("indeed"), 1)
++            self.assertEqual(scraper.paid_batch_size("naukri"), 1)
++        plan = scraper.build_search_plan(["A Engineer", "B Engineer"], ["Bengaluru"])
++        self.assertIsNone(scraper.build_batch_input("indeed", plan))
++
++    def test_no_deployment_file_turns_it_on(self):
++        for flag in (scraper.PAID_COMPACTION_FLAG, LI_SIZE):
++            f = re.escape(flag)
++            for path in ("render.yaml", "deploy/sweep_worker.py", "requirements.txt",
++                         "gunicorn.conf.py", "config.py"):
++                body = (ROOT / path).read_text(encoding="utf-8")
++                self.assertEqual(re.findall(
++                    r"""\benv\[["']%(f)s["']\]\s*=|\bkey:\s*%(f)s\b|^\s*%(f)s\s*="""
++                    % {"f": f}, body, re.M), [], f"{path} sets {flag}")
++
++    def test_flag_off_is_c2_to_the_request(self):
++        """Mutation M's test: with the flag off — even with a batch size set —
++        no batching code runs, every start carries one URL, the section has
++        no compaction part, and the requests are C2's."""
++        entered = []
++
++        def spy(name):
++            real = getattr(scraper, name)
++
++            def wrapped(*a, **kw):
++                entered.append(name)
++                return real(*a, **kw)
++            return mock.patch.object(scraper, name, wrapped)
++        spies = [spy(n) for n in ("_batch_from", "scrape_batch", "_paid_batch_worker",
++                                  "build_batch_input")]
++        scripts = c2.staggered([solo(u) for u in range(4)])
++        off = c3_sweep(scripts, batch=None, workers=1, keywords=KW[:4],
++                       env={LI_SIZE: "4"}, patches=spies)
++        c2run = c2.c2_sweep(scripts, workers=1, keywords=KW[:4])
++        self.assertEqual(entered, [])
++        self.assertEqual(off.client.calls, c2run.client.calls)
++        self.assertEqual({len(c[2]["urls"]) for c in off.client.kinds("start")}, {1})
++        self.assertNotIn("compaction", off.execution)
++        self.assertEqual(off.telemetry["paid_summary"]["schema"], "search-v2c1.1")
++        self.assertNotIn("physical_actor_starts", off.telemetry["paid_summary"])
++        self.assertEqual((off.csv, off.json, off.seen, off.done),
++                         (c2run.csv, c2run.json, c2run.seen, c2run.done))
++
++    def test_without_the_scheduler_it_is_the_serial_loop(self):
++        """Compaction is a mode of C2's scheduler: a shared start must be held
++        at its full ceiling, and only the scheduler holds ceilings."""
++        got = c3_sweep([Script(solo(u)) for u in range(3)], batch=4, workers=SERIAL,
++                       keywords=KW[:3])
++        self.assertEqual(urls_started(got), [[0], [1], [2]])
++        self.assertNotIn("paid_execution", got.telemetry)
++
++
++# ===========================================================================
++# The shared input
++# ===========================================================================
++def li_plan(n):
++    return scraper.build_search_plan(list(KW[:n]), ["Bengaluru"])
++
++
++class BatchInput(unittest.TestCase):
++
++    def test_each_url_is_the_one_it_would_send_alone_depth_per_search(self):
++        plan = li_plan(3)
++        alone = [scraper.build_input("linkedin", scraper.effective_search("linkedin", s))
++                 for s in plan]
++        shared = scraper.build_batch_input("linkedin", plan)
++        self.assertEqual(shared["urls"], [a["urls"][0] for a in alone])
++        self.assertEqual(list(shared), list(alone[0]))                  # no new field
++        self.assertEqual(shared["limitPerSource"], 15)                  # each search's own
++        self.assertEqual(shared["count"], 45)                           # the global cap
++        self.assertEqual(shared["scrapeCompany"], False)
++        self.assertNotIn("maxTotalChargeUsd", json.dumps(shared))       # a start argument
++        self.assertEqual({k: v for k, v in shared.items() if k not in ("urls", "count")},
++                         {k: v for k, v in alone[0].items() if k not in ("urls", "count")})
++
++    def test_inputs_that_differ_beyond_the_url_cannot_share(self):
++        plan = li_plan(2)
++        deeper = [plan[0], dict(plan[1], max_results=20)]
++        self.assertIsNone(scraper.build_batch_input("linkedin", deeper))
++        self.assertIsNone(scraper.build_batch_input("linkedin", [plan[0], plan[0]]))
++        # A company filter rides in the URL, so it does not stop two sharing.
++        company = dict(plan[1], company=next(iter(scraper.LINKEDIN_COMPANY_IDS)))
++        self.assertIsNotNone(scraper.build_batch_input("linkedin", [plan[0], company]))
++
++    def test_the_ceiling_is_the_sum_of_the_searches(self):
++        for size, n in ((2, 2), (3, 3), (4, 4)):
++            got = c3_sweep([Script(solo(u)) for u in range(n)], batch=size,
++                           keywords=KW[:n])
++            (start,) = got.client.kinds("start")
++            self.assertEqual(start[3], CEILING * n)
++            self.assertIsInstance(start[3], Decimal)
++            self.assertEqual(start[2]["count"], 15 * n)
++
++
++# ===========================================================================
++# Which searches share a start
++# ===========================================================================
++class Formation(unittest.TestCase):
++
++    def test_contiguous_in_plan_order_never_reordered(self):
++        for size, expect in ((2, [[0, 1], [2, 3], [4]]), (3, [[0, 1, 2], [3, 4]]),
++                             (4, [[0, 1, 2, 3], [4]])):
++            got = c3_sweep([Script(solo(u)) for u in range(5)], batch=size, workers=1,
++                           keywords=KW[:5])
++            self.assertEqual(urls_started(got), expect, size)
++            self.assertEqual(got.status(), ["completed"] * 5)
++
++    def test_a_done_search_breaks_a_batch_and_is_never_rebought(self):
++        """Mutation I's test."""
++        got = c3_sweep([Script(solo(u)) for u in range(4)], batch=2, keywords=KW[:4],
++                       done=(f"linkedin|{KW[1]}|Bengaluru",))
++        self.assertEqual(urls_started(got), [[0], [2, 3]])
++        self.assertEqual(got.status(), ["completed", "skipped_done", "completed",
++                                        "completed"])
++        self.assertEqual(compaction(got)["batches"][0]["members"], ["paid_002", "paid_003"])
++
++    def test_a_repeat_of_a_search_never_shares_its_twins_start(self):
++        twice = (KW[0], KW[0], KW[1], KW[2])
++        got = c3_sweep([Script(solo(0)), None, Script(solo(1)), Script(solo(2))],
++                       batch=4, keywords=twice)
++        self.assertEqual(sum(len(u) for u in urls_started(got)), 3)
++        self.assertEqual(got.status(), ["completed", "skipped_done", "completed",
++                                        "completed"])
++
++    def test_batch_ids_are_deterministic(self):
++        runs = [c3_sweep(c2.staggered([solo(u) for u in range(5)]), batch=2, workers=2,
++                         keywords=KW[:5]) for _ in range(2)]
++        views = [[(b["batch_id"], b["members"]) for b in compaction(r)["batches"]]
++                 for r in runs]
++        self.assertEqual(views[0], views[1])
++        self.assertEqual(views[0], [("batch_000", ["paid_000", "paid_001"]),
++                                    ("batch_001", ["paid_002", "paid_003"])])
++
++    def test_an_unbounded_provider_never_batches(self):
++        """Mutation K's test: LinkedIn without a charge model has no ceiling to
++        hold, so it runs as C2 runs an unbounded site — one at a time, alone."""
++        with mock.patch.dict(scraper.ACTOR_CHARGE_MODEL, clear=True):
++            got = c3_sweep([Script(solo(u)) for u in range(4)], batch=4, workers=4,
++                           keywords=KW[:4])
++        self.assertEqual(urls_started(got), [[0], [1], [2], [3]])
++        self.assertEqual(got.client.peak[LINKEDIN], 1)
++        self.assertEqual(compaction(got)["batches"], [])
++        self.assertEqual({c[3] for c in got.client.kinds("start")}, {None})
++
++    def test_indeed_never_batches_in_a_mixed_plan(self):
++        li_s, in_s = c2.mixed(4, 6)
++        got = c3_sweep(li_s + in_s, batch=2, workers=2, keywords=KW[:2],
++                       site_locations=c2.PLACES, sites=c2.BOTH)
++        starts = got.client.kinds("start")
++        self.assertEqual([len(c[2].get("urls", [])) for c in starts if c[1] == LINKEDIN],
++                         [2, 2])
++        self.assertEqual([c for c in starts if c[1] == INDEED and "urls" in c[2]], [])
++        self.assertEqual(Counter(c[1] for c in starts), {LINKEDIN: 2, INDEED: 6})
++        self.assertEqual(got.client.peak[INDEED], 1)
++        self.assertEqual({b["provider"] for b in compaction(got)["batches"]}, {"linkedin"})
++
++    def test_incompatible_settings_never_share(self):
++        """Mutation L's test: a search whose input would differ beyond its URL
++        (here its depth) starts alone, and splits the run around it."""
++        real = scraper.effective_search
++
++        def deeper(site_key, search):
++            out = real(site_key, search)
++            return dict(out, max_results=20) if search["keywords"] == KW[1] else out
++        with mock.patch.object(scraper, "effective_search", deeper):
++            got = c3_sweep([Script(solo(u)) for u in range(4)], batch=2, workers=1,
++                           keywords=KW[:4])
++        self.assertEqual(urls_started(got), [[0], [1], [2, 3]])
++        self.assertEqual([c[2]["limitPerSource"] for c in got.client.kinds("start")],
++                         [15, 20, 15])
++
++
++# ===========================================================================
++# Reservation: one hold per start, at the sum, never handed back
++# ===========================================================================
++class Reservation(unittest.TestCase):
++
++    def holds(self, got):
++        return {k: (v["state"], str(v["usd"])) for k, v in got.exposure_units.items()}
++
++    def sweep(self, n, budget=None, size=2, workers=2, **kw):
++        seen = {}
++        real = scraper.PaidExposure
++
++        class Spy(real):
++            def __init__(self, budget):
++                super().__init__(budget)
++                seen["exposure"] = self
++        got = c3_sweep([Script(solo(u)) for u in range(n)], batch=size, workers=workers,
++                       keywords=KW[:n], budget=budget, account=[5.0],
++                       patches=[mock.patch.object(scraper, "PaidExposure", Spy),
++                                *kw.pop("patches", [])], **kw)
++        got.exposure_units = seen["exposure"].units
++        return got
++
++    def test_1_two_searches_one_hold_of_0092(self):
++        got = self.sweep(2)
++        self.assertEqual(self.holds(got), {"batch_000": ("committed", "0.092")})
++        ex = got.execution["exposure"]
++        self.assertEqual((ex["committed_usd"], ex["committed_starts"]), ("0.092", 1))
++        (batch,) = compaction(got)["batches"]
++        self.assertEqual((batch["reserved_usd"], batch["reservation"]), ("0.092", "committed"))
++        members = [u for u in got.execution["units"] if u.get("batch_id") == "batch_000"]
++        self.assertEqual([u["reserved_usd"] for u in members], [None, None])
++
++    def test_2_3_one_commit_per_start_and_no_search_holds_its_own(self):
++        """Mutations D and E: one ceiling for two, or a hold per search and one
++        more for the batch."""
++        calls = []
++        real = scraper.PaidExposure.reserve
++
++        def reserve(self, key, ceiling):
++            calls.append((key, str(ceiling)))
++            return real(self, key, ceiling)
++        got = self.sweep(4, patches=[mock.patch.object(scraper.PaidExposure, "reserve",
++                                                       reserve)])
++        self.assertEqual(calls, [("batch_000", "0.092"), ("batch_001", "0.092")])
++        self.assertEqual(got.execution["exposure"]["committed_usd"], "0.184")
++        self.assertEqual(Decimal(got.execution["exposure"]["committed_usd"]),
++                         sum(Decimal(u["charge_ceiling_usd"])
++                             for u in got.telemetry["paid_units"]))
++
++    def test_4_a_failed_batch_keeps_its_whole_hold(self):
++        scripts = [Script(solo(0), status="FAILED"), Script(solo(1)),
++                   Script(solo(2)), Script(solo(3))]
++        got = c3_sweep(scripts, batch=2, workers=1, keywords=KW[:4], budget=0.138,
++                       account=[5.0])
++        self.assertEqual(urls_started(got), [[0, 1], [2]])
++        self.assertEqual(got.status(), ["failed", "failed", "completed", "skipped_budget"])
++        self.assertEqual(got.execution["exposure"]["committed_usd"], "0.138")
++        self.assertEqual(got.done, [f"{TODAY}|linkedin|{KW[2]}|Bengaluru|"])
++
++    def test_5_a_local_failure_before_the_request_releases_it(self):
++        got = self.sweep(2, budget=0.10, patches=[mock.patch.object(
++            scraper, "charge_ceiling_supported", lambda actor: False)])
++        self.assertEqual(got.client.kinds("start"), [])
++        self.assertEqual(self.holds(got),
++                         {"batch_000": ("released_before_network", "0.092")})
++        ex = got.execution["exposure"]
++        self.assertEqual((ex["committed_usd"], ex["pending_usd"]), ("0", "0.000"))
++        self.assertEqual(got.status(), ["failed", "failed"])
++
++    def test_6_budget_0050_shrinks_to_one(self):
++        """Mutation J's test: the pair does not fit, one does — one runs."""
++        got = self.sweep(2, budget=0.05)
++        self.assertEqual(urls_started(got), [[0]])
++        self.assertEqual([c[3] for c in got.client.kinds("start")], [CEILING])
++        self.assertEqual(got.status(), ["completed", "skipped_budget"])
++        self.assertEqual(compaction(got)["batches"], [])
++        self.assertEqual(self.holds(got), {"paid_000": ("committed", "0.046"),
++                                           "paid_001": ("blocked", "0.046")})
++
++    def test_7_budget_0045_starts_nothing(self):
++        got = self.sweep(2, budget=0.045)
++        self.assertEqual(got.client.kinds("start"), [])
++        self.assertEqual(got.status(), ["skipped_budget", "skipped_budget"])
++
++    def test_8_budget_exactly_0092_fits_the_pair(self):
++        got = self.sweep(2, budget=0.092)
++        self.assertEqual(urls_started(got), [[0, 1]])
++        self.assertEqual(got.execution["exposure"]["view_usd"], "0.092")
++
++    def test_9_the_batch_hold_counts_against_indeed(self):
++        """C2's $0.10 case with the two LinkedIn searches in one start: the
++        $0.092 hold is the same, so Indeed #1 runs and #2 is refused."""
++        li_s, in_s = c2.mixed(2, 3)
++        account = [0.0, 0.06, 0.08, 0.10, 0.12]
++        got = c3_sweep(li_s + in_s, batch=2, workers=4, keywords=KW[:1],
++                       site_locations=c2.PLACES, sites=c2.BOTH, budget=0.10,
++                       account=account)
++        starts = got.client.kinds("start")
++        self.assertEqual([(c[1], len(c[2].get("urls", [1]))) for c in starts],
++                         [(LINKEDIN, 2), (INDEED, 1)])
++        ex = got.execution["exposure"]
++        self.assertEqual((ex["committed_usd"], ex["unbounded_observed_usd"]),
++                         ("0.092", "0.02"))
++        self.assertIn("spend cap $0.10 reached ($0.112 held and observed)", got.log)
++
++    def test_shrinking_admits_exactly_what_one_at_a_time_admits(self):
++        """Across budgets around every boundary, batching never admits a
++        different number of searches than C2 does."""
++        for budget in (0.045, 0.046, 0.05, 0.091, 0.092, 0.1, 0.137, 0.138, 0.2, None):
++            c2run = c3_sweep([Script(solo(u)) for u in range(5)], batch=None,
++                             keywords=KW[:5], budget=budget, account=[5.0])
++            for size in (2, 3, 4):
++                got = c3_sweep([Script(solo(u)) for u in range(5)], batch=size,
++                               keywords=KW[:5], budget=budget, account=[5.0])
++                self.assertEqual(got.status(), c2run.status(), (budget, size))
++                self.assertEqual(got.execution["exposure"]["committed_usd"],
++                                 c2run.execution["exposure"]["committed_usd"],
++                                 (budget, size))
++
++
++# ===========================================================================
++# Attribution: every row to the search that named it, or to none
++# ===========================================================================
++class Attribution(unittest.TestCase):
++
++    def test_rows_go_to_the_search_that_named_them_ranked_within_it(self):
++        """Mutation B's test: with the second search's rows FIRST in the
++        dataset, each keeps ranks 1..n within its own search."""
++        scripts = [Script(solo(u, n=3)) for u in range(2)]
++        c2run = c3_sweep(scripts, batch=None, keywords=KW[:2])
++        for order in ("reverse", "interleave", "plan"):
++            got = c3_sweep(scripts, batch=2, order=order, keywords=KW[:2])
++            ranks = {(r["search_query"], r["company"]): int(r["search_rank"])
++                     for r in got.rows}
++            self.assertEqual(ranks, {(r["search_query"], r["company"]): int(r["search_rank"])
++                                     for r in c2run.rows}, order)
++            self.assertEqual(sorted(ranks.values()), [1, 1, 2, 2, 3, 3], order)
++            self.assertEqual((got.csv, got.json), (c2run.csv, c2run.json), order)
++
++    def test_a_result_naming_no_source_fails_the_whole_batch(self):
++        """Mutation A's test: no guessed row. The batch fails whole, nothing
++        of it is written or marked done; the next start is unaffected."""
++        for source in (None, "https://www.linkedin.com/jobs/search/?keywords=Other"):
++            bad = Script(solo(1))
++            bad.source = source
++            got = c3_sweep([Script(solo(0)), bad, Script(solo(2))], batch=2, workers=1,
++                           keywords=KW[:3])
++            self.assertEqual(urls_started(got), [[0, 1], [2]])
++            self.assertEqual(got.status(), ["failed", "failed", "completed"])
++            self.assertEqual(set(labels(got)), {label(2)})
++            self.assertEqual(got.done, [f"{TODAY}|linkedin|{KW[2]}|Bengaluru|"])
++            self.assertIn("name none of its 2 search URLs; none attributed", got.log)
++            funnels = {u["unit_id"]: u["funnel"] for u in got.telemetry["paid_units"]}
++            self.assertEqual((funnels["paid_000"], funnels["paid_001"]), (None, None))
++            (batch,) = compaction(got)["batches"]
++            self.assertEqual((batch["status"], batch["rows_by_member"]),
++                             ("failed", {"paid_000": None, "paid_001": None}))
++
++    def test_a_search_no_result_named_is_failed_never_done(self):
++        """Zero results and "never searched" look alike without a per-source
++        status, so the empty one is failed — re-bought on a rerun — and its
++        partner, whose rows are all accounted for, completes."""
++        out = tempfile.mkdtemp()
++        self.addCleanup(shutil.rmtree, out, True)
++        got = c3_sweep([Script(solo(0, n=15)), Script([])], batch=2, keywords=KW[:2],
++                       out=out)
++        self.assertEqual(got.status(), ["completed", "failed"])
++        self.assertEqual(got.done, [f"{TODAY}|linkedin|{KW[0]}|Bengaluru|"])
++        self.assertEqual(Counter(labels(got)), {label(0): 15})
++        units = {u["unit_id"]: u for u in got.telemetry["paid_units"]}
++        self.assertEqual(units["paid_000"]["funnel"]["raw"], 15)
++        self.assertIsNone(units["paid_001"]["funnel"])
++        self.assertEqual(compaction(got)["batches"][0]["rows_by_member"],
++                         {"paid_000": 15, "paid_001": 0})
++        shutil.rmtree(os.path.join(out, "telemetry"))        # read the rerun's record
++        again = c3_sweep([Script(solo(0)), Script([])], batch=2, keywords=KW[:2], out=out)
++        self.assertEqual(urls_started(again), [[1]])          # the empty one, alone
++        self.assertEqual(again.status(), ["skipped_done", "completed"])
++
++    def test_each_search_keeps_its_full_depth_in_a_shared_run(self):
++        """Mutation C's test: the provider applies `count` to the whole run, so
++        two searches of 15 need count 30, or the second gets nothing."""
++        got = c3_sweep([Script(solo(u, n=15)) for u in range(2)], batch=2,
++                       keywords=KW[:2])
++        self.assertEqual(Counter(labels(got)), {label(0): 15, label(1): 15})
++        self.assertEqual([u["funnel"]["raw"] for u in got.telemetry["paid_units"]],
++                         [15, 15])
++
++
++# ===========================================================================
++# Parity: the same result whatever shares a start
++# ===========================================================================
++class Parity(unittest.TestCase):
++    """C2's four twins, the FIRST planned search finishing LAST, with a free
++    source — at every batch size and worker count, and with the provider
++    listing the later search's rows first."""
++
++    @classmethod
++    def setUpClass(cls):
++        units = [solo(u) + [twin(f"9{u}")] for u in range(4)]
++        account = [1.0, 1.03, 1.06, 1.09, 1.12]
++        cls.serial = c2.c2_sweep(c2.staggered(units), keywords=KW[:4], free=True,
++                                 account=list(account))
++        cls.c2 = c3_sweep(c2.staggered(units), batch=None, workers=2, keywords=KW[:4],
++                          free=True, account=list(account))
++        cls.runs = {}
++        for size, workers, order in ((1, 1, "plan"), (1, 2, "plan"), (2, 1, "plan"),
++                                     (2, 2, "plan"), (2, 2, "reverse"),
++                                     (3, 2, "interleave"), (4, 1, "reverse"),
++                                     (2, 4, "reverse")):
++            cls.runs[size, workers, order] = c3_sweep(
++                c2.staggered(units), batch=size, workers=workers, order=order,
++                keywords=KW[:4], free=True, account=list(account))
++
++    def test_byte_identical_everywhere(self):
++        for key, got in self.runs.items():
++            self.assertEqual((got.csv, got.json, got.seen, got.done),
++                             (self.serial.csv, self.serial.json, self.serial.seen,
++                              self.serial.done), key)
++
++    def test_the_first_planned_twin_wins_whatever_the_dataset_order(self):
++        """Mutation G's test: the provider lists paid_001's twin first; the
++        survivor is still paid_000's, as C2 and the serial loop keep it."""
++        for key, got in self.runs.items():
++            twins = [r for r in got.rows if r["company"] == "Twin Works"]
++            self.assertEqual([(r["search_query"], r["apply_url"]) for r in twins],
++                             [(label(0), "https://www.linkedin.com/jobs/view/90")], key)
++
++    def test_size_one_is_c2(self):
++        """Mutation N's test: one search per start is C2 — the same requests in
++        the same order at one worker, the same record but for the section."""
++        one = self.runs[1, 1, "plan"]
++        c2one = c3_sweep(c2.staggered([solo(u) + [twin(f"9{u}")] for u in range(4)]),
++                         batch=None, workers=1, keywords=KW[:4], free=True,
++                         account=[1.0, 1.03, 1.06, 1.09, 1.12])
++        self.assertEqual(one.client.calls, c2one.client.calls)
++        self.assertEqual(compaction(one)["batches"], [])
++        a, b = one.telemetry, c2one.telemetry
++        for key in ("paid_units", "stages", "identity"):
++            self.assertEqual(a[key], b[key], key)
++        self.assertEqual(untimed(a["units"]), untimed(b["units"]))
++        added = ("schema", "physical_actor_starts")
++        self.assertEqual(
++            untimed({k: v for k, v in a["paid_summary"].items() if k not in added}),
++            untimed({k: v for k, v in b["paid_summary"].items() if k != "schema"}) | {
++                "by_provider": untimed(a["paid_summary"]["by_provider"])})
++        self.assertEqual(
++            {p: {k: v for k, v in c.items() if k != "physical_actor_starts"}
++             for p, c in untimed(a["paid_summary"]["by_provider"]).items()},
++            untimed(b["paid_summary"]["by_provider"]))
++        self.assertEqual(untimed({k: v for k, v in a["paid_execution"].items()
++                                  if k != "compaction"}), untimed(b["paid_execution"]))
++
++    def test_the_logical_record_is_c2s(self):
++        """C1's funnel and trace per logical search survive batching: the same
++        ids, the same position-by-position trace, the same totals."""
++        for key, got in self.runs.items():
++            self.assertEqual(
++                [(u["unit_id"], u["funnel"], u["trace"]) for u in got.telemetry["paid_units"]],
++                [(u["unit_id"], u["funnel"], u["trace"])
++                 for u in self.c2.telemetry["paid_units"]], key)
++            self.assertEqual(got.telemetry["identity"], self.c2.telemetry["identity"], key)
++
++    def test_batches_finishing_out_of_order_integrate_in_plan_order(self):
++        """Mutation O's test: batch_001 finishes first; its searches wait."""
++        got = self.runs[2, 2, "plan"]
++        self.assertEqual(got.client.order("dataset"), ["run_3", "run_1"])
++        self.assertEqual(c2.lines_in_plan_order(got.log),
++                         [(str(u + 1), KW[u]) for u in range(4)])
++        self.assertEqual([u["unit_id"] for u in got.telemetry["units"]
++                          if u["path"] == "paid"], [f"paid_00{u}" for u in range(4)])
++
++    def test_physical_starts_fall_logical_ones_do_not(self):
++        for (size, workers, _), got in self.runs.items():
++            summary = got.telemetry["paid_summary"]
++            self.assertEqual(summary["actor_starts"], 4)
++            self.assertEqual(summary["physical_actor_starts"], math.ceil(4 / size))
++            self.assertEqual(len(got.client.kinds("start")), math.ceil(4 / size))
++            self.assertEqual(summary["schema"], "search-v2c3.1")
++            self.assertEqual(compaction(got)["logical_sends"], 4)
++            self.assertEqual(compaction(got)["physical_sends"], math.ceil(4 / size))
++            self.assertLessEqual(got.client.peak[LINKEDIN], workers)
++
++
++# ===========================================================================
++# Checkpoints, crashes, resume — per LOGICAL search
++# ===========================================================================
++class Checkpoints(unittest.TestCase):
++    """Two searches in one start. The transaction stays per search — rows →
++    checkpoint → done marker — so a crash anywhere leaves no search marked
++    done without its rows, and a rerun buys only what is not done."""
++
++    def crash(self, patches, scripts=None, out=None):
++        out = out or tempfile.mkdtemp()
++        self.addCleanup(shutil.rmtree, out, True)
++        got = c3_sweep(scripts or [Script(solo(u)) for u in range(2)], batch=2,
++                       workers=2, keywords=KW[:2], out=out, account=[1.0, 1.06],
++                       patches=patches)
++        self.assertIsInstance(got.error, c2.Crash)
++        c2.Checkpoints.assertDurable(self, got)
++        return got, out
++
++    def write_crash(self, n, torn=False):
++        real, calls = scraper.write_outputs, []
++
++        def write(out_rows, csv_path, json_path):
++            calls.append(1)
++            if len(calls) == n:
++                if not torn:
++                    raise c2.Crash("before this checkpoint")
++
++                def tear(src, dst):
++                    raise c2.Crash("halfway through the checkpoint")
++                with mock.patch.object(scraper.os, "replace", tear):
++                    return real(out_rows, csv_path, json_path)
++            return real(out_rows, csv_path, json_path)
++        return [mock.patch.object(scraper, "write_outputs", write)]
++
++    def test_1_crash_before_the_batched_start(self):
++        def boom(*a, **kw):
++            raise c2.Crash("before the start")
++        got, _ = self.crash([mock.patch.object(scraper, "_run_to_terminal", boom)])
++        self.assertEqual(got.client.kinds("start"), [])
++        self.assertEqual(got.done, [])
++
++    def test_2_crash_after_the_start_before_the_result(self):
++        scripts = [Script(solo(0)), Script(solo(1))]
++        scripts[1].crash_on_poll = True
++        got, _ = self.crash([], scripts=scripts)
++        self.assertEqual(len(got.client.kinds("start")), 1)
++        self.assertEqual(got.done, [])
++        self.assertIsNone(got.csv)
++
++    def test_3_crash_after_the_result_before_any_search_is_integrated(self):
++        real, reads = scraper.account_usage_usd, []
++
++        def read(client):
++            reads.append(1)
++            if len(reads) == 2:             # the first is the sweep's baseline
++                raise c2.Crash("reading the account for the batch's first search")
++            return real(client)
++        got, _ = self.crash([mock.patch.object(scraper, "account_usage_usd", read)])
++        self.assertEqual(len(got.client.kinds("dataset")), 1)       # the result was in
++        self.assertEqual(got.done, [])
++        self.assertIsNone(got.csv)
++
++    def test_4_crash_after_the_first_searchs_marker(self):
++        """Mutation H's test: marked done only after its own checkpoint."""
++        got, _ = self.crash(self.write_crash(2))
++        self.assertEqual(got.done, [f"{TODAY}|linkedin|{KW[0]}|Bengaluru|"])
++        self.assertEqual(set(labels(got)), {label(0)})
++
++    def test_5_crash_while_the_second_checkpoint_writes(self):
++        got, _ = self.crash(self.write_crash(2, torn=True))
++        self.assertEqual(got.done, [f"{TODAY}|linkedin|{KW[0]}|Bengaluru|"])
++        self.assertEqual(set(labels(got)), {label(0)})              # the previous one, whole
++
++    def test_6_9_10_resume_buys_only_the_undone_search(self):
++        got, out = self.crash(self.write_crash(2))
++        for path in Path(out).glob("jobs_*"):
++            os.replace(path, str(path).replace("jobs_", "jobs_run1_"))
++        again = c3_sweep([Script(solo(u)) for u in range(2)], batch=2, keywords=KW[:2],
++                         out=out, account=[2.0, 2.03])
++        self.assertIsNone(again.error)
++        self.assertEqual(urls_started(again), [[1]])                # never paid_000 again
++        self.assertEqual(again.status(), ["skipped_done", "completed"])
++        self.assertEqual(sorted(again.done), sorted(
++            f"{TODAY}|linkedin|{KW[u]}|Bengaluru|" for u in range(2)))
++
++    def test_8_no_done_search_ever_lacks_its_rows(self):
++        for n in (1, 2, 3):
++            for torn in (False, True):
++                with self.subTest(write=n, torn=torn):
++                    out = tempfile.mkdtemp()
++                    self.addCleanup(shutil.rmtree, out, True)
++                    got = c3_sweep([Script(solo(u)) for u in range(4)], batch=2,
++                                   workers=2, keywords=KW[:4], out=out,
++                                   account=[1.0, 1.06, 1.12],
++                                   patches=self.write_crash(n, torn))
++                    self.assertIsInstance(got.error, c2.Crash)
++                    c2.Checkpoints.assertDurable(self, got)
++                    self.assertEqual(len(got.done), n - 1)
++
++
++# ===========================================================================
++# Telemetry: physical beside logical, each counted once
++# ===========================================================================
++class Telemetry(unittest.TestCase):
++
++    @classmethod
++    def setUpClass(cls):
++        scripts = [Script(solo(u), usage=0.03, polls=2) for u in range(4)]
++        cls.got = c3_sweep(scripts, batch=2, workers=2, keywords=KW[:4],
++                           account=[1.0, 1.06, 1.12])
++        cls.c2 = c3_sweep(scripts, batch=None, workers=2, keywords=KW[:4],
++                          account=[1.0, 1.03, 1.06, 1.09, 1.12])
++
++    def test_every_search_references_the_one_start_it_was_bought_in(self):
++        units = by_unit(self.got)
++        self.assertEqual(list(units), [f"paid_00{u}" for u in range(4)])
++        self.assertEqual([(u["batch_id"], u["actor_run_id"]) for u in units.values()],
++                         [("batch_000", "run_1"), ("batch_000", "run_1"),
++                          ("batch_001", "run_3"), ("batch_001", "run_3")])
++        for u in units.values():
++            for physical in ("start_ms", "wait_ms", "poll_count", "dataset_ms",
++                             "cost_observations", "reported_cost_usd",
++                             "max_total_charge_usd", "provider_ceiling_usd",
++                             "charged_events", "billed_delta_usd"):
++                self.assertNotIn(physical, u)
++        runs = self.got.telemetry["paid_batches"]
++        self.assertEqual([(b["batch_id"], b["actor_run_id"], b["members"]) for b in runs],
++                         [("batch_000", "run_1", ["paid_000", "paid_001"]),
++                          ("batch_001", "run_3", ["paid_002", "paid_003"])])
++        self.assertEqual([b["provider_ceiling_usd"] for b in runs], [0.092, 0.092])
++        self.assertEqual([b["rows_by_member"] for b in compaction(self.got)["batches"]],
++                         [{"paid_000": 2, "paid_001": 2}, {"paid_002": 2, "paid_003": 2}])
++
++    def test_cost_is_counted_once(self):
++        """Mutation F's test: the run's reading is the run's."""
++        observed = self.got.telemetry["paid_summary"]["cost_observed"]
++        self.assertEqual(observed["run_record_at_completion"],
++                         {"usd": 0.12, "units": 2, "final": False})
++        self.assertEqual(observed["account_usage_delta"]["usd"], 0.12)
++        self.assertEqual(self.c2.telemetry["paid_summary"]["cost_observed"]
++                         ["run_record_at_completion"]["usd"], 0.12)
++        section = json.dumps(self.got.execution)
++        for word in ("spent", "actual", "cost_usd"):
++            self.assertNotIn(word, section)
++
++    def test_exposure_is_counted_once(self):
++        ex = self.got.execution["exposure"]
++        self.assertEqual((ex["committed_usd"], ex["committed_starts"]), ("0.184", 2))
++        self.assertEqual(self.c2.execution["exposure"]["committed_usd"], "0.184")
++
++    def test_physical_and_logical_counts_side_by_side(self):
++        s = self.got.telemetry["paid_summary"]
++        self.assertEqual((s["planned"], s["completed"], s["actor_starts"],
++                          s["physical_actor_starts"]), (4, 4, 4, 2))
++        p = s["by_provider"]["linkedin"]
++        self.assertEqual((p["actor_starts"], p["physical_actor_starts"]), (4, 2))
++        self.assertEqual(p["wait_ms"], sum(b["wait_ms"]
++                                           for b in self.got.telemetry["paid_batches"]))
++
++    def test_request_counts(self):
++        mine = Counter(c[0] for c in self.got.client.calls)
++        theirs = Counter(c[0] for c in self.c2.client.calls)
++        self.assertEqual((mine["start"], theirs["start"]), (2, 4))
++        self.assertEqual((mine["dataset"], theirs["dataset"]), (2, 4))
++        self.assertEqual((mine["limits"], theirs["limits"]), (1 + 2, 1 + 4))
++        self.assertEqual((mine["get"], theirs["get"]), (2 * 2, 4 * 2))
++
++    def test_telemetry_adds_no_request(self):
++        scripts = [Script(solo(u), polls=2) for u in range(4)]
++        on = c3_sweep(scripts, batch=2, workers=1, keywords=KW[:4], account=[1.0, 1.1])
++        off = c3_sweep(scripts, batch=2, workers=1, keywords=KW[:4], account=[1.0, 1.1],
++                       on=False)
++        self.assertEqual(on.client.calls, off.client.calls)
++        self.assertEqual((on.csv, on.json), (off.csv, off.json))
++        self.assertIsNone(off.telemetry)
++
++    def test_no_url_query_or_token_in_the_new_sections(self):
++        """Mutation P's test."""
++        items = [c1.li("MARKERURL1", "Full Stack Engineer", "MARKERCO", c1.RICH + " MARKERJD")]
++        got = c3_sweep([Script(items), Script(solo(1))], batch=2,
++                       keywords=("QUERYMARKER Engineer", KW[1]))
++        section = (json.dumps(got.execution) + json.dumps(got.telemetry["paid_summary"])
++                   + json.dumps(got.telemetry["paid_batches"]))
++        for marker in ("MARKERURL", "MARKERCO", "MARKERJD", "QUERYMARKER", TOKEN,
++                       "linkedin.com", "Bengaluru", "inputUrl", "keywords="):
++            self.assertNotIn(marker, section)
++        self.assertNotIn(TOKEN, got.telemetry_text)
++        for body in (got.csv, got.json, got.seen):
++            self.assertNotIn(b"inputUrl", body)
++
++    def test_the_section_is_bounded_and_known(self):
++        c = compaction(self.got)
++        self.assertEqual(set(c), {"batch_size", "physical_sends", "logical_sends",
++                                  "batches"})
++        self.assertEqual(c["batch_size"], {"linkedin": 2})
++        for b in c["batches"]:
++            self.assertEqual(set(b), {
++                "batch_id", "provider", "members", "size", "reservation", "reserved_usd",
++                "reserved_at", "committed_at", "released_at", "status", "failure_type",
++                "rows_by_member", "execution_ms", "sdk"})
++        for run in self.got.telemetry["paid_batches"]:
++            self.assertLessEqual(set(run) - {"batch_id", "provider", "members"},
++                                 set(scraper.BATCH_RUN_FIELDS))
++        self.assertEqual(self.c2.telemetry.get("paid_batches"), None)
++
++
++# ===========================================================================
++# The probe: still behind C0, and one run counted once
++# ===========================================================================
++class Probe(unittest.TestCase):
++
++    def args(self, **over):
++        return SimpleNamespace(**{**dict(
++            site="linkedin", searches=2, keywords="Backend Developer,Full Stack Developer",
++            location="India", case=None, scope="india", allow_paid=False,
++            max_usd="0.37", exposed_usd="0.276", ledger=str(probe.LEDGER),
++            paid_workers=1, sweep_budget=None, batch_size=None), **over})
++
++    def test_the_mode_is_the_probes_to_set_never_a_key(self):
++        shell = {scraper.PAID_COMPACTION_FLAG: "1", LI_SIZE: "4", paid_guard.FLAG: None}
++        with b3._env(**shell):
++            off = probe.child_env(self.args(), "p")
++            on = probe.child_env(self.args(batch_size=2), "p")
++        self.assertNotIn(scraper.PAID_COMPACTION_FLAG, off)
++        self.assertNotIn(LI_SIZE, off)
++        self.assertEqual((on[scraper.PAID_COMPACTION_FLAG], on[LI_SIZE]), ("1", "2"))
++        for env in (off, on):
++            self.assertNotIn(paid_guard.FLAG, env)
++        self.assertEqual(probe.guard_argv(self.args(), "p"),
++                         probe.guard_argv(self.args(batch_size=2), "p"))
++
++    def test_one_shared_run_is_one_run_to_read_and_to_count(self):
++        units = [{"unit_id": u, "charge_ceiling_usd": "0.046",
++                  "execution": {"actor_run_id": "R1", "batch_id": "batch_000"}}
++                 for u in ("paid_000", "paid_001")] + [
++                 {"unit_id": "paid_002", "charge_ceiling_usd": "0.046",
++                  "execution": {"actor_run_id": "R2"}}]
++        runs = probe.physical_runs(units)
++        self.assertEqual(runs, [("R1", ["paid_000", "paid_001"]), ("R2", ["paid_002"])])
++        self.assertEqual(probe.run_ceiling(units, runs[0][1]), Decimal("0.092"))
++
++
++class Isolation(unittest.TestCase):
++
++    def test_production_code_reads_no_ledger_and_no_developer_key(self):
++        text = (ROOT / "scraper.py").read_text(encoding="utf-8")
++        for word in ("paid-research-ledger", "SWEEP_ALLOW_PAID_BENCH", "paid_guard"):
++            self.assertNotIn(word, text)
++
++    def test_the_benchmark_cannot_reach_a_real_client(self):
++        source = (ROOT / "bench" / "search_v2_paid_compaction.py").read_text()
++        for banned in ("apify_client import", "_require_token(", "engine_argv(",
++                       "APIFY_TOKEN\"", "load_dotenv"):
++            self.assertNotIn(banned, source)
++
++
++if __name__ == "__main__":
++    unittest.main()
