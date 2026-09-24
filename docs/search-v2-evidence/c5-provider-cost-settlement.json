@@ -1,0 +1,1439 @@
+{
+  "status": "MEASURED: free run and account reads after the run (the probe)",
+  "runs": [
+    {
+      "unit_id": "paid_000",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "2lewL9ksbJr4wayfM",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1279.373,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_001",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "bBDUAnYaWhqsfBjCV",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1261.723,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_002",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "PVLuaD44bXbXvT4zN",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.00605,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1250.883,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_003",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "kw47Q3XUF63hDQbbL",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1232.612,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_004",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "LhwN7gXh0v1fLjpcW",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 5e-05,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1232.147,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_005",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "zALJHx7N6t7uBCcEL",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.01005,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1210.602,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_006",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "NEzfccaQbe9OALOwd",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1196.472,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_007",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "BNXIE2WiPgyCvjK9w",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1173.574,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_008",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "Ja63gpOD8q3EwWGLe",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 5e-05,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1139.749,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_009",
+      "provider": "linkedin",
+      "account": "account_002",
+      "run_id": "f46Ivon9yI5Cbj5ZQ",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1144.093,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_010",
+      "provider": "linkedin",
+      "account": "account_003",
+      "run_id": "H25C8cHX3FOcbzv02",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1096.897,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_011",
+      "provider": "linkedin",
+      "account": "account_003",
+      "run_id": "clnZn3xdCagkxLFDe",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1088.199,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_012",
+      "provider": "linkedin",
+      "account": "account_003",
+      "run_id": "hTZCBV0tmHG4jTWuP",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02005,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1071.333,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_013",
+      "provider": "linkedin",
+      "account": "account_003",
+      "run_id": "eRIECLayYWEasJdI2",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1049.685,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_014",
+      "provider": "linkedin",
+      "account": "account_003",
+      "run_id": "frMHDj5Z3lNqXmHet",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1035.979,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_015",
+      "provider": "linkedin",
+      "account": "account_003",
+      "run_id": "fYbHGPAVko1W6veR4",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 969.319,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_016",
+      "provider": "linkedin",
+      "account": "account_000",
+      "run_id": "eegs09pGUpyefaCFl",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 5e-05,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 1014.301,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_017",
+      "provider": "linkedin",
+      "account": "account_000",
+      "run_id": "d50tUqZlNia00cb69",
+      "ceiling_usd": "0.046",
+      "provider_ceiling_usd": 0.046,
+      "terminal_provisional_usd": 0.02805,
+      "settled_usd": 0.03005,
+      "settled_final": true,
+      "s_to_settle": 968.778,
+      "charged_events": {
+        "apify-default-dataset-item": 15,
+        "apify-actor-start": 1
+      }
+    },
+    {
+      "unit_id": "paid_018",
+      "provider": "indeed",
+      "account": "account_003",
+      "run_id": "y9CAxLd596ERgfbGs",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 957.479,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_019",
+      "provider": "indeed",
+      "account": "account_003",
+      "run_id": "B7i2oQjlrVXTLOxcQ",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 958.829,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_020",
+      "provider": "indeed",
+      "account": "account_003",
+      "run_id": "Rr1Qafc5TgUp1zIPW",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.09,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 951.854,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_021",
+      "provider": "indeed",
+      "account": "account_003",
+      "run_id": "ukDFcx9HnzBEgKOtR",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 925.83,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_022",
+      "provider": "indeed",
+      "account": "account_003",
+      "run_id": "BoZcclFqOGFpdxeOu",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 924.539,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_023",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "J52N4YeSLoMcLa4vY",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 918.849,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_024",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "yL18hKbyNpDef9cJG",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 907.905,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_025",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "4d9yRKhY3C4ZtkYaF",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 908.504,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_026",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "uZ1JCaB4hVRA0EiUq",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 899.753,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_027",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "YF68fK3XduTYeZFL4",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 899.365,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_028",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "2PjxlgG9tXzvHlFtF",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 892.337,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_029",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "xhVnoHcUHm5EdbgeE",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.03,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 889.349,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_030",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "kGJFIs2odrPFETn05",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 885.147,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_031",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "83SvtwXTuRuBvkEiR",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 877.948,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_032",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "KrFM7OmW1WsvIEcna",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 878.015,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_033",
+      "provider": "indeed",
+      "account": "account_005",
+      "run_id": "TLzB3s5fTq0hlTBrl",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 860.587,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_034",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "LTPh0LQEKAqKXwgtN",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.078,
+      "settled_final": true,
+      "s_to_settle": 870.259,
+      "charged_events": {
+        "result": 13
+      }
+    },
+    {
+      "unit_id": "paid_035",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "MWsMibIDeuRATaNfl",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.036,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 863.011,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_036",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "wtN9Lnyu74pRCX5xg",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 855.616,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_037",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "oP6rsrFhG0F3oCcI9",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 849.882,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_038",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "4aHJ5GohTq1OJW9XJ",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 848.545,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_039",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "NGJ5LKNdbdFXtrGth",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.07200000000000001,
+      "settled_final": true,
+      "s_to_settle": 843.578,
+      "charged_events": {
+        "result": 12
+      }
+    },
+    {
+      "unit_id": "paid_040",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "FKZdaMOuNsmL3aqEH",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 838.999,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_041",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "u5kx5ae1nTEoHRyDB",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.06,
+      "settled_final": true,
+      "s_to_settle": 836.161,
+      "charged_events": {
+        "result": 10
+      }
+    },
+    {
+      "unit_id": "paid_042",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "Y1eOrMwsuW17YZgmG",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 829.335,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_043",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "Ph2iY4ax1aF7ScdMO",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 827.388,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_044",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "FEXkjvmQIta3NnE7d",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 813.135,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_045",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "trUpmVMAQLMOsJdIB",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 812.013,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_046",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "ZGG79M2C463YqCbpJ",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.09,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 796.398,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_047",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "j9LXxXqaFpxd98fmI",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.09,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 788.411,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_048",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "IXMdfhwhKb9QORsVI",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 775.903,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_049",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "BsKAHxI3Vhl0S1y9l",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 777.63,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_050",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "qodfaxPbctog8pMGf",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 756.964,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_051",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "CLh0kHWd7H511REsk",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 759.336,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_052",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "KqRxIrpb5AdY87bFT",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 747.321,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_053",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "xJul2mAofnXvVgDng",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 734.271,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_054",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "PWN8Jg0I3BmogzTGE",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 738.29,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_055",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "mIpt9VoJnMyRHODrU",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 730.993,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_056",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "6fHPotnTOz7wScAOp",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 724.398,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_057",
+      "provider": "indeed",
+      "account": "account_000",
+      "run_id": "OBAaEbMfTbUwSZoma",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 722.306,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_058",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "fXXTRlkU0xm8BCyWB",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 718.934,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_059",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "ujTh18Y0nQmIUAzcw",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 716.138,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_060",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "TRI0c6njjONjx4yd2",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 711.762,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_061",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "oPTVovgih3WJeFZDY",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 708.724,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_062",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "ReozlUbwA8eJvaVDs",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 703.162,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_063",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "yM0orE4HrpwqT1nOa",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 700.843,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_064",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "v7Tjt3g3wCltZF9tu",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 696.097,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_065",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "85WJjw6hPNLSf2Mpm",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 692.713,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_066",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "fzSmg20ZcHFV2FkMi",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 687.331,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_067",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "be4oBGA4YM6NoHFo5",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 683.78,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_068",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "SpRi6uqTzKRacbb9g",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 680.247,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_069",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "EQKy9ouBpQ5PjoTVG",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 676.529,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_070",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "9UM5nsf8Maz69gNB6",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 672.973,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_071",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "v3Pa7CxekVKQ2KNj9",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 667.613,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_072",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "k4nW6tGXpcDKsJTVg",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 664.925,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_073",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "KNAaWeOQf8lo7cxYc",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 659.261,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_074",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "W00MdlJOip1UKoaCg",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 655.766,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_075",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "DZzEVWmKkVuclGw7Z",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 650.529,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_076",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "KACuOnq8nyO4Wkfzk",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 648.826,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_077",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "Sf3cYkiFNbFMHMIxa",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 642.096,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_078",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "2fF6LRvKfcnJJvF9I",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 642.427,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_079",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "AuyyBWx3P4ocblAgc",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 635.834,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_080",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "Ef8uFaEBFNcbtUeBw",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 635.377,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_081",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "nOxxzj3V3ZcKG1SYN",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 628.206,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_082",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "fwydGV40Ec59tGuEh",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 628.081,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_083",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "iux5ExABgxXQD4zHu",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 619.729,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_084",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "885KOeGnjl4Rf3e7R",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 618.965,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_085",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "TtzpXqw3Yh4qudJqj",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 612.224,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_086",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "s83QUyeNmsBMnUIEv",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 612.834,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_087",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "uszSdwhpLE9naFZR6",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 604.507,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_088",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "cF27m8nM1BQkU7Biy",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 598.518,
+      "charged_events": {
+        "result": 15
+      }
+    },
+    {
+      "unit_id": "paid_089",
+      "provider": "indeed",
+      "account": "account_006",
+      "run_id": "wtt8nIt8ROmbdvLPA",
+      "ceiling_usd": "0.135",
+      "provider_ceiling_usd": 0.135,
+      "terminal_provisional_usd": 0.0,
+      "settled_usd": 0.09,
+      "settled_final": true,
+      "s_to_settle": 593.083,
+      "charged_events": {
+        "result": 15
+      }
+    }
+  ],
+  "settled_usd_by_provider": {
+    "indeed": 6.42,
+    "linkedin": 0.5409
+  },
+  "settled_usd_total": 6.9609,
+  "unsettled_runs": [],
+  "time_to_settle_s": {
+    "n": 90,
+    "min": 593.083,
+    "median": 812.574,
+    "p95": 1232.147,
+    "max": 1279.373
+  },
+  "ceiling_mismatch": [],
+  "accounts": [
+    {
+      "account": "APIFY_TOKEN_6",
+      "settled_runs_usd": 0.99,
+      "covered_s_after_last_finish": 593.387,
+      "residual_usd_at_end": 0.000185,
+      "delta_usd_at_end": 0.990185
+    },
+    {
+      "account": "APIFY_TOKEN",
+      "settled_runs_usd": 2.1601,
+      "covered_s_after_last_finish": 593.702,
+      "residual_usd_at_end": 0.000383,
+      "delta_usd_at_end": 2.160483
+    },
+    {
+      "account": "APIFY_TOKEN_3",
+      "settled_runs_usd": 0.3005,
+      "covered_s_after_last_finish": 594.007,
+      "residual_usd_at_end": 0.000183,
+      "delta_usd_at_end": 0.300683
+    },
+    {
+      "account": "APIFY_TOKEN_7",
+      "settled_runs_usd": 2.88,
+      "covered_s_after_last_finish": 594.321,
+      "residual_usd_at_end": 0.000463,
+      "delta_usd_at_end": 2.880463
+    },
+    {
+      "account": "APIFY_TOKEN_4",
+      "settled_runs_usd": 0.6303,
+      "covered_s_after_last_finish": 594.615,
+      "residual_usd_at_end": 0.000193,
+      "delta_usd_at_end": 0.630493
+    }
+  ],
+  "provider_runs_listed": {
+    "APIFY_TOKEN": 26,
+    "APIFY_TOKEN_2": 0,
+    "APIFY_TOKEN_3": 10,
+    "APIFY_TOKEN_4": 11,
+    "APIFY_TOKEN_5": 0,
+    "APIFY_TOKEN_6": 11,
+    "APIFY_TOKEN_7": 32
+  },
+  "unexpected_runs": [],
+  "anomalies": [
+    "paid_034: returned 13 rows for depth 15",
+    "paid_039: returned 12 rows for depth 15",
+    "paid_041: returned 10 rows for depth 15"
+  ]
+}

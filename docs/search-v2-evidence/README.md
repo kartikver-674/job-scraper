@@ -302,6 +302,24 @@ Added by V2-C4.5 (2026-09-24),
 - `c45-c5-preflight-after-canary.json` (ZERO PAID): C5's preflight on the
   accounts' real capacity, no clamp: 90/90 placed, ready for C5 review.
 
+Added by V2-C5 (2026-09-24),
+[integrated validation](../search-engine-v2-c5-integrated-validation.md) — ONE
+paid Sweep of the default plan at `8c430ae` ($10.548 intended, $6.9609 settled):
+
+- `c5-preflight.json` (the operator's) and `c5-preflight-immediate.json` (ZERO
+  PAID): the account-pool preflight before the run; 90/90 placed.
+- `c5-integrated-run.json` (PAID): the probe's record of the run — every unit's
+  execution, cost convergence, per-account deltas and run listings. Each run's
+  actor input is fingerprinted (it holds the query and search URL).
+- `c5-final-summary.json`: OFFLINE analysis of the kept run — accounting,
+  allocation, reservations, concurrency, polling delay, funnels, contribution,
+  top-K by class, output checks. `bench/search_v2_c5_analysis.py`.
+- `c5-provider-cost-settlement.json`: per run ceiling, provisional and settled
+  cost; per provider and per account totals and residuals.
+- `c5-adaptive-analysis.json`: every frozen C4 policy's decisions, savings and
+  losses, the structural pairs, LinkedIn depth by provider position, and the
+  section's size.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

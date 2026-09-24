@@ -1,0 +1,4313 @@
+{
+  "status": "MEASURED: the one integrated C5 run, analysed offline",
+  "code_revision": "8c430ae1d1b5576fa6402ff9c37b0f0cd90bdd45-dirty",
+  "exit": 0,
+  "wall_s_probe": 1318.36,
+  "sweep_duration_ms": 1318003,
+  "milestones_ms": {
+    "paid_phase_start": 0,
+    "first_raw": 47703,
+    "first_eligible": 62925,
+    "first_5_eligible": 62925,
+    "first_20_eligible": 150166,
+    "paid_phase_done": 760603,
+    "free_phase_start": 760603,
+    "free_phase_done": 1288424,
+    "results_ready": 1307853
+  },
+  "post_result_ms": 10150,
+  "segments": [
+    {
+      "provider": "linkedin",
+      "bounded": true,
+      "workers": 2,
+      "searches": 18,
+      "sent": 18,
+      "wall_ms": 348248
+    },
+    {
+      "provider": "indeed",
+      "bounded": true,
+      "workers": 2,
+      "searches": 72,
+      "sent": 72,
+      "wall_ms": 398244
+    }
+  ],
+  "checkpoint": {
+    "passes": 90,
+    "wall_ms": 8072,
+    "cpu_ms": 7963
+  },
+  "paid_phase_ms": 760603,
+  "accounting": {
+    "indeed": {
+      "planned": 72,
+      "attempted": 72,
+      "provider_starts": 72,
+      "succeeded": 72,
+      "failed": 0,
+      "skipped_done": 0,
+      "blocked_budget": 0,
+      "skipped_account": 0
+    },
+    "linkedin": {
+      "planned": 18,
+      "attempted": 18,
+      "provider_starts": 18,
+      "succeeded": 18,
+      "failed": 0,
+      "skipped_done": 0,
+      "blocked_budget": 0,
+      "skipped_account": 0
+    }
+  },
+  "allocation": {
+    "account_000": {
+      "projected": {
+        "linkedin": 2,
+        "indeed": 24
+      },
+      "actual": {
+        "linkedin": 2,
+        "indeed": 24
+      },
+      "match": true
+    },
+    "account_001": {
+      "projected": {},
+      "actual": {},
+      "match": true
+    },
+    "account_002": {
+      "projected": {
+        "linkedin": 10
+      },
+      "actual": {
+        "linkedin": 10
+      },
+      "match": true
+    },
+    "account_003": {
+      "projected": {
+        "linkedin": 6,
+        "indeed": 5
+      },
+      "actual": {
+        "linkedin": 6,
+        "indeed": 5
+      },
+      "match": true
+    },
+    "account_004": {
+      "projected": {},
+      "actual": {},
+      "match": true
+    },
+    "account_005": {
+      "projected": {
+        "indeed": 11
+      },
+      "actual": {
+        "indeed": 11
+      },
+      "match": true
+    },
+    "account_006": {
+      "projected": {
+        "indeed": 32
+      },
+      "actual": {
+        "indeed": 32
+      },
+      "match": true
+    }
+  },
+  "reservations": {
+    "global": {
+      "budget_usd": "10.55",
+      "committed_usd": "10.548",
+      "pending_usd": "0.000",
+      "pending_peak_usd": "0.270",
+      "unbounded_observed_usd": "0",
+      "observed_usd": "5.919733",
+      "view_usd": "10.548",
+      "committed_starts": 90,
+      "released_before_network": 0,
+      "blocked": 0
+    },
+    "committed_progression_monotonic": true,
+    "final_committed_usd": 10.548,
+    "reserve_before_commit": true,
+    "committed_after_provider_start (engine vs provider clock)": [],
+    "per_account": {
+      "account_000": {
+        "real_capacity_usd": "3.367",
+        "effective_capacity_usd": "3.367",
+        "projected_usd": "3.332",
+        "committed_usd": "3.332",
+        "pending_peak_usd": "0.135",
+        "remaining_usd": "0.035",
+        "starts": 26,
+        "failures": 0,
+        "peak_in_flight": 2,
+        "peak_memory_mb": 8192,
+        "runtime_held_unknown": 0
+      },
+      "account_001": {
+        "real_capacity_usd": "0.011",
+        "effective_capacity_usd": "0.011",
+        "projected_usd": "0",
+        "committed_usd": "0",
+        "pending_peak_usd": "0",
+        "remaining_usd": "0.011",
+        "starts": 0,
+        "failures": 0,
+        "peak_in_flight": 0,
+        "peak_memory_mb": 0,
+        "runtime_held_unknown": 0
+      },
+      "account_002": {
+        "real_capacity_usd": "0.469",
+        "effective_capacity_usd": "0.469",
+        "projected_usd": "0.460",
+        "committed_usd": "0.460",
+        "pending_peak_usd": "0.092",
+        "remaining_usd": "0.009",
+        "starts": 10,
+        "failures": 0,
+        "peak_in_flight": 2,
+        "peak_memory_mb": 1024,
+        "runtime_held_unknown": 0
+      },
+      "account_003": {
+        "real_capacity_usd": "0.983",
+        "effective_capacity_usd": "0.983",
+        "projected_usd": "0.951",
+        "committed_usd": "0.951",
+        "pending_peak_usd": "0.270",
+        "remaining_usd": "0.032",
+        "starts": 11,
+        "failures": 0,
+        "peak_in_flight": 2,
+        "peak_memory_mb": 8192,
+        "runtime_held_unknown": 0
+      },
+      "account_004": {
+        "real_capacity_usd": "4.989",
+        "effective_capacity_usd": "4.989",
+        "projected_usd": "0",
+        "committed_usd": "0",
+        "pending_peak_usd": "0",
+        "remaining_usd": "4.989",
+        "starts": 0,
+        "failures": 0,
+        "peak_in_flight": 0,
+        "peak_memory_mb": 0,
+        "runtime_held_unknown": 0
+      },
+      "account_005": {
+        "real_capacity_usd": "1.525",
+        "effective_capacity_usd": "1.525",
+        "projected_usd": "1.485",
+        "committed_usd": "1.485",
+        "pending_peak_usd": "0.135",
+        "remaining_usd": "0.040",
+        "starts": 11,
+        "failures": 0,
+        "peak_in_flight": 2,
+        "peak_memory_mb": 8192,
+        "runtime_held_unknown": 0
+      },
+      "account_006": {
+        "real_capacity_usd": "4.550",
+        "effective_capacity_usd": "4.550",
+        "projected_usd": "4.320",
+        "committed_usd": "4.320",
+        "pending_peak_usd": "0.135",
+        "remaining_usd": "0.230",
+        "starts": 32,
+        "failures": 0,
+        "peak_in_flight": 2,
+        "peak_memory_mb": 8192,
+        "runtime_held_unknown": 0
+      }
+    },
+    "accounts_used": 5,
+    "account_switches": 6,
+    "released_before_network": 0,
+    "blocked": 0
+  },
+  "concurrency": {
+    "indeed": {
+      "workers": 2,
+      "segment_wall_ms": 398244,
+      "provider_clocks": {
+        "peak_concurrent": 2,
+        "runs": 72,
+        "run_seconds_total": 353.133,
+        "segment_seconds": 394.11
+      },
+      "start_times_utc": [
+        "16:18:00.060",
+        "16:18:00.109",
+        "16:18:07.396",
+        "16:18:34.209",
+        "16:18:34.928",
+        "16:18:42.290",
+        "16:18:43.640",
+        "16:18:53.758",
+        "16:19:01.698",
+        "16:19:02.924",
+        "16:19:11.012",
+        "16:19:12.316",
+        "16:19:19.156",
+        "16:19:25.557",
+        "16:19:27.129",
+        "16:19:33.466",
+        "16:19:35.195",
+        "16:19:43.041",
+        "16:19:50.256",
+        "16:19:56.322",
+        "16:19:58.674",
+        "16:20:03.958",
+        "16:20:08.288",
+        "16:20:11.574",
+        "16:20:18.789",
+        "16:20:20.762",
+        "16:20:34.382",
+        "16:20:36.160",
+        "16:20:52.625",
+        "16:20:56.763",
+        "16:21:12.610",
+        "16:21:13.451",
+        "16:21:31.549",
+        "16:21:32.270",
+        "16:21:43.858",
+        "16:21:46.430",
+        "16:21:51.955",
+        "16:22:01.224",
+        "16:22:06.520",
+        "16:22:09.465",
+        "16:22:14.138",
+        "16:22:17.682",
+        "16:22:22.880",
+        "16:22:25.396",
+        "16:22:30.963",
+        "16:22:33.159",
+        "16:22:39.158",
+        "16:22:42.524",
+        "16:22:47.098",
+        "16:22:51.475",
+        "16:22:55.222",
+        "16:22:59.567",
+        "16:23:03.483",
+        "16:23:08.350",
+        "16:23:11.274",
+        "16:23:17.185",
+        "16:23:21.805",
+        "16:23:27.725",
+        "16:23:29.543",
+        "16:23:36.570",
+        "16:23:37.173",
+        "16:23:44.179",
+        "16:23:45.160",
+        "16:23:51.752",
+        "16:23:52.827",
+        "16:24:00.429",
+        "16:24:01.131",
+        "16:24:08.908",
+        "16:24:09.324",
+        "16:24:17.491",
+        "16:24:18.332",
+        "16:24:29.599"
+      ],
+      "unit_wall_s": {
+        "n": 72,
+        "min": 7.462,
+        "median": 8.861,
+        "p95": 21.228,
+        "max": 33.114
+      },
+      "provider_runtime_s": {
+        "n": 72,
+        "min": 3.105,
+        "median": 4.125,
+        "p95": 8.134,
+        "max": 14.922
+      },
+      "buffered_units": 50,
+      "buffered_wait_ms": {
+        "n": 72,
+        "min": 0,
+        "median": 1.0,
+        "p95": 2150,
+        "max": 25366
+      },
+      "sdk": {
+        "calls": 298,
+        "requests": 301,
+        "rate_limit_errors": 0
+      },
+      "sdk_retries": 3,
+      "http_429": 0,
+      "poll_detection_delay_s": {
+        "n": 72,
+        "min": 0.229,
+        "median": 1.68,
+        "p95": 4.526,
+        "max": 19.439
+      }
+    },
+    "linkedin": {
+      "workers": 2,
+      "segment_wall_ms": 348248,
+      "provider_clocks": {
+        "peak_concurrent": 2,
+        "runs": 18,
+        "run_seconds_total": 576.592,
+        "segment_seconds": 342.215
+      },
+      "start_times_utc": [
+        "16:12:11.809",
+        "16:12:11.826",
+        "16:12:45.539",
+        "16:13:00.680",
+        "16:13:10.965",
+        "16:13:30.503",
+        "16:13:31.027",
+        "16:13:58.294",
+        "16:14:06.376",
+        "16:14:27.959",
+        "16:14:58.512",
+        "16:15:04.812",
+        "16:15:51.927",
+        "16:15:58.834",
+        "16:16:16.647",
+        "16:16:37.808",
+        "16:16:52.435",
+        "16:17:11.533"
+      ],
+      "unit_wall_s": {
+        "n": 18,
+        "min": 20.011,
+        "median": 36.37,
+        "p95": 65.263,
+        "max": 78.872
+      },
+      "provider_runtime_s": {
+        "n": 18,
+        "min": 13.939,
+        "median": 27.149,
+        "p95": 52.033,
+        "max": 73.734
+      },
+      "buffered_units": 13,
+      "buffered_wait_ms": {
+        "n": 18,
+        "min": 0,
+        "median": 1.0,
+        "p95": 6032,
+        "max": 45809
+      },
+      "sdk": {
+        "calls": 168,
+        "requests": 168,
+        "rate_limit_errors": 0
+      },
+      "sdk_retries": 0,
+      "http_429": 0,
+      "poll_detection_delay_s": {
+        "n": 18,
+        "min": 0.486,
+        "median": 2.419,
+        "p95": 5.062,
+        "max": 6.32
+      }
+    }
+  },
+  "per_account_concurrency": {
+    "account_000": {
+      "peak_concurrent": 2,
+      "runs": 26,
+      "run_seconds_total": 173.395,
+      "segment_seconds": 321.711
+    },
+    "account_002": {
+      "peak_concurrent": 2,
+      "runs": 10,
+      "run_seconds_total": 276.802,
+      "segment_seconds": 166.777
+    },
+    "account_003": {
+      "peak_concurrent": 2,
+      "runs": 11,
+      "run_seconds_total": 264.931,
+      "segment_seconds": 221.288
+    },
+    "account_005": {
+      "peak_concurrent": 2,
+      "runs": 11,
+      "run_seconds_total": 68.4,
+      "segment_seconds": 66.291
+    },
+    "account_006": {
+      "peak_concurrent": 2,
+      "runs": 32,
+      "run_seconds_total": 146.197,
+      "segment_seconds": 140.032
+    }
+  },
+  "no_batching": {
+    "one_search_per_start": true,
+    "starts": 90,
+    "per_run": [
+      {
+        "unit_id": "paid_000",
+        "run_id": "2lewL9ksbJr4wayfM",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_001",
+        "run_id": "bBDUAnYaWhqsfBjCV",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_002",
+        "run_id": "PVLuaD44bXbXvT4zN",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_003",
+        "run_id": "kw47Q3XUF63hDQbbL",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_004",
+        "run_id": "LhwN7gXh0v1fLjpcW",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_005",
+        "run_id": "zALJHx7N6t7uBCcEL",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_006",
+        "run_id": "NEzfccaQbe9OALOwd",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_007",
+        "run_id": "BNXIE2WiPgyCvjK9w",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_008",
+        "run_id": "Ja63gpOD8q3EwWGLe",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_009",
+        "run_id": "f46Ivon9yI5Cbj5ZQ",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_010",
+        "run_id": "H25C8cHX3FOcbzv02",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_011",
+        "run_id": "clnZn3xdCagkxLFDe",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_012",
+        "run_id": "hTZCBV0tmHG4jTWuP",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_013",
+        "run_id": "eRIECLayYWEasJdI2",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_014",
+        "run_id": "frMHDj5Z3lNqXmHet",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_015",
+        "run_id": "fYbHGPAVko1W6veR4",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_016",
+        "run_id": "eegs09pGUpyefaCFl",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_017",
+        "run_id": "d50tUqZlNia00cb69",
+        "linkedin_urls": 1,
+        "indeed_start_urls": null,
+        "indeed_positions": null
+      },
+      {
+        "unit_id": "paid_018",
+        "run_id": "y9CAxLd596ERgfbGs",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_019",
+        "run_id": "B7i2oQjlrVXTLOxcQ",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_020",
+        "run_id": "Rr1Qafc5TgUp1zIPW",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_021",
+        "run_id": "ukDFcx9HnzBEgKOtR",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_022",
+        "run_id": "BoZcclFqOGFpdxeOu",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_023",
+        "run_id": "J52N4YeSLoMcLa4vY",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_024",
+        "run_id": "yL18hKbyNpDef9cJG",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_025",
+        "run_id": "4d9yRKhY3C4ZtkYaF",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_026",
+        "run_id": "uZ1JCaB4hVRA0EiUq",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_027",
+        "run_id": "YF68fK3XduTYeZFL4",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_028",
+        "run_id": "2PjxlgG9tXzvHlFtF",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_029",
+        "run_id": "xhVnoHcUHm5EdbgeE",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_030",
+        "run_id": "kGJFIs2odrPFETn05",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_031",
+        "run_id": "83SvtwXTuRuBvkEiR",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_032",
+        "run_id": "KrFM7OmW1WsvIEcna",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_033",
+        "run_id": "TLzB3s5fTq0hlTBrl",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_034",
+        "run_id": "LTPh0LQEKAqKXwgtN",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_035",
+        "run_id": "MWsMibIDeuRATaNfl",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_036",
+        "run_id": "wtN9Lnyu74pRCX5xg",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_037",
+        "run_id": "oP6rsrFhG0F3oCcI9",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_038",
+        "run_id": "4aHJ5GohTq1OJW9XJ",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_039",
+        "run_id": "NGJ5LKNdbdFXtrGth",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_040",
+        "run_id": "FKZdaMOuNsmL3aqEH",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_041",
+        "run_id": "u5kx5ae1nTEoHRyDB",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_042",
+        "run_id": "Y1eOrMwsuW17YZgmG",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_043",
+        "run_id": "Ph2iY4ax1aF7ScdMO",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_044",
+        "run_id": "FEXkjvmQIta3NnE7d",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_045",
+        "run_id": "trUpmVMAQLMOsJdIB",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_046",
+        "run_id": "ZGG79M2C463YqCbpJ",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_047",
+        "run_id": "j9LXxXqaFpxd98fmI",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_048",
+        "run_id": "IXMdfhwhKb9QORsVI",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_049",
+        "run_id": "BsKAHxI3Vhl0S1y9l",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_050",
+        "run_id": "qodfaxPbctog8pMGf",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_051",
+        "run_id": "CLh0kHWd7H511REsk",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_052",
+        "run_id": "KqRxIrpb5AdY87bFT",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_053",
+        "run_id": "xJul2mAofnXvVgDng",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_054",
+        "run_id": "PWN8Jg0I3BmogzTGE",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_055",
+        "run_id": "mIpt9VoJnMyRHODrU",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_056",
+        "run_id": "6fHPotnTOz7wScAOp",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_057",
+        "run_id": "OBAaEbMfTbUwSZoma",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_058",
+        "run_id": "fXXTRlkU0xm8BCyWB",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_059",
+        "run_id": "ujTh18Y0nQmIUAzcw",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_060",
+        "run_id": "TRI0c6njjONjx4yd2",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_061",
+        "run_id": "oPTVovgih3WJeFZDY",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_062",
+        "run_id": "ReozlUbwA8eJvaVDs",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_063",
+        "run_id": "yM0orE4HrpwqT1nOa",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_064",
+        "run_id": "v7Tjt3g3wCltZF9tu",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_065",
+        "run_id": "85WJjw6hPNLSf2Mpm",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_066",
+        "run_id": "fzSmg20ZcHFV2FkMi",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_067",
+        "run_id": "be4oBGA4YM6NoHFo5",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_068",
+        "run_id": "SpRi6uqTzKRacbb9g",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_069",
+        "run_id": "EQKy9ouBpQ5PjoTVG",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_070",
+        "run_id": "9UM5nsf8Maz69gNB6",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_071",
+        "run_id": "v3Pa7CxekVKQ2KNj9",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_072",
+        "run_id": "k4nW6tGXpcDKsJTVg",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_073",
+        "run_id": "KNAaWeOQf8lo7cxYc",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_074",
+        "run_id": "W00MdlJOip1UKoaCg",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_075",
+        "run_id": "DZzEVWmKkVuclGw7Z",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_076",
+        "run_id": "KACuOnq8nyO4Wkfzk",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_077",
+        "run_id": "Sf3cYkiFNbFMHMIxa",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_078",
+        "run_id": "2fF6LRvKfcnJJvF9I",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_079",
+        "run_id": "AuyyBWx3P4ocblAgc",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_080",
+        "run_id": "Ef8uFaEBFNcbtUeBw",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_081",
+        "run_id": "nOxxzj3V3ZcKG1SYN",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_082",
+        "run_id": "fwydGV40Ec59tGuEh",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_083",
+        "run_id": "iux5ExABgxXQD4zHu",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_084",
+        "run_id": "885KOeGnjl4Rf3e7R",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_085",
+        "run_id": "TtzpXqw3Yh4qudJqj",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_086",
+        "run_id": "s83QUyeNmsBMnUIEv",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_087",
+        "run_id": "uszSdwhpLE9naFZR6",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_088",
+        "run_id": "cF27m8nM1BQkU7Biy",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      },
+      {
+        "unit_id": "paid_089",
+        "run_id": "wtt8nIt8ROmbdvLPA",
+        "linkedin_urls": null,
+        "indeed_start_urls": 0,
+        "indeed_positions": 1
+      }
+    ]
+  },
+  "funnel": {
+    "indeed": {
+      "requested": 1080,
+      "raw": 1070,
+      "normalized": 1070,
+      "stale": 33,
+      "eligible": 31,
+      "eligible_positive": 27,
+      "final": 20,
+      "final_positive": 16,
+      "final_marginal": 14,
+      "duplicate_in_or_across_paid": 644,
+      "dedupe_lost": {
+        "other_paid": 11
+      },
+      "key_also_free": 12,
+      "ranges_per_search": {
+        "requested": [
+          15,
+          15
+        ],
+        "raw": [
+          10,
+          15
+        ],
+        "normalized": [
+          10,
+          15
+        ],
+        "stale": [
+          0,
+          6
+        ],
+        "eligible": [
+          0,
+          5
+        ],
+        "eligible_positive": [
+          0,
+          4
+        ],
+        "final": [
+          0,
+          3
+        ],
+        "final_positive": [
+          0,
+          2
+        ],
+        "final_marginal": [
+          0,
+          3
+        ]
+      }
+    },
+    "linkedin": {
+      "requested": 270,
+      "raw": 270,
+      "normalized": 270,
+      "stale": 0,
+      "eligible": 97,
+      "eligible_positive": 96,
+      "final": 35,
+      "final_positive": 34,
+      "final_marginal": 8,
+      "duplicate_in_or_across_paid": 162,
+      "dedupe_lost": {
+        "other_paid": 62
+      },
+      "key_also_free": 0,
+      "ranges_per_search": {
+        "requested": [
+          15,
+          15
+        ],
+        "raw": [
+          15,
+          15
+        ],
+        "normalized": [
+          15,
+          15
+        ],
+        "stale": [
+          0,
+          0
+        ],
+        "eligible": [
+          0,
+          12
+        ],
+        "eligible_positive": [
+          0,
+          12
+        ],
+        "final": [
+          0,
+          10
+        ],
+        "final_positive": [
+          0,
+          10
+        ],
+        "final_marginal": [
+          0,
+          2
+        ]
+      }
+    }
+  },
+  "by_provider_position": {
+    "linkedin": {
+      "1-5": {
+        "rows": 90,
+        "beyond_requested_depth": 0,
+        "eligible": 36,
+        "eligible_positive": 36,
+        "final": 11,
+        "final_positive": 11,
+        "final_marginal": 1
+      },
+      "6-10": {
+        "rows": 90,
+        "beyond_requested_depth": 0,
+        "eligible": 29,
+        "eligible_positive": 28,
+        "final": 11,
+        "final_positive": 10,
+        "final_marginal": 4
+      },
+      "11-15": {
+        "rows": 90,
+        "beyond_requested_depth": 0,
+        "eligible": 32,
+        "eligible_positive": 32,
+        "final": 13,
+        "final_positive": 13,
+        "final_marginal": 3
+      }
+    },
+    "indeed": {
+      "unknown": {
+        "rows": 1070,
+        "beyond_requested_depth": 0,
+        "eligible": 31,
+        "eligible_positive": 27,
+        "final": 20,
+        "final_positive": 16,
+        "final_marginal": 14
+      }
+    }
+  },
+  "contribution": [
+    {
+      "unit_id": "paid_000",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "b2cf5a446b6b",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 0,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_001",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "b2cf5a446b6b",
+      "status": "completed",
+      "final": 9,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 0,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_002",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "c11fd3568642",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_003",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "c11fd3568642",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 9,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_004",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "dcdfb54d60da",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 7,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_005",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "dcdfb54d60da",
+      "status": "completed",
+      "final": 4,
+      "final_marginal": 1,
+      "repeat_of_earlier_paid": 10,
+      "dedupe_lost_other_paid": 6,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 1,
+      "top20_lost_if_skipped": 1,
+      "best_lost_rank_if_skipped": 2
+    },
+    {
+      "unit_id": "paid_006",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "6a4bcd4ff131",
+      "status": "completed",
+      "final": 2,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 0,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_007",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "6a4bcd4ff131",
+      "status": "completed",
+      "final": 10,
+      "final_marginal": 2,
+      "repeat_of_earlier_paid": 9,
+      "dedupe_lost_other_paid": 2,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 1,
+      "top20_lost_if_skipped": 1,
+      "best_lost_rank_if_skipped": 7
+    },
+    {
+      "unit_id": "paid_008",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "1e477757b8dc",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 2,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_009",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "1e477757b8dc",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 13,
+      "dedupe_lost_other_paid": 10,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_010",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "85a21c5db770",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 3,
+      "dedupe_lost_other_paid": 1,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_011",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "85a21c5db770",
+      "status": "completed",
+      "final": 5,
+      "final_marginal": 2,
+      "repeat_of_earlier_paid": 7,
+      "dedupe_lost_other_paid": 6,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 40
+    },
+    {
+      "unit_id": "paid_012",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "9a4e41eca575",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 11,
+      "dedupe_lost_other_paid": 1,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_013",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "9a4e41eca575",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 1,
+      "repeat_of_earlier_paid": 12,
+      "dedupe_lost_other_paid": 7,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 28
+    },
+    {
+      "unit_id": "paid_014",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "91c79fa33d22",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 6,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_015",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "91c79fa33d22",
+      "status": "completed",
+      "final": 3,
+      "final_marginal": 2,
+      "repeat_of_earlier_paid": 12,
+      "dedupe_lost_other_paid": 8,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 103
+    },
+    {
+      "unit_id": "paid_016",
+      "provider": "linkedin",
+      "location_mode": "place",
+      "keyword_fp": "0ef6c29a564a",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 13,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_017",
+      "provider": "linkedin",
+      "location_mode": "remote",
+      "keyword_fp": "0ef6c29a564a",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 13,
+      "dedupe_lost_other_paid": 10,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_018",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "364a4981fb2d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 0,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_019",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "364a4981fb2d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 4,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_020",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "364a4981fb2d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_021",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "364a4981fb2d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_022",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "364a4981fb2d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 1,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_023",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "364a4981fb2d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 0,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_024",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "364a4981fb2d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 1,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_025",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "364a4981fb2d",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 0,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_026",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "b50ead6c587f",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 4,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_027",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "b50ead6c587f",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 6,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_028",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "b50ead6c587f",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_029",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "b50ead6c587f",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_030",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "b50ead6c587f",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 4,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_031",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "b50ead6c587f",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 4,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_032",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "b50ead6c587f",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_033",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "b50ead6c587f",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 4,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_034",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "18962a0f4b71",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 3,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_035",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "18962a0f4b71",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_036",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "18962a0f4b71",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_037",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "18962a0f4b71",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_038",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "18962a0f4b71",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 1,
+      "repeat_of_earlier_paid": 0,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 1,
+      "top20_lost_if_skipped": 1,
+      "best_lost_rank_if_skipped": 3
+    },
+    {
+      "unit_id": "paid_039",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "18962a0f4b71",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 1,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_040",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "18962a0f4b71",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 3,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_041",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "18962a0f4b71",
+      "status": "completed",
+      "final": 2,
+      "final_marginal": 1,
+      "repeat_of_earlier_paid": 0,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 59
+    },
+    {
+      "unit_id": "paid_042",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "f2eeb437a5d4",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 2,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_043",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "f2eeb437a5d4",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 3,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_044",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "f2eeb437a5d4",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_045",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "f2eeb437a5d4",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_046",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "f2eeb437a5d4",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 1,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_047",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "f2eeb437a5d4",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_048",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "f2eeb437a5d4",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 7,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_049",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "f2eeb437a5d4",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 1,
+      "repeat_of_earlier_paid": 4,
+      "dedupe_lost_other_paid": 1,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 91
+    },
+    {
+      "unit_id": "paid_050",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "2943ce46848e",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 8,
+      "dedupe_lost_other_paid": 1,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_051",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "2943ce46848e",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_052",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "2943ce46848e",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_053",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "2943ce46848e",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_054",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "2943ce46848e",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 3,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_055",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "2943ce46848e",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 9,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_056",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "2943ce46848e",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 7,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_057",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "2943ce46848e",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 1,
+      "repeat_of_earlier_paid": 12,
+      "dedupe_lost_other_paid": 3,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 112
+    },
+    {
+      "unit_id": "paid_058",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "72989be32e7a",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 11,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_059",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "72989be32e7a",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_060",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "72989be32e7a",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_061",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "72989be32e7a",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_062",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "72989be32e7a",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 6,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_063",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "72989be32e7a",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 12,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_064",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "72989be32e7a",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 8,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_065",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "72989be32e7a",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 8,
+      "dedupe_lost_other_paid": 1,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_066",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "cd656e5b040d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 9,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_067",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "cd656e5b040d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 8,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_068",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "cd656e5b040d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 11,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_069",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "cd656e5b040d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 11,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_070",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "cd656e5b040d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_071",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "cd656e5b040d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 2,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_072",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "cd656e5b040d",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 10,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_073",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "cd656e5b040d",
+      "status": "completed",
+      "final": 2,
+      "final_marginal": 2,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 1,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 21
+    },
+    {
+      "unit_id": "paid_074",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "a0b6759e51ae",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 7,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_075",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "a0b6759e51ae",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 9,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_076",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "a0b6759e51ae",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_077",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "a0b6759e51ae",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 15,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_078",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "a0b6759e51ae",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 7,
+      "dedupe_lost_other_paid": 1,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_079",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "a0b6759e51ae",
+      "status": "completed",
+      "final": 1,
+      "final_marginal": 1,
+      "repeat_of_earlier_paid": 6,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 49
+    },
+    {
+      "unit_id": "paid_080",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "a0b6759e51ae",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 8,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_081",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "a0b6759e51ae",
+      "status": "completed",
+      "final": 3,
+      "final_marginal": 3,
+      "repeat_of_earlier_paid": 8,
+      "dedupe_lost_other_paid": 2,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 31
+    },
+    {
+      "unit_id": "paid_082",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "44bede432242",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 9,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_083",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "44bede432242",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_084",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "44bede432242",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_085",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "44bede432242",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 14,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_086",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "44bede432242",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_087",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "44bede432242",
+      "status": "completed",
+      "final": 0,
+      "final_marginal": 0,
+      "repeat_of_earlier_paid": 10,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": null
+    },
+    {
+      "unit_id": "paid_088",
+      "provider": "indeed",
+      "location_mode": "place",
+      "keyword_fp": "44bede432242",
+      "status": "completed",
+      "final": 2,
+      "final_marginal": 2,
+      "repeat_of_earlier_paid": 4,
+      "dedupe_lost_other_paid": 0,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 140
+    },
+    {
+      "unit_id": "paid_089",
+      "provider": "indeed",
+      "location_mode": "remote",
+      "keyword_fp": "44bede432242",
+      "status": "completed",
+      "final": 2,
+      "final_marginal": 2,
+      "repeat_of_earlier_paid": 5,
+      "dedupe_lost_other_paid": 1,
+      "dedupe_lost_free": 0,
+      "top10_lost_if_skipped": 0,
+      "top20_lost_if_skipped": 0,
+      "best_lost_rank_if_skipped": 83
+    }
+  ],
+  "zero_marginal_units": [
+    "paid_000",
+    "paid_001",
+    "paid_002",
+    "paid_003",
+    "paid_004",
+    "paid_006",
+    "paid_008",
+    "paid_009",
+    "paid_010",
+    "paid_012",
+    "paid_014",
+    "paid_016",
+    "paid_017",
+    "paid_018",
+    "paid_019",
+    "paid_020",
+    "paid_021",
+    "paid_022",
+    "paid_023",
+    "paid_024",
+    "paid_025",
+    "paid_026",
+    "paid_027",
+    "paid_028",
+    "paid_029",
+    "paid_030",
+    "paid_031",
+    "paid_032",
+    "paid_033",
+    "paid_034",
+    "paid_035",
+    "paid_036",
+    "paid_037",
+    "paid_039",
+    "paid_040",
+    "paid_042",
+    "paid_043",
+    "paid_044",
+    "paid_045",
+    "paid_046",
+    "paid_047",
+    "paid_048",
+    "paid_050",
+    "paid_051",
+    "paid_052",
+    "paid_053",
+    "paid_054",
+    "paid_055",
+    "paid_056",
+    "paid_058",
+    "paid_059",
+    "paid_060",
+    "paid_061",
+    "paid_062",
+    "paid_063",
+    "paid_064",
+    "paid_065",
+    "paid_066",
+    "paid_067",
+    "paid_068",
+    "paid_069",
+    "paid_070",
+    "paid_071",
+    "paid_072",
+    "paid_074",
+    "paid_075",
+    "paid_076",
+    "paid_077",
+    "paid_078",
+    "paid_080",
+    "paid_082",
+    "paid_083",
+    "paid_084",
+    "paid_085",
+    "paid_086",
+    "paid_087"
+  ],
+  "low_marginal_units_no_top20_loss": [
+    "paid_011",
+    "paid_013",
+    "paid_015",
+    "paid_041",
+    "paid_049",
+    "paid_057",
+    "paid_073",
+    "paid_079",
+    "paid_088",
+    "paid_089"
+  ],
+  "units_moving_top10_if_skipped": [
+    "paid_005",
+    "paid_007",
+    "paid_038"
+  ],
+  "final_by_class": {
+    "indeed": 20,
+    "linkedin": 35,
+    "free": 146
+  },
+  "top_k_by_class": {
+    "10": {
+      "indeed": 2,
+      "linkedin": 7,
+      "free": 1
+    },
+    "20": {
+      "indeed": 3,
+      "linkedin": 15,
+      "free": 2
+    },
+    "50": {
+      "indeed": 10,
+      "linkedin": 26,
+      "free": 14
+    }
+  },
+  "identity": {
+    "sweep_unique_keys": 2964,
+    "by_source": {
+      "linkedin": {
+        "rows": 270,
+        "source_unique": 108,
+        "newly_unique_vs_sweep": 108,
+        "unkeyed": 0,
+        "native": {}
+      },
+      "indeed": {
+        "rows": 1070,
+        "source_unique": 430,
+        "newly_unique_vs_sweep": 426,
+        "unkeyed": 0,
+        "native": {}
+      },
+      "lever:paytm": {
+        "rows": 8,
+        "source_unique": 6,
+        "newly_unique_vs_sweep": 6,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 8,
+          "canonical_url": 8,
+          "apply_url": 8,
+          "multi_location": 8,
+          "published_at": 8,
+          "workplace_type": 8
+        }
+      },
+      "lever:meesho": {
+        "rows": 6,
+        "source_unique": 6,
+        "newly_unique_vs_sweep": 6,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 6,
+          "canonical_url": 6,
+          "apply_url": 6,
+          "multi_location": 6,
+          "published_at": 6,
+          "workplace_type": 6
+        }
+      },
+      "lever:mindtickle": {
+        "rows": 3,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "canonical_url": 3,
+          "apply_url": 3,
+          "multi_location": 3,
+          "published_at": 3,
+          "workplace_type": 3
+        }
+      },
+      "lever:hevodata": {
+        "rows": 12,
+        "source_unique": 11,
+        "newly_unique_vs_sweep": 11,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 12,
+          "canonical_url": 12,
+          "apply_url": 12,
+          "multi_location": 12,
+          "published_at": 12,
+          "workplace_type": 12
+        }
+      },
+      "lever:zeta": {
+        "rows": 3,
+        "source_unique": 2,
+        "newly_unique_vs_sweep": 2,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "canonical_url": 3,
+          "apply_url": 3,
+          "multi_location": 3,
+          "published_at": 3,
+          "workplace_type": 3
+        }
+      },
+      "lever:fampay": {
+        "rows": 4,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 4,
+          "canonical_url": 4,
+          "apply_url": 4,
+          "multi_location": 4,
+          "published_at": 4,
+          "workplace_type": 4
+        }
+      },
+      "lever:coderio": {
+        "rows": 14,
+        "source_unique": 14,
+        "newly_unique_vs_sweep": 14,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 14,
+          "canonical_url": 14,
+          "apply_url": 14,
+          "multi_location": 14,
+          "published_at": 14,
+          "workplace_type": 14
+        }
+      },
+      "lever:veeva": {
+        "rows": 50,
+        "source_unique": 33,
+        "newly_unique_vs_sweep": 33,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 50,
+          "canonical_url": 50,
+          "apply_url": 50,
+          "multi_location": 50,
+          "published_at": 50,
+          "workplace_type": 50
+        }
+      },
+      "lever:portagepointpartners": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "canonical_url": 1,
+          "apply_url": 1,
+          "multi_location": 1,
+          "published_at": 1,
+          "workplace_type": 1
+        }
+      },
+      "lever:acceldata": {
+        "rows": 17,
+        "source_unique": 14,
+        "newly_unique_vs_sweep": 14,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 17,
+          "canonical_url": 17,
+          "apply_url": 17,
+          "multi_location": 17,
+          "published_at": 17,
+          "workplace_type": 17
+        }
+      },
+      "lever:sophos": {
+        "rows": 5,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 5,
+          "canonical_url": 5,
+          "apply_url": 5,
+          "multi_location": 5,
+          "published_at": 5,
+          "workplace_type": 5
+        }
+      },
+      "lever:levelai": {
+        "rows": 13,
+        "source_unique": 13,
+        "newly_unique_vs_sweep": 13,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 13,
+          "canonical_url": 13,
+          "apply_url": 13,
+          "multi_location": 13,
+          "published_at": 13,
+          "workplace_type": 13
+        }
+      },
+      "lever:jumpcloud": {
+        "rows": 10,
+        "source_unique": 10,
+        "newly_unique_vs_sweep": 9,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 10,
+          "canonical_url": 10,
+          "apply_url": 10,
+          "multi_location": 10,
+          "published_at": 10,
+          "workplace_type": 10
+        }
+      },
+      "lever:appzen": {
+        "rows": 3,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "canonical_url": 3,
+          "apply_url": 3,
+          "multi_location": 3,
+          "published_at": 3,
+          "workplace_type": 3
+        }
+      },
+      "lever:binance": {
+        "rows": 67,
+        "source_unique": 67,
+        "newly_unique_vs_sweep": 67,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 67,
+          "canonical_url": 67,
+          "apply_url": 67,
+          "multi_location": 67,
+          "published_at": 67,
+          "workplace_type": 67
+        }
+      },
+      "greenhouse:druva": {
+        "rows": 9,
+        "source_unique": 6,
+        "newly_unique_vs_sweep": 6,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 9,
+          "internal_id": 9,
+          "canonical_url": 9,
+          "board_company": 9,
+          "multi_location": 9,
+          "updated_at": 9,
+          "requisition": 9
+        }
+      },
+      "greenhouse:slice": {
+        "rows": 5,
+        "source_unique": 5,
+        "newly_unique_vs_sweep": 5,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 5,
+          "internal_id": 5,
+          "canonical_url": 5,
+          "board_company": 5,
+          "multi_location": 5,
+          "updated_at": 5,
+          "requisition": 5
+        }
+      },
+      "greenhouse:gitlab": {
+        "rows": 91,
+        "source_unique": 85,
+        "newly_unique_vs_sweep": 83,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 91,
+          "internal_id": 91,
+          "canonical_url": 91,
+          "board_company": 91,
+          "multi_location": 50,
+          "updated_at": 91,
+          "requisition": 91
+        }
+      },
+      "greenhouse:databricks": {
+        "rows": 402,
+        "source_unique": 255,
+        "newly_unique_vs_sweep": 255,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 402,
+          "internal_id": 402,
+          "canonical_url": 402,
+          "board_company": 402,
+          "multi_location": 400,
+          "updated_at": 402,
+          "requisition": 402
+        }
+      },
+      "greenhouse:twilio": {
+        "rows": 42,
+        "source_unique": 33,
+        "newly_unique_vs_sweep": 33,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 42,
+          "internal_id": 42,
+          "canonical_url": 42,
+          "board_company": 42,
+          "multi_location": 42,
+          "updated_at": 42,
+          "requisition": 42
+        }
+      },
+      "greenhouse:mongodb": {
+        "rows": 121,
+        "source_unique": 69,
+        "newly_unique_vs_sweep": 69,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 121,
+          "internal_id": 121,
+          "canonical_url": 121,
+          "board_company": 121,
+          "multi_location": 121,
+          "updated_at": 121,
+          "requisition": 121
+        }
+      },
+      "greenhouse:elastic": {
+        "rows": 181,
+        "source_unique": 66,
+        "newly_unique_vs_sweep": 66,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 181,
+          "internal_id": 181,
+          "canonical_url": 181,
+          "board_company": 181,
+          "multi_location": 181,
+          "updated_at": 181,
+          "requisition": 181
+        }
+      },
+      "greenhouse:datadog": {
+        "rows": 62,
+        "source_unique": 48,
+        "newly_unique_vs_sweep": 48,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 62,
+          "internal_id": 62,
+          "canonical_url": 62,
+          "board_company": 62,
+          "multi_location": 62,
+          "updated_at": 62,
+          "requisition": 61
+        }
+      },
+      "greenhouse:cloudflare": {
+        "rows": 101,
+        "source_unique": 96,
+        "newly_unique_vs_sweep": 96,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 101,
+          "internal_id": 101,
+          "canonical_url": 101,
+          "board_company": 101,
+          "multi_location": 101,
+          "updated_at": 101,
+          "requisition": 40
+        }
+      },
+      "greenhouse:stripe": {
+        "rows": 175,
+        "source_unique": 154,
+        "newly_unique_vs_sweep": 154,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 175,
+          "internal_id": 175,
+          "canonical_url": 175,
+          "board_company": 175,
+          "multi_location": 175,
+          "updated_at": 175,
+          "requisition": 175
+        }
+      },
+      "greenhouse:netradyne": {
+        "rows": 5,
+        "source_unique": 5,
+        "newly_unique_vs_sweep": 5,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 5,
+          "internal_id": 5,
+          "canonical_url": 5,
+          "board_company": 5,
+          "multi_location": 5,
+          "updated_at": 5,
+          "requisition": 5
+        }
+      },
+      "greenhouse:figma": {
+        "rows": 27,
+        "source_unique": 27,
+        "newly_unique_vs_sweep": 27,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 27,
+          "internal_id": 27,
+          "canonical_url": 27,
+          "board_company": 27,
+          "multi_location": 27,
+          "updated_at": 27,
+          "requisition": 27
+        }
+      },
+      "greenhouse:roku": {
+        "rows": 122,
+        "source_unique": 79,
+        "newly_unique_vs_sweep": 79,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 122,
+          "internal_id": 122,
+          "canonical_url": 122,
+          "board_company": 122,
+          "multi_location": 122,
+          "updated_at": 122,
+          "requisition": 122
+        }
+      },
+      "greenhouse:flix": {
+        "rows": 11,
+        "source_unique": 10,
+        "newly_unique_vs_sweep": 10,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 11,
+          "internal_id": 11,
+          "canonical_url": 11,
+          "board_company": 11,
+          "multi_location": 11,
+          "updated_at": 11,
+          "requisition": 11
+        }
+      },
+      "greenhouse:sumup": {
+        "rows": 38,
+        "source_unique": 31,
+        "newly_unique_vs_sweep": 31,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 38,
+          "internal_id": 38,
+          "canonical_url": 38,
+          "board_company": 38,
+          "multi_location": 38,
+          "updated_at": 38,
+          "requisition": 38
+        }
+      },
+      "greenhouse:ubiquiti": {
+        "rows": 82,
+        "source_unique": 68,
+        "newly_unique_vs_sweep": 68,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 82,
+          "internal_id": 82,
+          "canonical_url": 82,
+          "board_company": 82,
+          "multi_location": 82,
+          "updated_at": 82,
+          "requisition": 82
+        }
+      },
+      "greenhouse:justworks": {
+        "rows": 18,
+        "source_unique": 18,
+        "newly_unique_vs_sweep": 18,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 18,
+          "internal_id": 18,
+          "canonical_url": 18,
+          "board_company": 18,
+          "multi_location": 18,
+          "updated_at": 18,
+          "requisition": 18
+        }
+      },
+      "greenhouse:tide": {
+        "rows": 27,
+        "source_unique": 9,
+        "newly_unique_vs_sweep": 9,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 27,
+          "internal_id": 25,
+          "canonical_url": 27,
+          "board_company": 27,
+          "multi_location": 25,
+          "updated_at": 27,
+          "requisition": 25
+        }
+      },
+      "greenhouse:bitwarden": {
+        "rows": 14,
+        "source_unique": 13,
+        "newly_unique_vs_sweep": 13,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 14,
+          "internal_id": 14,
+          "canonical_url": 14,
+          "board_company": 14,
+          "multi_location": 14,
+          "updated_at": 14,
+          "requisition": 14
+        }
+      },
+      "greenhouse:nice": {
+        "rows": 34,
+        "source_unique": 30,
+        "newly_unique_vs_sweep": 28,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 34,
+          "internal_id": 34,
+          "canonical_url": 34,
+          "board_company": 34,
+          "multi_location": 34,
+          "updated_at": 34,
+          "requisition": 34
+        }
+      },
+      "greenhouse:towerresearchcapital": {
+        "rows": 40,
+        "source_unique": 31,
+        "newly_unique_vs_sweep": 31,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 40,
+          "internal_id": 40,
+          "canonical_url": 40,
+          "board_company": 40,
+          "multi_location": 40,
+          "updated_at": 40,
+          "requisition": 40
+        }
+      },
+      "greenhouse:dunnhumby": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "canonical_url": 1,
+          "board_company": 1,
+          "multi_location": 1,
+          "updated_at": 1,
+          "requisition": 1
+        }
+      },
+      "greenhouse:capco": {
+        "rows": 135,
+        "source_unique": 110,
+        "newly_unique_vs_sweep": 110,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 135,
+          "internal_id": 135,
+          "canonical_url": 135,
+          "board_company": 135,
+          "multi_location": 135,
+          "updated_at": 135,
+          "requisition": 135
+        }
+      },
+      "greenhouse:wppproduction": {
+        "rows": 9,
+        "source_unique": 9,
+        "newly_unique_vs_sweep": 9,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 9,
+          "internal_id": 6,
+          "canonical_url": 9,
+          "board_company": 9,
+          "multi_location": 6,
+          "updated_at": 9,
+          "requisition": 6
+        }
+      },
+      "greenhouse:stratainformationgroup": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "canonical_url": 1,
+          "board_company": 1,
+          "multi_location": 1,
+          "updated_at": 1,
+          "requisition": 1
+        }
+      },
+      "greenhouse:okta": {
+        "rows": 124,
+        "source_unique": 99,
+        "newly_unique_vs_sweep": 98,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 124,
+          "internal_id": 124,
+          "canonical_url": 124,
+          "board_company": 124,
+          "multi_location": 124,
+          "updated_at": 124,
+          "requisition": 124
+        }
+      },
+      "greenhouse:payoneer": {
+        "rows": 18,
+        "source_unique": 16,
+        "newly_unique_vs_sweep": 16,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 18,
+          "internal_id": 18,
+          "canonical_url": 18,
+          "board_company": 18,
+          "multi_location": 18,
+          "updated_at": 18,
+          "requisition": 18
+        }
+      },
+      "greenhouse:accordionindia": {
+        "rows": 3,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "internal_id": 3,
+          "canonical_url": 3,
+          "board_company": 3,
+          "multi_location": 2,
+          "updated_at": 3
+        }
+      },
+      "greenhouse:netskope": {
+        "rows": 38,
+        "source_unique": 35,
+        "newly_unique_vs_sweep": 35,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 38,
+          "internal_id": 38,
+          "canonical_url": 38,
+          "board_company": 38,
+          "multi_location": 38,
+          "updated_at": 38,
+          "requisition": 38
+        }
+      },
+      "greenhouse:avathon": {
+        "rows": 11,
+        "source_unique": 11,
+        "newly_unique_vs_sweep": 11,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 11,
+          "internal_id": 11,
+          "canonical_url": 11,
+          "board_company": 11,
+          "multi_location": 11,
+          "updated_at": 11,
+          "requisition": 11
+        }
+      },
+      "greenhouse:newrelic": {
+        "rows": 17,
+        "source_unique": 11,
+        "newly_unique_vs_sweep": 11,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 17,
+          "internal_id": 17,
+          "canonical_url": 17,
+          "board_company": 17,
+          "multi_location": 17,
+          "updated_at": 17,
+          "requisition": 17
+        }
+      },
+      "greenhouse:cloudsek": {
+        "rows": 3,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "internal_id": 3,
+          "canonical_url": 3,
+          "board_company": 3,
+          "multi_location": 3,
+          "updated_at": 3,
+          "requisition": 3
+        }
+      },
+      "greenhouse:komodohealth": {
+        "rows": 5,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 5,
+          "internal_id": 5,
+          "canonical_url": 5,
+          "board_company": 5,
+          "multi_location": 5,
+          "updated_at": 5,
+          "requisition": 5
+        }
+      },
+      "greenhouse:godaddy": {
+        "rows": 12,
+        "source_unique": 10,
+        "newly_unique_vs_sweep": 10,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 12,
+          "internal_id": 12,
+          "canonical_url": 12,
+          "board_company": 12,
+          "multi_location": 12,
+          "updated_at": 12,
+          "requisition": 12
+        }
+      },
+      "greenhouse:launchdarkly": {
+        "rows": 19,
+        "source_unique": 19,
+        "newly_unique_vs_sweep": 19,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 19,
+          "internal_id": 19,
+          "canonical_url": 19,
+          "board_company": 19,
+          "multi_location": 19,
+          "updated_at": 19,
+          "requisition": 18
+        }
+      },
+      "greenhouse:bitgo": {
+        "rows": 4,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 4,
+          "internal_id": 4,
+          "canonical_url": 4,
+          "board_company": 4,
+          "multi_location": 4,
+          "updated_at": 4,
+          "requisition": 4
+        }
+      },
+      "greenhouse:eulerity": {
+        "rows": 5,
+        "source_unique": 5,
+        "newly_unique_vs_sweep": 5,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 5,
+          "internal_id": 5,
+          "canonical_url": 5,
+          "board_company": 5,
+          "multi_location": 5,
+          "updated_at": 5,
+          "requisition": 5
+        }
+      },
+      "greenhouse:rtingscom": {
+        "rows": 2,
+        "source_unique": 2,
+        "newly_unique_vs_sweep": 2,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 2,
+          "internal_id": 2,
+          "canonical_url": 2,
+          "board_company": 2,
+          "multi_location": 2,
+          "updated_at": 2,
+          "requisition": 2
+        }
+      },
+      "greenhouse:fingerprint": {
+        "rows": 10,
+        "source_unique": 10,
+        "newly_unique_vs_sweep": 10,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 10,
+          "internal_id": 10,
+          "canonical_url": 10,
+          "board_company": 10,
+          "multi_location": 10,
+          "updated_at": 10,
+          "requisition": 10
+        }
+      },
+      "greenhouse:breezeway": {
+        "rows": 2,
+        "source_unique": 2,
+        "newly_unique_vs_sweep": 2,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 2,
+          "internal_id": 2,
+          "canonical_url": 2,
+          "board_company": 2,
+          "multi_location": 2,
+          "updated_at": 2
+        }
+      },
+      "greenhouse:bold": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "canonical_url": 1,
+          "board_company": 1,
+          "multi_location": 1,
+          "updated_at": 1
+        }
+      },
+      "ashby:linear": {
+        "rows": 4,
+        "source_unique": 2,
+        "newly_unique_vs_sweep": 2,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 4,
+          "canonical_url": 4,
+          "apply_url": 4,
+          "published_at": 4,
+          "remote_flag": 4,
+          "is_listed": 4,
+          "workplace_type": 4,
+          "multi_location": 1
+        }
+      },
+      "ashby:ramp": {
+        "rows": 38,
+        "source_unique": 38,
+        "newly_unique_vs_sweep": 38,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 38,
+          "canonical_url": 38,
+          "apply_url": 38,
+          "multi_location": 19,
+          "published_at": 38,
+          "remote_flag": 36,
+          "is_listed": 38,
+          "workplace_type": 38
+        }
+      },
+      "ashby:openai": {
+        "rows": 276,
+        "source_unique": 240,
+        "newly_unique_vs_sweep": 238,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 276,
+          "canonical_url": 276,
+          "apply_url": 276,
+          "published_at": 276,
+          "is_listed": 276,
+          "multi_location": 56,
+          "remote_flag": 156,
+          "workplace_type": 160
+        }
+      },
+      "ashby:notion": {
+        "rows": 23,
+        "source_unique": 22,
+        "newly_unique_vs_sweep": 22,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 23,
+          "canonical_url": 23,
+          "apply_url": 23,
+          "multi_location": 12,
+          "published_at": 23,
+          "remote_flag": 22,
+          "is_listed": 23,
+          "workplace_type": 22
+        }
+      },
+      "ashby:teero": {
+        "rows": 2,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 2,
+          "canonical_url": 2,
+          "apply_url": 2,
+          "published_at": 2,
+          "is_listed": 2,
+          "workplace_type": 2
+        }
+      },
+      "ashby:clickhouse": {
+        "rows": 104,
+        "source_unique": 55,
+        "newly_unique_vs_sweep": 55,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 104,
+          "canonical_url": 104,
+          "apply_url": 104,
+          "published_at": 104,
+          "is_listed": 104,
+          "remote_flag": 60,
+          "workplace_type": 61,
+          "multi_location": 12
+        }
+      },
+      "ashby:tekion": {
+        "rows": 50,
+        "source_unique": 30,
+        "newly_unique_vs_sweep": 30,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 50,
+          "canonical_url": 50,
+          "apply_url": 50,
+          "published_at": 50,
+          "is_listed": 50,
+          "workplace_type": 50,
+          "remote_flag": 1,
+          "multi_location": 1
+        }
+      },
+      "ashby:gradera": {
+        "rows": 3,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "canonical_url": 3,
+          "apply_url": 3,
+          "published_at": 3,
+          "is_listed": 3,
+          "workplace_type": 3
+        }
+      },
+      "ashby:whisk": {
+        "rows": 2,
+        "source_unique": 2,
+        "newly_unique_vs_sweep": 2,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 2,
+          "canonical_url": 2,
+          "apply_url": 2,
+          "multi_location": 2,
+          "published_at": 2,
+          "remote_flag": 2,
+          "is_listed": 2,
+          "workplace_type": 2
+        }
+      },
+      "ashby:elevenlabs": {
+        "rows": 24,
+        "source_unique": 24,
+        "newly_unique_vs_sweep": 24,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 24,
+          "canonical_url": 24,
+          "apply_url": 24,
+          "multi_location": 11,
+          "published_at": 24,
+          "remote_flag": 20,
+          "is_listed": 24,
+          "workplace_type": 21
+        }
+      },
+      "ashby:uipath": {
+        "rows": 18,
+        "source_unique": 13,
+        "newly_unique_vs_sweep": 13,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 18,
+          "canonical_url": 18,
+          "apply_url": 18,
+          "published_at": 18,
+          "is_listed": 18,
+          "workplace_type": 18,
+          "remote_flag": 3,
+          "multi_location": 1
+        }
+      },
+      "ashby:glomo": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "canonical_url": 1,
+          "apply_url": 1,
+          "published_at": 1,
+          "remote_flag": 1,
+          "is_listed": 1,
+          "workplace_type": 1
+        }
+      },
+      "ashby:clera": {
+        "rows": 61,
+        "source_unique": 45,
+        "newly_unique_vs_sweep": 45,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 61,
+          "canonical_url": 61,
+          "apply_url": 61,
+          "published_at": 61,
+          "is_listed": 61,
+          "workplace_type": 56,
+          "remote_flag": 2
+        }
+      },
+      "ashby:abound": {
+        "rows": 5,
+        "source_unique": 5,
+        "newly_unique_vs_sweep": 5,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 5,
+          "canonical_url": 5,
+          "apply_url": 5,
+          "published_at": 5,
+          "remote_flag": 4,
+          "is_listed": 5,
+          "workplace_type": 4
+        }
+      },
+      "ashby:maincode": {
+        "rows": 5,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 5,
+          "canonical_url": 5,
+          "apply_url": 5,
+          "published_at": 5,
+          "is_listed": 5,
+          "workplace_type": 5,
+          "remote_flag": 1
+        }
+      },
+      "ashby:xero": {
+        "rows": 18,
+        "source_unique": 15,
+        "newly_unique_vs_sweep": 15,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 18,
+          "canonical_url": 18,
+          "apply_url": 18,
+          "published_at": 18,
+          "remote_flag": 16,
+          "is_listed": 18,
+          "workplace_type": 18,
+          "multi_location": 10
+        }
+      },
+      "ashby:solace": {
+        "rows": 4,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 4,
+          "canonical_url": 4,
+          "apply_url": 4,
+          "published_at": 4,
+          "is_listed": 4,
+          "remote_flag": 3,
+          "workplace_type": 3
+        }
+      },
+      "ashby:brainco": {
+        "rows": 10,
+        "source_unique": 9,
+        "newly_unique_vs_sweep": 9,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 10,
+          "canonical_url": 10,
+          "apply_url": 10,
+          "multi_location": 4,
+          "published_at": 10,
+          "remote_flag": 9,
+          "is_listed": 10,
+          "workplace_type": 10
+        }
+      },
+      "ashby:realmalliance": {
+        "rows": 3,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "canonical_url": 3,
+          "apply_url": 3,
+          "published_at": 3,
+          "remote_flag": 3,
+          "is_listed": 3,
+          "workplace_type": 3
+        }
+      },
+      "ashby:freetrade": {
+        "rows": 8,
+        "source_unique": 8,
+        "newly_unique_vs_sweep": 8,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 8,
+          "canonical_url": 8,
+          "apply_url": 8,
+          "published_at": 8,
+          "remote_flag": 8,
+          "is_listed": 8,
+          "workplace_type": 8
+        }
+      },
+      "ashby:omni": {
+        "rows": 2,
+        "source_unique": 2,
+        "newly_unique_vs_sweep": 2,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 2,
+          "canonical_url": 2,
+          "apply_url": 2,
+          "multi_location": 1,
+          "published_at": 2,
+          "remote_flag": 2,
+          "is_listed": 2,
+          "workplace_type": 2
+        }
+      },
+      "ashby:attio": {
+        "rows": 11,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 11,
+          "canonical_url": 11,
+          "apply_url": 11,
+          "published_at": 11,
+          "remote_flag": 11,
+          "is_listed": 11,
+          "workplace_type": 11,
+          "multi_location": 5
+        }
+      },
+      "ashby:pylon": {
+        "rows": 5,
+        "source_unique": 5,
+        "newly_unique_vs_sweep": 5,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 5,
+          "canonical_url": 5,
+          "apply_url": 5,
+          "published_at": 5,
+          "remote_flag": 5,
+          "is_listed": 5,
+          "workplace_type": 5
+        }
+      },
+      "ashby:sitemate": {
+        "rows": 4,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 4,
+          "canonical_url": 4,
+          "apply_url": 4,
+          "multi_location": 4,
+          "published_at": 4,
+          "remote_flag": 4,
+          "is_listed": 4,
+          "workplace_type": 4
+        }
+      },
+      "ashby:pilgrim": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "canonical_url": 1,
+          "apply_url": 1,
+          "published_at": 1,
+          "is_listed": 1,
+          "workplace_type": 1
+        }
+      },
+      "smartrecruiters:jitterbit": {
+        "rows": 14,
+        "source_unique": 5,
+        "newly_unique_vs_sweep": 5,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 14,
+          "internal_id": 14,
+          "global_uuid": 14,
+          "employer_ref": 14,
+          "board_company": 14,
+          "multi_location": 14,
+          "published_at": 14
+        }
+      },
+      "smartrecruiters:renesaselectronics": {
+        "rows": 18,
+        "source_unique": 16,
+        "newly_unique_vs_sweep": 16,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 18,
+          "internal_id": 18,
+          "global_uuid": 18,
+          "employer_ref": 18,
+          "board_company": 18,
+          "multi_location": 12,
+          "published_at": 18
+        }
+      },
+      "smartrecruiters:sia": {
+        "rows": 7,
+        "source_unique": 5,
+        "newly_unique_vs_sweep": 5,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 7,
+          "internal_id": 7,
+          "global_uuid": 7,
+          "employer_ref": 7,
+          "board_company": 7,
+          "multi_location": 4,
+          "published_at": 7
+        }
+      },
+      "smartrecruiters:agileengine": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "global_uuid": 1,
+          "employer_ref": 1,
+          "board_company": 1,
+          "multi_location": 1,
+          "published_at": 1
+        }
+      },
+      "smartrecruiters:jadeglobal": {
+        "rows": 4,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 4,
+          "internal_id": 4,
+          "global_uuid": 4,
+          "employer_ref": 4,
+          "board_company": 4,
+          "multi_location": 4,
+          "published_at": 4
+        }
+      },
+      "smartrecruiters:version1": {
+        "rows": 25,
+        "source_unique": 23,
+        "newly_unique_vs_sweep": 23,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 25,
+          "internal_id": 25,
+          "global_uuid": 25,
+          "employer_ref": 25,
+          "board_company": 25,
+          "published_at": 25,
+          "multi_location": 20
+        }
+      },
+      "smartrecruiters:informagroupplc": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "global_uuid": 1,
+          "employer_ref": 1,
+          "board_company": 1,
+          "multi_location": 1,
+          "published_at": 1
+        }
+      },
+      "smartrecruiters:quantanite": {
+        "rows": 4,
+        "source_unique": 4,
+        "newly_unique_vs_sweep": 4,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 4,
+          "internal_id": 4,
+          "global_uuid": 4,
+          "employer_ref": 4,
+          "board_company": 4,
+          "multi_location": 2,
+          "published_at": 4
+        }
+      },
+      "smartrecruiters:blueoptima": {
+        "rows": 2,
+        "source_unique": 2,
+        "newly_unique_vs_sweep": 2,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 2,
+          "internal_id": 2,
+          "global_uuid": 2,
+          "employer_ref": 2,
+          "board_company": 2,
+          "published_at": 2
+        }
+      },
+      "smartrecruiters:keywordsstudios": {
+        "rows": 6,
+        "source_unique": 6,
+        "newly_unique_vs_sweep": 6,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 6,
+          "internal_id": 6,
+          "global_uuid": 6,
+          "employer_ref": 6,
+          "board_company": 6,
+          "multi_location": 6,
+          "published_at": 6
+        }
+      },
+      "smartrecruiters:nisum": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "global_uuid": 1,
+          "employer_ref": 1,
+          "board_company": 1,
+          "multi_location": 1,
+          "published_at": 1
+        }
+      },
+      "smartrecruiters:technogen": {
+        "rows": 19,
+        "source_unique": 18,
+        "newly_unique_vs_sweep": 18,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 19,
+          "internal_id": 19,
+          "global_uuid": 19,
+          "employer_ref": 19,
+          "board_company": 19,
+          "multi_location": 19,
+          "published_at": 19
+        }
+      },
+      "smartrecruiters:vichara": {
+        "rows": 2,
+        "source_unique": 2,
+        "newly_unique_vs_sweep": 2,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 2,
+          "internal_id": 2,
+          "global_uuid": 2,
+          "employer_ref": 2,
+          "board_company": 2,
+          "multi_location": 2,
+          "published_at": 2
+        }
+      },
+      "smartrecruiters:capestart": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "global_uuid": 1,
+          "employer_ref": 1,
+          "board_company": 1,
+          "published_at": 1
+        }
+      },
+      "smartrecruiters:servicetitan": {
+        "rows": 3,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "internal_id": 3,
+          "global_uuid": 3,
+          "employer_ref": 3,
+          "board_company": 3,
+          "multi_location": 3,
+          "published_at": 3
+        }
+      },
+      "smartrecruiters:gepworldwide": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "global_uuid": 1,
+          "employer_ref": 1,
+          "board_company": 1,
+          "multi_location": 1,
+          "published_at": 1
+        }
+      },
+      "smartrecruiters:synechron": {
+        "rows": 1,
+        "source_unique": 1,
+        "newly_unique_vs_sweep": 1,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 1,
+          "internal_id": 1,
+          "global_uuid": 1,
+          "employer_ref": 1,
+          "board_company": 1,
+          "multi_location": 1,
+          "published_at": 1
+        }
+      },
+      "breezy:anovia": {
+        "rows": 3,
+        "source_unique": 3,
+        "newly_unique_vs_sweep": 3,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 3,
+          "friendly_id": 3,
+          "canonical_url": 3,
+          "multi_location": 3,
+          "published_at": 3
+        }
+      },
+      "remoteok": {
+        "rows": 23,
+        "source_unique": 22,
+        "newly_unique_vs_sweep": 22,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 23,
+          "canonical_url": 23,
+          "apply_url": 23,
+          "published_at": 23,
+          "board_company": 23
+        }
+      },
+      "wwr": {
+        "rows": 80,
+        "source_unique": 44,
+        "newly_unique_vs_sweep": 40,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 80,
+          "canonical_url": 80,
+          "published_at": 80,
+          "multi_location": 80,
+          "feed_category": 80
+        }
+      },
+      "remotive": {
+        "rows": 10,
+        "source_unique": 10,
+        "newly_unique_vs_sweep": 6,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 10,
+          "canonical_url": 10,
+          "published_at": 10,
+          "board_company": 10,
+          "multi_location": 10
+        }
+      },
+      "jobicy": {
+        "rows": 31,
+        "source_unique": 31,
+        "newly_unique_vs_sweep": 27,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 31,
+          "canonical_url": 31,
+          "published_at": 31,
+          "board_company": 31,
+          "multi_location": 31
+        }
+      },
+      "himalayas": {
+        "rows": 29,
+        "source_unique": 22,
+        "newly_unique_vs_sweep": 22,
+        "unkeyed": 0,
+        "native": {
+          "native_id": 29,
+          "apply_url": 29,
+          "published_at": 29,
+          "board_company": 29,
+          "multi_location": 28
+        }
+      }
+    },
+    "note": "current engine job_key, before dedupe; not verified opportunity identity \u2014 see the V2 forensic audit"
+  },
+  "outputs": {
+    "csv_rows": 201,
+    "json_rows": 201,
+    "final_rows_record": 201,
+    "counts_consistent": true,
+    "csv_sha256": "54cb5991ebcceef6",
+    "json_sha256": "2d45ebad8b699a14",
+    "private_keys_in_output": [],
+    "tmp_files": [],
+    "done_lines": 90,
+    "done_unique": 90,
+    "done_equals_completed": true,
+    "seen_lines": 201,
+    "account_ledger": {
+      "finished": true,
+      "states": {
+        "committed": 90
+      },
+      "provider_status": {
+        "SUCCEEDED": 90
+      },
+      "integrated": {
+        "completed": 90
+      },
+      "units": 90
+    },
+    "results_ready_marker": true,
+    "marker_after_outputs": true,
+    "marker_to_finish_s": 10.149
+  },
+  "failures": [],
+  "shadow_tranche_units": 8,
+  "notes": [
+    "Free holds every row until the last source returns, so its eligible milestones are checkpoint-granular, not streamed. See docs/search-engine-v2-a-telemetry-and-shadow.md.",
+    "Shadow tranche fetched after the results were written and judged in isolation; its rows never reach them and it is excluded from source counters."
+  ]
+}

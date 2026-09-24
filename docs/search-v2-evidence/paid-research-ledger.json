@@ -158,6 +158,30 @@
       "status": "completed, no anomaly",
       "cumulative_intended_usd": "0.865",
       "cumulative_known_actual_usd": 0.57045
+    },
+    {
+      "stage": "C5",
+      "at": "2026-09-24T16:11:30.107+00:00",
+      "provider": "indeed+linkedin",
+      "actor": [
+        "curious_coder/linkedin-jobs-scraper",
+        "misceres/indeed-scraper"
+      ],
+      "purpose": "V2-C5 integrated live validation: the full default plan (18 LinkedIn + 72 Indeed, depth 15) with free sources, C2 at 2 workers, the C4.5 account pool, adaptive shadow",
+      "actor_starts": 90,
+      "logical_units": 90,
+      "accounts_used": 5,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": {
+        "linkedin": "0.046",
+        "indeed": "0.135"
+      },
+      "intended_max_usd": "10.548",
+      "actual_final_usd": 6.9609,
+      "evidence": "c5-integrated-run.json",
+      "status": "paid_034: returned 13 rows for depth 15; paid_039: returned 12 rows for depth 15; paid_041: returned 10 rows for depth 15",
+      "cumulative_intended_usd": "11.413",
+      "cumulative_known_actual_usd": 7.53135
     }
   ]
 }

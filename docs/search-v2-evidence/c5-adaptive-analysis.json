@@ -1,0 +1,3379 @@
+{
+  "status": "MEASURED in the C5 run: shadow, full plan executed",
+  "policy_version": "c4.1",
+  "promoted": [],
+  "mode": "shadow",
+  "final_jobs": 201,
+  "candidates": [
+    {
+      "candidate_id": "marginal_streak:n=2",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_003",
+          "unit_id": "paid_003",
+          "plan_index": 3,
+          "provider": "linkedin",
+          "started_at_decision": 6,
+          "action": "would_stop",
+          "reason_code": "zero_marginal_streak",
+          "scope": null,
+          "evidence_counts": {
+            "streak": 2
+          },
+          "actual_behavior": "executed",
+          "affects_units": 86,
+          "bounded_exposure_avoided_usd": "10.364"
+        }
+      ],
+      "would_execute": 4,
+      "would_skip": 86,
+      "would_stop_after": "paid_003",
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 86,
+        "avoidable_as_scheduled": 84,
+        "physical_starts_avoided": 86,
+        "max_exposure_avoided_usd": "10.364",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.6187,
+        "unit_wall_ms_avoided": 1447287,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1
+      }
+    },
+    {
+      "candidate_id": "marginal_streak:n=3",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_004",
+          "unit_id": "paid_004",
+          "plan_index": 4,
+          "provider": "linkedin",
+          "started_at_decision": 6,
+          "action": "would_stop",
+          "reason_code": "zero_marginal_streak",
+          "scope": null,
+          "evidence_counts": {
+            "streak": 3
+          },
+          "actual_behavior": "executed",
+          "affects_units": 85,
+          "bounded_exposure_avoided_usd": "10.318"
+        }
+      ],
+      "would_execute": 5,
+      "would_skip": 85,
+      "would_stop_after": "paid_004",
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 85,
+        "avoidable_as_scheduled": 84,
+        "physical_starts_avoided": 85,
+        "max_exposure_avoided_usd": "10.318",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.61865,
+        "unit_wall_ms_avoided": 1427276,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1
+      }
+    },
+    {
+      "candidate_id": "marginal_streak:n=5",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_020",
+          "unit_id": "paid_020",
+          "plan_index": 20,
+          "provider": "indeed",
+          "started_at_decision": 22,
+          "action": "would_stop",
+          "reason_code": "zero_marginal_streak",
+          "scope": null,
+          "evidence_counts": {
+            "streak": 5
+          },
+          "actual_behavior": "executed",
+          "affects_units": 69,
+          "bounded_exposure_avoided_usd": "9.315"
+        }
+      ],
+      "would_execute": 21,
+      "would_skip": 69,
+      "would_stop_after": "paid_020",
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 69,
+        "avoidable_as_scheduled": 68,
+        "physical_starts_avoided": 69,
+        "max_exposure_avoided_usd": "9.315",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 744562,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1
+      }
+    },
+    {
+      "candidate_id": "top_k_stable:k=10,m=3",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_004",
+          "unit_id": "paid_004",
+          "plan_index": 4,
+          "provider": "linkedin",
+          "started_at_decision": 6,
+          "action": "would_stop",
+          "reason_code": "top10_unchanged_streak",
+          "scope": null,
+          "evidence_counts": {
+            "streak": 3
+          },
+          "actual_behavior": "executed",
+          "affects_units": 85,
+          "bounded_exposure_avoided_usd": "10.318"
+        }
+      ],
+      "would_execute": 5,
+      "would_skip": 85,
+      "would_stop_after": "paid_004",
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 85,
+        "avoidable_as_scheduled": 84,
+        "physical_starts_avoided": 85,
+        "max_exposure_avoided_usd": "10.318",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.61865,
+        "unit_wall_ms_avoided": 1427276,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1
+      }
+    },
+    {
+      "candidate_id": "top_k_stable:k=20,m=3",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_004",
+          "unit_id": "paid_004",
+          "plan_index": 4,
+          "provider": "linkedin",
+          "started_at_decision": 6,
+          "action": "would_stop",
+          "reason_code": "top20_unchanged_streak",
+          "scope": null,
+          "evidence_counts": {
+            "streak": 3
+          },
+          "actual_behavior": "executed",
+          "affects_units": 85,
+          "bounded_exposure_avoided_usd": "10.318"
+        }
+      ],
+      "would_execute": 5,
+      "would_skip": 85,
+      "would_stop_after": "paid_004",
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 85,
+        "avoidable_as_scheduled": 84,
+        "physical_starts_avoided": 85,
+        "max_exposure_avoided_usd": "10.318",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.61865,
+        "unit_wall_ms_avoided": 1427276,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1
+      }
+    },
+    {
+      "candidate_id": "top_k_stable:k=20,m=5",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_016",
+          "unit_id": "paid_016",
+          "plan_index": 16,
+          "provider": "linkedin",
+          "started_at_decision": 18,
+          "action": "would_stop",
+          "reason_code": "top20_unchanged_streak",
+          "scope": null,
+          "evidence_counts": {
+            "streak": 5
+          },
+          "actual_behavior": "executed",
+          "affects_units": 73,
+          "bounded_exposure_avoided_usd": "9.766"
+        }
+      ],
+      "would_execute": 17,
+      "would_skip": 73,
+      "would_stop_after": "paid_016",
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 73,
+        "avoidable_as_scheduled": 72,
+        "physical_starts_avoided": 73,
+        "max_exposure_avoided_usd": "9.766",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.36405,
+        "unit_wall_ms_avoided": 887150,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1
+      }
+    },
+    {
+      "candidate_id": "provider_marginal_streak:n=3",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_004",
+          "unit_id": "paid_004",
+          "plan_index": 4,
+          "provider": "linkedin",
+          "started_at_decision": 6,
+          "action": "would_skip",
+          "reason_code": "provider_zero_marginal_streak",
+          "scope": {
+            "provider": "linkedin"
+          },
+          "evidence_counts": {
+            "streak": 3
+          },
+          "actual_behavior": "executed",
+          "affects_units": 13,
+          "bounded_exposure_avoided_usd": "0.598"
+        },
+        {
+          "decision_point": "after paid_020",
+          "unit_id": "paid_020",
+          "plan_index": 20,
+          "provider": "indeed",
+          "started_at_decision": 22,
+          "action": "would_skip",
+          "reason_code": "provider_zero_marginal_streak",
+          "scope": {
+            "provider": "indeed"
+          },
+          "evidence_counts": {
+            "streak": 3
+          },
+          "actual_behavior": "executed",
+          "affects_units": 69,
+          "bounded_exposure_avoided_usd": "9.315"
+        }
+      ],
+      "would_execute": 8,
+      "would_skip": 82,
+      "would_stop_after": null,
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 82,
+        "avoidable_as_scheduled": 82,
+        "physical_starts_avoided": 82,
+        "max_exposure_avoided_usd": "9.913",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.52865,
+        "unit_wall_ms_avoided": 1333895,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1
+      }
+    },
+    {
+      "candidate_id": "provider_marginal_streak:n=5",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_022",
+          "unit_id": "paid_022",
+          "plan_index": 22,
+          "provider": "indeed",
+          "started_at_decision": 24,
+          "action": "would_skip",
+          "reason_code": "provider_zero_marginal_streak",
+          "scope": {
+            "provider": "indeed"
+          },
+          "evidence_counts": {
+            "streak": 5
+          },
+          "actual_behavior": "executed",
+          "affects_units": 67,
+          "bounded_exposure_avoided_usd": "9.045"
+        }
+      ],
+      "would_execute": 23,
+      "would_skip": 67,
+      "would_stop_after": null,
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 67,
+        "avoidable_as_scheduled": 67,
+        "physical_starts_avoided": 67,
+        "max_exposure_avoided_usd": "9.045",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 726762,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1
+      }
+    },
+    {
+      "candidate_id": "remote_after_places:m=1",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_003",
+          "unit_id": "paid_003",
+          "plan_index": 3,
+          "provider": "linkedin",
+          "started_at_decision": 6,
+          "action": "would_skip",
+          "reason_code": "remote_twin_redundant_before",
+          "scope": {
+            "provider": "linkedin",
+            "location_mode": "remote"
+          },
+          "evidence_counts": {
+            "redundant_remote": 1
+          },
+          "actual_behavior": "executed",
+          "affects_units": 7,
+          "bounded_exposure_avoided_usd": "0.322"
+        }
+      ],
+      "would_execute": 83,
+      "would_skip": 7,
+      "would_stop_after": null,
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 7,
+        "avoidable_as_scheduled": 7,
+        "physical_starts_avoided": 7,
+        "max_exposure_avoided_usd": "0.322",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.17835,
+        "unit_wall_ms_avoided": 316604,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 22,
+        "final_marginal_lost": 8,
+        "top10_lost": 4,
+        "top20_lost": 9,
+        "top50_lost": 16,
+        "best_lost_rank": 2
+      }
+    },
+    {
+      "candidate_id": "remote_after_places:m=2",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_017",
+          "unit_id": "paid_017",
+          "plan_index": 17,
+          "provider": "linkedin",
+          "started_at_decision": 18,
+          "action": "would_skip",
+          "reason_code": "remote_twin_redundant_before",
+          "scope": {
+            "provider": "linkedin",
+            "location_mode": "remote"
+          },
+          "evidence_counts": {
+            "redundant_remote": 2
+          },
+          "actual_behavior": "executed",
+          "affects_units": 0,
+          "bounded_exposure_avoided_usd": "0"
+        }
+      ],
+      "would_execute": 90,
+      "would_skip": 0,
+      "would_stop_after": null,
+      "would_use_depth": {},
+      "savings": {
+        "logical_avoided": 0,
+        "avoidable_as_scheduled": 0,
+        "physical_starts_avoided": 0,
+        "max_exposure_avoided_usd": "0",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0,
+        "unit_wall_ms_avoided": 0,
+        "depth": []
+      },
+      "loss": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "candidate_id": "depth_prefix:d=5,m=3",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_004",
+          "unit_id": "paid_004",
+          "plan_index": 4,
+          "provider": "linkedin",
+          "started_at_decision": 6,
+          "action": "would_use_depth",
+          "reason_code": "nothing_marginal_beyond_position_5",
+          "scope": {
+            "provider": "linkedin",
+            "depth": 5
+          },
+          "evidence_counts": {
+            "streak": 3
+          },
+          "actual_behavior": "executed",
+          "affects_units": 13,
+          "bounded_exposure_avoided_usd": "0"
+        }
+      ],
+      "would_execute": 90,
+      "would_skip": 0,
+      "would_stop_after": null,
+      "would_use_depth": {
+        "linkedin": 5
+      },
+      "savings": {
+        "logical_avoided": 0,
+        "avoidable_as_scheduled": 0,
+        "physical_starts_avoided": 0,
+        "max_exposure_avoided_usd": "0",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0,
+        "unit_wall_ms_avoided": 0,
+        "depth": [
+          {
+            "units_cut": 13,
+            "eligible_rows_not_bought": 51,
+            "max_exposure_avoided_usd": "0.390"
+          }
+        ]
+      },
+      "loss": {
+        "final_lost": 14,
+        "final_marginal_lost": 7,
+        "top10_lost": 5,
+        "top20_lost": 8,
+        "top50_lost": 11,
+        "best_lost_rank": 2
+      }
+    },
+    {
+      "candidate_id": "depth_prefix:d=10,m=3",
+      "fired": true,
+      "decisions": [
+        {
+          "decision_point": "after paid_004",
+          "unit_id": "paid_004",
+          "plan_index": 4,
+          "provider": "linkedin",
+          "started_at_decision": 6,
+          "action": "would_use_depth",
+          "reason_code": "nothing_marginal_beyond_position_10",
+          "scope": {
+            "provider": "linkedin",
+            "depth": 10
+          },
+          "evidence_counts": {
+            "streak": 3
+          },
+          "actual_behavior": "executed",
+          "affects_units": 13,
+          "bounded_exposure_avoided_usd": "0"
+        }
+      ],
+      "would_execute": 90,
+      "would_skip": 0,
+      "would_stop_after": null,
+      "would_use_depth": {
+        "linkedin": 10
+      },
+      "savings": {
+        "logical_avoided": 0,
+        "avoidable_as_scheduled": 0,
+        "physical_starts_avoided": 0,
+        "max_exposure_avoided_usd": "0",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0,
+        "unit_wall_ms_avoided": 0,
+        "depth": [
+          {
+            "units_cut": 13,
+            "eligible_rows_not_bought": 26,
+            "max_exposure_avoided_usd": "0.195"
+          }
+        ]
+      },
+      "loss": {
+        "final_lost": 6,
+        "final_marginal_lost": 3,
+        "top10_lost": 3,
+        "top20_lost": 5,
+        "top50_lost": 5,
+        "best_lost_rank": 2
+      }
+    }
+  ],
+  "pairs": [
+    {
+      "provider": "linkedin",
+      "keyword_fp": "b2cf5a446b6b",
+      "place_units": [
+        "paid_000"
+      ],
+      "remote_unit": "paid_001",
+      "remote_eligible_jobs": 9,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "provider": "linkedin",
+      "keyword_fp": "c11fd3568642",
+      "place_units": [
+        "paid_002"
+      ],
+      "remote_unit": "paid_003",
+      "remote_eligible_jobs": 9,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "provider": "linkedin",
+      "keyword_fp": "dcdfb54d60da",
+      "place_units": [
+        "paid_004"
+      ],
+      "remote_unit": "paid_005",
+      "remote_eligible_jobs": 10,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 1,
+        "top20_lost": 1,
+        "top50_lost": 1,
+        "best_lost_rank": 2
+      }
+    },
+    {
+      "provider": "linkedin",
+      "keyword_fp": "6a4bcd4ff131",
+      "place_units": [
+        "paid_006"
+      ],
+      "remote_unit": "paid_007",
+      "remote_eligible_jobs": 12,
+      "overlap_with_places": 2,
+      "if_remote_skipped": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 1,
+        "top20_lost": 1,
+        "top50_lost": 2,
+        "best_lost_rank": 7
+      }
+    },
+    {
+      "provider": "linkedin",
+      "keyword_fp": "1e477757b8dc",
+      "place_units": [
+        "paid_008"
+      ],
+      "remote_unit": "paid_009",
+      "remote_eligible_jobs": 11,
+      "overlap_with_places": 2,
+      "if_remote_skipped": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "provider": "linkedin",
+      "keyword_fp": "85a21c5db770",
+      "place_units": [
+        "paid_010"
+      ],
+      "remote_unit": "paid_011",
+      "remote_eligible_jobs": 11,
+      "overlap_with_places": 1,
+      "if_remote_skipped": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 40
+      }
+    },
+    {
+      "provider": "linkedin",
+      "keyword_fp": "9a4e41eca575",
+      "place_units": [
+        "paid_012"
+      ],
+      "remote_unit": "paid_013",
+      "remote_eligible_jobs": 8,
+      "overlap_with_places": 1,
+      "if_remote_skipped": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 28
+      }
+    },
+    {
+      "provider": "linkedin",
+      "keyword_fp": "91c79fa33d22",
+      "place_units": [
+        "paid_014"
+      ],
+      "remote_unit": "paid_015",
+      "remote_eligible_jobs": 11,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 103
+      }
+    },
+    {
+      "provider": "linkedin",
+      "keyword_fp": "0ef6c29a564a",
+      "place_units": [
+        "paid_016"
+      ],
+      "remote_unit": "paid_017",
+      "remote_eligible_jobs": 10,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "364a4981fb2d",
+      "place_units": [
+        "paid_018",
+        "paid_019",
+        "paid_020",
+        "paid_021",
+        "paid_022",
+        "paid_023",
+        "paid_024"
+      ],
+      "remote_unit": "paid_025",
+      "remote_eligible_jobs": 1,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "b50ead6c587f",
+      "place_units": [
+        "paid_026",
+        "paid_027",
+        "paid_028",
+        "paid_029",
+        "paid_030",
+        "paid_031",
+        "paid_032"
+      ],
+      "remote_unit": "paid_033",
+      "remote_eligible_jobs": 1,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "18962a0f4b71",
+      "place_units": [
+        "paid_034",
+        "paid_035",
+        "paid_036",
+        "paid_037",
+        "paid_038",
+        "paid_039",
+        "paid_040"
+      ],
+      "remote_unit": "paid_041",
+      "remote_eligible_jobs": 2,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 59
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "f2eeb437a5d4",
+      "place_units": [
+        "paid_042",
+        "paid_043",
+        "paid_044",
+        "paid_045",
+        "paid_046",
+        "paid_047",
+        "paid_048"
+      ],
+      "remote_unit": "paid_049",
+      "remote_eligible_jobs": 2,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 91
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "2943ce46848e",
+      "place_units": [
+        "paid_050",
+        "paid_051",
+        "paid_052",
+        "paid_053",
+        "paid_054",
+        "paid_055",
+        "paid_056"
+      ],
+      "remote_unit": "paid_057",
+      "remote_eligible_jobs": 4,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 112
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "72989be32e7a",
+      "place_units": [
+        "paid_058",
+        "paid_059",
+        "paid_060",
+        "paid_061",
+        "paid_062",
+        "paid_063",
+        "paid_064"
+      ],
+      "remote_unit": "paid_065",
+      "remote_eligible_jobs": 2,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "cd656e5b040d",
+      "place_units": [
+        "paid_066",
+        "paid_067",
+        "paid_068",
+        "paid_069",
+        "paid_070",
+        "paid_071",
+        "paid_072"
+      ],
+      "remote_unit": "paid_073",
+      "remote_eligible_jobs": 3,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 2,
+        "best_lost_rank": 21
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "a0b6759e51ae",
+      "place_units": [
+        "paid_074",
+        "paid_075",
+        "paid_076",
+        "paid_077",
+        "paid_078",
+        "paid_079",
+        "paid_080"
+      ],
+      "remote_unit": "paid_081",
+      "remote_eligible_jobs": 5,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 3,
+        "final_marginal_lost": 3,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 31
+      }
+    },
+    {
+      "provider": "indeed",
+      "keyword_fp": "44bede432242",
+      "place_units": [
+        "paid_082",
+        "paid_083",
+        "paid_084",
+        "paid_085",
+        "paid_086",
+        "paid_087",
+        "paid_088"
+      ],
+      "remote_unit": "paid_089",
+      "remote_eligible_jobs": 3,
+      "overlap_with_places": 0,
+      "if_remote_skipped": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83
+      }
+    }
+  ],
+  "depth": {
+    "indeed": {
+      "status": "UNKNOWN",
+      "reason": "no provider position on these rows; dataset order is the actor's push order, not a rank"
+    },
+    "linkedin": {
+      "status": "MEASURED",
+      "requested_depth": 15,
+      "unknown_position_rows": 0,
+      "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+      "5": {
+        "eligible": 36,
+        "eligible_positive": 36,
+        "final": 11,
+        "final_marginal": 1,
+        "top10": 0,
+        "top20": 2,
+        "top50": 6,
+        "loss": {
+          "final_lost": 15,
+          "final_marginal_lost": 7,
+          "top10_lost": 5,
+          "top20_lost": 8,
+          "top50_lost": 12,
+          "best_lost_rank": 2
+        },
+        "savings": {
+          "units_cut": 18,
+          "eligible_rows_not_bought": 61,
+          "max_exposure_avoided_usd": "0.540"
+        }
+      },
+      "10": {
+        "eligible": 65,
+        "eligible_positive": 64,
+        "final": 22,
+        "final_marginal": 5,
+        "top10": 2,
+        "top20": 6,
+        "top50": 14,
+        "loss": {
+          "final_lost": 7,
+          "final_marginal_lost": 3,
+          "top10_lost": 3,
+          "top20_lost": 5,
+          "top50_lost": 6,
+          "best_lost_rank": 2
+        },
+        "savings": {
+          "units_cut": 18,
+          "eligible_rows_not_bought": 32,
+          "max_exposure_avoided_usd": "0.270"
+        }
+      },
+      "15": {
+        "eligible": 97,
+        "eligible_positive": 96,
+        "final": 35,
+        "final_marginal": 8,
+        "top10": 7,
+        "top20": 15,
+        "top50": 26
+      }
+    }
+  },
+  "per_unit": [
+    {
+      "unit_id": "paid_000",
+      "if_stopped_after": {
+        "final_lost": 54,
+        "final_marginal_lost": 22,
+        "top10_lost": 9,
+        "top20_lost": 18,
+        "top50_lost": 35,
+        "best_lost_rank": 1,
+        "logical_avoided": 89,
+        "avoidable_as_scheduled": 89,
+        "physical_starts_avoided": 89,
+        "max_exposure_avoided_usd": "10.502",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.68085,
+        "unit_wall_ms_avoided": 1551398
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_001",
+      "if_stopped_after": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1,
+        "logical_avoided": 88,
+        "avoidable_as_scheduled": 88,
+        "physical_starts_avoided": 88,
+        "max_exposure_avoided_usd": "10.456",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.6528,
+        "unit_wall_ms_avoided": 1502583
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_002",
+      "if_stopped_after": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1,
+        "logical_avoided": 87,
+        "avoidable_as_scheduled": 87,
+        "physical_starts_avoided": 87,
+        "max_exposure_avoided_usd": "10.410",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.64675,
+        "unit_wall_ms_avoided": 1477154
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_003",
+      "if_stopped_after": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1,
+        "logical_avoided": 86,
+        "avoidable_as_scheduled": 86,
+        "physical_starts_avoided": 86,
+        "max_exposure_avoided_usd": "10.364",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.6187,
+        "unit_wall_ms_avoided": 1447287
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_004",
+      "if_stopped_after": {
+        "final_lost": 45,
+        "final_marginal_lost": 22,
+        "top10_lost": 7,
+        "top20_lost": 14,
+        "top50_lost": 29,
+        "best_lost_rank": 1,
+        "logical_avoided": 85,
+        "avoidable_as_scheduled": 85,
+        "physical_starts_avoided": 85,
+        "max_exposure_avoided_usd": "10.318",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.61865,
+        "unit_wall_ms_avoided": 1427276
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_005",
+      "if_stopped_after": {
+        "final_lost": 41,
+        "final_marginal_lost": 21,
+        "top10_lost": 6,
+        "top20_lost": 10,
+        "top50_lost": 25,
+        "best_lost_rank": 1,
+        "logical_avoided": 84,
+        "avoidable_as_scheduled": 84,
+        "physical_starts_avoided": 84,
+        "max_exposure_avoided_usd": "10.272",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.6086,
+        "unit_wall_ms_avoided": 1398292
+      },
+      "if_skipped_alone": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 1,
+        "top20_lost": 1,
+        "top50_lost": 1,
+        "best_lost_rank": 2
+      }
+    },
+    {
+      "unit_id": "paid_006",
+      "if_stopped_after": {
+        "final_lost": 39,
+        "final_marginal_lost": 21,
+        "top10_lost": 5,
+        "top20_lost": 9,
+        "top50_lost": 23,
+        "best_lost_rank": 1,
+        "logical_avoided": 83,
+        "avoidable_as_scheduled": 83,
+        "physical_starts_avoided": 83,
+        "max_exposure_avoided_usd": "10.226",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.58055,
+        "unit_wall_ms_avoided": 1362881
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_007",
+      "if_stopped_after": {
+        "final_lost": 29,
+        "final_marginal_lost": 19,
+        "top10_lost": 3,
+        "top20_lost": 5,
+        "top50_lost": 15,
+        "best_lost_rank": 1,
+        "logical_avoided": 82,
+        "avoidable_as_scheduled": 82,
+        "physical_starts_avoided": 82,
+        "max_exposure_avoided_usd": "10.180",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.5525,
+        "unit_wall_ms_avoided": 1333251
+      },
+      "if_skipped_alone": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 1,
+        "top20_lost": 1,
+        "top50_lost": 2,
+        "best_lost_rank": 7
+      }
+    },
+    {
+      "unit_id": "paid_008",
+      "if_stopped_after": {
+        "final_lost": 29,
+        "final_marginal_lost": 19,
+        "top10_lost": 3,
+        "top20_lost": 5,
+        "top50_lost": 15,
+        "best_lost_rank": 1,
+        "logical_avoided": 81,
+        "avoidable_as_scheduled": 81,
+        "physical_starts_avoided": 81,
+        "max_exposure_avoided_usd": "10.134",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.55245,
+        "unit_wall_ms_avoided": 1276147
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_009",
+      "if_stopped_after": {
+        "final_lost": 28,
+        "final_marginal_lost": 19,
+        "top10_lost": 3,
+        "top20_lost": 5,
+        "top50_lost": 15,
+        "best_lost_rank": 1,
+        "logical_avoided": 80,
+        "avoidable_as_scheduled": 80,
+        "physical_starts_avoided": 80,
+        "max_exposure_avoided_usd": "10.088",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.5244,
+        "unit_wall_ms_avoided": 1239222
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_010",
+      "if_stopped_after": {
+        "final_lost": 28,
+        "final_marginal_lost": 19,
+        "top10_lost": 3,
+        "top20_lost": 5,
+        "top50_lost": 15,
+        "best_lost_rank": 1,
+        "logical_avoided": 79,
+        "avoidable_as_scheduled": 79,
+        "physical_starts_avoided": 79,
+        "max_exposure_avoided_usd": "10.042",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.49635,
+        "unit_wall_ms_avoided": 1185050
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_011",
+      "if_stopped_after": {
+        "final_lost": 23,
+        "final_marginal_lost": 17,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 11,
+        "best_lost_rank": 1,
+        "logical_avoided": 78,
+        "avoidable_as_scheduled": 78,
+        "physical_starts_avoided": 78,
+        "max_exposure_avoided_usd": "9.996",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.4683,
+        "unit_wall_ms_avoided": 1131048
+      },
+      "if_skipped_alone": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 40
+      }
+    },
+    {
+      "unit_id": "paid_012",
+      "if_stopped_after": {
+        "final_lost": 23,
+        "final_marginal_lost": 17,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 11,
+        "best_lost_rank": 1,
+        "logical_avoided": 77,
+        "avoidable_as_scheduled": 77,
+        "physical_starts_avoided": 77,
+        "max_exposure_avoided_usd": "9.950",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.44825,
+        "unit_wall_ms_avoided": 1106084
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_013",
+      "if_stopped_after": {
+        "final_lost": 22,
+        "final_marginal_lost": 16,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 10,
+        "best_lost_rank": 1,
+        "logical_avoided": 76,
+        "avoidable_as_scheduled": 76,
+        "physical_starts_avoided": 76,
+        "max_exposure_avoided_usd": "9.904",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.4202,
+        "unit_wall_ms_avoided": 1067100
+      },
+      "if_skipped_alone": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 28
+      }
+    },
+    {
+      "unit_id": "paid_014",
+      "if_stopped_after": {
+        "final_lost": 22,
+        "final_marginal_lost": 16,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 10,
+        "best_lost_rank": 1,
+        "logical_avoided": 75,
+        "avoidable_as_scheduled": 75,
+        "physical_starts_avoided": 75,
+        "max_exposure_avoided_usd": "9.858",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.39215,
+        "unit_wall_ms_avoided": 1031285
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_015",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 74,
+        "avoidable_as_scheduled": 74,
+        "physical_starts_avoided": 74,
+        "max_exposure_avoided_usd": "9.812",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.3641,
+        "unit_wall_ms_avoided": 952413
+      },
+      "if_skipped_alone": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 103
+      }
+    },
+    {
+      "unit_id": "paid_016",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 73,
+        "avoidable_as_scheduled": 73,
+        "physical_starts_avoided": 73,
+        "max_exposure_avoided_usd": "9.766",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.36405,
+        "unit_wall_ms_avoided": 887150
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_017",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 72,
+        "avoidable_as_scheduled": 72,
+        "physical_starts_avoided": 72,
+        "max_exposure_avoided_usd": "9.720",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.336,
+        "unit_wall_ms_avoided": 837943
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_018",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 71,
+        "avoidable_as_scheduled": 71,
+        "physical_starts_avoided": 71,
+        "max_exposure_avoided_usd": "9.585",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.336,
+        "unit_wall_ms_avoided": 805202
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_019",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 70,
+        "avoidable_as_scheduled": 70,
+        "physical_starts_avoided": 70,
+        "max_exposure_avoided_usd": "9.450",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.336,
+        "unit_wall_ms_avoided": 772088
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_020",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 69,
+        "avoidable_as_scheduled": 69,
+        "physical_starts_avoided": 69,
+        "max_exposure_avoided_usd": "9.315",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 744562
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_021",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 68,
+        "avoidable_as_scheduled": 68,
+        "physical_starts_avoided": 68,
+        "max_exposure_avoided_usd": "9.180",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 735466
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_022",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 67,
+        "avoidable_as_scheduled": 67,
+        "physical_starts_avoided": 67,
+        "max_exposure_avoided_usd": "9.045",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 726762
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_023",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 66,
+        "avoidable_as_scheduled": 66,
+        "physical_starts_avoided": 66,
+        "max_exposure_avoided_usd": "8.910",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 715280
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_024",
+      "if_stopped_after": {
+        "final_lost": 19,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 9,
+        "best_lost_rank": 1,
+        "logical_avoided": 65,
+        "avoidable_as_scheduled": 65,
+        "physical_starts_avoided": 65,
+        "max_exposure_avoided_usd": "8.775",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 696442
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_025",
+      "if_stopped_after": {
+        "final_lost": 18,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 8,
+        "best_lost_rank": 1,
+        "logical_avoided": 64,
+        "avoidable_as_scheduled": 64,
+        "physical_starts_avoided": 64,
+        "max_exposure_avoided_usd": "8.640",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 687299
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_026",
+      "if_stopped_after": {
+        "final_lost": 17,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 7,
+        "best_lost_rank": 1,
+        "logical_avoided": 63,
+        "avoidable_as_scheduled": 63,
+        "physical_starts_avoided": 63,
+        "max_exposure_avoided_usd": "8.505",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 678895
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_027",
+      "if_stopped_after": {
+        "final_lost": 17,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 7,
+        "best_lost_rank": 1,
+        "logical_avoided": 62,
+        "avoidable_as_scheduled": 62,
+        "physical_starts_avoided": 62,
+        "max_exposure_avoided_usd": "8.370",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 669448
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_028",
+      "if_stopped_after": {
+        "final_lost": 17,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 7,
+        "best_lost_rank": 1,
+        "logical_avoided": 61,
+        "avoidable_as_scheduled": 61,
+        "physical_starts_avoided": 61,
+        "max_exposure_avoided_usd": "8.235",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.246,
+        "unit_wall_ms_avoided": 660318
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_029",
+      "if_stopped_after": {
+        "final_lost": 17,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 7,
+        "best_lost_rank": 1,
+        "logical_avoided": 60,
+        "avoidable_as_scheduled": 60,
+        "physical_starts_avoided": 60,
+        "max_exposure_avoided_usd": "8.100",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.216,
+        "unit_wall_ms_avoided": 647086
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_030",
+      "if_stopped_after": {
+        "final_lost": 17,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 7,
+        "best_lost_rank": 1,
+        "logical_avoided": 59,
+        "avoidable_as_scheduled": 59,
+        "physical_starts_avoided": 59,
+        "max_exposure_avoided_usd": "7.965",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.216,
+        "unit_wall_ms_avoided": 639165
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_031",
+      "if_stopped_after": {
+        "final_lost": 17,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 7,
+        "best_lost_rank": 1,
+        "logical_avoided": 58,
+        "avoidable_as_scheduled": 58,
+        "physical_starts_avoided": 58,
+        "max_exposure_avoided_usd": "7.830",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.216,
+        "unit_wall_ms_avoided": 631236
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_032",
+      "if_stopped_after": {
+        "final_lost": 17,
+        "final_marginal_lost": 14,
+        "top10_lost": 2,
+        "top20_lost": 3,
+        "top50_lost": 7,
+        "best_lost_rank": 1,
+        "logical_avoided": 57,
+        "avoidable_as_scheduled": 57,
+        "physical_starts_avoided": 57,
+        "max_exposure_avoided_usd": "7.695",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.216,
+        "unit_wall_ms_avoided": 623271
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_033",
+      "if_stopped_after": {
+        "final_lost": 16,
+        "final_marginal_lost": 14,
+        "top10_lost": 1,
+        "top20_lost": 2,
+        "top50_lost": 6,
+        "best_lost_rank": 3,
+        "logical_avoided": 56,
+        "avoidable_as_scheduled": 56,
+        "physical_starts_avoided": 56,
+        "max_exposure_avoided_usd": "7.560",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.216,
+        "unit_wall_ms_avoided": 603519
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_034",
+      "if_stopped_after": {
+        "final_lost": 16,
+        "final_marginal_lost": 14,
+        "top10_lost": 1,
+        "top20_lost": 2,
+        "top50_lost": 6,
+        "best_lost_rank": 3,
+        "logical_avoided": 55,
+        "avoidable_as_scheduled": 55,
+        "physical_starts_avoided": 55,
+        "max_exposure_avoided_usd": "7.425",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.216,
+        "unit_wall_ms_avoided": 584444
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_035",
+      "if_stopped_after": {
+        "final_lost": 16,
+        "final_marginal_lost": 14,
+        "top10_lost": 1,
+        "top20_lost": 2,
+        "top50_lost": 6,
+        "best_lost_rank": 3,
+        "logical_avoided": 54,
+        "avoidable_as_scheduled": 54,
+        "physical_starts_avoided": 54,
+        "max_exposure_avoided_usd": "7.290",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 572849
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_036",
+      "if_stopped_after": {
+        "final_lost": 16,
+        "final_marginal_lost": 14,
+        "top10_lost": 1,
+        "top20_lost": 2,
+        "top50_lost": 6,
+        "best_lost_rank": 3,
+        "logical_avoided": 53,
+        "avoidable_as_scheduled": 53,
+        "physical_starts_avoided": 53,
+        "max_exposure_avoided_usd": "7.155",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 564505
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_037",
+      "if_stopped_after": {
+        "final_lost": 16,
+        "final_marginal_lost": 14,
+        "top10_lost": 1,
+        "top20_lost": 2,
+        "top50_lost": 6,
+        "best_lost_rank": 3,
+        "logical_avoided": 52,
+        "avoidable_as_scheduled": 52,
+        "physical_starts_avoided": 52,
+        "max_exposure_avoided_usd": "7.020",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 555087
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_038",
+      "if_stopped_after": {
+        "final_lost": 15,
+        "final_marginal_lost": 13,
+        "top10_lost": 0,
+        "top20_lost": 1,
+        "top50_lost": 5,
+        "best_lost_rank": 12,
+        "logical_avoided": 51,
+        "avoidable_as_scheduled": 51,
+        "physical_starts_avoided": 51,
+        "max_exposure_avoided_usd": "6.885",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 547062
+      },
+      "if_skipped_alone": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 1,
+        "top20_lost": 1,
+        "top50_lost": 1,
+        "best_lost_rank": 3
+      }
+    },
+    {
+      "unit_id": "paid_039",
+      "if_stopped_after": {
+        "final_lost": 15,
+        "final_marginal_lost": 13,
+        "top10_lost": 0,
+        "top20_lost": 1,
+        "top50_lost": 5,
+        "best_lost_rank": 12,
+        "logical_avoided": 50,
+        "avoidable_as_scheduled": 50,
+        "physical_starts_avoided": 50,
+        "max_exposure_avoided_usd": "6.750",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 539410
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_040",
+      "if_stopped_after": {
+        "final_lost": 15,
+        "final_marginal_lost": 13,
+        "top10_lost": 0,
+        "top20_lost": 1,
+        "top50_lost": 5,
+        "best_lost_rank": 12,
+        "logical_avoided": 49,
+        "avoidable_as_scheduled": 49,
+        "physical_starts_avoided": 49,
+        "max_exposure_avoided_usd": "6.615",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 528000
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_041",
+      "if_stopped_after": {
+        "final_lost": 13,
+        "final_marginal_lost": 12,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 48,
+        "avoidable_as_scheduled": 48,
+        "physical_starts_avoided": 48,
+        "max_exposure_avoided_usd": "6.480",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 519969
+      },
+      "if_skipped_alone": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 59
+      }
+    },
+    {
+      "unit_id": "paid_042",
+      "if_stopped_after": {
+        "final_lost": 13,
+        "final_marginal_lost": 12,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 47,
+        "avoidable_as_scheduled": 47,
+        "physical_starts_avoided": 47,
+        "max_exposure_avoided_usd": "6.345",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 503050
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_043",
+      "if_stopped_after": {
+        "final_lost": 13,
+        "final_marginal_lost": 12,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 46,
+        "avoidable_as_scheduled": 46,
+        "physical_starts_avoided": 46,
+        "max_exposure_avoided_usd": "6.210",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 486958
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_044",
+      "if_stopped_after": {
+        "final_lost": 13,
+        "final_marginal_lost": 12,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 45,
+        "avoidable_as_scheduled": 45,
+        "physical_starts_avoided": 45,
+        "max_exposure_avoided_usd": "6.075",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 470151
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_045",
+      "if_stopped_after": {
+        "final_lost": 13,
+        "final_marginal_lost": 12,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 44,
+        "avoidable_as_scheduled": 44,
+        "physical_starts_avoided": 44,
+        "max_exposure_avoided_usd": "5.940",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.18,
+        "unit_wall_ms_avoided": 451950
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_046",
+      "if_stopped_after": {
+        "final_lost": 13,
+        "final_marginal_lost": 12,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 43,
+        "avoidable_as_scheduled": 43,
+        "physical_starts_avoided": 43,
+        "max_exposure_avoided_usd": "5.805",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.09,
+        "unit_wall_ms_avoided": 430543
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_047",
+      "if_stopped_after": {
+        "final_lost": 13,
+        "final_marginal_lost": 12,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 42,
+        "avoidable_as_scheduled": 42,
+        "physical_starts_avoided": 42,
+        "max_exposure_avoided_usd": "5.670",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 412122
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_048",
+      "if_stopped_after": {
+        "final_lost": 13,
+        "final_marginal_lost": 12,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 41,
+        "avoidable_as_scheduled": 41,
+        "physical_starts_avoided": 41,
+        "max_exposure_avoided_usd": "5.535",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 400371
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_049",
+      "if_stopped_after": {
+        "final_lost": 12,
+        "final_marginal_lost": 11,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 40,
+        "avoidable_as_scheduled": 40,
+        "physical_starts_avoided": 40,
+        "max_exposure_avoided_usd": "5.400",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 384749
+      },
+      "if_skipped_alone": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 91
+      }
+    },
+    {
+      "unit_id": "paid_050",
+      "if_stopped_after": {
+        "final_lost": 12,
+        "final_marginal_lost": 11,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 39,
+        "avoidable_as_scheduled": 39,
+        "physical_starts_avoided": 39,
+        "max_exposure_avoided_usd": "5.265",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 363521
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_051",
+      "if_stopped_after": {
+        "final_lost": 12,
+        "final_marginal_lost": 11,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 38,
+        "avoidable_as_scheduled": 38,
+        "physical_starts_avoided": 38,
+        "max_exposure_avoided_usd": "5.130",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 346052
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_052",
+      "if_stopped_after": {
+        "final_lost": 12,
+        "final_marginal_lost": 11,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 37,
+        "avoidable_as_scheduled": 37,
+        "physical_starts_avoided": 37,
+        "max_exposure_avoided_usd": "4.995",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 336841
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_053",
+      "if_stopped_after": {
+        "final_lost": 12,
+        "final_marginal_lost": 11,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 36,
+        "avoidable_as_scheduled": 36,
+        "physical_starts_avoided": 36,
+        "max_exposure_avoided_usd": "4.860",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 316999
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_054",
+      "if_stopped_after": {
+        "final_lost": 12,
+        "final_marginal_lost": 11,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 35,
+        "avoidable_as_scheduled": 35,
+        "physical_starts_avoided": 35,
+        "max_exposure_avoided_usd": "4.725",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 303176
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_055",
+      "if_stopped_after": {
+        "final_lost": 12,
+        "final_marginal_lost": 11,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 34,
+        "avoidable_as_scheduled": 34,
+        "physical_starts_avoided": 34,
+        "max_exposure_avoided_usd": "4.590",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 294821
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_056",
+      "if_stopped_after": {
+        "final_lost": 12,
+        "final_marginal_lost": 11,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 33,
+        "avoidable_as_scheduled": 33,
+        "physical_starts_avoided": 33,
+        "max_exposure_avoided_usd": "4.455",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 286416
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_057",
+      "if_stopped_after": {
+        "final_lost": 11,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 32,
+        "avoidable_as_scheduled": 32,
+        "physical_starts_avoided": 32,
+        "max_exposure_avoided_usd": "4.320",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 278197
+      },
+      "if_skipped_alone": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 112
+      }
+    },
+    {
+      "unit_id": "paid_058",
+      "if_stopped_after": {
+        "final_lost": 11,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 31,
+        "avoidable_as_scheduled": 31,
+        "physical_starts_avoided": 31,
+        "max_exposure_avoided_usd": "4.185",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 269421
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_059",
+      "if_stopped_after": {
+        "final_lost": 11,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 30,
+        "avoidable_as_scheduled": 30,
+        "physical_starts_avoided": 30,
+        "max_exposure_avoided_usd": "4.050",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 261704
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_060",
+      "if_stopped_after": {
+        "final_lost": 11,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 29,
+        "avoidable_as_scheduled": 29,
+        "physical_starts_avoided": 29,
+        "max_exposure_avoided_usd": "3.915",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 253700
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_061",
+      "if_stopped_after": {
+        "final_lost": 11,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 28,
+        "avoidable_as_scheduled": 28,
+        "physical_starts_avoided": 28,
+        "max_exposure_avoided_usd": "3.780",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 245931
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_062",
+      "if_stopped_after": {
+        "final_lost": 11,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 27,
+        "avoidable_as_scheduled": 27,
+        "physical_starts_avoided": 27,
+        "max_exposure_avoided_usd": "3.645",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 237835
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_063",
+      "if_stopped_after": {
+        "final_lost": 11,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 26,
+        "avoidable_as_scheduled": 26,
+        "physical_starts_avoided": 26,
+        "max_exposure_avoided_usd": "3.510",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 228512
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_064",
+      "if_stopped_after": {
+        "final_lost": 11,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 25,
+        "avoidable_as_scheduled": 25,
+        "physical_starts_avoided": 25,
+        "max_exposure_avoided_usd": "3.375",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 220459
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_065",
+      "if_stopped_after": {
+        "final_lost": 10,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 24,
+        "avoidable_as_scheduled": 24,
+        "physical_starts_avoided": 24,
+        "max_exposure_avoided_usd": "3.240",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 211525
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_066",
+      "if_stopped_after": {
+        "final_lost": 10,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 23,
+        "avoidable_as_scheduled": 23,
+        "physical_starts_avoided": 23,
+        "max_exposure_avoided_usd": "3.105",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 203493
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_067",
+      "if_stopped_after": {
+        "final_lost": 10,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 22,
+        "avoidable_as_scheduled": 22,
+        "physical_starts_avoided": 22,
+        "max_exposure_avoided_usd": "2.970",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 195427
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_068",
+      "if_stopped_after": {
+        "final_lost": 10,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 21,
+        "avoidable_as_scheduled": 21,
+        "physical_starts_avoided": 21,
+        "max_exposure_avoided_usd": "2.835",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 187149
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_069",
+      "if_stopped_after": {
+        "final_lost": 10,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 20,
+        "avoidable_as_scheduled": 20,
+        "physical_starts_avoided": 20,
+        "max_exposure_avoided_usd": "2.700",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 178285
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_070",
+      "if_stopped_after": {
+        "final_lost": 10,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 19,
+        "avoidable_as_scheduled": 19,
+        "physical_starts_avoided": 19,
+        "max_exposure_avoided_usd": "2.565",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 170513
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_071",
+      "if_stopped_after": {
+        "final_lost": 10,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 18,
+        "avoidable_as_scheduled": 18,
+        "physical_starts_avoided": 18,
+        "max_exposure_avoided_usd": "2.430",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 162055
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_072",
+      "if_stopped_after": {
+        "final_lost": 10,
+        "final_marginal_lost": 10,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 4,
+        "best_lost_rank": 21,
+        "logical_avoided": 17,
+        "avoidable_as_scheduled": 17,
+        "physical_starts_avoided": 17,
+        "max_exposure_avoided_usd": "2.295",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 151440
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_073",
+      "if_stopped_after": {
+        "final_lost": 8,
+        "final_marginal_lost": 8,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 2,
+        "best_lost_rank": 31,
+        "logical_avoided": 16,
+        "avoidable_as_scheduled": 16,
+        "physical_starts_avoided": 16,
+        "max_exposure_avoided_usd": "2.160",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 140531
+      },
+      "if_skipped_alone": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 2,
+        "best_lost_rank": 21
+      }
+    },
+    {
+      "unit_id": "paid_074",
+      "if_stopped_after": {
+        "final_lost": 8,
+        "final_marginal_lost": 8,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 2,
+        "best_lost_rank": 31,
+        "logical_avoided": 15,
+        "avoidable_as_scheduled": 15,
+        "physical_starts_avoided": 15,
+        "max_exposure_avoided_usd": "2.025",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 132794
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_075",
+      "if_stopped_after": {
+        "final_lost": 8,
+        "final_marginal_lost": 8,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 2,
+        "best_lost_rank": 31,
+        "logical_avoided": 14,
+        "avoidable_as_scheduled": 14,
+        "physical_starts_avoided": 14,
+        "max_exposure_avoided_usd": "1.890",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 123937
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_076",
+      "if_stopped_after": {
+        "final_lost": 8,
+        "final_marginal_lost": 8,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 2,
+        "best_lost_rank": 31,
+        "logical_avoided": 13,
+        "avoidable_as_scheduled": 13,
+        "physical_starts_avoided": 13,
+        "max_exposure_avoided_usd": "1.755",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 116240
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_077",
+      "if_stopped_after": {
+        "final_lost": 8,
+        "final_marginal_lost": 8,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 2,
+        "best_lost_rank": 31,
+        "logical_avoided": 12,
+        "avoidable_as_scheduled": 12,
+        "physical_starts_avoided": 12,
+        "max_exposure_avoided_usd": "1.620",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 108539
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_078",
+      "if_stopped_after": {
+        "final_lost": 8,
+        "final_marginal_lost": 8,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 2,
+        "best_lost_rank": 31,
+        "logical_avoided": 11,
+        "avoidable_as_scheduled": 11,
+        "physical_starts_avoided": 11,
+        "max_exposure_avoided_usd": "1.485",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 100647
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_079",
+      "if_stopped_after": {
+        "final_lost": 7,
+        "final_marginal_lost": 7,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 31,
+        "logical_avoided": 10,
+        "avoidable_as_scheduled": 10,
+        "physical_starts_avoided": 10,
+        "max_exposure_avoided_usd": "1.350",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 93185
+      },
+      "if_skipped_alone": {
+        "final_lost": 1,
+        "final_marginal_lost": 1,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 49
+      }
+    },
+    {
+      "unit_id": "paid_080",
+      "if_stopped_after": {
+        "final_lost": 7,
+        "final_marginal_lost": 7,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 31,
+        "logical_avoided": 9,
+        "avoidable_as_scheduled": 9,
+        "physical_starts_avoided": 9,
+        "max_exposure_avoided_usd": "1.215",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 85484
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_081",
+      "if_stopped_after": {
+        "final_lost": 4,
+        "final_marginal_lost": 4,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83,
+        "logical_avoided": 8,
+        "avoidable_as_scheduled": 8,
+        "physical_starts_avoided": 8,
+        "max_exposure_avoided_usd": "1.080",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 76758
+      },
+      "if_skipped_alone": {
+        "final_lost": 3,
+        "final_marginal_lost": 3,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 1,
+        "best_lost_rank": 31
+      }
+    },
+    {
+      "unit_id": "paid_082",
+      "if_stopped_after": {
+        "final_lost": 4,
+        "final_marginal_lost": 4,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83,
+        "logical_avoided": 7,
+        "avoidable_as_scheduled": 7,
+        "physical_starts_avoided": 7,
+        "max_exposure_avoided_usd": "0.945",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 68477
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_083",
+      "if_stopped_after": {
+        "final_lost": 4,
+        "final_marginal_lost": 4,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83,
+        "logical_avoided": 6,
+        "avoidable_as_scheduled": 6,
+        "physical_starts_avoided": 6,
+        "max_exposure_avoided_usd": "0.810",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 60047
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_084",
+      "if_stopped_after": {
+        "final_lost": 4,
+        "final_marginal_lost": 4,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83,
+        "logical_avoided": 5,
+        "avoidable_as_scheduled": 5,
+        "physical_starts_avoided": 5,
+        "max_exposure_avoided_usd": "0.675",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 51875
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_085",
+      "if_stopped_after": {
+        "final_lost": 4,
+        "final_marginal_lost": 4,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83,
+        "logical_avoided": 4,
+        "avoidable_as_scheduled": 4,
+        "physical_starts_avoided": 4,
+        "max_exposure_avoided_usd": "0.540",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 43282
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_086",
+      "if_stopped_after": {
+        "final_lost": 4,
+        "final_marginal_lost": 4,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83,
+        "logical_avoided": 3,
+        "avoidable_as_scheduled": 3,
+        "physical_starts_avoided": 3,
+        "max_exposure_avoided_usd": "0.405",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 34313
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_087",
+      "if_stopped_after": {
+        "final_lost": 4,
+        "final_marginal_lost": 4,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83,
+        "logical_avoided": 2,
+        "avoidable_as_scheduled": 2,
+        "physical_starts_avoided": 2,
+        "max_exposure_avoided_usd": "0.270",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 22194
+      },
+      "if_skipped_alone": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null
+      }
+    },
+    {
+      "unit_id": "paid_088",
+      "if_stopped_after": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83,
+        "logical_avoided": 1,
+        "avoidable_as_scheduled": 1,
+        "physical_starts_avoided": 1,
+        "max_exposure_avoided_usd": "0.135",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0.0,
+        "unit_wall_ms_avoided": 8684
+      },
+      "if_skipped_alone": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 140
+      }
+    },
+    {
+      "unit_id": "paid_089",
+      "if_stopped_after": {
+        "final_lost": 0,
+        "final_marginal_lost": 0,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": null,
+        "logical_avoided": 0,
+        "avoidable_as_scheduled": 0,
+        "physical_starts_avoided": 0,
+        "max_exposure_avoided_usd": "0",
+        "unbounded_avoided": 0,
+        "provisional_cost_avoided_usd": 0,
+        "unit_wall_ms_avoided": 0
+      },
+      "if_skipped_alone": {
+        "final_lost": 2,
+        "final_marginal_lost": 2,
+        "top10_lost": 0,
+        "top20_lost": 0,
+        "top50_lost": 0,
+        "best_lost_rank": 83
+      }
+    }
+  ],
+  "record_size": {
+    "section_compact_bytes": 120538,
+    "section_indented_bytes": 190219,
+    "telemetry_file_bytes": 727362
+  }
+}

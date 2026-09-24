@@ -1241,9 +1241,14 @@ class C5Probe(unittest.TestCase):
         ledger = probe.load_ledger()
         c5 = ledger["separate_budgets"]["C5"]
         recorded = ledger["entries"][-1]["cumulative_intended_usd"]
+        # C5's ceiling is what was recorded BEFORE C5's own entry, plus its plan.
+        before = next((e for e in reversed(ledger["entries"]) if e["stage"] != "C5"),
+                      None)
+        before_c5 = [e for e in ledger["entries"] if e["stage"] != "C5"][-1]
+        self.assertIs(before, before_c5)
         self.assertEqual(Decimal(c5["ceiling_usd"]),
-                         (Decimal(recorded) + Decimal("10.548")).quantize(
-                             Decimal("0.01"), rounding="ROUND_CEILING"))
+                         (Decimal(before_c5["cumulative_intended_usd"]) + Decimal("10.548"))
+                         .quantize(Decimal("0.01"), rounding="ROUND_CEILING"))
         top = c5["ceiling_usd"]
         self.assertIsNone(probe.ledger_blocks(ledger, recorded, top, "C5"))
         self.assertIn("exceeds stage C5", probe.ledger_blocks(
@@ -1286,7 +1291,15 @@ class C5Probe(unittest.TestCase):
         text = paid_guard.preflight(plan, Decimal("11.33"), Decimal("0.773")) + \
             f"\n{paid_guard.BLOCKED} Missing: --allow-paid and {paid_guard.FLAG}=1.\n"
         child = SimpleNamespace(returncode=1, stdout=text, stderr="")
-        args = probe_args(output=str(Path(out) / "pre.json"), **over)
+        # The ledger as it stood before C5 ran: the preflight's logic, not a date.
+        fixture = Path(out) / "ledger.json"
+        fixture.write_text(json.dumps({
+            "ceiling_usd": "2.00", "ceiling_covers": ["C1", "C2", "C3", "C3.5", "C4"],
+            "separate_budgets": {"C5": {"ceiling_usd": "11.33"}},
+            "entries": [{"stage": "C3.5", "cumulative_intended_usd": "0.773",
+                         "cumulative_known_actual_usd": 0.51035}]}))
+        args = probe_args(output=str(Path(out) / "pre.json"), ledger=str(fixture),
+                          exposed_usd="0.773", max_usd="11.33", **over)
         with self.fake_root(), \
                 mock.patch.object(probe.subprocess, "run", return_value=child) as run, \
                 mock.patch.object(scraper, "pool_tokens",
