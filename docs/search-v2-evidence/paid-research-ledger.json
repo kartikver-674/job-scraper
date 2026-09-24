@@ -19,10 +19,10 @@
       "approval": "the operator's C4.5 canary brief of 2026-09-24; refuse-only like the rest of this file. Spending needs both C0 keys; this entry authorises nothing"
     },
     "C5": {
-      "ceiling_usd": "11.33",
-      "covers": "one integrated C5 Sweep of the default plan (18 LinkedIn + 72 Indeed starts, bounded exposure $10.548), on top of $0.773 already recorded",
+      "ceiling_usd": "11.42",
+      "covers": "one integrated C5 Sweep of the default plan (18 LinkedIn + 72 Indeed starts, bounded exposure $10.548), on top of $0.865 already recorded",
       "outside": "the shared C1-C4 $2.00 ceiling; never counted against it",
-      "basis": "0.773 recorded + 10.548 bounded = 11.321, rounded up to the cent",
+      "basis": "0.865 recorded (after the C4.5 canary) + 10.548 bounded = 11.413, rounded up to the cent; was 11.33 on 0.773 before the canary",
       "approval": "recorded 2026-09-24 as the ceiling C5 checkpoint 1 computed; refuse-only like the rest of this file. Spending needs the operator's explicit 'RUN C5' and both C0 keys; this entry authorises nothing"
     }
   },
@@ -140,6 +140,24 @@
       "status": "completed, no anomaly",
       "cumulative_intended_usd": "0.773",
       "cumulative_known_actual_usd": 0.51035
+    },
+    {
+      "stage": "C4.5",
+      "at": "2026-09-24T15:51:57.417+00:00",
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "purpose": "V2-C4.5 live multi-account canary: two generic LinkedIn searches placed by the pool on two distinct accounts (developer clamp 0.046, workers 2, adaptive shadow)",
+      "actor_starts": 2,
+      "logical_units": 2,
+      "accounts_used": 2,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": "0.046",
+      "intended_max_usd": "0.092",
+      "actual_final_usd": 0.0601,
+      "evidence": "c45-live-multi-account-canary.json",
+      "status": "completed, no anomaly",
+      "cumulative_intended_usd": "0.865",
+      "cumulative_known_actual_usd": 0.57045
     }
   ]
 }

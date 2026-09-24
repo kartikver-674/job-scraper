@@ -1191,10 +1191,15 @@ from bench import search_v2_paid_probe as probe       # noqa: E402
 
 
 def probe_args(**over):
+    """C5's arguments as the ledger stands: exposed = what it records, the
+    limit = C5's own budget — so the tests follow the ledger, not a date."""
+    ledger = probe.load_ledger()
     return SimpleNamespace(**{**dict(
         site="linkedin", searches=1, keywords="Backend Developer", location="India",
-        case=None, scope="india", allow_paid=False, max_usd="11.33",
-        exposed_usd="0.773", ledger=str(probe.LEDGER), paid_workers=2,
+        case=None, scope="india", allow_paid=False,
+        max_usd=ledger["separate_budgets"]["C5"]["ceiling_usd"],
+        exposed_usd=ledger["entries"][-1]["cumulative_intended_usd"],
+        ledger=str(probe.LEDGER), paid_workers=2,
         sweep_budget="10.55", stage="C5", full_plan=True, adaptive_mode="shadow",
         multi_account=True, keep_output=None), **over})
 
@@ -1205,8 +1210,8 @@ class C5Probe(unittest.TestCase):
         argv = probe.guard_argv(probe_args(), "p")
         self.assertEqual(argv[argv.index("--") + 1:], ["--profile", "p", "--yes"])
         self.assertNotIn("--allow-paid", argv)
-        self.assertEqual(argv[argv.index("--max-usd") + 1], "11.33")
-        self.assertEqual(argv[argv.index("--exposed-usd") + 1], "0.773")
+        self.assertEqual(argv[argv.index("--max-usd") + 1], probe_args().max_usd)
+        self.assertEqual(argv[argv.index("--exposed-usd") + 1], probe_args().exposed_usd)
         self.assertIn("--allow-paid", probe.guard_argv(probe_args(allow_paid=True), "p"))
 
     def test_the_full_plan_profile_changes_only_the_cap_and_the_outputs(self):
@@ -1235,22 +1240,22 @@ class C5Probe(unittest.TestCase):
     def test_c5_has_its_own_ceiling_and_nothing_else_does(self):
         ledger = probe.load_ledger()
         c5 = ledger["separate_budgets"]["C5"]
+        recorded = ledger["entries"][-1]["cumulative_intended_usd"]
         self.assertEqual(Decimal(c5["ceiling_usd"]),
-                         (Decimal(ledger["entries"][-1]["cumulative_intended_usd"])
-                          + Decimal("10.548")).quantize(Decimal("0.01"),
-                                                        rounding="ROUND_CEILING"))
-        self.assertIsNone(probe.ledger_blocks(ledger, "0.773", "11.33", "C5"))
-        self.assertIn("exceeds stage C5", probe.ledger_blocks(ledger, "0.773", "11.34",
-                                                              "C5"))
+                         (Decimal(recorded) + Decimal("10.548")).quantize(
+                             Decimal("0.01"), rounding="ROUND_CEILING"))
+        top = c5["ceiling_usd"]
+        self.assertIsNone(probe.ledger_blocks(ledger, recorded, top, "C5"))
+        self.assertIn("exceeds stage C5", probe.ledger_blocks(
+            ledger, recorded, str(Decimal(top) + Decimal("0.01")), "C5"))
         self.assertIn("no research budget for stage C6",
-                      probe.ledger_blocks(ledger, "0.773", "0.10", "C6"))
+                      probe.ledger_blocks(ledger, recorded, "0.10", "C6"))
         # V2-C4.5's live canary: its own tight budget, $0.773 + $0.092 rounded up.
         self.assertEqual(ledger["separate_budgets"]["C4.5"]["ceiling_usd"], "0.87")
-        self.assertIsNone(probe.ledger_blocks(ledger, "0.773", "0.87", "C4.5"))
-        self.assertIn("exceeds stage C4.5", probe.ledger_blocks(ledger, "0.773", "0.88",
+        self.assertIn("exceeds stage C4.5", probe.ledger_blocks(ledger, recorded, "0.88",
                                                                 "C4.5"))
-        self.assertIn("shared", probe.ledger_blocks(ledger, "0.773", "2.01", "C4"))
-        self.assertIn("shared", probe.ledger_blocks(ledger, "0.773", "2.01"))
+        self.assertIn("shared", probe.ledger_blocks(ledger, recorded, "2.01", "C4"))
+        self.assertIn("shared", probe.ledger_blocks(ledger, recorded, "2.01"))
 
     def test_the_preview_plan_is_read_back_exactly(self):
         plan = {"linkedin": {"actor": c2.LINKEDIN, "starts": 18, "depth": 15,

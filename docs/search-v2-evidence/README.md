@@ -289,8 +289,18 @@ Added by V2-C4.5 (2026-09-24),
   pool — every configured slot read (free GETs through a client with no start),
   deduplicated, the default plan placed, and the guarded child run WITHOUT keys.
   `bench/search_v2_paid_probe.py --preflight`.
-- `paid-research-ledger.json` gains `separate_budgets.C5` ($11.33 cumulative,
-  outside the C1-C4 $2.00): refuse-only, as the rest of the file.
+- `paid-research-ledger.json` gains `separate_budgets` (C4.5 $0.87, C5 $11.42
+  after the canary; both cumulative, outside the C1-C4 $2.00): refuse-only,
+  as the rest of the file.
+- `c45-cap-mutations.json`: the developer clamp's mutation checks (A-G).
+- `c45-canary-preflight.json` (ZERO PAID): the two-start canary's placement
+  under `SWEEP_PAID_ACCOUNT_CAP_USD=0.046`, seven accounts read.
+- `c45-live-multi-account-canary.json` (PAID, $0.092 intended, $0.0601
+  settled): two LinkedIn starts on two distinct accounts through the pool —
+  assignment, both ledgers, provider ceilings, run listings per account,
+  settlement, overlap. `bench/search_v2_paid_probe.py --multi-account`.
+- `c45-c5-preflight-after-canary.json` (ZERO PAID): C5's preflight on the
+  accounts' real capacity, no clamp: 90/90 placed, ready for C5 review.
 
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public

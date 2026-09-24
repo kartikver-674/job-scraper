@@ -2,16 +2,20 @@
 
 Date: 2026-09-24. Baseline: `22a89a2` (V2-C4, local; C0 `89c8daa`, C1 `a3b4bd2`,
 C2 `429b7b6`, C3 `61681c9`, C3.5 `ccd5720`). HEAD was verified before starting
-and the tree was clean. Nothing is deployed, no flag is set anywhere, and **no
-live paid call was made** (C4.5 intended exposure $0.00).
+and the tree was clean. Nothing is deployed and no flag is set anywhere.
+Commits: `51764a0` (the pool), `b6a974b` (the developer clamp, §25), and the
+live canary's evidence (§26). **One live paid experiment: the two-start
+canary, $0.092 intended, $0.0601 settled.**
 
-**Outcome: B — multi-account execution NOT READY for C5 on the accounts
-configured today.** The mechanism is implemented and verified offline (1,524
-sweep tests, 16/16 mutations), but the zero-paid real-account preflight
-(§19) places **84 of the 90** bounded searches: five distinct FREE accounts
-hold **$9.879** usable against **$10.548** of ceilings. One more account with
-**≥ $0.777** of headroom (any fresh $5 account) makes the whole plan
-placeable; rerun the preflight then. The mode stays off; C5 is not run.
+**Outcome: A — multi-account execution READY for C5 review** (as of the
+second preflight). The first real-account preflight (§19) placed only 84 of
+90 on five accounts ($9.879 usable), so the stage first closed as B. With
+seven accounts configured, the two-start live canary (§26) ran each search on
+its own account, held each ceiling in both ledgers, and was confirmed by the
+provider's own run listings; the C5 preflight after it (§27), on the
+accounts' REAL capacity with no clamp, places **90 of 90** ($15.894 usable
+across seven accounts, five used) with every check green. The mode stays off;
+C5 is not run.
 
 Evidence classes as in V2-A: **MEASURED** (a reproducible experiment or a
 dated reading), **VERIFIED** (read in code, or pinned by a test that fails
@@ -403,10 +407,14 @@ child without keys, parsed back as the plan it previews.
 
 ## 21. Research ledger
 
-No entry: nothing was spent. `separate_budgets.C5` records C5's ceiling,
-**$11.33 cumulative** (0.773 recorded + 10.548 bounded), outside and never
-counted against the C1–C4 $2.00. Refuse-only like the rest of the file: it
-lets the probe accept a C5 `--max-usd` up to $11.33 and authorises nothing.
+Until the canary, no entry. `separate_budgets` then records two refuse-only
+ceilings outside the C1–C4 $2.00: **C4.5, $0.87** (0.773 + 0.092 for the
+two-start canary) and **C5, $11.42** — recomputed after the canary as 0.865
+recorded + 10.548 bounded = 11.413 (it was $11.33 on 0.773). The canary's
+entry: stage C4.5, 2 logical searches, 2 starts, 2 accounts, $0.092 intended,
+**$0.0601 settled**; cumulative **$0.865 intended / $0.57045 actual**. The
+C5 sweep's own `max_spend_usd` stays **$10.55**: the guard's limit is the
+cumulative research exposure, the engine's is the sweep's authorisation.
 
 ## 22. Unresolved risks
 
@@ -422,16 +430,15 @@ lets the probe accept a C5 `--max-usd` up to $11.33 and authorises nothing.
    from one- and two-run probes; C5 measures it at full scale per account.
 6. **Paid plans**: headroom is capped at the included credit, so overage an
    operator would accept is not used. Deliberate.
-7. No live cross-account start has been made; the optional two-start canary
-   (§23) is not run.
+7. **The canary did not reverse the finish order**: `paid_001` finished after
+   `paid_000` live, so the out-of-order case (a later search finishing first)
+   is proved offline only (§13), not by the canary.
+8. **Two starts is not 90.** Per-account residuals, head-of-line waits and
+   provider throttling at C5's scale are measured by C5 itself.
 
-## 23. Optional live canary — NOT RUN
+## 23. Optional live canary
 
-Would be at most two logical LinkedIn searches on two different accounts,
-depth 15, ceiling $0.046 each: intended exposure **$0.092**, through the
-probe with both C0 keys, `--multi-account --paid-workers 2`, and a ledger
-budget for stage C4.5 that does not exist yet (the probe refuses without it).
-Not run without separate approval.
+Run after separate approval: §25 and §26.
 
 ## 24. Verification
 
@@ -459,6 +466,135 @@ Not run without separate approval.
   (wraps both credential steps), `bench/search_v2_paid_probe.py`, the ledger
   (`separate_budgets`), one C1 ledger test made stage-aware. No flag,
   environment or deployment change.
-- **Paid.** None. Free account and actor reads for §4, §6 and §19 only.
+- **After the clamp (`b6a974b`).** Sweep suite **1,535 tests, OK**; deploy 42
+  OK; `scraper.py --demo` OK; clamp mutations 7/7.
+- **After the canary.** C4.5, C0, C2, C1, C3.5, C4 and telemetry suites
+  (**416 tests, OK**), `telemetry.py`, and the canary's own outputs, ledger
+  and telemetry parsed and checked (§26). No provider was rerun.
+- **Paid.** Only the canary (§26): two LinkedIn starts, $0.092 intended,
+  $0.0601 settled. Otherwise free account and actor reads (§4, §6, §19, §27).
 - **Tokens.** No configured token value appears in any new or changed file
   (the preflight scans its own output; checked again before commit).
+
+## 25. The developer clamp, `SWEEP_PAID_ACCOUNT_CAP_USD` (VERIFIED; `b6a974b`)
+
+The first canary preflight put **both** $0.046 searches on one account
+(`account_002`, $0.499 usable): the allocator fills the smallest account that
+fits as full as it can (§7), and no account had between $0.046 and $0.092 —
+so two searches could never split. Correct for C5, useless for a two-start
+proof of account separation.
+
+`SWEEP_PAID_ACCOUNT_CAP_USD` (developer-only; unset or empty: nothing; read
+only under the pool):
+
+    effective capacity = min(real usable capacity, cap)        (Decimal)
+
+It only lowers. The provider's headroom reading, the real usable capacity
+(headroom less the buffer), the sweep's `max_spend_usd`, every provider
+ceiling and C0's arithmetic are untouched; the single-account path and C2
+with the pool off never read it. Telemetry keeps the three figures apart
+(`headroom_usd`, `real_capacity_usd`, `effective_capacity_usd`,
+`developer_clamped`) and names the clamp: `developer_account_cap` = "a
+developer-only clamp imposed locally on each account's usable capacity for
+this sweep; not provider capacity and not the sweep's budget".
+
+Values: a positive finite amount is the clamp; anything else — `0`, negative,
+`abc`, `nan`, `inf`, `$0.046` — **refuses the paid phase before any
+credential** (fail closed: a clamp someone set and mistyped must not become
+no clamp). The probe passes it to the child only (`--account-cap-usd`,
+multi-account only and **never with `--full-plan`**), and drops a shell
+leftover, so C5 cannot inherit it.
+
+Tests (14, `AccountCap` in `test_paid_multi_account.py`): unset = `51764a0`
+exactly (requests, bytes, assignment, effective = real); real wins above the
+cap, the cap wins below; one ceiling = one search per account; two searches
+go to two accounts and never the $0.011 one; `max_spend_usd` and the $0.046
+ceiling unchanged; ignored serial and with the pool off, even malformed;
+malformed refuses before any credential; no token; the readings stay the
+provider's. Mutations A–G ([evidence](search-v2-evidence/c45-cap-mutations.json)):
+raises capacity, rewrites headroom, reaches the single-account path, stays
+on when unset, becomes the sweep budget, parses through a float (0.046 →
+0.04599…, which holds no search), ignored by the allocator — **7/7 caught**.
+
+## 26. The live multi-account canary (MEASURED 2026-09-24, [evidence](search-v2-evidence/c45-live-multi-account-canary.json))
+
+**Preflight** ([evidence](search-v2-evidence/c45-canary-preflight.json), zero
+paid): the ceiling recomputed from code, $0.046; clamp $0.046; 2 LinkedIn
+searches at depth 15 (the C2 canary's generic shape: "Backend Developer" and
+"Full Stack Developer" @ India, synthetic `software_fullstack` cohort), 2
+starts, $0.092; seven distinct accounts, none excluded; projected
+`paid_000` → `account_000` (`APIFY_TOKEN`, real usable $3.397) and
+`paid_001` → `account_002` (`APIFY_TOKEN_3`, real usable $0.499), each with
+16 GB and 5 run slots free; the $0.011 account unassigned; guard 0.773 →
+0.865 ≤ 0.87; preview blocked without keys.
+
+**Run** (code `b6a974b`, clean; one invocation; `--allow-paid` and
+`SWEEP_ALLOW_PAID_BENCH=1`; `SWEEP_SEARCH_V2_TELEMETRY=1`,
+`SWEEP_PAID_CONCURRENCY=1`, `SWEEP_PAID_WORKERS=2`, `SWEEP_PAID_MULTI_ACCOUNT=1`,
+`SWEEP_PAID_ACCOUNT_CAP_USD=0.046`, `SWEEP_PAID_ADAPTIVE_MODE=shadow` in the
+child only; sweep budget $0.092; outputs kept in the gitignored
+`output/c45-live-canary/`):
+
+| | paid_000 | paid_001 |
+|---|---|---|
+| account (assigned) | account_000, `APIFY_TOKEN` | account_002, `APIFY_TOKEN_3` |
+| account (provider: whose run listing holds the run) | `APIFY_TOKEN` | `APIFY_TOKEN_3` |
+| run id | `bJm8mYeqsTQTuCslB` | `4yjIWLtaaR19ILV4n` |
+| reserved (both ledgers) → committed | 15:52:25.516 → .519 | 15:52:25.517 → .522 |
+| provider start → finish (UTC) | 15:52:26.413 → 15:52:45.280 | 15:52:26.409 → 15:53:33.984 |
+| provider-side ceiling (run options) | $0.046 | $0.046 |
+| memory | 512 MB | 512 MB |
+| status | SUCCEEDED | SUCCEEDED |
+| charged events | 15 results + 1 start | 15 results + 1 start |
+| settled (run record, final) | $0.03005, 55 s after finish | $0.03005, 67 s after finish |
+| account delta at end of window | $0.030072 (residual $0.000022) | $0.030073 (residual $0.000023) |
+| rows / eligible / final / final-marginal | 15 / 15 / 15 / 14 | 15 / 14 / 13 / 13 |
+
+- **Separation**: two distinct underlying accounts, by the local assignment
+  AND by the provider — each run appears in its own account's run listing
+  only; the other five accounts list no run since the probe began. No third
+  start, no retry, no migration (VERIFIED).
+- **Reservation**: global pending peak $0.092, committed $0.092, released 0,
+  blocked 0; each account's pending peak $0.046 and committed $0.046
+  (effective capacity $0.046, remaining $0.000); the other five accounts
+  committed $0. Both runs' runtime holds freed on `SUCCEEDED`; nothing held
+  unknown (VERIFIED from the section and the ledger).
+- **Concurrency**: both starts 4 ms apart; overlap at the provider **18.9 s**;
+  peak 2 in flight globally, 1 per account; workers 2.
+- **Integration**: plan order (`[1/2]` then `[2/2]`); here `paid_001` finished
+  last, so plan and finish order agree (the reversed case is offline, §13).
+- **Outputs**: CSV and JSON 28 rows each (30 pulled), readable, no provenance
+  key, no temp file; `.done_combos` holds exactly the two searches;
+  `paid_account_ledger.json` `finished: true`, each unit with its account,
+  provider, $0.046 ceiling, reserved/committed times, run id, `SUCCEEDED`,
+  `completed`. Adaptive ran as shadow, nothing promoted.
+- **Cost**: $0.0601 settled for $0.092 of ceilings; account residual
+  ~$0.00002 per run, as every earlier probe (the $0.01 buffer holds 400x).
+- **Privacy**: every token value, and every account's raw id, username and
+  email (read in memory, never printed), absent from stdout/stderr, the kept
+  outputs, telemetry, the durable ledger and all evidence (71 files).
+
+**Canary: PASS.**
+
+## 27. C5 preflight after the canary (MEASURED 2026-09-24, [evidence](search-v2-evidence/c45-c5-preflight-after-canary.json))
+
+Real capacities, **no clamp** (unset in the shell and in the child), full
+plan, `--exposed-usd 0.865 --max-usd 11.42`, sweep budget $10.55. Seven
+distinct FREE accounts, $15.964 headroom / **$15.894 usable**; **90 of 90
+placed**, stranded $0, across five accounts:
+
+| account | slot | usable | projected |
+|---|---|---|---|
+| account_000 | APIFY_TOKEN | $3.367 | 2 LinkedIn + 24 Indeed ($3.332) |
+| account_002 | APIFY_TOKEN_3 | $0.469 | 10 LinkedIn ($0.460) |
+| account_003 | APIFY_TOKEN_4 | $0.983 | 6 LinkedIn + 5 Indeed ($0.951) |
+| account_005 | APIFY_TOKEN_6 | $1.525 | 11 Indeed ($1.485) |
+| account_006 | APIFY_TOKEN_7 | $4.550 | 32 Indeed ($4.320) |
+| account_001, account_004 | `_2`, `_5` | $0.011, $4.989 | — |
+
+Every placed account runs 4+ of its heaviest runs at once (workers 2 are
+never account-throttled); bounded exposure $10.548 ≤ engine cap $10.55; guard
+0.865 → 11.413 ≤ 11.42; preview blocked without keys. **Ready for C5 review.**
+(The canary's two charges show in `account_000` and `account_002`'s lower
+headroom than at §19.)
+
