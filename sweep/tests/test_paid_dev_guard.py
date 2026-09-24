@@ -579,6 +579,7 @@ REACH = {
     "bench/search_v2_paid_overhead.py": "unreachable",
     "bench/search_v2_paid_concurrency.py": "unreachable",
     "bench/search_v2_free_audit.py": "unreachable",     # parses scraper.py's source text
+    "bench/search_v2_d3_d4_analysis.py": "unreachable", # V2-D4: reads scrape_search's text
     "config.py": "unreachable",                         # a self-test string
     "profiles/global_all.py": "unreachable",            # a comment
 }

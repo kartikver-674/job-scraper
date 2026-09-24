@@ -1,0 +1,3027 @@
+{
+  "schema": "search-v2-d3.1",
+  "status": "OFFLINE analysis of the one integrated C5 run; a decision input, not a decision to prune. One synthetic profile, one date, one keyword set.",
+  "generated_from": [
+    "c5-run/telemetry/sweep_1eeb9cb0018a4c528c982df5e1546f60.json",
+    "c5-run/jobs_2026-09-24_2141.json",
+    "c5-provider-cost-settlement.json",
+    "scraper.py",
+    "telemetry.py",
+    "paid_adaptive.py",
+    "apify_client/_consts.py"
+  ],
+  "evidence_labels": {
+    "plan_shape": "MEASURED",
+    "per_location_funnel_and_cost": "MEASURED",
+    "top_k_and_best_rank_by_location": "MEASURED (final JSON rank x survivor unit)",
+    "final_marginal_unit_sum": "MEASURED (engine per unit)",
+    "final_marginal_location_and_counterfactuals": "INFERRED, set-identified: [min, max] over every assignment consistent with the record; exact where min == max",
+    "engine_validation": "VERIFIED (reproduces the engine's key-based losses)",
+    "raw_overlap_new_delhi_gurgaon_noida": "INFERRED (strong; see matrix basis)",
+    "raw_overlap_other_pairs": "UNKNOWN (per-row keys never persisted)",
+    "eligible_and_final_overlap": "INFERRED, set-identified",
+    "remote_same_keyword_overlap": "MEASURED (engine pairs)",
+    "earlier_evidence_corroboration": "VERIFIED absent (single-source)"
+  },
+  "method": {
+    "identity": "The engine's own job_key semantics, read through its records: the trace's acquired letter (n new / u repeat in unit / p repeat of an earlier paid unit, in plan order) and f flag come from telemetry._paid_acquired over job_key; F/D and marginal from _paid_outcome over dedupe's result. Jobs are named by final rank only.",
+    "final_marginal": "unit: the engine's own (no other unit and no free source had an eligible row with that key). location: the final jobs every one of whose eligible origins is in that location (removal_loss) -- the jobs that disappear if it had not run.",
+    "set_identification": "Each discarded eligible row (trace D, all lost_to other_paid) belongs to a non-marginal final job with the same f flag, not in its own unit, won by an earlier unit (the survivors were all acquired 'n'), never a Remote twin with its own keyword's place search (pairs overlap_with_places == 0), at most one per job per unit; or a LinkedIn survivor with the same flag. Every non-marginal survivor without a free origin (read off the engine's suffix losses) gets at least one.",
+    "top_k_bounds": "lower: lost jobs only. upper: plus jobs whose survivor was removed but another origin stayed (its rank is the other row's, which the record does not hold).",
+    "assignments_enumerated": 176530,
+    "distinct_location_scenarios": 49,
+    "keywords": {
+      "k01": "364a4981fb2d",
+      "k02": "b50ead6c587f",
+      "k03": "18962a0f4b71",
+      "k04": "f2eeb437a5d4",
+      "k05": "2943ce46848e",
+      "k06": "72989be32e7a",
+      "k07": "cd656e5b040d",
+      "k08": "a0b6759e51ae",
+      "k09": "44bede432242"
+    }
+  },
+  "engine_validation": {
+    "suffix_losses_matched": [
+      438,
+      438
+    ],
+    "single_unit_losses_matched": [
+      432,
+      432
+    ],
+    "single_unit_topk_within_bounds": [
+      432,
+      432
+    ],
+    "assignments_checked": 6,
+    "survivor_rows_mapped": 20,
+    "discarded_rows": 11,
+    "without_indeed_engine": {
+      "final_lost": 19,
+      "final_marginal_lost": 14,
+      "top10_lost": 2,
+      "top20_lost": 3,
+      "top50_lost": 9,
+      "best_lost_rank": 1
+    }
+  },
+  "plan": {
+    "locations": [
+      "Delhi",
+      "New Delhi",
+      "Gurgaon",
+      "Noida",
+      "Bengaluru",
+      "Hyderabad",
+      "Pune",
+      "Remote"
+    ],
+    "keywords": 9,
+    "starts": 72,
+    "shape": "9 keywords x 8 location values (7 India places + Remote)",
+    "requested_depth": 15,
+    "ceiling_usd_each": 0.135,
+    "estimated_usd_each": 0.09
+  },
+  "locations": {
+    "Delhi": {
+      "starts": 9,
+      "requested_depth_each": 15,
+      "requested_total": 135,
+      "returned": 133,
+      "stale": 17,
+      "repeat_in_unit": 2,
+      "repeat_of_earlier_paid": 53,
+      "duplicate_paid": 55,
+      "unique_paid_new": 78,
+      "key_also_free": 4,
+      "eligible": 2,
+      "eligible_positive": 2,
+      "final": 1,
+      "final_positive": 1,
+      "final_marginal_unit_sum": 0,
+      "final_marginal_location": [
+        0,
+        1
+      ],
+      "top10": 0,
+      "top20": 0,
+      "top50": 1,
+      "best_final_rank": 38,
+      "settled_usd": 0.798,
+      "exposure_usd": 1.215,
+      "cost_per_final_usd": 0.798,
+      "cost_per_final_marginal_usd": {
+        "unit_sum": null,
+        "location_at_min": null,
+        "location_at_max": 0.798
+      },
+      "cost_per_top20_usd": null,
+      "per_unit": [
+        {
+          "unit_id": "paid_018",
+          "keyword": "k01",
+          "raw": 15,
+          "new": 15,
+          "repeat_of_earlier_paid": 0,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_026",
+          "keyword": "k02",
+          "raw": 15,
+          "new": 11,
+          "repeat_of_earlier_paid": 4,
+          "repeat_in_unit": 0,
+          "eligible": 1,
+          "final": 1,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_034",
+          "keyword": "k03",
+          "raw": 13,
+          "new": 9,
+          "repeat_of_earlier_paid": 3,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.078
+        },
+        {
+          "unit_id": "paid_042",
+          "keyword": "k04",
+          "raw": 15,
+          "new": 12,
+          "repeat_of_earlier_paid": 2,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_050",
+          "keyword": "k05",
+          "raw": 15,
+          "new": 7,
+          "repeat_of_earlier_paid": 8,
+          "repeat_in_unit": 0,
+          "eligible": 1,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_058",
+          "keyword": "k06",
+          "raw": 15,
+          "new": 4,
+          "repeat_of_earlier_paid": 11,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_066",
+          "keyword": "k07",
+          "raw": 15,
+          "new": 6,
+          "repeat_of_earlier_paid": 9,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_074",
+          "keyword": "k08",
+          "raw": 15,
+          "new": 8,
+          "repeat_of_earlier_paid": 7,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_082",
+          "keyword": "k09",
+          "raw": 15,
+          "new": 6,
+          "repeat_of_earlier_paid": 9,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        }
+      ]
+    },
+    "New Delhi": {
+      "starts": 9,
+      "requested_depth_each": 15,
+      "requested_total": 135,
+      "returned": 135,
+      "stale": 1,
+      "repeat_in_unit": 8,
+      "repeat_of_earlier_paid": 59,
+      "duplicate_paid": 67,
+      "unique_paid_new": 68,
+      "key_also_free": 0,
+      "eligible": 0,
+      "eligible_positive": 0,
+      "final": 0,
+      "final_positive": 0,
+      "final_marginal_unit_sum": 0,
+      "final_marginal_location": [
+        0,
+        0
+      ],
+      "top10": 0,
+      "top20": 0,
+      "top50": 0,
+      "best_final_rank": null,
+      "settled_usd": 0.81,
+      "exposure_usd": 1.215,
+      "cost_per_final_usd": null,
+      "cost_per_final_marginal_usd": {
+        "unit_sum": null,
+        "location_at_min": null,
+        "location_at_max": null
+      },
+      "cost_per_top20_usd": null,
+      "per_unit": [
+        {
+          "unit_id": "paid_019",
+          "keyword": "k01",
+          "raw": 15,
+          "new": 11,
+          "repeat_of_earlier_paid": 4,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_027",
+          "keyword": "k02",
+          "raw": 15,
+          "new": 8,
+          "repeat_of_earlier_paid": 6,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_035",
+          "keyword": "k03",
+          "raw": 15,
+          "new": 9,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_043",
+          "keyword": "k04",
+          "raw": 15,
+          "new": 12,
+          "repeat_of_earlier_paid": 3,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_051",
+          "keyword": "k05",
+          "raw": 15,
+          "new": 9,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_059",
+          "keyword": "k06",
+          "raw": 15,
+          "new": 1,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_067",
+          "keyword": "k07",
+          "raw": 15,
+          "new": 3,
+          "repeat_of_earlier_paid": 8,
+          "repeat_in_unit": 4,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_075",
+          "keyword": "k08",
+          "raw": 15,
+          "new": 6,
+          "repeat_of_earlier_paid": 9,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_083",
+          "keyword": "k09",
+          "raw": 15,
+          "new": 9,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        }
+      ]
+    },
+    "Gurgaon": {
+      "starts": 9,
+      "requested_depth_each": 15,
+      "requested_total": 135,
+      "returned": 135,
+      "stale": 1,
+      "repeat_in_unit": 8,
+      "repeat_of_earlier_paid": 127,
+      "duplicate_paid": 135,
+      "unique_paid_new": 0,
+      "key_also_free": 0,
+      "eligible": 0,
+      "eligible_positive": 0,
+      "final": 0,
+      "final_positive": 0,
+      "final_marginal_unit_sum": 0,
+      "final_marginal_location": [
+        0,
+        0
+      ],
+      "top10": 0,
+      "top20": 0,
+      "top50": 0,
+      "best_final_rank": null,
+      "settled_usd": 0.81,
+      "exposure_usd": 1.215,
+      "cost_per_final_usd": null,
+      "cost_per_final_marginal_usd": {
+        "unit_sum": null,
+        "location_at_min": null,
+        "location_at_max": null
+      },
+      "cost_per_top20_usd": null,
+      "per_unit": [
+        {
+          "unit_id": "paid_020",
+          "keyword": "k01",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 15,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_028",
+          "keyword": "k02",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_036",
+          "keyword": "k03",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_044",
+          "keyword": "k04",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 15,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_052",
+          "keyword": "k05",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_060",
+          "keyword": "k06",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 15,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_068",
+          "keyword": "k07",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 11,
+          "repeat_in_unit": 4,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_076",
+          "keyword": "k08",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 15,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_084",
+          "keyword": "k09",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        }
+      ]
+    },
+    "Noida": {
+      "starts": 9,
+      "requested_depth_each": 15,
+      "requested_total": 135,
+      "returned": 135,
+      "stale": 1,
+      "repeat_in_unit": 8,
+      "repeat_of_earlier_paid": 127,
+      "duplicate_paid": 135,
+      "unique_paid_new": 0,
+      "key_also_free": 0,
+      "eligible": 0,
+      "eligible_positive": 0,
+      "final": 0,
+      "final_positive": 0,
+      "final_marginal_unit_sum": 0,
+      "final_marginal_location": [
+        0,
+        0
+      ],
+      "top10": 0,
+      "top20": 0,
+      "top50": 0,
+      "best_final_rank": null,
+      "settled_usd": 0.81,
+      "exposure_usd": 1.215,
+      "cost_per_final_usd": null,
+      "cost_per_final_marginal_usd": {
+        "unit_sum": null,
+        "location_at_min": null,
+        "location_at_max": null
+      },
+      "cost_per_top20_usd": null,
+      "per_unit": [
+        {
+          "unit_id": "paid_021",
+          "keyword": "k01",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 15,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_029",
+          "keyword": "k02",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_037",
+          "keyword": "k03",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_045",
+          "keyword": "k04",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 15,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_053",
+          "keyword": "k05",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_061",
+          "keyword": "k06",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 15,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_069",
+          "keyword": "k07",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 11,
+          "repeat_in_unit": 4,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_077",
+          "keyword": "k08",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 15,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_085",
+          "keyword": "k09",
+          "raw": 15,
+          "new": 0,
+          "repeat_of_earlier_paid": 14,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        }
+      ]
+    },
+    "Bengaluru": {
+      "starts": 9,
+      "requested_depth_each": 15,
+      "requested_total": 135,
+      "returned": 135,
+      "stale": 2,
+      "repeat_in_unit": 15,
+      "repeat_of_earlier_paid": 32,
+      "duplicate_paid": 47,
+      "unique_paid_new": 88,
+      "key_also_free": 6,
+      "eligible": 3,
+      "eligible_positive": 3,
+      "final": 2,
+      "final_positive": 2,
+      "final_marginal_unit_sum": 1,
+      "final_marginal_location": [
+        1,
+        1
+      ],
+      "top10": 1,
+      "top20": 1,
+      "top50": 2,
+      "best_final_rank": 3,
+      "settled_usd": 0.81,
+      "exposure_usd": 1.215,
+      "cost_per_final_usd": 0.405,
+      "cost_per_final_marginal_usd": {
+        "unit_sum": 0.81,
+        "location_at_min": 0.81,
+        "location_at_max": 0.81
+      },
+      "cost_per_top20_usd": 0.81,
+      "per_unit": [
+        {
+          "unit_id": "paid_022",
+          "keyword": "k01",
+          "raw": 15,
+          "new": 13,
+          "repeat_of_earlier_paid": 1,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_030",
+          "keyword": "k02",
+          "raw": 15,
+          "new": 10,
+          "repeat_of_earlier_paid": 4,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_038",
+          "keyword": "k03",
+          "raw": 15,
+          "new": 15,
+          "repeat_of_earlier_paid": 0,
+          "repeat_in_unit": 0,
+          "eligible": 1,
+          "final": 1,
+          "final_marginal": 1,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_046",
+          "keyword": "k04",
+          "raw": 15,
+          "new": 9,
+          "repeat_of_earlier_paid": 1,
+          "repeat_in_unit": 5,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_054",
+          "keyword": "k05",
+          "raw": 15,
+          "new": 11,
+          "repeat_of_earlier_paid": 3,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_062",
+          "keyword": "k06",
+          "raw": 15,
+          "new": 8,
+          "repeat_of_earlier_paid": 6,
+          "repeat_in_unit": 1,
+          "eligible": 1,
+          "final": 1,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_070",
+          "keyword": "k07",
+          "raw": 15,
+          "new": 4,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 6,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_078",
+          "keyword": "k08",
+          "raw": 15,
+          "new": 8,
+          "repeat_of_earlier_paid": 7,
+          "repeat_in_unit": 0,
+          "eligible": 1,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_086",
+          "keyword": "k09",
+          "raw": 15,
+          "new": 10,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        }
+      ]
+    },
+    "Hyderabad": {
+      "starts": 9,
+      "requested_depth_each": 15,
+      "requested_total": 135,
+      "returned": 132,
+      "stale": 4,
+      "repeat_in_unit": 23,
+      "repeat_of_earlier_paid": 49,
+      "duplicate_paid": 72,
+      "unique_paid_new": 60,
+      "key_also_free": 0,
+      "eligible": 1,
+      "eligible_positive": 1,
+      "final": 1,
+      "final_positive": 1,
+      "final_marginal_unit_sum": 1,
+      "final_marginal_location": [
+        1,
+        1
+      ],
+      "top10": 0,
+      "top20": 0,
+      "top50": 1,
+      "best_final_rank": 49,
+      "settled_usd": 0.792,
+      "exposure_usd": 1.215,
+      "cost_per_final_usd": 0.792,
+      "cost_per_final_marginal_usd": {
+        "unit_sum": 0.792,
+        "location_at_min": 0.792,
+        "location_at_max": 0.792
+      },
+      "cost_per_top20_usd": null,
+      "per_unit": [
+        {
+          "unit_id": "paid_023",
+          "keyword": "k01",
+          "raw": 15,
+          "new": 13,
+          "repeat_of_earlier_paid": 0,
+          "repeat_in_unit": 2,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_031",
+          "keyword": "k02",
+          "raw": 15,
+          "new": 11,
+          "repeat_of_earlier_paid": 4,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_039",
+          "keyword": "k03",
+          "raw": 12,
+          "new": 11,
+          "repeat_of_earlier_paid": 1,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.072
+        },
+        {
+          "unit_id": "paid_047",
+          "keyword": "k04",
+          "raw": 15,
+          "new": 6,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 4,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_055",
+          "keyword": "k05",
+          "raw": 15,
+          "new": 5,
+          "repeat_of_earlier_paid": 9,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_063",
+          "keyword": "k06",
+          "raw": 15,
+          "new": 2,
+          "repeat_of_earlier_paid": 12,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_071",
+          "keyword": "k07",
+          "raw": 15,
+          "new": 3,
+          "repeat_of_earlier_paid": 2,
+          "repeat_in_unit": 10,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_079",
+          "keyword": "k08",
+          "raw": 15,
+          "new": 4,
+          "repeat_of_earlier_paid": 6,
+          "repeat_in_unit": 5,
+          "eligible": 1,
+          "final": 1,
+          "final_marginal": 1,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_087",
+          "keyword": "k09",
+          "raw": 15,
+          "new": 5,
+          "repeat_of_earlier_paid": 10,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        }
+      ]
+    },
+    "Pune": {
+      "starts": 9,
+      "requested_depth_each": 15,
+      "requested_total": 135,
+      "returned": 135,
+      "stale": 3,
+      "repeat_in_unit": 25,
+      "repeat_of_earlier_paid": 53,
+      "duplicate_paid": 78,
+      "unique_paid_new": 57,
+      "key_also_free": 2,
+      "eligible": 2,
+      "eligible_positive": 0,
+      "final": 2,
+      "final_positive": 0,
+      "final_marginal_unit_sum": 2,
+      "final_marginal_location": [
+        2,
+        2
+      ],
+      "top10": 0,
+      "top20": 0,
+      "top50": 0,
+      "best_final_rank": 140,
+      "settled_usd": 0.81,
+      "exposure_usd": 1.215,
+      "cost_per_final_usd": 0.405,
+      "cost_per_final_marginal_usd": {
+        "unit_sum": 0.405,
+        "location_at_min": 0.405,
+        "location_at_max": 0.405
+      },
+      "cost_per_top20_usd": null,
+      "per_unit": [
+        {
+          "unit_id": "paid_024",
+          "keyword": "k01",
+          "raw": 15,
+          "new": 13,
+          "repeat_of_earlier_paid": 1,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_032",
+          "keyword": "k02",
+          "raw": 15,
+          "new": 10,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 0,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_040",
+          "keyword": "k03",
+          "raw": 15,
+          "new": 10,
+          "repeat_of_earlier_paid": 3,
+          "repeat_in_unit": 2,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_048",
+          "keyword": "k04",
+          "raw": 15,
+          "new": 2,
+          "repeat_of_earlier_paid": 7,
+          "repeat_in_unit": 6,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_056",
+          "keyword": "k05",
+          "raw": 15,
+          "new": 1,
+          "repeat_of_earlier_paid": 7,
+          "repeat_in_unit": 7,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_064",
+          "keyword": "k06",
+          "raw": 15,
+          "new": 6,
+          "repeat_of_earlier_paid": 8,
+          "repeat_in_unit": 1,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_072",
+          "keyword": "k07",
+          "raw": 15,
+          "new": 1,
+          "repeat_of_earlier_paid": 10,
+          "repeat_in_unit": 4,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_080",
+          "keyword": "k08",
+          "raw": 15,
+          "new": 4,
+          "repeat_of_earlier_paid": 8,
+          "repeat_in_unit": 3,
+          "eligible": 0,
+          "final": 0,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_088",
+          "keyword": "k09",
+          "raw": 15,
+          "new": 10,
+          "repeat_of_earlier_paid": 4,
+          "repeat_in_unit": 1,
+          "eligible": 2,
+          "final": 2,
+          "final_marginal": 2,
+          "settled_usd": 0.09
+        }
+      ]
+    },
+    "Remote": {
+      "starts": 9,
+      "requested_depth_each": 15,
+      "requested_total": 135,
+      "returned": 130,
+      "stale": 4,
+      "repeat_in_unit": 9,
+      "repeat_of_earlier_paid": 46,
+      "duplicate_paid": 55,
+      "unique_paid_new": 75,
+      "key_also_free": 0,
+      "eligible": 23,
+      "eligible_positive": 21,
+      "final": 14,
+      "final_positive": 12,
+      "final_marginal_unit_sum": 10,
+      "final_marginal_location": [
+        13,
+        14
+      ],
+      "top10": 1,
+      "top20": 2,
+      "top50": 6,
+      "best_final_rank": 1,
+      "settled_usd": 0.78,
+      "exposure_usd": 1.215,
+      "cost_per_final_usd": 0.0557,
+      "cost_per_final_marginal_usd": {
+        "unit_sum": 0.078,
+        "location_at_min": 0.06,
+        "location_at_max": 0.0557
+      },
+      "cost_per_top20_usd": 0.39,
+      "per_unit": [
+        {
+          "unit_id": "paid_025",
+          "keyword": "k01",
+          "raw": 15,
+          "new": 14,
+          "repeat_of_earlier_paid": 0,
+          "repeat_in_unit": 1,
+          "eligible": 1,
+          "final": 1,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_033",
+          "keyword": "k02",
+          "raw": 15,
+          "new": 9,
+          "repeat_of_earlier_paid": 4,
+          "repeat_in_unit": 2,
+          "eligible": 1,
+          "final": 1,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_041",
+          "keyword": "k03",
+          "raw": 10,
+          "new": 10,
+          "repeat_of_earlier_paid": 0,
+          "repeat_in_unit": 0,
+          "eligible": 2,
+          "final": 2,
+          "final_marginal": 1,
+          "settled_usd": 0.06
+        },
+        {
+          "unit_id": "paid_049",
+          "keyword": "k04",
+          "raw": 15,
+          "new": 10,
+          "repeat_of_earlier_paid": 4,
+          "repeat_in_unit": 1,
+          "eligible": 2,
+          "final": 1,
+          "final_marginal": 1,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_057",
+          "keyword": "k05",
+          "raw": 15,
+          "new": 3,
+          "repeat_of_earlier_paid": 12,
+          "repeat_in_unit": 0,
+          "eligible": 4,
+          "final": 1,
+          "final_marginal": 1,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_065",
+          "keyword": "k06",
+          "raw": 15,
+          "new": 5,
+          "repeat_of_earlier_paid": 8,
+          "repeat_in_unit": 2,
+          "eligible": 2,
+          "final": 1,
+          "final_marginal": 0,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_073",
+          "keyword": "k07",
+          "raw": 15,
+          "new": 9,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 1,
+          "eligible": 3,
+          "final": 2,
+          "final_marginal": 2,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_081",
+          "keyword": "k08",
+          "raw": 15,
+          "new": 6,
+          "repeat_of_earlier_paid": 8,
+          "repeat_in_unit": 1,
+          "eligible": 5,
+          "final": 3,
+          "final_marginal": 3,
+          "settled_usd": 0.09
+        },
+        {
+          "unit_id": "paid_089",
+          "keyword": "k09",
+          "raw": 15,
+          "new": 9,
+          "repeat_of_earlier_paid": 5,
+          "repeat_in_unit": 1,
+          "eligible": 3,
+          "final": 2,
+          "final_marginal": 2,
+          "settled_usd": 0.09
+        }
+      ]
+    }
+  },
+  "overlap_matrix": [
+    {
+      "a": "Delhi",
+      "b": "New Delhi",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.368,
+        "chance_agreement": 0.396
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        null,
+        null
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Delhi",
+      "b": "Gurgaon",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.368,
+        "chance_agreement": 0.396
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        null,
+        null
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Delhi",
+      "b": "Noida",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.368,
+        "chance_agreement": 0.396
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        null,
+        null
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Delhi",
+      "b": "Bengaluru",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.353,
+        "chance_agreement": 0.34
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Delhi",
+      "b": "Hyderabad",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.424,
+        "chance_agreement": 0.381
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Delhi",
+      "b": "Pune",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.391,
+        "chance_agreement": 0.369
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Delhi",
+      "b": "Remote",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.323,
+        "chance_agreement": 0.31
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        2
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 1,
+      "eligible_a_to_b": [
+        0.0,
+        1.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.133
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.133
+      ],
+      "final_shared_jobs": [
+        0,
+        2
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        2
+      ]
+    },
+    {
+      "a": "New Delhi",
+      "b": "Gurgaon",
+      "raw": {
+        "status": "INFERRED",
+        "same_result_list": true,
+        "a_to_b": 1.0,
+        "b_to_a": 1.0,
+        "jaccard": 1.0,
+        "basis": "reach+score tokens identical position for position on 9/9 keywords, and every row of Gurgaon was acquired as a repeat"
+      },
+      "trace_identity": {
+        "keywords_identical": 9,
+        "keywords": 9,
+        "positional_agreement": 1.0,
+        "chance_agreement": 0.545
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        null,
+        null
+      ],
+      "eligible_jaccard": [
+        null,
+        null
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "New Delhi",
+      "b": "Noida",
+      "raw": {
+        "status": "INFERRED",
+        "same_result_list": true,
+        "a_to_b": 1.0,
+        "b_to_a": 1.0,
+        "jaccard": 1.0,
+        "basis": "reach+score tokens identical position for position on 9/9 keywords, and every row of Noida was acquired as a repeat"
+      },
+      "trace_identity": {
+        "keywords_identical": 9,
+        "keywords": 9,
+        "positional_agreement": 1.0,
+        "chance_agreement": 0.545
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        null,
+        null
+      ],
+      "eligible_jaccard": [
+        null,
+        null
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "New Delhi",
+      "b": "Bengaluru",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.474,
+        "chance_agreement": 0.5
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "New Delhi",
+      "b": "Hyderabad",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.523,
+        "chance_agreement": 0.51
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "New Delhi",
+      "b": "Pune",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.496,
+        "chance_agreement": 0.532
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "New Delhi",
+      "b": "Remote",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.446,
+        "chance_agreement": 0.433
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Gurgaon",
+      "b": "Noida",
+      "raw": {
+        "status": "INFERRED",
+        "same_result_list": true,
+        "a_to_b": 1.0,
+        "b_to_a": 1.0,
+        "jaccard": 1.0,
+        "basis": "reach+score tokens identical position for position on 9/9 keywords, and every row of Noida was acquired as a repeat"
+      },
+      "trace_identity": {
+        "keywords_identical": 9,
+        "keywords": 9,
+        "positional_agreement": 1.0,
+        "chance_agreement": 0.545
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        null,
+        null
+      ],
+      "eligible_jaccard": [
+        null,
+        null
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Gurgaon",
+      "b": "Bengaluru",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.474,
+        "chance_agreement": 0.5
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Gurgaon",
+      "b": "Hyderabad",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.523,
+        "chance_agreement": 0.51
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Gurgaon",
+      "b": "Pune",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.496,
+        "chance_agreement": 0.532
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Gurgaon",
+      "b": "Remote",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.446,
+        "chance_agreement": 0.433
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Noida",
+      "b": "Bengaluru",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.474,
+        "chance_agreement": 0.5
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Noida",
+      "b": "Hyderabad",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.523,
+        "chance_agreement": 0.51
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Noida",
+      "b": "Pune",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.496,
+        "chance_agreement": 0.532
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Noida",
+      "b": "Remote",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.446,
+        "chance_agreement": 0.433
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        null,
+        null
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Bengaluru",
+      "b": "Hyderabad",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.508,
+        "chance_agreement": 0.539
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Bengaluru",
+      "b": "Pune",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.556,
+        "chance_agreement": 0.571
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Bengaluru",
+      "b": "Remote",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.508,
+        "chance_agreement": 0.477
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Hyderabad",
+      "b": "Pune",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.591,
+        "chance_agreement": 0.581
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Hyderabad",
+      "b": "Remote",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.485,
+        "chance_agreement": 0.484
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    },
+    {
+      "a": "Pune",
+      "b": "Remote",
+      "raw": {
+        "status": "UNKNOWN",
+        "intersection": null,
+        "basis": "per-row job keys were never persisted"
+      },
+      "trace_identity": {
+        "keywords_identical": 0,
+        "keywords": 9,
+        "positional_agreement": 0.508,
+        "chance_agreement": 0.537
+      },
+      "eligible_shared_jobs_indeed_won": [
+        0,
+        0
+      ],
+      "eligible_shared_jobs_linkedin_won_possible": 0,
+      "eligible_a_to_b": [
+        0.0,
+        0.0
+      ],
+      "eligible_b_to_a": [
+        0.0,
+        0.0
+      ],
+      "eligible_jaccard": [
+        0.0,
+        0.0
+      ],
+      "final_shared_jobs": [
+        0,
+        0
+      ],
+      "final_marginal_shared": 0,
+      "lost_only_if_both_removed": [
+        0,
+        0
+      ]
+    }
+  ],
+  "counterfactuals": [
+    {
+      "name": "baseline",
+      "removed_locations": [],
+      "starts_avoided": 0,
+      "exposure_avoided_usd": 0,
+      "estimated_cost_avoided_usd": 0.0,
+      "settled_cost_avoided_usd": 0,
+      "final_lost": [
+        0,
+        0
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        0
+      ],
+      "best_lost_rank_possible": [
+        null
+      ]
+    },
+    {
+      "name": "without Delhi",
+      "removed_locations": [
+        "Delhi"
+      ],
+      "starts_avoided": 9,
+      "exposure_avoided_usd": 1.215,
+      "estimated_cost_avoided_usd": 0.81,
+      "settled_cost_avoided_usd": 0.798,
+      "final_lost": [
+        0,
+        1
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        1
+      ],
+      "best_lost_rank_possible": [
+        38,
+        null
+      ]
+    },
+    {
+      "name": "without New Delhi",
+      "removed_locations": [
+        "New Delhi"
+      ],
+      "starts_avoided": 9,
+      "exposure_avoided_usd": 1.215,
+      "estimated_cost_avoided_usd": 0.81,
+      "settled_cost_avoided_usd": 0.81,
+      "final_lost": [
+        0,
+        0
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        0
+      ],
+      "best_lost_rank_possible": [
+        null
+      ]
+    },
+    {
+      "name": "without Gurgaon",
+      "removed_locations": [
+        "Gurgaon"
+      ],
+      "starts_avoided": 9,
+      "exposure_avoided_usd": 1.215,
+      "estimated_cost_avoided_usd": 0.81,
+      "settled_cost_avoided_usd": 0.81,
+      "final_lost": [
+        0,
+        0
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        0
+      ],
+      "best_lost_rank_possible": [
+        null
+      ]
+    },
+    {
+      "name": "without Noida",
+      "removed_locations": [
+        "Noida"
+      ],
+      "starts_avoided": 9,
+      "exposure_avoided_usd": 1.215,
+      "estimated_cost_avoided_usd": 0.81,
+      "settled_cost_avoided_usd": 0.81,
+      "final_lost": [
+        0,
+        0
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        0
+      ],
+      "best_lost_rank_possible": [
+        null
+      ]
+    },
+    {
+      "name": "without Bengaluru",
+      "removed_locations": [
+        "Bengaluru"
+      ],
+      "starts_avoided": 9,
+      "exposure_avoided_usd": 1.215,
+      "estimated_cost_avoided_usd": 0.81,
+      "settled_cost_avoided_usd": 0.81,
+      "final_lost": [
+        1,
+        1
+      ],
+      "final_marginal_lost": [
+        1,
+        1
+      ],
+      "top10_lost": [
+        1,
+        1
+      ],
+      "top20_lost": [
+        1,
+        1
+      ],
+      "top50_lost": [
+        1,
+        2
+      ],
+      "best_lost_rank_possible": [
+        3
+      ]
+    },
+    {
+      "name": "without Hyderabad",
+      "removed_locations": [
+        "Hyderabad"
+      ],
+      "starts_avoided": 9,
+      "exposure_avoided_usd": 1.215,
+      "estimated_cost_avoided_usd": 0.81,
+      "settled_cost_avoided_usd": 0.792,
+      "final_lost": [
+        1,
+        1
+      ],
+      "final_marginal_lost": [
+        1,
+        1
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        1,
+        1
+      ],
+      "best_lost_rank_possible": [
+        49
+      ]
+    },
+    {
+      "name": "without Pune",
+      "removed_locations": [
+        "Pune"
+      ],
+      "starts_avoided": 9,
+      "exposure_avoided_usd": 1.215,
+      "estimated_cost_avoided_usd": 0.81,
+      "settled_cost_avoided_usd": 0.81,
+      "final_lost": [
+        2,
+        2
+      ],
+      "final_marginal_lost": [
+        2,
+        2
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        0
+      ],
+      "best_lost_rank_possible": [
+        140
+      ]
+    },
+    {
+      "name": "without Remote",
+      "removed_locations": [
+        "Remote"
+      ],
+      "starts_avoided": 9,
+      "exposure_avoided_usd": 1.215,
+      "estimated_cost_avoided_usd": 0.81,
+      "settled_cost_avoided_usd": 0.78,
+      "final_lost": [
+        13,
+        14
+      ],
+      "final_marginal_lost": [
+        10,
+        10
+      ],
+      "top10_lost": [
+        0,
+        1
+      ],
+      "top20_lost": [
+        1,
+        2
+      ],
+      "top50_lost": [
+        5,
+        6
+      ],
+      "best_lost_rank_possible": [
+        1,
+        12
+      ]
+    },
+    {
+      "name": "without Gurgaon+Noida (keep Delhi, New Delhi)",
+      "removed_locations": [
+        "Gurgaon",
+        "Noida"
+      ],
+      "starts_avoided": 18,
+      "exposure_avoided_usd": 2.43,
+      "estimated_cost_avoided_usd": 1.62,
+      "settled_cost_avoided_usd": 1.62,
+      "final_lost": [
+        0,
+        0
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        0
+      ],
+      "best_lost_rank_possible": [
+        null
+      ]
+    },
+    {
+      "name": "NCR as Delhi only (drop New Delhi, Gurgaon, Noida)",
+      "removed_locations": [
+        "New Delhi",
+        "Gurgaon",
+        "Noida"
+      ],
+      "starts_avoided": 27,
+      "exposure_avoided_usd": 3.645,
+      "estimated_cost_avoided_usd": 2.43,
+      "settled_cost_avoided_usd": 2.43,
+      "final_lost": [
+        0,
+        0
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        0
+      ],
+      "best_lost_rank_possible": [
+        null
+      ]
+    },
+    {
+      "name": "NCR as New Delhi only (drop Delhi, Gurgaon, Noida)",
+      "removed_locations": [
+        "Delhi",
+        "Gurgaon",
+        "Noida"
+      ],
+      "starts_avoided": 27,
+      "exposure_avoided_usd": 3.645,
+      "estimated_cost_avoided_usd": 2.43,
+      "settled_cost_avoided_usd": 2.418,
+      "final_lost": [
+        0,
+        1
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        1
+      ],
+      "best_lost_rank_possible": [
+        38,
+        null
+      ]
+    },
+    {
+      "name": "without the whole NCR cluster",
+      "removed_locations": [
+        "Delhi",
+        "New Delhi",
+        "Gurgaon",
+        "Noida"
+      ],
+      "starts_avoided": 36,
+      "exposure_avoided_usd": 4.86,
+      "estimated_cost_avoided_usd": 3.24,
+      "settled_cost_avoided_usd": 3.228,
+      "final_lost": [
+        0,
+        1
+      ],
+      "final_marginal_lost": [
+        0,
+        0
+      ],
+      "top10_lost": [
+        0,
+        0
+      ],
+      "top20_lost": [
+        0,
+        0
+      ],
+      "top50_lost": [
+        0,
+        1
+      ],
+      "best_lost_rank_possible": [
+        38,
+        null
+      ]
+    },
+    {
+      "name": "Remote twins only (drop every place)",
+      "removed_locations": [
+        "Delhi",
+        "New Delhi",
+        "Gurgaon",
+        "Noida",
+        "Bengaluru",
+        "Hyderabad",
+        "Pune"
+      ],
+      "starts_avoided": 63,
+      "exposure_avoided_usd": 8.505,
+      "estimated_cost_avoided_usd": 5.67,
+      "settled_cost_avoided_usd": 5.64,
+      "final_lost": [
+        4,
+        5
+      ],
+      "final_marginal_lost": [
+        4,
+        4
+      ],
+      "top10_lost": [
+        1,
+        1
+      ],
+      "top20_lost": [
+        1,
+        1
+      ],
+      "top50_lost": [
+        2,
+        4
+      ],
+      "best_lost_rank_possible": [
+        3
+      ]
+    },
+    {
+      "name": "without Indeed",
+      "removed_locations": [
+        "Delhi",
+        "New Delhi",
+        "Gurgaon",
+        "Noida",
+        "Bengaluru",
+        "Hyderabad",
+        "Pune",
+        "Remote"
+      ],
+      "starts_avoided": 72,
+      "exposure_avoided_usd": 9.72,
+      "estimated_cost_avoided_usd": 6.48,
+      "settled_cost_avoided_usd": 6.42,
+      "final_lost": [
+        19,
+        19
+      ],
+      "final_marginal_lost": [
+        14,
+        14
+      ],
+      "top10_lost": [
+        2,
+        2
+      ],
+      "top20_lost": [
+        3,
+        3
+      ],
+      "top50_lost": [
+        9,
+        10
+      ],
+      "best_lost_rank_possible": [
+        1
+      ]
+    }
+  ],
+  "remote_check": {
+    "same_keyword_overlap_with_places": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "c5_claim": {
+      "final_lost": 10,
+      "best_lost_rank": 21,
+      "top20_lost": 0,
+      "exposure_usd": 1.215
+    },
+    "sum_of_single_twin_skips": {
+      "final_lost": 10,
+      "top20_lost": 0
+    },
+    "joint_removal": {
+      "final_lost": [
+        13,
+        14
+      ],
+      "top10_lost": [
+        0,
+        1
+      ],
+      "top20_lost": [
+        1,
+        2
+      ],
+      "top50_lost": [
+        5,
+        6
+      ],
+      "best_lost_rank_possible": [
+        1,
+        12
+      ],
+      "exposure_avoided_usd": 1.215
+    },
+    "verdict": "C5's 10 finals / best rank 21 / 0 top-20 is the SUM of the nine single-twin skips; twins duplicate EACH OTHER across keywords, so removing all nine loses more (joint_removal).",
+    "remote_share_of_indeed_finals": 14
+  },
+  "earlier_evidence": {
+    "location_mentions": {
+      "c1-probe-a-india-two-shapes.json": {},
+      "c1-probe-b-remote-react.json": {},
+      "c1-cross-probe-summary.json": {},
+      "c35-indeed-contract.json": {
+        "Bengaluru": 3
+      },
+      "c35-indeed-provider-contract.json": {},
+      "c35-indeed-concurrency-canary.json": {
+        "Bengaluru": 4
+      },
+      "paid-plans.json": {
+        "Delhi": 54,
+        "New Delhi": 18,
+        "Gurgaon": 18,
+        "Noida": 18,
+        "Bengaluru": 48,
+        "Hyderabad": 32,
+        "Pune": 32
+      },
+      "replay-business_salesforce-india.json": {},
+      "replay-react_native-india.json": {},
+      "replay-software_fullstack-india.json": {},
+      "replay-software_fullstack-remote.json": {}
+    },
+    "note": "c35 Indeed probes ran Bengaluru only; paid-plans.json is plan shape (offline, zero paid calls) with no returned rows; replay-*/c1-* hold no Indeed location results. The NCR redundancy is SINGLE-SOURCE (C5)."
+  },
+  "c5_fact_checks": [
+    {
+      "fact": "Indeed 72 = 8 India locations x 9 keywords plus Remote twins",
+      "finding": "72 = 9 keywords x 8 location values: 7 India places + 1 Remote twin"
+    },
+    {
+      "fact": "duplicate-of-another-paid-search 644",
+      "finding": "644 = 98 repeats within one search + 546 repeats of an earlier paid search"
+    },
+    {
+      "fact": "removing all Remote twins loses 10 finals, best rank 21, 0 top-20",
+      "finding": "WRONG as a joint removal: final_lost [13, 14], top-20 lost [1, 2], best lost rank one of [1, 12]; 10/21/0 is the sum of single-twin skips"
+    }
+  ],
+  "decision": {
+    "outcome": "B",
+    "recommendation": "Keep the Indeed default locations unchanged for now.",
+    "reasons": [
+      "Gurgaon and Noida are the only candidates: 0 of 270 rows new to the sweep (MEASURED), the same result list as New Delhi on 9/9 keywords (INFERRED), 0 eligible, 0 final, 0 top-k, and removing both loses exactly nothing here while avoiding 18 starts, $2.430 exposure and $1.62 settled.",
+      "But the bar for outcome A needs redundancy across MULTIPLE evidence sources and this is one run, one date, one synthetic profile's keywords: no earlier probe ran Indeed at an NCR location. Single-source.",
+      "New Delhi also had 0 eligible, but it is the list Gurgaon and Noida repeat: dropping all three (or Delhi) is a different, profile-dependent bet.",
+      "Remote twins are the most valuable Indeed searches (14 of 20 finals, the #1 final job overall): keep them."
+    ],
+    "single_source": [
+      "NCR trio identity",
+      "Gurgaon/Noida zero contribution",
+      "every location-level loss"
+    ],
+    "to_reach_A": "A second run on a different keyword set (or date) that again shows Gurgaon and Noida acquiring 0 new keys after New Delhi; persisting a salted hash of each paid unit's job keys would turn the UNKNOWN pair overlaps and these bounds into exact figures."
+  }
+}

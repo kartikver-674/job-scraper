@@ -1305,6 +1305,17 @@ def provider_positions(site_key, links):
     return [None if p is None or claims[p] > 1 else p for p in got]
 
 
+# V2-D4: seconds between status polls of a started run. 5 s everywhere except
+# Indeed: its runs take ~4 s at the provider (C5 median 4.1 s), so a 5 s poll
+# worked by coincidence with that runtime; C5's timestamps simulated at 2 s cut
+# its median detection lag 1.67 -> 1.24 s and p95 4.52 -> 2.83 s, about 17 s off
+# a 90-search plan's Indeed segment, for ~87 more plain GETs (no charge) and no
+# 429 in evidence. 3 s simulated WORSE than 5 s. LinkedIn's ~27 s runs gain
+# ~10 s for twice the requests: unchanged. See the V2-D doc, section 4.
+POLL_DEFAULT_SECONDS = 5
+POLL_SECONDS = {"indeed": 2}
+
+
 def scrape_search(client, site_key, actor_id, search, before_start=None,
                   after_start=None, after_run=None):
     """Run one actor and return (rows, cost_usd).
@@ -1332,7 +1343,8 @@ def scrape_search(client, site_key, actor_id, search, before_start=None,
     # sweep at 0% CPU on an idle ESTABLISHED connection). Plain .get() uses a
     # bounded 5s HTTP timeout + retries, so a stalled poll raises and the caller's
     # per-search try/except moves on. run_timeout also caps the actor server-side.
-    # ponytail: fixed 6-min deadline / 5s poll; raise if a legit pull runs longer.
+    # ponytail: fixed 6-min deadline; raise if a legit pull runs longer. The poll
+    # interval is per provider (POLL_SECONDS).
     #
     # The charge ceiling is the second half of the depth fix and the half that
     # does not depend on the actor reading our input at all: run_timeout bounds
@@ -1377,8 +1389,9 @@ def scrape_search(client, site_key, actor_id, search, before_start=None,
     deadline = time.monotonic() + 360
     polls = 0
     waiting, polling_s = time.monotonic(), 0.0
+    interval = POLL_SECONDS.get(site_key, POLL_DEFAULT_SECONDS)
     while time.monotonic() < deadline:
-        time.sleep(5)
+        time.sleep(interval)
         polls += 1
         asked = time.monotonic()
         run = rc.get()

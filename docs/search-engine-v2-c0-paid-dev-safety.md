@@ -144,6 +144,7 @@ matches.
 | `bench/search_v2_results_ready.py` | developer benchmark | no: B5 harness, `--site free`, fixtures | no | no | stubbed | — | unreachable |
 | `bench/search_v2_paid_overhead.py` (V2-C1), `bench/search_v2_paid_concurrency.py` (V2-C2) — **added by V2-C2** | developer benchmark | a scripted paid plan | no: `_require_token` patched | no | the C1/C2 test modules' scripted stand-ins only | — | unreachable |
 | `bench/search_v2_free_audit.py` | developer audit | no | no | no | no — parses `scraper.py`'s text | — | unreachable |
+| `bench/search_v2_d3_d4_analysis.py` — **added by V2-D** | developer analysis | no | no | no | no — reads kept C5 outputs and `scraper.py`'s text | — | unreachable |
 | `config.py`, `profiles/global_all.py` | — | — | — | — | — | — | unreachable (a self-test string, a comment) |
 | every other `bench/`, `tools/`, `poc/` file | developer | no | several strip `APIFY_TOKEN*` | `adzuna_replay` (for Adzuna keys) | **no**: no engine entry, no client | — | unreachable |
 | `sweep/tests/*`, `deploy/test_*` | test | some | stubbed / fixture | stubbed (`_require_token` patched) or fixture (C0) | fake clients | — | unreachable by stubs (§17) |

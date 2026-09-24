@@ -1,7 +1,7 @@
 """Search Engine V2-D's production changes. Mostly D1: a public visitor funds
 one sweep from several of their own Apify accounts, and the plan runs WHOLE or
 — only when they say so — as its longest safely placeable prefix. Never
-silently smaller.
+silently smaller. Also D4's per-provider poll interval.
 
 Three layers, each against its own fakes, none with a network or a real key:
 
@@ -756,6 +756,27 @@ class Coverage(unittest.TestCase):
     def test_the_prefix_is_priced_by_its_own_searches(self):
         cov = plan_mod.coverage(self.RAW, [Decimal("0.05")], 0.50)
         self.assertEqual(cov["prefix"]["sites"], {"linkedin": [{}]})
+
+
+class Polling(unittest.TestCase):
+    """D4 (mutation O): Indeed polls every 2 s; LinkedIn keeps 5 s."""
+
+    def intervals(self, scripts, sites, **kw):
+        seen = []
+        got, _ = pooled(scripts, [Acct("u1")], sites=sites, keywords=KW[:1],
+                        patches=[mock.patch.object(scraper.time, "sleep", seen.append)],
+                        **kw)
+        return set(seen), got
+
+    def test_each_provider_polls_at_its_own_interval(self):
+        self.assertEqual(scraper.POLL_SECONDS, {"indeed": 2})
+        self.assertEqual(scraper.POLL_DEFAULT_SECONDS, 5)
+        li_seen, got = self.intervals(li(1), ("linkedin",))
+        self.assertEqual(started(got), 1)
+        self.assertEqual(li_seen, {5})
+        in_seen, got = self.intervals(indeed(1), ("indeed",))
+        self.assertEqual(started(got), 1)
+        self.assertEqual(in_seen, {2})
 
 
 class ProfileAndCap(unittest.TestCase):

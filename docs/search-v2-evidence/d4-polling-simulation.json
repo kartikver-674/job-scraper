@@ -1,0 +1,469 @@
+{
+  "schema": "search-v2-d4.1",
+  "status": "OFFLINE simulation from the C5 run's clocks; no paid call. Every interval other than 5 s is SIMULATED/INFERRED, never measured.",
+  "generated_from": [
+    "c5-run/telemetry/sweep_1eeb9cb0018a4c528c982df5e1546f60.json",
+    "c5-run/jobs_2026-09-24_2141.json",
+    "c5-provider-cost-settlement.json",
+    "scraper.py",
+    "telemetry.py",
+    "paid_adaptive.py",
+    "apify_client/_consts.py"
+  ],
+  "evidence_labels": {
+    "engine_polling": "VERIFIED (scraper.py, apify_client/_consts.py read as text)",
+    "measured_lags_and_polls": "MEASURED",
+    "clock_offset_and_calibration": "INFERRED (fitted, then checked against the independent start-window bound)",
+    "lags_at_1_to_4_s": "INFERRED (simulated)",
+    "segment_wall_changes": "INFERRED (scheduler model calibrated to the measured 5 s segments)",
+    "rate_limits": "MEASURED at 5 s only; provider limits UNKNOWN offline",
+    "polls_cost": "VERIFIED (settled == priced events; no event is a poll)",
+    "outlier": "VERIFIED mechanism / INFERRED detail / UNKNOWN cause"
+  },
+  "engine_polling": {
+    "poll_interval_s": 5,
+    "deadline_s": 360,
+    "poll_call": "rc.get()",
+    "uses_wait_for_finish": false,
+    "sdk_constants": {
+      "DEFAULT_TIMEOUT_SHORT": "timedelta(seconds=5)",
+      "DEFAULT_MAX_RETRIES": "4",
+      "DEFAULT_MIN_DELAY_BETWEEN_RETRIES": "timedelta(milliseconds=500)"
+    },
+    "first_poll": "interval after the loop starts, which is the start acknowledgment plus client.run() and one telemetry write (ms)",
+    "sdk_semantics": "RunClient.get() is a plain GET (timeout tier 'short'), NOT the long-polling waitForFinish; re-sent on transport errors, 5xx and 429 with jittered exponential backoff, timeout doubling"
+  },
+  "model": {
+    "poll_k_sent_at": "loop_start + k*interval + (k-1)*g",
+    "detects_when": "sent_at + alpha*g >= provider finish (engine clock)",
+    "g": "the unit's measured mean GET latency; a unit with SDK re-sends gets the provider's typical GET for every poll and its measured excess on the terminal one, at every interval (conservative)",
+    "typical_get_s": {
+      "linkedin": 0.418,
+      "indeed": 0.314
+    },
+    "clock_offset_s_engine_minus_provider": 0.0,
+    "alpha": 0.5,
+    "clock_offset_feasible_from_start_windows_s": [
+      -0.74,
+      0.235
+    ],
+    "unit_wall_change": "exec shortens by the detection gain; integration (account read, checkpoint) unchanged",
+    "calibration": {
+      "linkedin": {
+        "poll_count_mismatches": 1,
+        "units": 18,
+        "lag_abs_error_s": {
+          "n": 18,
+          "min": 0.013,
+          "median": 0.028,
+          "p95": 0.063,
+          "max": 5.621
+        },
+        "measured_lag_s": {
+          "n": 18,
+          "min": 0.485,
+          "median": 2.419,
+          "p95": 5.062,
+          "max": 6.32
+        },
+        "simulated_5s_lag_s": {
+          "n": 18,
+          "min": 0.468,
+          "median": 2.208,
+          "p95": 4.938,
+          "max": 5.034
+        },
+        "segment_wall_measured_s": 348.248,
+        "segment_wall_simulated_s": 348.231,
+        "segment_start_error_s": {
+          "n": 18,
+          "min": 0.0,
+          "median": 0.006,
+          "p95": 0.013,
+          "max": 0.015
+        }
+      },
+      "indeed": {
+        "poll_count_mismatches": 0,
+        "units": 72,
+        "lag_abs_error_s": {
+          "n": 72,
+          "min": 0.002,
+          "median": 0.009,
+          "p95": 0.013,
+          "max": 0.032
+        },
+        "measured_lag_s": {
+          "n": 72,
+          "min": 0.229,
+          "median": 1.679,
+          "p95": 4.527,
+          "max": 19.439
+        },
+        "simulated_5s_lag_s": {
+          "n": 72,
+          "min": 0.219,
+          "median": 1.674,
+          "p95": 4.516,
+          "max": 19.431
+        },
+        "segment_wall_measured_s": 398.244,
+        "segment_wall_simulated_s": 398.168,
+        "segment_start_error_s": {
+          "n": 72,
+          "min": 0.0,
+          "median": 0.04,
+          "p95": 0.07,
+          "max": 0.073
+        }
+      }
+    }
+  },
+  "simulation": {
+    "linkedin": {
+      "1": {
+        "lag_s": {
+          "n": 18,
+          "min": 0.171,
+          "median": 0.775,
+          "p95": 1.63,
+          "max": 1.672,
+          "mean": 0.904
+        },
+        "polls_per_run": 23,
+        "extra_polls_per_run_vs_5s": 16.722,
+        "extra_polls_provider_total": 301,
+        "segment_wall_s_inferred": 335.9,
+        "segment_wall_change_s_inferred": -12.3,
+        "peak_poll_rate_per_s_2_workers": 1.41
+      },
+      "2": {
+        "lag_s": {
+          "n": 18,
+          "min": 0.202,
+          "median": 1.275,
+          "p95": 2.102,
+          "max": 2.392,
+          "mean": 1.262
+        },
+        "polls_per_run": 13.611,
+        "extra_polls_per_run_vs_5s": 7.333,
+        "extra_polls_provider_total": 132,
+        "segment_wall_s_inferred": 337.8,
+        "segment_wall_change_s_inferred": -10.4,
+        "peak_poll_rate_per_s_2_workers": 0.83
+      },
+      "3": {
+        "lag_s": {
+          "n": 18,
+          "min": 0.422,
+          "median": 2.007,
+          "p95": 3.427,
+          "max": 3.457,
+          "mean": 1.966
+        },
+        "polls_per_run": 9.833,
+        "extra_polls_per_run_vs_5s": 3.556,
+        "extra_polls_provider_total": 64,
+        "segment_wall_s_inferred": 345.7,
+        "segment_wall_change_s_inferred": -2.5,
+        "peak_poll_rate_per_s_2_workers": 0.59
+      },
+      "4": {
+        "lag_s": {
+          "n": 18,
+          "min": 0.246,
+          "median": 2.756,
+          "p95": 3.958,
+          "max": 4.222,
+          "mean": 2.482
+        },
+        "polls_per_run": 7.722,
+        "extra_polls_per_run_vs_5s": 1.444,
+        "extra_polls_provider_total": 26,
+        "segment_wall_s_inferred": 349.8,
+        "segment_wall_change_s_inferred": 1.6,
+        "peak_poll_rate_per_s_2_workers": 0.45
+      },
+      "5": {
+        "lag_s": {
+          "n": 18,
+          "min": 0.468,
+          "median": 2.208,
+          "p95": 4.938,
+          "max": 5.034,
+          "mean": 2.38
+        },
+        "polls_per_run": 6.278,
+        "extra_polls_per_run_vs_5s": 0,
+        "extra_polls_provider_total": 0,
+        "segment_wall_s_inferred": 348.2,
+        "segment_wall_change_s_inferred": 0.0,
+        "peak_poll_rate_per_s_2_workers": 0.37
+      }
+    },
+    "indeed": {
+      "1": {
+        "lag_s": {
+          "n": 72,
+          "min": 0.164,
+          "median": 0.841,
+          "p95": 2.668,
+          "max": 19.372,
+          "mean": 1.365
+        },
+        "polls_per_run": 3.736,
+        "extra_polls_per_run_vs_5s": 2.597,
+        "extra_polls_provider_total": 187,
+        "segment_wall_s_inferred": 368.8,
+        "segment_wall_change_s_inferred": -29.3,
+        "peak_poll_rate_per_s_2_workers": 1.52
+      },
+      "2": {
+        "lag_s": {
+          "n": 72,
+          "min": 0.224,
+          "median": 1.24,
+          "p95": 2.825,
+          "max": 18.744,
+          "mean": 1.735
+        },
+        "polls_per_run": 2.347,
+        "extra_polls_per_run_vs_5s": 1.208,
+        "extra_polls_provider_total": 87,
+        "segment_wall_s_inferred": 380.9,
+        "segment_wall_change_s_inferred": -17.2,
+        "peak_poll_rate_per_s_2_workers": 0.86
+      },
+      "3": {
+        "lag_s": {
+          "n": 72,
+          "min": 0.162,
+          "median": 2.717,
+          "p95": 4.444,
+          "max": 20.744,
+          "mean": 2.925
+        },
+        "polls_per_run": 2.014,
+        "extra_polls_per_run_vs_5s": 0.875,
+        "extra_polls_provider_total": 63,
+        "segment_wall_s_inferred": 426.5,
+        "segment_wall_change_s_inferred": 28.3,
+        "peak_poll_rate_per_s_2_workers": 0.6
+      },
+      "4": {
+        "lag_s": {
+          "n": 72,
+          "min": 0.2,
+          "median": 1.154,
+          "p95": 4.373,
+          "max": 22.744,
+          "mean": 2.311
+        },
+        "polls_per_run": 1.431,
+        "extra_polls_per_run_vs_5s": 0.292,
+        "extra_polls_provider_total": 21,
+        "segment_wall_s_inferred": 400.8,
+        "segment_wall_change_s_inferred": 2.6,
+        "peak_poll_rate_per_s_2_workers": 0.46
+      },
+      "5": {
+        "lag_s": {
+          "n": 72,
+          "min": 0.219,
+          "median": 1.674,
+          "p95": 4.516,
+          "max": 19.431,
+          "mean": 2.177
+        },
+        "polls_per_run": 1.139,
+        "extra_polls_per_run_vs_5s": 0,
+        "extra_polls_provider_total": 0,
+        "segment_wall_s_inferred": 398.2,
+        "segment_wall_change_s_inferred": 0.0,
+        "peak_poll_rate_per_s_2_workers": 0.38
+      }
+    }
+  },
+  "extra_poll_requests_per_90_search_plan": {
+    "1": 488,
+    "2": 219,
+    "3": 127,
+    "4": 47,
+    "5": 0
+  },
+  "rate_limit_evidence": {
+    "linkedin": {
+      "sdk_calls": 168,
+      "sdk_requests": 168,
+      "sdk_resends": 0,
+      "rate_limited_429": 0,
+      "poll_gets_measured": 114
+    },
+    "indeed": {
+      "sdk_calls": 298,
+      "sdk_requests": 301,
+      "sdk_resends": 3,
+      "rate_limited_429": 0,
+      "poll_gets_measured": 82
+    },
+    "note": "0 rate-limited (429) responses at 5 s. The provider's published API rate limit was not read (offline): UNKNOWN. At 1 s, two workers poll at most ~1.5 GET/s."
+  },
+  "outlier": {
+    "unit_id": "paid_020",
+    "lag_s": 19.439,
+    "classification": "VERIFIED mechanism, UNKNOWN underlying cause",
+    "verified": [
+      "one poll (poll_count 1); the GET itself took 18.592 s of the 19.439 s lag; the run had finished 0.839 s before that GET was sent (loop start + 5 s)",
+      "SDK: calls 4, requests 6 -> 2 re-sends, 0 rate-limited (429)",
+      "with the SDK's timeouts (5 s, doubled per attempt) and backoff (<= 1 s, <= 2 s) one GET lasting 18.592 s needs >= 3 attempts, so both re-sends were inside this GET (start 1118 ms and dataset read normal)",
+      "not C2 buffering: buffered_wait_ms 5; not the provider: runtime 4.297 s, provider status SUCCEEDED",
+      "a different request on a different client and thread stalled over the same window and ended within a second of it (concurrent_stalls)"
+    ],
+    "inferred": [
+      "both failed attempts ran to (or near) their 5 s and 10 s timeouts: a fast 5xx could not fill 18.6 s",
+      "the stall was upstream of both clients (network path or provider API), since they share no client or connection pool, only the account token"
+    ],
+    "unknown": [
+      "what stalled the API or network for ~18 s",
+      "whether a shorter interval would have dodged it (the stall's start is not recorded; the simulation keeps the stall on the terminal GET)"
+    ],
+    "concurrent_stalls": [
+      {
+        "unit_id": "paid_018",
+        "call": "account limits read (coordinator thread, the account's own read_client)",
+        "duration_s": 18.59,
+        "overlap_with_outlier_poll_s": 18.055,
+        "ended_apart_s": 0.535,
+        "same_account": true
+      }
+    ],
+    "typical_account_read_s": {
+      "n": 90,
+      "min": 0.28,
+      "median": 0.328,
+      "p95": 1.416,
+      "max": 18.59
+    },
+    "units_with_sdk_resends": [
+      {
+        "unit_id": "paid_020",
+        "provider": "indeed",
+        "sdk_resends": 2,
+        "polls": 1,
+        "poll_get_s": 18.592,
+        "start_s": 1.118,
+        "lag_s": 19.439,
+        "provider_finish_after_loop_start_s": 4.161,
+        "first_poll_issued_after_finish_s": 0.839,
+        "min_attempts_for_one_get": 3
+      },
+      {
+        "unit_id": "paid_046",
+        "provider": "indeed",
+        "sdk_resends": 1,
+        "polls": 1,
+        "poll_get_s": 10.117,
+        "start_s": 3.965,
+        "lag_s": 12.003,
+        "provider_finish_after_loop_start_s": 3.125,
+        "first_poll_issued_after_finish_s": 1.875,
+        "min_attempts_for_one_get": 2
+      }
+    ],
+    "note": "impit's stub calls `timeout` a per-request timeout; the >= 3 attempt bound treats it as a total bound (INFERRED from the stub, the binary is compiled)."
+  },
+  "c5_fact_checks": {
+    "linkedin": {
+      "poll_detection_delay_s": {
+        "n": 18,
+        "min": 0.485,
+        "median": 2.419,
+        "p95": 5.062,
+        "max": 6.32
+      },
+      "provider_runtime_s": {
+        "n": 18,
+        "min": 13.939,
+        "median": 27.149,
+        "p95": 52.033,
+        "max": 73.734
+      },
+      "unit_wall_s": {
+        "n": 18,
+        "min": 20.011,
+        "median": 36.37,
+        "p95": 65.263,
+        "max": 78.872
+      },
+      "terminal_poll_stamp_vs_dataset_read_s": 0.001
+    },
+    "indeed": {
+      "poll_detection_delay_s": {
+        "n": 72,
+        "min": 0.229,
+        "median": 1.679,
+        "p95": 4.527,
+        "max": 19.439
+      },
+      "provider_runtime_s": {
+        "n": 72,
+        "min": 3.105,
+        "median": 4.125,
+        "p95": 8.134,
+        "max": 14.922
+      },
+      "unit_wall_s": {
+        "n": 72,
+        "min": 7.462,
+        "median": 8.861,
+        "p95": 21.228,
+        "max": 33.114
+      },
+      "terminal_poll_stamp_vs_dataset_read_s": 0.001
+    }
+  },
+  "decision": {
+    "linkedin": "keep 5 s",
+    "indeed": "change to 2 s, confirmed on the next live run (not 3 s, not 1 s)",
+    "labels": "the gains are INFERRED (simulated on C5's clocks); nothing below 5 s was measured",
+    "segment_s_saved_per_extra_get": {
+      "linkedin": {
+        "1": 0.041,
+        "2": 0.079,
+        "3": 0.039,
+        "4": -0.062
+      },
+      "indeed": {
+        "1": 0.157,
+        "2": 0.198,
+        "3": -0.449,
+        "4": -0.124
+      }
+    },
+    "poll_gets_measured_at_5s": {
+      "linkedin": 114,
+      "indeed": 82
+    },
+    "sdk_calls_measured_at_5s": {
+      "linkedin": 168,
+      "indeed": 298
+    },
+    "indeed_finish_after_loop_start_s": {
+      "n": 72,
+      "min": 2.18,
+      "median": 3.983,
+      "p95": 7.131,
+      "max": 14.835
+    },
+    "reasons": [
+      "LinkedIn (hypothesis holds, weakly): the best alternative, 2 s, saves 10.4 s of a 348.2 s segment for 132 extra GETs (+116% of its poll GETs, +79% of its SDK calls); 3 s saves 2.5 s and 4 s is worse (+1.6 s). Runs of 14-74 s put the finish anywhere in the cycle, so lag falls only ~linearly with the interval.",
+      "Indeed at 2 s: median lag 1.674 -> 1.24 s, p95 4.516 -> 2.825 s, segment -17.2 s of 398.2 s, for 87 extra GETs per plan (+106% of its poll GETs, +29% of its SDK calls), peak 0.86 GET/s on 2 workers, $0 (polls are not charged events).",
+      "Indeed at 3 s is WORSE than 5 s (+28.3 s, median lag 2.717 s) and 4 s is neutral (+2.6 s): Indeed runs finish 2.18-7.131 s (p95) after the loop starts, so a 3 s poll lands just before most finishes and pays a second cycle. 5 s works today by coincidence with that runtime; 2 s's lag (~U(0, 2) + GET) does not depend on it.",
+      "Not 1 s: -29.3 s for 187 extra GETs -- more gain, but each extra GET buys less (0.157 vs 0.198 s) and it triples the poll traffic for a run that lasts ~4 s.",
+      "No interval removes the Indeed tail: the p95/max are request stalls inside one GET (SDK timeouts 5 s then 10 s); the simulation keeps them at every interval."
+    ],
+    "verify_live": "on the next paid run: Indeed detection lag median/p95, poll GETs per run, SDK re-sends and 429s at 2 s",
+    "separate_lever": "the Indeed tail is set by the poll GET's timeout escalation, not the interval -- a separate, measured change if ever wanted."
+  }
+}
