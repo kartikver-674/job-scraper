@@ -320,6 +320,27 @@ paid Sweep of the default plan at `8c430ae` ($10.548 intended, $6.9609 settled):
   losses, the structural pairs, LinkedIn depth by provider position, and the
   section's size.
 
+V2-D (all OFFLINE; no provider call; see `docs/search-engine-v2-d-finalization.md`):
+
+- `d-mutations.json`: the D1 and V2-D mutation checks — each applied to its
+  source file, the named suites run, the file restored byte-identical; 28 of 28
+  caught.
+- `d3-indeed-location-analysis.json`: Indeed per-location funnels, overlap
+  bounds, counterfactual location sets and the outcome-B decision, from C5's
+  kept outputs. `bench/search_v2_d3_d4_analysis.py`.
+- `d4-polling-simulation.json`: C5's provider timestamps replayed at 1–5 s
+  poll intervals per provider, the calibration against the measured 5 s, and
+  the 19.4 s Indeed outlier's mechanism.
+- `d5-free-path-analysis.json`: the free phase by family and board, the Lever
+  straggler, and the greenhouse:postman record. `bench/search_v2_d5_d6_analysis.py`.
+- `d5-shadow-boards.json`: every observation of the eight B3 shadow boards.
+- `d6-identity-audit.json`: native-id availability, drift and dedupe
+  semantics; the diagnostic-only decision.
+
+ATS board slugs (`greenhouse:elastic`) appear in the D5 files as source
+identifiers from the committed registry; no job title, description, URL,
+query, token or account identity does.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without
