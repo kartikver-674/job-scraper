@@ -39,11 +39,16 @@ VISITOR_KEY = "apify_api_VISITOR_0123456789abcdef"
 OTHER_KEY = "apify_api_SECONDVISITOR_9876543210"
 OPERATOR_KEY = "apify_api_OPERATOR_DO_NOT_SPEND"
 
-# The engine's own dry-run shape: a search is a dict, not a string.
+# The engine's own dry-run shape: a search is a dict, not a string. Since
+# V2-D, with each site's provider ceiling at that depth and the mode a
+# visitor's run would spend in (scraper.public_paid_mode): without one,
+# Confirm must treat paid searches as unavailable.
 SEARCH = {"keywords": "react native developer", "location": "Remote"}
 PLAN = {"profile": "beta",
         "sites": {"linkedin": [SEARCH], "indeed": [SEARCH]},
-        "max_results": {"linkedin": 25, "indeed": 25}, "free_sources": 5}
+        "max_results": {"linkedin": 25, "indeed": 25}, "free_sources": 5,
+        "charge_ceiling_usd": {"linkedin": "0.076", "indeed": "0.225"},
+        "public_paid": "multi"}
 
 
 @contextlib.contextmanager
@@ -282,7 +287,7 @@ class TestTheVisitorsCreditSurvivesTheFlow(unittest.TestCase):
                     # it is their money either way.
                     refused = client.post("/run")
                     self.assertEqual(refused.status_code, 400)
-                    self.assertIn("more than one key can fund",
+                    self.assertIn("can&#39;t safely cover the full Sweep",
                                   refused.get_data(as_text=True))
                     self.assertNotIn("No key connected",
                                      refused.get_data(as_text=True))

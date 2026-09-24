@@ -1637,9 +1637,9 @@ _ACCOUNT_REFUSALS = (
                                     re.I)))
 
 
-def paid_multi_account():
-    return os.environ.get(PAID_MULTI_ACCOUNT_FLAG, "").strip().lower() in (
-        "1", "true", "yes", "on")
+def paid_multi_account(env=None):
+    return (os.environ if env is None else env).get(
+        PAID_MULTI_ACCOUNT_FLAG, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 # Developer-only (V2-C4.5's live canary): the most ONE pooled account may be
@@ -1686,6 +1686,28 @@ def pool_tokens(env=None):
 BYOK_ENV = "SWEEP_BYOK_CREDENTIALS"
 BYOK_MAX_KEYS = 20          # deploy/sweep_worker.MAX_KEYS: the same limit
 _byok = None                # the keys, once read
+# V2-D closeout. A visitor's keys are spent ONLY through the pool's
+# authorization — one key is a pool of one account — whatever the concurrency
+# and multi-account flags say; no configuration reaches the credit-unaware
+# single-account engines with them. This is the one lever above that: off, a
+# BYOK run starts no paid search at all. On unless switched off, and any value
+# but a clear yes (a typo included) is off: the failure direction is "no spend".
+PUBLIC_PAID_FLAG = "SWEEP_PUBLIC_PAID"
+
+
+def public_paid_enabled(env=None):
+    raw = ((os.environ if env is None else env).get(PUBLIC_PAID_FLAG) or "").strip().lower()
+    return raw in ("", "1", "true", "yes", "on")
+
+
+def public_paid_mode(env=None):
+    """How a BYOK run would spend, for the dry run and the public screens:
+    "multi" (every connected account), "single" (the one with the most
+    usable capacity), or "off" (no paid search). Never a credit-unaware mode:
+    there is none for a visitor's keys."""
+    if not public_paid_enabled(env):
+        return "off"
+    return "multi" if paid_multi_account(env) else "single"
 
 
 def byok_tokens(stream=None):
@@ -2124,16 +2146,28 @@ class AccountPool:
         self.dispatched = []
         self.authorization, self.runnable, self.skipped = None, None, []
         self.stop_reason = None
+        self.single = False
         self._lock = threading.Lock()
 
     @classmethod
-    def open(cls, output_dir, make_client):
+    def open(cls, output_dir, make_client, single=False):
+        """`single` (a visitor's run with SWEEP_PAID_MULTI_ACCOUNT off): every
+        key is read, and only the ONE account with the most usable capacity
+        (the first added, on a tie) is pooled — never their capacities
+        combined, and still every ceiling placed on it before the first start."""
         # A bad clamp stops it here. Never on a visitor's keys (V2-D1): their
         # capacity is what their own accounts report, whatever this box's env.
         cap = None if byok_tokens() is not None else paid_account_cap()
         ledger = AccountLedger.open(output_dir)      # before any credential
         accounts, excluded = discover_accounts(_require_token_pool(), make_client, cap)
+        if single and len(accounts) > 1:
+            keep = max(accounts, key=lambda a: (a.exposure.budget, -accounts.index(a)))
+            excluded += [{"slot": a.slots[0], "reason": "not used: one account per sweep "
+                                                         f"({PAID_MULTI_ACCOUNT_FLAG} off)"}
+                         for a in accounts if a is not keep]
+            accounts = [keep]
         pool = cls(accounts, excluded, ledger)
+        pool.single = single
         if cap is not None:
             print(f"  ({PAID_ACCOUNT_CAP_ENV}={cap}: developer-only clamp on each "
                   f"account's usable capacity, not provider capacity)")
@@ -2301,6 +2335,7 @@ class AccountPool:
                                 peak_in_flight=a.peak_in_flight, peak_memory_mb=a.peak_mb,
                                 runtime_held_unknown=a.held_unknown))
             return dict({k: v for k, v in (self.report or {}).items() if k != "accounts"},
+                        single_account=self.single,
                         actor_memory_mb=dict(self.memory), excluded_slots=self.excluded,
                         accounts_used=len(used),
                         account_switches=sum(1 for a, b in zip(self.dispatched,
@@ -2389,7 +2424,7 @@ def write_authorization(output_dir, record):
 
 def paid_phase_c2(plans, make_client, account_client, baseline, budget,
                   raw_rows, done, done_path, today, emit, failures, pool=None,
-                  partial=False):
+                  partial=False, workers=None):
     """The paid phase under SWEEP_PAID_CONCURRENCY. Returns (spent,
     stopped_early, site_key) as main()'s serial loop leaves them.
 
@@ -2421,7 +2456,10 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
     for the account's credit or resources stops the phase: no search is
     retried elsewhere. Nothing else — plan, inputs, order, bytes — differs.
     """
-    workers = paid_workers()
+    # V2-D closeout: a visitor's run with SWEEP_PAID_CONCURRENCY off still goes
+    # through this scheduler — at one worker, one search at a time, as the
+    # serial loop would — so its accounts are authorised all the same.
+    workers = paid_workers() if workers is None else workers
     exposure = PaidExposure(budget)
     results = queue.Queue()
     spent, stopped_early, site_key = 0.0, False, None
@@ -3240,16 +3278,12 @@ def _require_token():
     enough whenever one account's headroom covers the plan — check --dry-run
     against the numbers below if it might not.
     """
-    byok = byok_tokens()
-    if byok is not None:
-        # V2-D1: a visitor's run. Their keys only, never .env's — and one
-        # account needs one key: several can only be spent by the pool.
-        if len(byok) > 1:
-            sys.exit(f"Refusing to start: {len(byok)} Apify keys were given, and only "
-                     f"the account pool ({PAID_MULTI_ACCOUNT_FLAG} under "
-                     f"{PAID_CONCURRENCY_FLAG}) spends across accounts. Nothing was "
-                     f"started.")
-        return byok[0]
+    if byok_tokens() is not None:
+        # V2-D closeout: a visitor's key never reaches this single-account
+        # engine, which checks the sweep's cap and never the account's credit.
+        # main() sends every BYOK run through the pool; this is the backstop.
+        sys.exit("Refusing to start: a visitor's Apify keys are spent only through "
+                 "the account pool's authorization. Nothing was started.")
     from dotenv import load_dotenv
     load_dotenv()
     tokens = {token: name for name, token in apify_tokens()}
@@ -3786,11 +3820,11 @@ def main():
                     site_key, effective_search(site_key, plan[0])["max_results"]))
                 for site_key, plan in plans.items()},
             "free_sources": n_boards + n_feeds + n_optum + n_ent,
-            # V2-D1: whether this engine, in this environment, spends through
-            # the account pool — the only mode that can use several accounts
-            # and authorise a plan by exact placement. Read by the public app,
-            # whose worker runs this dry run with its own flags.
-            "account_pool": paid_concurrency() and paid_multi_account(),
+            # V2-D: how a visitor's run on this engine, in this environment,
+            # would spend — "multi", "single" or "off" (public_paid_mode). Read
+            # by the public app, whose worker runs this dry run with its own
+            # flags; anything else there (an older engine) means unavailable.
+            "public_paid": public_paid_mode(),
         }))
         return
 
@@ -3918,14 +3952,31 @@ def main():
                            "full plan, nothing skipped or cut.")
         from apify_client import ApifyClient
         # V2-C4.5 (default off): every configured account, pooled, under C2 only.
+        # V2-D closeout: a visitor's keys (BYOK) ALWAYS go through the pool —
+        # every account read afresh, every ceiling placed before the first
+        # start — at whatever width SWEEP_PAID_CONCURRENCY allows, on all of
+        # their accounts or (SWEEP_PAID_MULTI_ACCOUNT off) the one with the
+        # most capacity. SWEEP_PUBLIC_PAID off starts none. There is no
+        # credit-unaware path for them.
         pool = None
-        if paid_multi_account() and not c2:
+        byok = byok_tokens() is not None
+        if byok and not public_paid_enabled():
+            print(f"\n⚠ Paid searches are switched off for public sweeps "
+                  f"({PUBLIC_PAID_FLAG}); no account was read and nothing was charged.")
+            telemetry.note(f"V2-D: {PUBLIC_PAID_FLAG} is off — no paid search started.")
+            telemetry.mark("paid_phase_done")
+            written = telemetry.finish()
+            if written:
+                print(f"  telemetry: {written}")
+            sys.exit(PAID_REFUSED_EXIT)
+        if paid_multi_account() and not c2 and not byok:
             print(f"  ({PAID_MULTI_ACCOUNT_FLAG} needs {PAID_CONCURRENCY_FLAG}; "
                   f"one account, as before)")
             telemetry.note(f"{PAID_MULTI_ACCOUNT_FLAG} was set without "
                            f"{PAID_CONCURRENCY_FLAG}: one account, as before.")
-        if c2 and paid_multi_account():
-            pool = AccountPool.open(SETTINGS["output_dir"], ApifyClient)
+        if byok or (c2 and paid_multi_account()):
+            pool = AccountPool.open(SETTINGS["output_dir"], ApifyClient,
+                                    single=byok and not paid_multi_account())
             token = client = baseline = None
         else:
             token = _require_token()
@@ -3940,7 +3991,7 @@ def main():
                       "actor self-report, which undercounts)")
         stopped_early = False
         n = 0
-        if c2:
+        if c2 or pool is not None:
             # V2-C2: the same plan through the reservation scheduler. The
             # token was chosen once, above; each worker gets its own client
             # on it, and never chooses an account itself.
@@ -3948,7 +3999,8 @@ def main():
                 spent, stopped_early, site_key = paid_phase_c2(
                     plans, lambda: ApifyClient(token), client, baseline, budget,
                     raw_rows, done, done_path, today, emit, failures, pool=pool,
-                    partial=bool(SETTINGS.get("allow_partial_paid_sweep")))
+                    partial=bool(SETTINGS.get("allow_partial_paid_sweep")),
+                    workers=None if c2 else 1)
             except PaidPlanRefused as exc:
                 # V2-D1: nothing started, nothing charged, nothing written — a
                 # full sweep never silently becomes a smaller one, and a

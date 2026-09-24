@@ -1095,24 +1095,47 @@ def create_app(state=None, extract=None, resume_dir=None,
         # engine enforces cannot be two different numbers.
         out["spend_cap"] = (0.0 if free_only()
                             else spend_cap_for(out))
-        # V2-D1: a public sweep whose worker spends through the account pool
-        # (its own dry run says so) is authorised by EXACT PLACEMENT of every
+        # V2-D1: a public paid sweep is authorised by EXACT PLACEMENT of every
         # search's provider ceiling on the visitor's connected accounts —
         # never by the estimate against a balance, never by balances summed.
         # Advisory here: the engine re-reads every account just before its
-        # first start and decides again on what it finds.
-        out["coverage"] = None
-        if (app.config.get("PUBLIC_MODE") and not free_only() and out["lines"]
-                and raw.get("account_pool")):
-            keys = app.state.get("byok_keys") or []
-            cov = plan_mod.coverage(priced, [Decimal(k["capacity_usd"]) for k in keys],
-                                    out["spend_cap"])
-            part = plan_mod.cost(cov.pop("prefix"), config.SITE_RATES,
-                                 config.SITE_RATE_BASIS)
-            out["coverage"] = dict(cov, partial_estimate=part["total"])
-            out["over_cap"] = not cov["full"]
+        # first start and decides again on what it finds. V2-D closeout: the
+        # worker's dry run names the mode (scraper.public_paid_mode) — "multi",
+        # every account; "single", the one with the most capacity — and there
+        # is no third, credit-unaware one: anything else (off, or an engine
+        # older than this) means paid searches are unavailable, never the
+        # console's estimate-over-credit gate.
+        out["coverage"], out["paid_unavailable"] = None, False
+        if (app.config.get("PUBLIC_MODE") and not free_only()
+                and any(not line["free"] for line in out["lines"] or ())):
+            mode = raw.get("public_paid")
+            # The console's estimate-over-credit flag means nothing here; only
+            # placement below may set it.
+            out["over_cap"] = False
+            if mode not in ("multi", "single"):
+                out["paid_unavailable"] = True
+            else:
+                keys = _funding_keys(mode)
+                cov = plan_mod.coverage(
+                    priced, [Decimal(k["capacity_usd"]) for k in keys], out["spend_cap"])
+                part = plan_mod.cost(cov.pop("prefix"), config.SITE_RATES,
+                                     config.SITE_RATE_BASIS)
+                out["coverage"] = dict(cov, partial_estimate=part["total"],
+                                       single_account=mode == "single",
+                                       funding_ids=[k["id"] for k in keys])
+                out["over_cap"] = not cov["full"]
         app.state["plan"] = out
         return out
+
+    def _funding_keys(mode):
+        """The connected accounts a public sweep would spend from: all of them
+        ("multi"), or the ONE with the most usable capacity, the first added on
+        a tie ("single") — the rule the engine applies to its own fresh
+        readings (AccountPool.open(single=True))."""
+        keys = list(app.state.get("byok_keys") or ())
+        if mode == "single" and len(keys) > 1:
+            keys = [max(keys, key=lambda k: (Decimal(k["capacity_usd"]), -keys.index(k)))]
+        return keys
 
     def no_key_yet():
         """No verified key on file, so no credit figure to be honest against.
@@ -2314,6 +2337,20 @@ def create_app(state=None, extract=None, resume_dir=None,
                 error="This sweep is set to free sources only, but the plan "
                       "now prices paid searches. Connect a key, or switch "
                       "the paid boards back off.", status=400)
+        if plan_now.get("paid_unavailable"):
+            # V2-D closeout: the worker's engine cannot safely authorise a
+            # visitor's paid sweep right now (switched off, or older than
+            # this). Refused — never started on an estimate instead.
+            return _confirm_page(
+                error="Paid searches are temporarily unavailable. Nothing has been "
+                      "charged. You can search the free sources now, or come back "
+                      "later.", status=503)
+        if (plan_now.get("coverage") is not None
+                and not plan_now["coverage"].get("funding_ids")):
+            # No account connected any more — the keys were spent on the last
+            # run, or removed. The worker's own answer, without asking it.
+            from sweep import worker_client
+            raise worker_client.NeedsKey("no Apify key is connected")
         if (plan_now.get("over_cap") and plan_now.get("coverage")
                 and not request.form.get("over_cap_ack")):
             # V2-D1: the connected accounts cannot safely hold the whole
@@ -2379,13 +2416,11 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state["allow_partial_paid_sweep"] = (
                 True if plan_now.get("over_cap") and request.form.get("over_cap_ack")
                 else None)
-            # Which of a visitor's held keys fund this run: every connected
-            # account where the pool spends across them, else the one with
-            # the most credit, as the single-account engine would choose.
-            keys = app.state.get("byok_keys") or []
-            if not plan_now.get("coverage") and keys:
-                keys = [max(keys, key=lambda k: float(k["headroom_usd"]))]
-            app.state["run_key_ids"] = [k["id"] for k in keys if k.get("id")] or None
+            # Which of a visitor's held keys fund this run: exactly the ones
+            # Confirm placed the plan on (every account, or the one "single"
+            # mode uses). Never chosen here by any other rule.
+            cov = plan_now.get("coverage") or {}
+            app.state["run_key_ids"] = [k for k in cov.get("funding_ids") or () if k] or None
             app.write_profile(app.state["profile"], make_profile.render(
                 app.state["profile"], app.state["derived"], _prefs(app.state)))
             # baseline_usd may be None (see read_spend's docstring) —

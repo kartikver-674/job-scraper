@@ -106,6 +106,15 @@ AUTH_FIELDS = ("outcome", "stop_reason", "full_plan_requested",
 # Never handed to a public run's engine: the developer's own capacity clamp,
 # and the marker only this worker may set (V2-D1).
 DEVELOPER_ONLY_ENV = ("SWEEP_PAID_ACCOUNT_CAP_USD", "SWEEP_BYOK_CREDENTIALS")
+# scraper.PUBLIC_PAID_FLAG, read by the same rule (a test pins the two agree):
+# off, this worker creates no paid run — the engine would start none anyway,
+# and a refusal here means no key is even handed over.
+PUBLIC_PAID_FLAG = "SWEEP_PUBLIC_PAID"
+
+
+def public_paid_enabled(env=None):
+    raw = ((os.environ if env is None else env).get(PUBLIC_PAID_FLAG) or "").strip().lower()
+    return raw in ("", "1", "true", "yes", "on")
 
 
 class Refused(Exception):
@@ -806,6 +815,8 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
     def create_run():
         profile, prefs, free_only, token, owner, key_ids = _checked(
             request.get_json(silent=True))
+        if not free_only and not public_paid_enabled():
+            raise Refused(503, "paid sweeps are temporarily unavailable")
         tokens = [token] if token else None
         if not free_only and not tokens:
             # The keys the visitor pasted on earlier requests, waiting in

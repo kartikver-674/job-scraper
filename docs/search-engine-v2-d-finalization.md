@@ -5,8 +5,8 @@ tree before anything changed. Reviewed history present: C0 `89c8daa`, C1
 `a3b4bd2`, C2 `429b7b6`, C3 `61681c9`, C3.5 `ccd5720`, C4 `22a89a2`, C4.5
 `51764a0` + `b6a974b` + `8c430ae`, C5 `a87e3c9`. **No paid provider call was
 made in V2-D. Nothing was deployed and nothing was pushed.** Commits: `e269e80`
-(D1), `3a9445f` (D3/D4), `c064825` (D5/D6), and this record with the mutation
-evidence (D7).
+(D1), `3a9445f` (D3/D4), `c064825` (D5/D6), `b115bf4` (this record, D7), and a
+closeout commit that makes the public paid **rollback** fail-safe (§1.5, §7.2).
 
 This is Search V2's final technical decision record. It summarises A–C5 only
 where a D decision rests on it. Evidence classes as in V2-A: **MEASURED** (a
@@ -16,13 +16,17 @@ not observed), **UNKNOWN**.
 
 **V2-D status: COMPLETE.** Every D section reached an evidence-backed decision;
 the full regression is green apart from two known environmental errors
-reproduced on the pre-D baseline (§7.3); 28 of 28 mutations are caught.
+reproduced on the pre-D baseline (§7.3); 28 of 28 mutations are caught, and 11
+of 11 closeout mutations. **Public paid safety invariant:** a visitor's keys
+are spent only through the AccountPool's authorization, under every
+configuration — or not at all.
 
 ## 0. Decisions at a glance
 
 | area | decision | class |
 |---|---|---|
 | D1 multiple keys | a visitor may connect up to 20 of their own Apify accounts; one pool, two credential sources; public keys reach the engine on stdin only | VERIFIED |
+| public paid safety | a visitor's keys are spent **only** through the AccountPool's authorization — one key is a pool of one account — under every flag; no configuration reaches a credit-unaware engine; `SWEEP_PUBLIC_PAID` off (or an engine that cannot say) means no paid search at all | VERIFIED |
 | D1 affordability | full = exact placement of every provider ceiling on the connected accounts, inside the generated cap, re-read just before the first start; never the estimate, never summed balances | VERIFIED |
 | D1 partial sweep | only when the visitor ticks "Run with my available credit anyway" (the console's existing over-cap box, reused): the longest safely placeable prefix, in plan order; the rest `skipped_insufficient_capacity`, never done | VERIFIED |
 | D1 full mode short of credit | zero paid starts, exit 3, "Your Apify credit changed" | VERIFIED |
@@ -36,7 +40,7 @@ reproduced on the pre-D baseline (§7.3); 28 of 28 mutations are caught.
 | D5 B3 shadow boards | promote none; keep shadow | MEASURED |
 | D6 native identity | diagnostic-only | MEASURED |
 | D6 telemetry | core on, adaptive off publicly, pool telemetry when the pool runs | VERIFIED |
-| D7 flags | no new configuration flag; the production env in §7.1 | VERIFIED |
+| D7 flags | one new flag, the `SWEEP_PUBLIC_PAID` kill switch (closeout); the production env in §7.1 | VERIFIED |
 
 Corrections to C5 found by D3 (C5's figures otherwise reproduced): removing
 all Remote twins loses 13–14 finals, not 10; the Indeed plan is 7 India places
@@ -123,12 +127,15 @@ has spent every held key, so the session forgets them too (and again if the
 worker ever answers "no key held") — otherwise a re-pasted key would be
 refused as a duplicate of nothing.
 
-**Which engine is running is the worker's answer, not a Render flag.** The dry
-run now reports `account_pool` (`SWEEP_PAID_CONCURRENCY` and
-`SWEEP_PAID_MULTI_ACCOUNT` in the worker's own environment). With it, Confirm
-authorises by placement and funds the run from every connected account; without
-it (the rollback), Confirm keeps the console's estimate-over-credit gate and the
-run is funded by the one account with the most credit, exactly as before.
+**Which mode a visitor's run spends in is the worker's answer, not a Render
+flag.** The dry run reports `public_paid` (`scraper.public_paid_mode()`, from
+the worker's own environment): `multi` — placed across every connected account;
+`single` — placed on the ONE connected account with the most usable capacity;
+`off` — no paid search. Confirm authorises by placement in both safe modes and
+funds the run from exactly the accounts it placed on. Anything else — `off`, or
+a dry run from an engine too old to name a mode — means **paid searches are
+temporarily unavailable**: Confirm says so and `/run` refuses (503). There is no
+branch that falls back to the console's estimate-over-credit gate for a visitor.
 
 ### 1.3 Full or partial — the authorization (VERIFIED)
 
@@ -186,16 +193,57 @@ can stop later starts and never re-opens authorization; assigned work never
 migrates. An unbounded provider (Naukri) has no ceiling to place: it ends the
 prefix, so no plan containing it is ever authorised as full. Naukri stays off.
 
-### 1.4 The flag
+### 1.4 The flags
 
-`SWEEP_PAID_MULTI_ACCOUNT` becomes the **production execution-engine flag**: on
-(under `SWEEP_PAID_CONCURRENCY`) it means "spend through the AccountPool". It
-does not decide where credentials come from — the worker's per-run marker does —
-so developer and public discovery stay separate with no new configuration flag.
-`SWEEP_BYOK_CREDENTIALS` is not configuration: only the worker sets it, per
-child, and strips an inherited one.
+- For a **visitor's** run (BYOK) the AccountPool is not optional: it is the
+  safety boundary, with one account or twenty. `SWEEP_PAID_MULTI_ACCOUNT` only
+  decides how many of their accounts it may use — on, all; off, the one with
+  the most capacity — and `SWEEP_PAID_CONCURRENCY` only decides the width (off:
+  the same scheduler at one worker, one search at a time).
+- For a **developer** run nothing changed: the pool needs both flags, as in
+  C4.5; otherwise `_require_token()` and the single-account engines, as before.
+- `SWEEP_PUBLIC_PAID` (closeout, the one flag V2-D adds): on unless switched
+  off; any value but a clear yes, a typo included, is off. Off, a visitor's run
+  starts no paid search — the engine exits before reading an account, the worker
+  refuses to create the run, and Confirm says paid is unavailable.
+- `SWEEP_BYOK_CREDENTIALS` is not configuration: only the worker sets it, per
+  child, and strips an inherited one.
 
-### 1.5 D1 test matrix (VERIFIED, `sweep/tests/test_search_v2_d.py`)
+### 1.5 Closeout: the rollback that was not safe (VERIFIED)
+
+D1 as first committed recommended `SWEEP_PAID_MULTI_ACCOUNT=0` as the rollback.
+With it — or with `SWEEP_PAID_CONCURRENCY=0` — a visitor's run fell to
+`_require_token()`, which D1 had taught to accept one BYOK key, and so to the
+serial or single-account C2 engine: it checks each start against the sweep's
+$10.55 cap and never against the account's credit. A visitor with $5 usable
+could start the $10.548 plan and run until the provider refused — the exact
+failure D1 exists to remove.
+
+Fixed in the engine, the worker and Render:
+
+- `main()` sends every BYOK run through `AccountPool.open(single=…)` and
+  `paid_phase_c2(workers=1 when concurrency is off)`; `_require_token()` now
+  refuses any visitor key outright (the backstop).
+- `AccountPool.open(single=True)` reads every key and pools only the account
+  with the most usable capacity (first added on a tie); the others are listed
+  as "not used: one account per sweep" and never combined.
+- The dry run's `public_paid` replaces D1's `account_pool`; Render treats any
+  value but `multi`/`single` as unavailable; `/run` with no connected account
+  left raises the worker's own "no key held" answer.
+- The worker refuses a paid run (503, no child, no key handed over) while
+  `SWEEP_PUBLIC_PAID` is off, read by the engine's rule (a test pins that the
+  two parsers agree).
+
+The regression that proves it (`Rollback`, `sweep/tests/test_search_v2_d.py`):
+one key with $5.00 usable against C5's 90-search plan ($10.548 of ceilings) —
+**zero paid starts** unchecked, under production flags and with both rolled
+back; with the partial box, **exactly 48** (all 18 LinkedIn, $0.828, and 30
+Indeed, $4.05; the 31st would take it to $5.013), the other 42
+`skipped_insufficient_capacity`, 48 lines in `.done_combos`. One key with
+$10.548 runs all 90. Every flag combination refuses a capacity-bound plan whole
+and runs only its prefix when partial.
+
+### 1.6 D1 test matrix (VERIFIED, `sweep/tests/test_search_v2_d.py`)
 
 | # | test |
 |---|---|
@@ -257,7 +305,8 @@ or assert the refusal.
 | `SWEEP_PAID_CONCURRENCY` | C2 | off | `1` | permanent config; rollback switch |
 | `SWEEP_PAID_WORKERS` | C2 | 2 (1..4) | `2` | permanent config |
 | `SWEEP_PAID_ADAPTIVE_MODE` | C4 | off | unset (off) | research-only (developer shadow) |
-| `SWEEP_PAID_MULTI_ACCOUNT` | C4.5 → D1 | off | `1` | public product feature (the AccountPool engine); rollback switch |
+| `SWEEP_PAID_MULTI_ACCOUNT` | C4.5 → D1 | off | `1` | public product feature: a visitor's run may use all their accounts (off: one, still through the pool); developer: the pool itself; rollback switch |
+| `SWEEP_PUBLIC_PAID` | D closeout | on (unset) | `1` | kill switch: off, no public paid search at all (engine, worker and Render) |
 | `SWEEP_PAID_ACCOUNT_CAP_USD` | C4.5 | unset | **never set** | developer-only (the worker strips it; BYOK ignores it) |
 | `SWEEP_ALLOW_PAID_BENCH` | C0 | unset | never set on a server | developer-only (second key of the paid guard) |
 | `SWEEP_BYOK_CREDENTIALS` | D1 | — | never configured | internal: set per child by the worker only |
@@ -267,15 +316,14 @@ or assert the refusal.
 
 Obsolete or removable: **none**. Every switch above is either live
 configuration, a rollback for it, or a developer/research tool that is off
-unless a developer sets it. No new configuration flag was added in V2-D.
+unless a developer sets it. One configuration flag was added in V2-D, the
+closeout's `SWEEP_PUBLIC_PAID` kill switch (§1.4).
 
-Paid concurrency without the pool (`SWEEP_PAID_CONCURRENCY=1`,
-`SWEEP_PAID_MULTI_ACCOUNT` off) is **not** a recommended production state, and
-neither is today's serial single-account engine for a public paid sweep: both
-check each start against the sweep's cap only, never against the account's
-credit — the path by which a $10.55-cap plan starts on a $5 FREE account and
-runs until the provider refuses (§1.1). The pool engine, even with one key,
-places every ceiling on an account before the first start.
+The serial and single-account C2 engines check each start against the sweep's
+cap only, never against the account's credit — the path by which a $10.55-cap
+plan starts on a $5 FREE account and runs until the provider refuses (§1.1).
+They remain the developer's single-account engines; since the closeout no flag
+combination hands them a visitor's key (§1.5).
 
 ## 3. D3 — Indeed structural redundancy (offline)
 
@@ -527,8 +575,8 @@ the C0 doc, like `search_v2_free_audit.py`.
 
 Engine flags are read by the child from the **worker's** environment
 (`/etc/sweep-worker/env` on Oracle; restart `sweep-worker` while it is idle).
-Render needs **no new variable**: it learns the engine from the worker's dry
-run (`account_pool`).
+Render needs **no new variable**: it learns the public paid mode from the
+worker's dry run (`public_paid`).
 
 ```
 # /etc/sweep-worker/env — Search V2 (in addition to the worker's own settings)
@@ -542,6 +590,7 @@ SWEEP_RESULTS_READY_EARLY=1
 SWEEP_PAID_CONCURRENCY=1
 SWEEP_PAID_WORKERS=2
 SWEEP_PAID_MULTI_ACCOUNT=1
+SWEEP_PUBLIC_PAID=1
 SWEEP_PAID_ADAPTIVE_MODE=off
 # never set here: SWEEP_PAID_ACCOUNT_CAP_USD, SWEEP_ALLOW_PAID_BENCH,
 # SWEEP_BYOK_CREDENTIALS, any APIFY_TOKEN*
@@ -553,31 +602,43 @@ existing public-mode settings.
 
 ### 7.2 Deploying it (a recommendation; nothing was deployed)
 
-1. **Oracle checkout first**, flags as they are today. The new worker accepts
-   the old Render's requests (one key, no `key_ids`) and the new engine takes
-   a single key on stdin; public behaviour is the single-account path until the
-   flags change.
-2. **Render second.** Against a worker whose dry run says no pool, the new
-   Render keeps the one-key flow exactly (VERIFIED,
-   `test_one_account_engine_keeps_the_one_key_view`).
+Both orders are safe; this one gives visitors the new screens soonest.
+
+1. **Oracle checkout first**, flags as they are today. From this moment every
+   visitor run goes through the pool, even with today's flags (concurrency and
+   multi-account off: one account, one search at a time). An old Render still
+   talks to it (one key, no `key_ids`); if its estimate gate lets through a
+   plan the account cannot hold, the engine refuses it before any start.
+2. **Render second.** Against the new worker it shows Confirm's coverage; had
+   it gone first, against the old worker (no `public_paid` in the dry run), it
+   would have shown paid searches as unavailable — never the old gate.
 3. **Flip the paid flags** on the worker (`SWEEP_PAID_CONCURRENCY=1`,
    `SWEEP_PAID_WORKERS=2`, `SWEEP_PAID_MULTI_ACCOUNT=1`), restart while idle.
-   Confirm now shows the visitor's accounts, coverage, "Add another Apify key"
-   and — only when the plan does not fit — "Run with my available credit
-   anyway".
+   Confirm now funds a sweep from every connected account.
 4. Watch the first sweeps' telemetry: `paid_execution.authorization`, the
    Indeed `poll_count` and detection fields (D4), and any 429.
 
-**Rollback:** `SWEEP_PAID_MULTI_ACCOUNT=0` returns public paid sweeps to one
-account (Render follows on its next plan); `SWEEP_PAID_CONCURRENCY=0` returns
-the serial engine. Neither loses a run. Reverting the Indeed poll is one
-constant.
+**The rollback matrix** (VERIFIED, `Rollback` tests; every row keeps the pool's
+authorization or starts nothing):
+
+| state | worker flags | a visitor's paid run |
+|---|---|---|
+| **normal** | `SWEEP_PAID_CONCURRENCY=1`, `SWEEP_PAID_WORKERS=2`, `SWEEP_PAID_MULTI_ACCOUNT=1`, `SWEEP_PUBLIC_PAID=1` | every connected account, pool authorization, 2 at a time |
+| **rollback 1 — concurrency** | `SWEEP_PAID_CONCURRENCY=0` (or `SWEEP_PAID_WORKERS=1`) | the same pool authorization, one search at a time |
+| **rollback 2 — multi-key** | `SWEEP_PAID_MULTI_ACCOUNT=0` | ONE account through the pool — the connected account with the most usable capacity (the engine's fresh reading; Confirm shows the same choice from its readings); never combined |
+| **both** | both of the above | one account, one search at a time, pool authorization |
+| **emergency** | `SWEEP_PUBLIC_PAID=0` | none: Confirm "temporarily unavailable", `/run` 503, the worker creates no run, the engine exits before any account read |
+| **version mismatch** | an engine that does not report `public_paid` | Render: unavailable |
+
+None loses a run in flight (flags are read when a child starts). Reverting the
+Indeed poll is one constant. `SWEEP_PAID_MULTI_ACCOUNT=0` is **not** a return to
+the pre-D1 public engine: nothing is.
 
 ### 7.3 Regression (local; no provider)
 
 | suite | result |
 |---|---|
-| Sweep suite (`python -m unittest discover -s sweep/tests -t .`: B1–B5, C0–C5, C4.5, D and every app test) | **1,605 OK** (pre-D baseline 1,535; +70) |
+| Sweep suite (`python -m unittest discover -s sweep/tests -t .`: B1–B5, C0–C5, C4.5, D and every app test) | **1,618 OK** after the closeout (1,605 at D7; pre-D baseline 1,535) |
 | Deploy (`deploy.test_sweep_worker`, `deploy.test_modal_benchmark`) | **42 OK** |
 | auto-apply | 1,102 run, **2 errors** — `test_healthz_needs_no_token`, `test_healthz_answers_while_a_generation_holds_the_slot`: the same two on the pre-D baseline (environmental) |
 | `scraper.py --demo`, `python -m sources.concurrency` | OK |
@@ -592,20 +653,20 @@ pass.
 
 | id | brief | mutation | verdict | failing tests |
 |---|---|---|---|---|
-| D1-A | A | Full authorization uses the estimate, not the ceilings (engine) | caught | 21 |
-| D1-A2 | A | Public Confirm authorizes on the estimate against credit | caught | 1 |
-| D1-B | B | Aggregate balance instead of exact placement (engine) | caught | 17 |
+| D1-A | A | Full authorization uses the estimate, not the ceilings (engine) | caught | 25 |
+| D1-A2 | A | Public Confirm authorizes on the estimate against credit | caught | 2 |
+| D1-B | B | Aggregate balance instead of exact placement (engine) | caught | 21 |
 | D1-B2 | B | Aggregate balance instead of exact placement (public coverage) | caught | 1 |
 | D1-C | C | Duplicate account counted twice (engine discovery) | caught | 1 |
 | D1-C2 | C | Duplicate account counted twice (public add-key) | caught | 1 |
-| D1-D | D | Full sweep silently truncates with partial unchecked | caught | 5 |
-| D1-E | E | Partial checkbox ignored (engine never reads the setting) | caught | 15 |
-| D1-E2 | E | Partial checkbox ignored (Render never writes it) | caught | 1 |
+| D1-D | D | Full sweep silently truncates with partial unchecked | caught | 8 |
+| D1-E | E | Partial checkbox ignored (engine never reads the setting) | caught | 18 |
+| D1-E2 | E | Partial checkbox ignored (Render never writes it) | caught | 2 |
 | D1-F | F | Partial runs every search that fits, not the prefix | caught | 1 |
 | D1-G | G | LinkedIn prioritised by C5 contribution (allocator and authorization) | caught | 1 |
-| D1-H | H | A skipped-for-capacity search is written to .done_combos | caught | 2 |
-| D1-I | I | A skipped-for-capacity search is labelled failed | caught | 9 |
-| D1-J | J (V2-D I) | Configure-time headroom trusted (no fresh account read) | caught | 42 |
+| D1-H | H | A skipped-for-capacity search is written to .done_combos | caught | 3 |
+| D1-I | I | A skipped-for-capacity search is labelled failed | caught | 10 |
+| D1-J | J (V2-D I) | Configure-time headroom trusted (no fresh account read) | caught | 45 |
 | D1-K | K (V2-D T) | A visitor's raw key becomes its slot label | caught | 2 |
 | D1-L | L (V2-D K) | Developer clamp applies to a visitor's accounts (engine) | caught | 1 |
 | D1-L2 | L (V2-D K) | Developer clamp reaches a public child (worker) | caught | 1 |
@@ -620,6 +681,25 @@ pass.
 | D-O | V2-D O | The faster poll applies to LinkedIn too | caught | 1 |
 | D-O2 | V2-D O | One aggressive interval for every provider | caught | 1 |
 | D-T | V2-D T | A second public key leaks into the worker's log | caught | 1 |
+
+All 28 were rerun on the closeout tree: 28 caught (counts above are that run's).
+
+**Closeout mutations** — no configuration may spend a visitor's keys without
+the pool's authorization; 11 of 11 caught:
+
+| id | mutation | verdict | failing tests |
+|---|---|---|---|
+| R1 | Public one-key bypasses the AccountPool | caught | 5 |
+| R2 | SWEEP_PAID_MULTI_ACCOUNT=0 restores the legacy public engine | caught | 6 |
+| R3 | Concurrency off restores the legacy public engine | caught | 5 |
+| R4 | An unavailable pool falls back permissively | caught | 2 |
+| R5 | Render reads a dry run with no safe mode as safe | caught | 1 |
+| R5b | The engine's dry run ignores the kill switch | caught | 1 |
+| R6 | One-account pool mode skips capacity authorization | caught | 17 |
+| R7 | Partial under a one-account rollback runs beyond the safe prefix | caught | 5 |
+| R8 | A one-key $5 account is authorised for the full $10.548 plan | caught | 10 |
+| R9 | The worker ignores the public-paid kill switch | caught | 1 |
+| R10 | Single mode combines the visitor's accounts on Confirm | caught | 1 |
 
 The first run left four survivors (A2, B2, F, G): no test yet separated the
 estimate from placement on Confirm, summed from placed credit on Confirm, a
@@ -651,22 +731,26 @@ the developer's `.env`; its failure message printed one real token into a local
 test log. The log was deleted, the test now runs in a sealed environment (as do
 two other new tests whose failure messages would quote the environment), and
 the rerun's log was scanned for every real token before being read (0 hits).
-The key itself is the operator's own; rotating it is advisable.
+The key itself is the operator's own; it has since been rotated.
 
 ## 8. Unresolved and follow-ups
 
-1. **Indeed 2 s** is simulated, not measured: confirm on the first production
+1. **Emergency switch semantics.** `SWEEP_PUBLIC_PAID` is on when unset, so
+   public paid sweeps are available by default on a worker that has the new
+   checkout; the lever to stop them is setting it to `0`. A visitor already
+   past Confirm when it is switched off gets a refused run, not a charge.
+2. **Indeed 2 s** is simulated, not measured: confirm on the first production
    sweeps (poll counts, detection lag, 429s); revert the constant if not.
-2. **Gurgaon + Noida** are a second observation away from removal ($1.62 settled
+3. **Gurgaon + Noida** are a second observation away from removal ($1.62 settled
    a sweep).
-3. **The Lever straggler** (`lever:veeva`, 359.5 s) is UNKNOWN in cause: a
+4. **The Lever straggler** (`lever:veeva`, 359.5 s) is UNKNOWN in cause: a
    repeat measurement, then possibly a per-board deadline.
-4. **Ashby/SmartRecruiters concurrency**: justified to benchmark (~36–39 s
+5. **Ashby/SmartRecruiters concurrency**: justified to benchmark (~36–39 s
    INFERRED) once each has its own default-off switch.
-5. **Native identity**: revisit when a user-facing ledger ships on the worker
+6. **Native identity**: revisit when a user-facing ledger ships on the worker
    path.
-6. **The Apify API rate limit** for polling is UNKNOWN offline; 0 × 429 in C5.
-7. A public sweep cannot resume: each is its own run directory, so a partial
+7. **The Apify API rate limit** for polling is UNKNOWN offline; 0 × 429 in C5.
+8. A public sweep cannot resume: each is its own run directory, so a partial
    sweep's left-out searches are run by a new sweep, not a resume.
 
 ## 9. Research ledger

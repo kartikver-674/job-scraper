@@ -42,6 +42,11 @@ class NeedsKey(WorkerError):
     never written down, so the only way back is to ask for it again."""
 
 
+class PaidUnavailable(WorkerError):
+    """The worker has public paid sweeps switched off (SWEEP_PUBLIC_PAID).
+    Nothing was started and no key was handed over."""
+
+
 class RunNotFound(WorkerError):
     """No such run — or not this visitor's. The worker does not
     distinguish the two, and neither should anything here."""
@@ -79,6 +84,8 @@ def _call(method, path, body=None, url=None, token=None, owner=None):
             raise RunNotFound("that sweep is not available") from None
         if exc.code == 409:
             raise NeedsKey("no Apify key is held for this visitor") from None
+        if exc.code == 503:
+            raise PaidUnavailable("paid sweeps are temporarily unavailable") from None
         raise WorkerError(f"the sweep worker refused the request "
                           f"({exc.code})") from None
     except (urllib.error.URLError, TimeoutError, OSError, ValueError):

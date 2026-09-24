@@ -106,7 +106,20 @@
         {{ key_pills_row(key_pills, 'confirm', sweep_running) }}
       </div>
 
-      {% if plan.coverage %}
+      {% if plan.paid_unavailable %}
+        {# V2-D closeout: the worker's engine cannot safely authorise a paid
+           sweep for a visitor right now. Said plainly, and nothing to start —
+           there is no fallback that spends on an estimate. #}
+        <div class="panel">
+          <h2>Paid searches are temporarily unavailable</h2>
+          <p>Sweep can't safely check your Apify credit against this search
+            right now, so it won't start any paid search. Nothing has been
+            charged.</p>
+          <p class="muted">You can search the free sources now from the
+            <a href="{{ url_for('key') }}">free or paid</a> step, or come back
+            later.</p>
+        </div>
+      {% elif plan.coverage %}
         {# V2-D1: a public sweep on the account pool. Whether it can run
            whole is the engine's allocator's answer over every connected
            account (plan.coverage) — not the estimate against a balance, and
@@ -142,6 +155,11 @@
             <tr><td>Safely covered</td><td>{{ cov.placeable_units }} of
               {{ cov.total_units }} paid searches</td></tr>
           </table>
+          {% if cov.single_account and byok_keys|length > 1 %}
+            <p class="muted">Right now a Sweep can use one Apify account: the
+              connected account with the most available credit. The others are
+              not used or charged.</p>
+          {% endif %}
           {% if cov.full %}
             <p>Your connected Apify accounts can cover the full Sweep.</p>
           {% else %}
@@ -323,14 +341,15 @@
             </label>
           {% endif %}
           <button class="primary{{ ' big' if public_mode }}" type="submit"
-                  {% if plan.coverage and plan.over_cap
-                        and not plan.coverage.placeable_units %}disabled{% endif %}
-                  :disabled="sent{% if plan.over_cap %} || !ack{% endif %}">
+                  {% if plan.paid_unavailable or (plan.coverage and plan.over_cap
+                        and not plan.coverage.placeable_units) %}disabled{% endif %}
+                  :disabled="sent{% if plan.paid_unavailable %} || true{% elif plan.over_cap %} || !ack{% endif %}">
             {%- if public_mode and free_only %}Start Free Sweep<span class="go"
               aria-hidden="true">&rarr;</span>
             {%- elif plan.coverage and plan.over_cap %}Run what my credit covers
               — ${{ '%.2f'|format(plan.coverage.partial_estimate) }}<span class="go"
               aria-hidden="true">&rarr;</span>
+            {%- elif plan.paid_unavailable %}Paid searches unavailable
             {%- elif public_mode and not plan.over_cap %}Start Sweep —
               ${{ '%.2f'|format(plan.total) }}<span class="go"
               aria-hidden="true">&rarr;</span>

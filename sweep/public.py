@@ -609,7 +609,11 @@ def harden(app, env=None, store=None, limit=None):
         from sweep.logic import paid_sites, site_label
         needs_key = isinstance(exc, worker_client.NeedsKey)
         gone = isinstance(exc, worker_client.RunNotFound)
-        if needs_key:
+        if isinstance(exc, worker_client.PaidUnavailable):
+            message = ("Paid searches are temporarily unavailable. Nothing has "
+                       "been charged. You can search the free sources now, or "
+                       "come back later.")
+        elif needs_key:
             # V2-D1: nothing the worker still holds for them; the accounts this
             # session lists must go with it, or pasting a key again would be
             # refused as a duplicate of one that no longer exists.
@@ -635,7 +639,9 @@ def harden(app, env=None, store=None, limit=None):
                        "Nothing has been charged. Try again in a minute.")
         return render_template("key.html", **app.shell(
             "key", paid=[site_label(s) for s in paid_sites()],
-            error=message)), 400 if needs_key else 502
+            error=message)), (400 if needs_key else
+                              503 if isinstance(exc, worker_client.PaidUnavailable)
+                              else 502)
 
     @app.errorhandler(BetaLimited)
     def beta_limited(exc):

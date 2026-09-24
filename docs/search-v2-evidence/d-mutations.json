@@ -1,5 +1,5 @@
 {
- "status": "MEASURED offline: each mutation applied to one source file (G: two edits in scraper.py), the named suites run, the file restored byte-identical (sha256 checked)",
+ "status": "MEASURED offline: each mutation applied to its source file (G, R1-R4: several edits), the named suites run, the file restored byte-identical (sha256 checked). The 28 V2-D mutations were rerun on the closeout tree.",
  "baseline": "green (sweep.tests.test_search_v2_d 51 tests, C4.5 86, C2, C4, C0, B4, worker)",
  "caught": 28,
  "total": 28,
@@ -29,16 +29,16 @@
     "test_18_the_fresh_reading_decides_a_full_sweep",
     "test_19_the_fresh_reading_sets_a_partial_sweeps_prefix",
     "test_20_an_unreadable_account_is_not_counted",
-    "test_3_fragmented_capacity_is_not_the_full_plan",
-    "test_4_two_keys_to_one_account_are_one_account",
-    "test_7_insufficient_and_partial_not_chosen_starts_nothing"
+    "test_2_8_a_5_dollar_account_never_starts_the_10_548_plan",
+    "test_3_7_15_partial_runs_exactly_the_safe_prefix",
+    "test_3_fragmented_capacity_is_not_the_full_plan"
    ],
-   "failing_count": 21,
+   "failing_count": 25,
    "suites": [
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 21.5
+   "suite_s": 25.3
   },
   {
    "mutation": "D1-A2",
@@ -46,13 +46,14 @@
    "file": "sweep/app.py",
    "verdict": "caught",
    "failing_tests": [
-    "test_11_the_estimate_fitting_is_not_the_plan_fitting"
+    "test_11_the_estimate_fitting_is_not_the_plan_fitting",
+    "test_single_mode_places_on_the_one_best_account_never_the_sum"
    ],
-   "failing_count": 1,
+   "failing_count": 2,
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 10.1
+   "suite_s": 15.2
   },
   {
    "mutation": "D1-B",
@@ -68,17 +69,17 @@
     "test_18_the_fresh_reading_decides_a_full_sweep",
     "test_19_the_fresh_reading_sets_a_partial_sweeps_prefix",
     "test_21_nothing_readable_fails_closed_even_when_partial",
+    "test_2_8_a_5_dollar_account_never_starts_the_10_548_plan",
+    "test_3_7_15_partial_runs_exactly_the_safe_prefix",
     "test_3_fragmented_capacity_is_not_the_full_plan",
-    "test_7_insufficient_and_partial_not_chosen_starts_nothing",
-    "test_8_insufficient_and_partial_chosen_runs_the_prefix",
-    "test_9_10_the_exact_boundary_and_a_mill_below_it"
+    "test_6_multi_account_off_uses_one_account_and_never_the_sum"
    ],
-   "failing_count": 17,
+   "failing_count": 21,
    "suites": [
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 21.4
+   "suite_s": 27.0
   },
   {
    "mutation": "D1-B2",
@@ -92,7 +93,7 @@
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 9.8
+   "suite_s": 15.6
   },
   {
    "mutation": "D1-C",
@@ -107,7 +108,7 @@
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 20.7
+   "suite_s": 26.7
   },
   {
    "mutation": "D1-C2",
@@ -121,7 +122,7 @@
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 9.7
+   "suite_s": 14.6
   },
   {
    "mutation": "D1-D",
@@ -131,16 +132,19 @@
    "failing_tests": [
     "test_11_ceilings_not_expected_spend_authorise_it",
     "test_18_the_fresh_reading_decides_a_full_sweep",
+    "test_2_8_a_5_dollar_account_never_starts_the_10_548_plan",
+    "test_6_multi_account_off_uses_one_account_and_never_the_sum",
+    "test_7_16_every_rollback_keeps_the_accounts_authorization",
     "test_7_insufficient_and_partial_not_chosen_starts_nothing",
     "test_the_budget_still_holds_a_full_sweep_whole",
     "test_the_sweep_budget_still_binds_however_much_the_pool_holds"
    ],
-   "failing_count": 5,
+   "failing_count": 8,
    "suites": [
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 20.8
+   "suite_s": 27.2
   },
   {
    "mutation": "D1-E",
@@ -154,19 +158,19 @@
     "test_17_a_rerun_with_more_credit_runs_only_what_was_left",
     "test_19_the_fresh_reading_sets_a_partial_sweeps_prefix",
     "test_20_an_unreadable_account_is_not_counted",
+    "test_3_7_15_partial_runs_exactly_the_safe_prefix",
     "test_4_two_keys_to_one_account_are_one_account",
+    "test_6_multi_account_off_uses_one_account_and_never_the_sum",
+    "test_7_16_every_rollback_keeps_the_accounts_authorization",
     "test_7_the_sweep_budget_is_untouched",
-    "test_8_insufficient_and_partial_chosen_runs_the_prefix",
-    "test_9_10_the_exact_boundary_and_a_mill_below_it",
-    "test_a_provider_resource_refusal_is_account_resource",
-    "test_committed_is_never_released_whatever_a_run_cost"
+    "test_8_insufficient_and_partial_chosen_runs_the_prefix"
    ],
-   "failing_count": 15,
+   "failing_count": 18,
    "suites": [
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 21.4
+   "suite_s": 25.3
   },
   {
    "mutation": "D1-E2",
@@ -174,13 +178,14 @@
    "file": "sweep/app.py",
    "verdict": "caught",
    "failing_tests": [
-    "test_8_the_ticked_box_is_the_profiles_partial_setting"
+    "test_8_the_ticked_box_is_the_profiles_partial_setting",
+    "test_single_mode_places_on_the_one_best_account_never_the_sum"
    ],
-   "failing_count": 1,
+   "failing_count": 2,
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 9.8
+   "suite_s": 14.6
   },
   {
    "mutation": "D1-F",
@@ -195,7 +200,7 @@
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 20.5
+   "suite_s": 26.0
   },
   {
    "mutation": "D1-G",
@@ -210,7 +215,7 @@
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 20.7
+   "suite_s": 26.3
   },
   {
    "mutation": "D1-H",
@@ -219,14 +224,15 @@
    "verdict": "caught",
    "failing_tests": [
     "test_15_16_left_out_is_neither_failed_nor_done",
-    "test_17_a_rerun_with_more_credit_runs_only_what_was_left"
+    "test_17_a_rerun_with_more_credit_runs_only_what_was_left",
+    "test_3_7_15_partial_runs_exactly_the_safe_prefix"
    ],
-   "failing_count": 2,
+   "failing_count": 3,
    "suites": [
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 21.8
+   "suite_s": 26.1
   },
   {
    "mutation": "D1-I",
@@ -236,6 +242,7 @@
    "failing_tests": [
     "test_14_a_later_search_never_leapfrogs_one_that_cannot_run",
     "test_15_16_left_out_is_neither_failed_nor_done",
+    "test_3_7_15_partial_runs_exactly_the_safe_prefix",
     "test_7_insufficient_and_partial_not_chosen_starts_nothing",
     "test_7_the_sweep_budget_is_untouched",
     "test_a_provider_resource_refusal_is_account_resource",
@@ -244,12 +251,12 @@
     "test_the_sweep_budget_still_binds_however_much_the_pool_holds",
     "test_unplaced_searches_stop_at_the_first_one_as_the_cap_does"
    ],
-   "failing_count": 9,
+   "failing_count": 10,
    "suites": [
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 20.5
+   "suite_s": 26.0
   },
   {
    "mutation": "D1-J",
@@ -263,19 +270,19 @@
     "test_13_14_real_readings_stay_the_providers_the_clamp_is_labelled",
     "test_14_a_later_search_never_leapfrogs_one_that_cannot_run",
     "test_15_16_left_out_is_neither_failed_nor_done",
-    "test_17_a_rerun_with_more_credit_runs_only_what_was_left",
     "test_18_the_fresh_reading_decides_a_full_sweep",
     "test_19_the_fresh_reading_sets_a_partial_sweeps_prefix",
     "test_20_an_unreadable_account_is_not_counted",
     "test_23_no_key_reaches_telemetry_the_log_or_an_output",
-    "test_2_3_the_clamp_only_ever_lowers"
+    "test_2_3_the_clamp_only_ever_lowers",
+    "test_2_no_single_account_but_the_pool_places_it"
    ],
-   "failing_count": 42,
+   "failing_count": 45,
    "suites": [
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 17.9
+   "suite_s": 22.2
   },
   {
    "mutation": "D1-K",
@@ -290,7 +297,7 @@
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 9.9
+   "suite_s": 14.5
   },
   {
    "mutation": "D1-L",
@@ -304,7 +311,7 @@
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 10.5
+   "suite_s": 14.5
   },
   {
    "mutation": "D1-L2",
@@ -318,8 +325,7 @@
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 10.0,
-   "rerun": "against the green baseline after the C0 map classified the D3/D4 script and two tests were sealed"
+   "suite_s": 14.6
   },
   {
    "mutation": "D1-M",
@@ -338,7 +344,7 @@
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 20.7
+   "suite_s": 26.0
   },
   {
    "mutation": "D1-N",
@@ -354,7 +360,7 @@
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 20.8
+   "suite_s": 26.3
   },
   {
    "mutation": "D1-O",
@@ -372,7 +378,7 @@
     "sweep.tests.test_search_v2_d",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 20.7
+   "suite_s": 26.3
   },
   {
    "mutation": "D-L",
@@ -388,7 +394,7 @@
    "suites": [
     "sweep.tests.test_paid_adaptive"
    ],
-   "suite_s": 10.2
+   "suite_s": 11.3
   },
   {
    "mutation": "D-M",
@@ -403,7 +409,7 @@
     "sweep.tests.test_paid_concurrency",
     "sweep.tests.test_paid_multi_account"
    ],
-   "suite_s": 39.1
+   "suite_s": 40.9
   },
   {
    "mutation": "D-N",
@@ -430,7 +436,7 @@
     "sweep.tests.test_plan",
     "sweep.tests.test_paid_adaptive"
    ],
-   "suite_s": 10.5
+   "suite_s": 11.2
   },
   {
    "mutation": "D-P",
@@ -445,7 +451,7 @@
    "suites": [
     "sweep.tests.test_free_concurrency_greenhouse"
    ],
-   "suite_s": 12.8
+   "suite_s": 13.2
   },
   {
    "mutation": "D-S",
@@ -459,8 +465,7 @@
    "suites": [
     "sweep.tests.test_paid_dev_guard"
    ],
-   "suite_s": 4.1,
-   "rerun": "against the green baseline after the C0 map classified the D3/D4 script and two tests were sealed"
+   "suite_s": 3.9
   },
   {
    "mutation": "D-O",
@@ -474,7 +479,7 @@
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 9.7
+   "suite_s": 14.4
   },
   {
    "mutation": "D-O2",
@@ -488,7 +493,7 @@
    "suites": [
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 9.0
+   "suite_s": 14.6
   },
   {
    "mutation": "D-T",
@@ -503,8 +508,214 @@
     "deploy.test_sweep_worker",
     "sweep.tests.test_search_v2_d"
    ],
-   "suite_s": 10.3,
-   "rerun": "against the green baseline after the C0 map classified the D3/D4 script and two tests were sealed"
+   "suite_s": 15.1
   }
- ]
+ ],
+ "closeout": {
+  "what": "V2-D closeout: no configuration spends a visitor's keys without the AccountPool's authorization",
+  "caught": 11,
+  "total": 11,
+  "mutations": [
+   {
+    "mutation": "R1",
+    "what": "Public one-key bypasses the AccountPool",
+    "file": "scraper.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_10_the_single_account_engine_never_takes_a_visitors_key",
+     "test_1_one_public_key_is_a_pool_of_one_account_under_every_flag",
+     "test_2_8_a_5_dollar_account_never_starts_the_10_548_plan",
+     "test_3_7_15_partial_runs_exactly_the_safe_prefix",
+     "test_7_16_every_rollback_keeps_the_accounts_authorization"
+    ],
+    "failing_count": 5,
+    "suites": [
+     "sweep.tests.test_search_v2_d",
+     "sweep.tests.test_paid_multi_account"
+    ],
+    "suite_s": 26.1
+   },
+   {
+    "mutation": "R2",
+    "what": "SWEEP_PAID_MULTI_ACCOUNT=0 restores the legacy public engine",
+    "file": "scraper.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_10_the_single_account_engine_never_takes_a_visitors_key",
+     "test_1_one_public_key_is_a_pool_of_one_account_under_every_flag",
+     "test_2_8_a_5_dollar_account_never_starts_the_10_548_plan",
+     "test_3_7_15_partial_runs_exactly_the_safe_prefix",
+     "test_6_multi_account_off_uses_one_account_and_never_the_sum",
+     "test_7_16_every_rollback_keeps_the_accounts_authorization"
+    ],
+    "failing_count": 6,
+    "suites": [
+     "sweep.tests.test_search_v2_d",
+     "sweep.tests.test_paid_multi_account"
+    ],
+    "suite_s": 25.3
+   },
+   {
+    "mutation": "R3",
+    "what": "Concurrency off restores the legacy public engine",
+    "file": "scraper.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_10_the_single_account_engine_never_takes_a_visitors_key",
+     "test_1_one_public_key_is_a_pool_of_one_account_under_every_flag",
+     "test_2_8_a_5_dollar_account_never_starts_the_10_548_plan",
+     "test_3_7_15_partial_runs_exactly_the_safe_prefix",
+     "test_7_16_every_rollback_keeps_the_accounts_authorization"
+    ],
+    "failing_count": 5,
+    "suites": [
+     "sweep.tests.test_search_v2_d",
+     "sweep.tests.test_paid_multi_account"
+    ],
+    "suite_s": 25.3
+   },
+   {
+    "mutation": "R4",
+    "what": "An unavailable pool falls back permissively",
+    "file": "scraper.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_10_the_single_account_engine_never_takes_a_visitors_key",
+     "test_8_an_unavailable_pool_fails_closed_with_no_fallback"
+    ],
+    "failing_count": 2,
+    "suites": [
+     "sweep.tests.test_search_v2_d",
+     "sweep.tests.test_paid_multi_account"
+    ],
+    "suite_s": 26.1
+   },
+   {
+    "mutation": "R5",
+    "what": "Render reads a dry run with no safe mode as safe",
+    "file": "sweep/app.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_9_no_safe_mode_at_the_worker_means_no_paid_start"
+    ],
+    "failing_count": 1,
+    "suites": [
+     "sweep.tests.test_search_v2_d"
+    ],
+    "suite_s": 14.7
+   },
+   {
+    "mutation": "R5b",
+    "what": "The engine's dry run ignores the kill switch",
+    "file": "scraper.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_the_dry_run_names_a_safe_mode_or_off_and_nothing_else"
+    ],
+    "failing_count": 1,
+    "suites": [
+     "sweep.tests.test_search_v2_d"
+    ],
+    "suite_s": 14.6
+   },
+   {
+    "mutation": "R6",
+    "what": "One-account pool mode skips capacity authorization",
+    "file": "scraper.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_11_ceilings_not_expected_spend_authorise_it",
+     "test_12_the_partial_estimate_is_of_the_selected_searches",
+     "test_15_16_left_out_is_neither_failed_nor_done",
+     "test_18_the_fresh_reading_decides_a_full_sweep",
+     "test_19_the_fresh_reading_sets_a_partial_sweeps_prefix",
+     "test_2_8_a_5_dollar_account_never_starts_the_10_548_plan",
+     "test_3_7_15_partial_runs_exactly_the_safe_prefix",
+     "test_6_multi_account_off_uses_one_account_and_never_the_sum",
+     "test_7_16_every_rollback_keeps_the_accounts_authorization",
+     "test_7_insufficient_and_partial_not_chosen_starts_nothing",
+     "test_8_insufficient_and_partial_chosen_runs_the_prefix",
+     "test_9_10_the_exact_boundary_and_a_mill_below_it"
+    ],
+    "failing_count": 17,
+    "suites": [
+     "sweep.tests.test_search_v2_d",
+     "sweep.tests.test_paid_multi_account"
+    ],
+    "suite_s": 27.1
+   },
+   {
+    "mutation": "R7",
+    "what": "Partial under a one-account rollback runs beyond the safe prefix",
+    "file": "scraper.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_15_16_left_out_is_neither_failed_nor_done",
+     "test_3_7_15_partial_runs_exactly_the_safe_prefix",
+     "test_8_insufficient_and_partial_chosen_runs_the_prefix",
+     "test_a_provider_resource_refusal_is_account_resource",
+     "test_unplaced_searches_stop_at_the_first_one_as_the_cap_does"
+    ],
+    "failing_count": 5,
+    "suites": [
+     "sweep.tests.test_search_v2_d",
+     "sweep.tests.test_paid_multi_account"
+    ],
+    "suite_s": 26.1
+   },
+   {
+    "mutation": "R8",
+    "what": "A one-key $5 account is authorised for the full $10.548 plan",
+    "file": "scraper.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_11_ceilings_not_expected_spend_authorise_it",
+     "test_18_the_fresh_reading_decides_a_full_sweep",
+     "test_2_8_a_5_dollar_account_never_starts_the_10_548_plan",
+     "test_6_multi_account_off_uses_one_account_and_never_the_sum",
+     "test_7_16_every_rollback_keeps_the_accounts_authorization",
+     "test_7_insufficient_and_partial_not_chosen_starts_nothing",
+     "test_8_insufficient_and_partial_chosen_runs_the_prefix",
+     "test_an_account_that_can_never_fit_the_run_stops_the_phase",
+     "test_the_authorization_record_is_beside_the_outputs",
+     "test_the_budget_still_holds_a_full_sweep_whole"
+    ],
+    "failing_count": 10,
+    "suites": [
+     "sweep.tests.test_search_v2_d",
+     "sweep.tests.test_paid_multi_account"
+    ],
+    "suite_s": 26.9
+   },
+   {
+    "mutation": "R9",
+    "what": "The worker ignores the public-paid kill switch",
+    "file": "deploy/sweep_worker.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_10_no_paid_child_while_public_paid_is_off"
+    ],
+    "failing_count": 1,
+    "suites": [
+     "sweep.tests.test_search_v2_d",
+     "deploy.test_sweep_worker"
+    ],
+    "suite_s": 15.1
+   },
+   {
+    "mutation": "R10",
+    "what": "Single mode combines the visitor's accounts on Confirm",
+    "file": "sweep/app.py",
+    "verdict": "caught",
+    "failing_tests": [
+     "test_single_mode_places_on_the_one_best_account_never_the_sum"
+    ],
+    "failing_count": 1,
+    "suites": [
+     "sweep.tests.test_search_v2_d"
+    ],
+    "suite_s": 14.6
+   }
+  ]
+ }
 }

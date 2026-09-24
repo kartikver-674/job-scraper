@@ -72,6 +72,9 @@ def refused(got):
     return f"SystemExit: {scraper.PAID_REFUSED_EXIT}" in got.log
 
 
+CLIENTS = []     # every scripted provider byok() built, newest last
+
+
 def byok(scripts, accts, keys=None, *, env=None, patches=(), partial=False, **kw):
     """c2_sweep with the pool on, its credentials from the BYOK source — the
     visitor's keys on stdin, as deploy/sweep_worker pipes them — and NOT from
@@ -81,7 +84,8 @@ def byok(scripts, accts, keys=None, *, env=None, patches=(), partial=False, **kw
     keys = list(accounts) if keys is None else keys
 
     def factory(by_input, account=None):
-        return c45.PoolClient(by_input, accounts=accounts)
+        CLIENTS.append(c45.PoolClient(by_input, accounts=accounts))
+        return CLIENTS[-1]
 
     def no_dotenv(*a, **k):
         raise AssertionError("a BYOK run read .env")
@@ -368,18 +372,19 @@ class ByokSource(unittest.TestCase):
         self.assertEqual(started(got), 3)
         self.assertIsNone(c45.section(got)["developer_account_cap"])
 
-    def test_one_account_engine_takes_one_key_and_refuses_several(self):
-        with mock.patch.dict(os.environ, {scraper.BYOK_ENV: "stdin",
-                                          "APIFY_TOKEN": OPERATOR}):
-            with mock.patch.object(scraper, "_byok", None), \
+    def test_10_the_single_account_engine_never_takes_a_visitors_key(self):
+        """V2-D closeout: not one key, not several — a visitor's keys are
+        spent only through the pool's authorization."""
+        for keys in (["v1"], ["v1", "v2"]):
+            with self.subTest(keys=keys), \
+                    mock.patch.dict(os.environ, {scraper.BYOK_ENV: "stdin",
+                                                 "APIFY_TOKEN": OPERATOR}, clear=True), \
+                    mock.patch.object(scraper, "_byok", None), \
                     mock.patch.object(scraper.sys, "stdin",
-                                      io.StringIO('{"apify_tokens": ["v1"]}')):
-                self.assertEqual(scraper._require_token(), "v1")
-            with mock.patch.object(scraper, "_byok", None), \
-                    mock.patch.object(scraper.sys, "stdin",
-                                      io.StringIO('{"apify_tokens": ["v1", "v2"]}')):
-                with self.assertRaises(SystemExit):
+                                      io.StringIO(json.dumps({"apify_tokens": keys}))):
+                with self.assertRaises(SystemExit) as caught:
                     scraper._require_token()
+                self.assertIn("only through the account pool", str(caught.exception))
 
 
 # ===========================================================================
@@ -481,6 +486,16 @@ class WorkerKeys(unittest.TestCase):
         self.assertNotIn("key-a", json.dumps(env) + " ".join(captured["argv"]))
         self.assertEqual(json.loads(captured["stdin"]), {"apify_tokens": ["key-a", "key-b"]})
 
+    def test_10_no_paid_child_while_public_paid_is_off(self):
+        """Defense in depth (V2-D closeout): with public paid switched off the
+        worker creates no paid run — no child, no key handed over."""
+        _, a = self.hold("key-a")
+        with mock.patch.dict(os.environ, {sweep_worker.PUBLIC_PAID_FLAG: "0"}):
+            r = self.start_run([a])
+        self.assertEqual(r.status_code, 503)
+        self.assertEqual(self.spawned, [])
+        self.assertEqual(self.store.all(), [])
+
     def test_the_status_carries_the_authorization_and_nothing_else_of_it(self):
         _, a = self.hold("key-a")
         run_id = self.start_run([a]).get_json()["run_id"]
@@ -506,15 +521,17 @@ CREDIT = {KEY_A: 0.20, KEY_B: 0.30, KEY_A2: 0.20}
 SEARCH = {"keywords": "react native developer", "location": "Remote"}
 
 
-def pool_plan(pool=True):
+def pool_plan(mode="multi"):
+    """The worker's dry run: `mode` is scraper.public_paid_mode()'s answer, or
+    None for an engine too old to give one."""
     plan = {"profile": "beta",
             "sites": {"linkedin": [dict(SEARCH, location=f"L{i}") for i in range(2)],
                       "indeed": [dict(SEARCH, location=f"I{i}") for i in range(2)]},
             "max_results": {"linkedin": 15, "indeed": 15},
             "charge_ceiling_usd": {"linkedin": "0.046", "indeed": "0.135"},
             "free_sources": 5}
-    if pool:
-        plan["account_pool"] = True
+    if mode is not None:
+        plan["public_paid"] = mode
     return plan
 
 
@@ -566,12 +583,12 @@ class PublicSockets(unittest.TestCase):
 
 class PublicMultiKey(PublicSockets):
 
-    def visitor(self, url, pool=True, same=None):
+    def visitor(self, url, mode="multi", same=None):
         check = lambda token: (CREDIT[token], None)     # noqa: E731
         app = render_app(url, read_account=account_reader(check, same))
         client = reviewed(app, "beta_user")
         self.plan = mock.patch.object(worker_client, "plan",
-                                      lambda *a, **kw: pool_plan(pool))
+                                      lambda *a, **kw: pool_plan(mode))
         self.plan.start()
         self.addCleanup(self.plan.stop)
         return app, client
@@ -694,17 +711,42 @@ class PublicMultiKey(PublicSockets):
             self.assertNotIn("0.01", source)
             self.assertNotIn("ACCOUNT_CAP", source.upper().replace("MAX_SPEND", ""))
 
-    def test_one_account_engine_keeps_the_one_key_view(self):
-        """No pool at the worker: the console's estimate-over-credit gate as
-        before, and the run funded by the one account with the most credit."""
+    def test_single_mode_places_on_the_one_best_account_never_the_sum(self):
+        """Multi-account off at the worker (rollback 2): the plan is placed on
+        the ONE connected account with the most capacity — B's $0.29 holds 3
+        of 4 — never on A + B's $0.48, which would hold all four; and the run
+        is funded by B alone."""
         with recording_worker() as (url, store, queue, spawned):
-            app, client = self.visitor(url, pool=False)
+            app, client = self.visitor(url, mode="single")
             client.post("/key", data={"token": KEY_A})
             client.post("/key", data={"token": KEY_B, "back": "confirm"})
             page = client.get("/confirm").get_data(as_text=True)
-            self.assertNotIn("Your Apify accounts", page)
-            client.post("/run", data={"over_cap_ack": "yes"})
+            self.assertIn("safely covers 3 of", page)
+            self.assertIn("can use one Apify account", page)
+            self.assertNotIn("Start it anyway", page)
+            self.assertEqual(client.post("/run").status_code, 400)
+            self.assertEqual(client.post("/run", data={"over_cap_ack": "yes"}).status_code,
+                             302)
             self.assertEqual(spawned, [[KEY_B]])
+            self.assertIn('"allow_partial_paid_sweep": True', self.profile_of(store))
+
+    def test_9_no_safe_mode_at_the_worker_means_no_paid_start(self):
+        """Fail closed (R5): a dry run with no mode (an older engine) or with
+        paid switched off is never read as the console's estimate gate —
+        Confirm says paid is unavailable and /run starts nothing, ticked box
+        or not, however much credit the account has."""
+        for mode in (None, "off", "legacy"):
+            with self.subTest(mode=mode), recording_worker() as (url, store, queue, spawned):
+                CREDIT["apify_api_VISITOR_DDDD_RICH_ACCOUNT"] = 50.0
+                self.addCleanup(CREDIT.pop, "apify_api_VISITOR_DDDD_RICH_ACCOUNT", None)
+                app, client = self.visitor(url, mode=mode)
+                client.post("/key", data={"token": "apify_api_VISITOR_DDDD_RICH_ACCOUNT"})
+                page = client.get("/confirm").get_data(as_text=True)
+                self.assertIn("Paid searches are temporarily unavailable", page)
+                self.assertNotIn("Start it anyway", page)
+                for form in ({}, {"over_cap_ack": "yes"}):
+                    self.assertEqual(client.post("/run", data=form).status_code, 503)
+                self.assertEqual((store.all(), spawned), ([], []))
 
     def test_the_running_screen_names_what_the_engine_decided(self):
         with recording_worker() as (url, store, queue, spawned):
@@ -720,6 +762,146 @@ class PublicMultiKey(PublicSockets):
             client.post("/stop")
             progress = client.get("/progress").get_json()
             self.assertEqual(progress["state"], "credit_changed")
+
+
+# ===========================================================================
+# V2-D closeout: no configuration spends a visitor's keys without the pool
+# ===========================================================================
+KW9 = tuple(f"K{u} Engineer" for u in range(9))
+PLAN90 = dict(keywords=KW9, sites=("linkedin", "indeed"),
+              site_locations={"linkedin": ["Bengaluru", "Remote"],
+                              "indeed": ["Delhi", "New Delhi", "Gurgaon", "Noida",
+                                         "Bengaluru", "Hyderabad", "Pune", "Remote"]},
+              budget=10.55)
+
+
+def c5_plan():
+    """C5's default shape: 18 LinkedIn + 72 Indeed, $10.548 of ceilings."""
+    return li(18) + indeed(72)
+
+
+# (paid concurrency, multi-account) — production, and each rollback.
+FLAGS = {"production": (2, "1"), "concurrency off": (c2.SERIAL, "1"),
+         "multi-account off": (2, None), "both off": (c2.SERIAL, None)}
+
+
+def flags(name):
+    workers, multi = FLAGS[name]
+    return {"workers": workers, "env": {c45.FLAG: multi}}
+
+
+class Rollback(unittest.TestCase):
+
+    def test_1_one_public_key_is_a_pool_of_one_account_under_every_flag(self):
+        for name in FLAGS:
+            with self.subTest(flags=name):
+                got, _ = byok(li(2), [Acct("u1")], keywords=KW[:2], **flags(name))
+                self.assertEqual(started(got), 2)
+                self.assertEqual(c45.section(got)["account_count"], 1)
+                self.assertEqual(auth_of(got)["outcome"], "full")
+
+    def test_2_8_a_5_dollar_account_never_starts_the_10_548_plan(self):
+        """R8: $5.00 usable against $10.548 of ceilings, partial unchecked —
+        zero paid starts, under production flags and fully rolled back."""
+        for name in ("production", "both off"):
+            with self.subTest(flags=name):
+                got, _ = byok(c5_plan(), [Acct("five", capacity="5.00")], **PLAN90,
+                              **flags(name))
+                self.assertEqual(got.client.kinds("start"), [])
+                self.assertTrue(refused(got))
+                self.assertEqual(Decimal(auth_of(got)["total_planned_bounded_exposure_usd"]),
+                                 Decimal("10.548"))
+                self.assertEqual(auth_of(got)["placeable_paid_units"], 48)
+                self.assertEqual(done_lines(got), [])
+
+    def test_3_7_15_partial_runs_exactly_the_safe_prefix(self):
+        """R7: all 18 LinkedIn ($0.828) and 30 Indeed ($4.05) fit in $5.00; the
+        31st Indeed would take it to $5.013. Exactly 48 run, in plan order;
+        the other 42 are left out — not failed, not done."""
+        for name in ("production", "both off"):
+            with self.subTest(flags=name):
+                got, _ = byok(c5_plan(), [Acct("five", capacity="5.00")], **PLAN90,
+                              partial=True, **flags(name))
+                self.assertEqual(started(got), 48)
+                self.assertEqual(got.status(), ["completed"] * 48
+                                 + ["skipped_insufficient_capacity"] * 42)
+                self.assertEqual(len(done_lines(got)), 48)
+                self.assertEqual(Decimal(auth_of(got)["executed_bounded_exposure_usd"]),
+                                 Decimal("4.878"))
+                self.assertEqual(got.telemetry["paid_summary"]["failed"], 0)
+
+    def test_4_one_funded_key_runs_the_whole_plan(self):
+        got, _ = byok(c5_plan(), [Acct("rich", capacity="10.548")], **PLAN90)
+        self.assertEqual(auth_of(got)["outcome"], "full")
+        self.assertEqual(started(got), 90)
+        self.assertEqual(len(done_lines(got)), 90)
+
+    def test_5_several_keys_still_combine_safely(self):
+        accts = [Acct(f"u{i}", capacity="3.60") for i in range(3)]
+        got, _ = byok(c5_plan(), accts, **PLAN90)
+        self.assertEqual(auth_of(got)["outcome"], "full")
+        self.assertEqual(started(got), 90)
+        self.assertEqual(c45.section(got)["accounts_used"], 3)
+
+    def test_6_multi_account_off_uses_one_account_and_never_the_sum(self):
+        """R2: A $0.092 + B $0.138 would hold four LinkedIn ceilings together;
+        with multi-account off only B — the most capacity — is pooled: the
+        full plan is refused, a partial one runs three, every one on B."""
+        accts = [Acct("A", capacity="0.092"), Acct("B", capacity="0.138")]
+        full, _ = byok(li(4), accts, keywords=KW[:4], **flags("multi-account off"))
+        self.assertEqual(full.client.kinds("start"), [])
+        got, _ = byok(li(4), accts, keywords=KW[:4], partial=True,
+                      **flags("multi-account off"))
+        self.assertEqual(started(got), 3)
+        self.assertEqual(set(got.client.started_on().values()), {SECRETS[1]})
+        section = c45.section(got)
+        self.assertTrue(section["single_account"])
+        self.assertEqual(section["account_count"], 1)
+        self.assertIn("one account per sweep",
+                      " ".join(x["reason"] for x in section["excluded_slots"]))
+        # ...and on, the two combine.
+        both, _ = byok(li(4), accts, keywords=KW[:4], **flags("production"))
+        self.assertEqual(started(both), 4)
+
+    def test_7_16_every_rollback_keeps_the_accounts_authorization(self):
+        """R2/R3: the same capacity-bound plan under every flag combination —
+        refused whole, its safe prefix when partial, never more."""
+        for name in FLAGS:
+            with self.subTest(flags=name):
+                full, _ = byok(li(4), [Acct("u1", capacity="0.092")], keywords=KW[:4],
+                               **flags(name))
+                self.assertEqual(full.client.kinds("start"), [])
+                self.assertTrue(refused(full))
+                part, _ = byok(li(4), [Acct("u1", capacity="0.092")], keywords=KW[:4],
+                               partial=True, **flags(name))
+                self.assertEqual(started(part), 2)
+                self.assertEqual(part.execution["workers"],
+                                 1 if FLAGS[name][0] is c2.SERIAL else 2)
+
+    def test_8_switched_off_starts_nothing_and_reads_no_account(self):
+        got, _ = byok(li(2), [Acct("u1")], keywords=KW[:2],
+                      env={scraper.PUBLIC_PAID_FLAG: "0"})
+        self.assertEqual(got.client.kinds("start"), [])
+        self.assertFalse([c for c in got.client.calls if c[0] in ("me", "limits")])
+        self.assertTrue(refused(got))
+
+    def test_8_an_unavailable_pool_fails_closed_with_no_fallback(self):
+        """R4: the pool cannot open — the sweep stops there. It never falls
+        back to an engine that does not check the account (forbid_single
+        raises if anything reaches _require_token)."""
+        down = mock.patch.object(scraper.AccountPool, "open",
+                                 side_effect=RuntimeError("pool unavailable"))
+        with self.assertRaises(RuntimeError):
+            byok(li(2), [Acct("u1")], keywords=KW[:2], patches=[down])
+        self.assertEqual(CLIENTS[-1].kinds("start"), [])
+
+    def test_11_the_developer_single_account_engine_is_unchanged(self):
+        got = c2.c2_sweep(li(2), keywords=KW[:2])            # serial, _require_token
+        self.assertEqual(started(got), 2)
+        self.assertIsNone(got.execution)
+        got = c2.c2_sweep(li(2), keywords=KW[:2], workers=2)  # C2, one account
+        self.assertEqual(started(got), 2)
+        self.assertNotIn("accounts", got.execution)
 
 
 class States(unittest.TestCase):
@@ -805,10 +987,27 @@ class ProfileAndCap(unittest.TestCase):
             else:
                 self.assertIn(f'"allow_partial_paid_sweep": {expect}', source)
 
-    def test_the_dry_run_says_whether_the_pool_is_the_engine(self):
-        env = {scraper.PAID_CONCURRENCY_FLAG: "1", c45.FLAG: "1"}
-        with mock.patch.dict(os.environ, env):
-            self.assertTrue(scraper.paid_concurrency() and scraper.paid_multi_account())
+    def test_the_dry_run_names_a_safe_mode_or_off_and_nothing_else(self):
+        """R5, the engine's half: every flag combination reports multi,
+        single or off — never a credit-unaware mode, which does not exist."""
+        for c2_on in (None, "1"):
+            for multi in (None, "1", "0"):
+                for public in (None, "1", "0", "off", "typo"):
+                    env = {k: v for k, v in {scraper.PAID_CONCURRENCY_FLAG: c2_on,
+                                             c45.FLAG: multi,
+                                             scraper.PUBLIC_PAID_FLAG: public}.items()
+                           if v is not None}
+                    mode = scraper.public_paid_mode(env)
+                    expect = ("off" if public not in (None, "1") else
+                              "multi" if multi == "1" else "single")
+                    self.assertEqual(mode, expect, env)
+
+    def test_the_worker_and_the_engine_read_the_kill_switch_alike(self):
+        for value in (None, "", "1", "true", "YES", " on ", "0", "false", "no", "off", "2",
+                      "flase"):
+            env = {} if value is None else {scraper.PUBLIC_PAID_FLAG: value}
+            self.assertEqual(scraper.public_paid_enabled(env),
+                             sweep_worker.public_paid_enabled(env), value)
 
 
 if __name__ == "__main__":
