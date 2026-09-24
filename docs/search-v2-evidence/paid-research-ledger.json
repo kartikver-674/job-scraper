@@ -57,6 +57,22 @@
       "status": "completed, no anomaly",
       "cumulative_intended_usd": "0.184",
       "cumulative_known_actual_usd": 0.1202
+    },
+    {
+      "stage": "C2",
+      "at": "2026-09-24T03:23:31.029+00:00",
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "purpose": "C2 live concurrency canary: two LinkedIn starts at once through the reservation scheduler (SWEEP_PAID_CONCURRENCY=1, 2 workers; engine cap max_spend_usd 0.092 = exactly two ceilings). Does the provider accept two simultaneous provider-bounded starts on this account, does each carry maxTotalChargeUsd 0.046, is there throttling (HTTP 429 / SDK retries), and does real concurrency create an accounting or reservation anomaly not visible offline? Same queries as C1 probe A, for runtime comparability.",
+      "actor_starts": 2,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": "0.046",
+      "intended_max_usd": "0.092",
+      "actual_final_usd": 0.0601,
+      "evidence": "c2-live-concurrency-canary.json",
+      "status": "completed, no anomaly",
+      "cumulative_intended_usd": "0.276",
+      "cumulative_known_actual_usd": 0.1803
     }
   ]
 }

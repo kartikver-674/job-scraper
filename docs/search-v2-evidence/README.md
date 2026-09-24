@@ -190,6 +190,22 @@ the ledger.
   arm a fresh process. Zero Apify. Reproduce with
   `bench/search_v2_paid_overhead.py`.
 
+Added by V2-C2 (2026-09-24),
+[paid reservations and concurrency](../search-engine-v2-c2-paid-reservations-concurrency.md):
+
+- `c2-live-concurrency-canary.json` (C2, PAID): two LinkedIn starts at once
+  through the reservation scheduler (`--paid-workers 2`, engine cap $0.092),
+  behind C0's two keys, synthetic cohort, C1 probe A's generic queries. Adds to
+  C1's form: the scheduler's own `paid_execution` section (reservation timeline,
+  per-search SDK request and 429 counters) and `provider_overlap` from the
+  provider's clocks. A ledger entry. Reproduce the form, not the numbers, with
+  `bench/search_v2_paid_probe.py` (spends money; needs both keys).
+- `c2-paid-concurrency-benchmark.json`: OFFLINE. C1's 90-search replay and its
+  45 LinkedIn searches alone, the serial loop against the C2 scheduler at 1-4
+  workers, with no provider wait and with C1-measured runtimes scaled 1:10, each
+  arm a fresh process against the thread-safe scripted stand-in. Zero Apify.
+  Reproduce with `bench/search_v2_paid_concurrency.py`.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

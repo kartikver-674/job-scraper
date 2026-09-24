@@ -1,0 +1,626 @@
+{
+  "status": "MEASURED LIVE: paid, authorised with both keys, through the unchanged engine",
+  "stage": "C2",
+  "purpose": "C2 live concurrency canary: two LinkedIn starts at once through the reservation scheduler (SWEEP_PAID_CONCURRENCY=1, 2 workers; engine cap max_spend_usd 0.092 = exactly two ceilings). Does the provider accept two simultaneous provider-bounded starts on this account, does each carry maxTotalChargeUsd 0.046, is there throttling (HTTP 429 / SDK retries), and does real concurrency create an accounting or reservation anomaly not visible offline? Same queries as C1 probe A, for runtime comparability.",
+  "observed_at": "2026-09-24T03:23:31.029+00:00",
+  "engine_exited_at": "2026-09-24T03:23:55.876+00:00",
+  "code_revision": "a3b4bd2438131fe88b5ebe8f2945062aca4d97c5-dirty",
+  "provider": "linkedin",
+  "actor": "curious_coder/linkedin-jobs-scraper",
+  "actor_build_numbers": [
+    "1.7.17"
+  ],
+  "shape": {
+    "keywords": "Backend Developer,Full Stack Developer",
+    "locations": "India",
+    "synthetic_case": "software_fullstack",
+    "scope": "india"
+  },
+  "requested_depth": 15,
+  "charge_ceiling_usd_per_start": "0.046",
+  "actor_starts": 2,
+  "intended_max_usd": "0.092",
+  "exposed_usd_before": "0.184",
+  "cumulative_intended_usd_after": "0.276",
+  "exit": 0,
+  "wall_s": 22.66,
+  "final_rows": 26,
+  "paid_workers": 2,
+  "sweep_budget_usd": "0.092",
+  "paid_execution": {
+    "mode": "reservation_scheduler",
+    "workers": 2,
+    "exposure": {
+      "budget_usd": "0.092",
+      "committed_usd": "0.092",
+      "pending_usd": "0.000",
+      "pending_peak_usd": "0.092",
+      "unbounded_observed_usd": "0",
+      "observed_usd": "0.0001",
+      "view_usd": "0.092",
+      "committed_starts": 2,
+      "released_before_network": 0,
+      "blocked": 0
+    },
+    "peak_in_flight": 2,
+    "peak_buffered": 0,
+    "buffered_wait_ms": {
+      "total": 497,
+      "max": 495
+    },
+    "checkpoint": {
+      "passes": 2,
+      "wall_ms": 176,
+      "cpu_ms": 173
+    },
+    "segments": [
+      {
+        "provider": "linkedin",
+        "bounded": true,
+        "workers": 2,
+        "searches": 2,
+        "sent": 2,
+        "wall_ms": 19234
+      }
+    ],
+    "units": [
+      {
+        "unit_id": "paid_000",
+        "provider": "linkedin",
+        "bounded": true,
+        "reservation": "committed",
+        "reserved_usd": "0.046",
+        "reserved_at": "2026-09-24T03:23:36.590+00:00",
+        "committed_at": "2026-09-24T03:23:36.596+00:00",
+        "released_at": null,
+        "execution_ms": 18325,
+        "buffered_wait_ms": 2,
+        "merge_ms": 495,
+        "checkpoint_cpu_ms": 87,
+        "sdk": {
+          "requests": 6,
+          "rate_limit_errors": 0
+        }
+      },
+      {
+        "unit_id": "paid_001",
+        "provider": "linkedin",
+        "bounded": true,
+        "reservation": "committed",
+        "reserved_usd": "0.046",
+        "reserved_at": "2026-09-24T03:23:36.592+00:00",
+        "committed_at": "2026-09-24T03:23:36.597+00:00",
+        "released_at": null,
+        "execution_ms": 18326,
+        "buffered_wait_ms": 495,
+        "merge_ms": 411,
+        "checkpoint_cpu_ms": 86,
+        "sdk": {
+          "requests": 6,
+          "rate_limit_errors": 0
+        }
+      }
+    ],
+    "schema": "search-v2c2.1"
+  },
+  "provider_overlap": {
+    "pairs": [
+      {
+        "units": [
+          "paid_000",
+          "paid_001"
+        ],
+        "overlap_s": 11.064
+      }
+    ],
+    "peak_concurrent_at_provider": 2,
+    "runs_with_clocks": 2
+  },
+  "paid_summary": {
+    "schema": "search-v2c1.1",
+    "planned": 2,
+    "attempted": 2,
+    "completed": 2,
+    "failed": 0,
+    "skipped_done": 0,
+    "skipped_budget": 0,
+    "unvisited": 0,
+    "actor_starts": 2,
+    "planned_bounded_exposure_usd": "0.092",
+    "planned_unbounded_units": 0,
+    "attempted_bounded_exposure_usd": "0.092",
+    "attempted_unbounded_units": 0,
+    "paid_phase_ms": 22434,
+    "by_provider": {
+      "linkedin": {
+        "planned": 2,
+        "completed": 2,
+        "failed": 0,
+        "skipped_done": 0,
+        "skipped_budget": 0,
+        "actor_starts": 2,
+        "unit_wall_ms": 38054,
+        "wait_ms": 32295,
+        "dataset_ms": 1927,
+        "checkpoint_ms": 176,
+        "actor_run_time_s": 25.511,
+        "raw": 30,
+        "eligible": 27,
+        "eligible_positive": 16,
+        "final": 26,
+        "final_positive": 15,
+        "final_marginal": 25
+      }
+    },
+    "cost_observed": {
+      "run_record_at_completion": {
+        "usd": 0.0001,
+        "units": 2,
+        "final": false
+      },
+      "account_usage_delta": {
+        "usd": 0.0001,
+        "units": 2,
+        "final": false
+      }
+    },
+    "trace_legend": "one token per dataset position. Removed by: H hard filter or score, S stale, R salary/reachability/visa/EOR, A arrangement, G geography, D dedupe (eligible, another row won); F final. Score: + positive, - zero or less, . not scored. Acquired: n new to the sweep, u repeat within this unit, p repeat of an earlier paid unit, k no job_key. f: the job_key was also acquired free."
+  },
+  "units": [
+    {
+      "unit_id": "paid_000",
+      "plan_index": 0,
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "requested_depth": 15,
+      "charge_ceiling_usd": "0.046",
+      "location_mode": "place",
+      "company_filter": false,
+      "status": "completed",
+      "funnel": {
+        "requested": 15,
+        "raw": 15,
+        "normalized": 15,
+        "stages": {
+          "observed_normalized": 15,
+          "post_hard_filter_and_score": 13,
+          "post_recency": 13,
+          "post_salary_reachability_visa_eor": 13,
+          "post_arrangement": 13,
+          "post_location_eligible": 13,
+          "final_after_dedupe": 13
+        },
+        "stale": 0,
+        "eligible": 13,
+        "eligible_positive": 5,
+        "final": 13,
+        "final_positive": 5,
+        "final_marginal": 12,
+        "dedupe_lost": {
+          "same_unit": 0,
+          "other_paid": 0,
+          "free": 0
+        },
+        "acquired": {
+          "new": 15,
+          "repeat_in_unit": 0,
+          "repeat_of_earlier_paid": 0,
+          "unkeyed": 0
+        },
+        "key_also_free": 0
+      },
+      "trace": "F-n. H.n. F+n. F-n. F-n. F-n. F+n. H.n. F-n. F+n. F-n. F-n. F-n. F+n. F+n.",
+      "execution": {
+        "ok": true,
+        "failure_category": "",
+        "started_at": "2026-09-24T03:23:36.591+00:00",
+        "finished_at": "2026-09-24T03:23:55.413+00:00",
+        "duration_ms": 18822,
+        "start_ms": 1217,
+        "wait_ms": 16147,
+        "poll_count": 3,
+        "poll_get_ms": 1126,
+        "dataset_ms": 956,
+        "account_read_ms": 406,
+        "checkpoint_ms": 88,
+        "actor_run_id": "bCfByvJrRfnpCwvx6",
+        "actor_build_id": "kmTE1iuf8N2sZAj8t",
+        "actor_build_number": "1.7.17",
+        "actor_status": "SUCCEEDED",
+        "actor_started_at": "2026-09-24 03:23:37.508000+00:00",
+        "actor_finished_at": "2026-09-24 03:23:52.362000+00:00",
+        "actor_run_time_s": 14.64,
+        "max_total_charge_usd": "0.046",
+        "provider_ceiling_usd": 0.046,
+        "charged_events": {
+          "apify-default-dataset-item": 0,
+          "apify-actor-start": 1
+        },
+        "cost_observations": [
+          {
+            "source": "run_record_at_completion",
+            "usd": 5e-05,
+            "observed_at": "2026-09-24T03:23:53.960+00:00",
+            "final": false
+          },
+          {
+            "source": "account_usage_delta",
+            "usd": 0.0001,
+            "observed_at": "2026-09-24T03:23:55.325+00:00",
+            "final": false
+          }
+        ],
+        "reported_cost_usd": 5e-05,
+        "billed_delta_usd": 0.0001,
+        "budget_view_usd": 0.0001,
+        "budget_basis": "account_delta",
+        "raw_count": 15,
+        "dataset_retrieved_at": "2026-09-24T08:53:54.916"
+      }
+    },
+    {
+      "unit_id": "paid_001",
+      "plan_index": 1,
+      "provider": "linkedin",
+      "actor": "curious_coder/linkedin-jobs-scraper",
+      "requested_depth": 15,
+      "charge_ceiling_usd": "0.046",
+      "location_mode": "place",
+      "company_filter": false,
+      "status": "completed",
+      "funnel": {
+        "requested": 15,
+        "raw": 15,
+        "normalized": 15,
+        "stages": {
+          "observed_normalized": 15,
+          "post_hard_filter_and_score": 14,
+          "post_recency": 14,
+          "post_salary_reachability_visa_eor": 14,
+          "post_arrangement": 14,
+          "post_location_eligible": 14,
+          "final_after_dedupe": 13
+        },
+        "stale": 0,
+        "eligible": 14,
+        "eligible_positive": 11,
+        "final": 13,
+        "final_positive": 10,
+        "final_marginal": 13,
+        "dedupe_lost": {
+          "same_unit": 0,
+          "other_paid": 1,
+          "free": 0
+        },
+        "acquired": {
+          "new": 14,
+          "repeat_in_unit": 0,
+          "repeat_of_earlier_paid": 1,
+          "unkeyed": 0
+        },
+        "key_also_free": 0
+      },
+      "trace": "F+n. F+n. F+n. F-n. F+n. F+n. F+n. F-n. F-n. F+n. F+n. F+n. H.n. F+n. D+p.",
+      "execution": {
+        "ok": true,
+        "failure_category": "",
+        "started_at": "2026-09-24T03:23:36.592+00:00",
+        "finished_at": "2026-09-24T03:23:55.824+00:00",
+        "duration_ms": 19232,
+        "start_ms": 1202,
+        "wait_ms": 16148,
+        "poll_count": 3,
+        "poll_get_ms": 1129,
+        "dataset_ms": 971,
+        "account_read_ms": 323,
+        "checkpoint_ms": 88,
+        "actor_run_id": "FAejWhRqDC4jfqx0l",
+        "actor_build_id": "kmTE1iuf8N2sZAj8t",
+        "actor_build_number": "1.7.17",
+        "actor_status": "SUCCEEDED",
+        "actor_started_at": "2026-09-24 03:23:37.507000+00:00",
+        "actor_finished_at": "2026-09-24 03:23:48.572000+00:00",
+        "actor_run_time_s": 10.871,
+        "max_total_charge_usd": "0.046",
+        "provider_ceiling_usd": 0.046,
+        "charged_events": {
+          "apify-default-dataset-item": 4,
+          "apify-actor-start": 1
+        },
+        "cost_observations": [
+          {
+            "source": "run_record_at_completion",
+            "usd": 5e-05,
+            "observed_at": "2026-09-24T03:23:53.947+00:00",
+            "final": false
+          },
+          {
+            "source": "account_usage_delta",
+            "usd": 0.0,
+            "observed_at": "2026-09-24T03:23:55.736+00:00",
+            "final": false
+          }
+        ],
+        "reported_cost_usd": 5e-05,
+        "billed_delta_usd": 0.0,
+        "budget_view_usd": 0.0001,
+        "budget_basis": "account_delta",
+        "raw_count": 15,
+        "dataset_retrieved_at": "2026-09-24T08:53:54.918"
+      }
+    }
+  ],
+  "cost_convergence": [
+    {
+      "unit_id": "paid_000",
+      "run_id": "bCfByvJrRfnpCwvx6",
+      "actor_finished_at": "2026-09-24 03:23:52.362000+00:00",
+      "engine_readings": [
+        {
+          "source": "run_record_at_completion",
+          "usd": 5e-05,
+          "observed_at": "2026-09-24T03:23:53.960+00:00",
+          "final": false,
+          "s_after_finish": 1.598
+        },
+        {
+          "source": "account_usage_delta",
+          "usd": 0.0001,
+          "observed_at": "2026-09-24T03:23:55.325+00:00",
+          "final": false,
+          "s_after_finish": 2.963
+        }
+      ],
+      "provider_readings": [
+        {
+          "observed_at": "2026-09-24T03:23:56.829+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 5e-05,
+          "charged_events": {
+            "apify-default-dataset-item": 10,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 4.467
+        },
+        {
+          "observed_at": "2026-09-24T03:24:11.855+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 19.493
+        },
+        {
+          "observed_at": "2026-09-24T03:24:26.905+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 34.543
+        },
+        {
+          "observed_at": "2026-09-24T03:24:56.851+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 64.489
+        },
+        {
+          "observed_at": "2026-09-24T03:25:56.933+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 124.571
+        },
+        {
+          "observed_at": "2026-09-24T03:27:57.617+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 245.255
+        },
+        {
+          "observed_at": "2026-09-24T03:31:57.546+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 485.184
+        }
+      ],
+      "settled": {
+        "source": "run_record_settled",
+        "usd": 0.03005,
+        "observed_at": "2026-09-24T03:24:11.855+00:00",
+        "s_after_finish": 19.493,
+        "final": true,
+        "basis": "unchanged across the last 6 re-reads"
+      },
+      "events_priced_usd": 0.03005,
+      "charge_ceiling_usd": "0.046"
+    },
+    {
+      "unit_id": "paid_001",
+      "run_id": "FAejWhRqDC4jfqx0l",
+      "actor_finished_at": "2026-09-24 03:23:48.572000+00:00",
+      "engine_readings": [
+        {
+          "source": "run_record_at_completion",
+          "usd": 5e-05,
+          "observed_at": "2026-09-24T03:23:53.947+00:00",
+          "final": false,
+          "s_after_finish": 5.375
+        },
+        {
+          "source": "account_usage_delta",
+          "usd": 0.0,
+          "observed_at": "2026-09-24T03:23:55.736+00:00",
+          "final": false,
+          "s_after_finish": 7.164
+        }
+      ],
+      "provider_readings": [
+        {
+          "observed_at": "2026-09-24T03:23:57.101+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.00805,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 8.529
+        },
+        {
+          "observed_at": "2026-09-24T03:24:12.145+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 23.573
+        },
+        {
+          "observed_at": "2026-09-24T03:24:27.173+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 38.601
+        },
+        {
+          "observed_at": "2026-09-24T03:24:57.143+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 68.571
+        },
+        {
+          "observed_at": "2026-09-24T03:25:57.253+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 128.681
+        },
+        {
+          "observed_at": "2026-09-24T03:27:57.885+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 249.313
+        },
+        {
+          "observed_at": "2026-09-24T03:31:58.053+00:00",
+          "status": "SUCCEEDED",
+          "usage_total_usd": 0.03005,
+          "charged_events": {
+            "apify-default-dataset-item": 15,
+            "apify-actor-start": 1
+          },
+          "s_after_finish": 489.481
+        }
+      ],
+      "settled": {
+        "source": "run_record_settled",
+        "usd": 0.03005,
+        "observed_at": "2026-09-24T03:24:12.145+00:00",
+        "s_after_finish": 23.573,
+        "final": true,
+        "basis": "unchanged across the last 6 re-reads"
+      },
+      "events_priced_usd": 0.03005,
+      "charge_ceiling_usd": "0.046"
+    }
+  ],
+  "accounts": [
+    {
+      "account": "APIFY_TOKEN",
+      "settled_runs_usd": 0.0601,
+      "readings": [
+        {
+          "observed_at": "2026-09-24T03:23:57.476+00:00",
+          "delta_usd": 0.0001,
+          "s_after_last_finish": 5.114
+        },
+        {
+          "observed_at": "2026-09-24T03:24:12.486+00:00",
+          "delta_usd": 0.0601,
+          "s_after_last_finish": 20.124
+        },
+        {
+          "observed_at": "2026-09-24T03:24:27.453+00:00",
+          "delta_usd": 0.06013,
+          "s_after_last_finish": 35.091
+        },
+        {
+          "observed_at": "2026-09-24T03:24:57.577+00:00",
+          "delta_usd": 0.060132,
+          "s_after_last_finish": 65.215
+        },
+        {
+          "observed_at": "2026-09-24T03:25:57.699+00:00",
+          "delta_usd": 0.060134,
+          "s_after_last_finish": 125.337
+        },
+        {
+          "observed_at": "2026-09-24T03:27:58.331+00:00",
+          "delta_usd": 0.060135,
+          "s_after_last_finish": 245.969
+        },
+        {
+          "observed_at": "2026-09-24T03:31:58.359+00:00",
+          "delta_usd": 0.060136,
+          "s_after_last_finish": 485.997
+        }
+      ],
+      "covered_at": "2026-09-24T03:24:12.486+00:00",
+      "covered_s_after_last_finish": 20.124,
+      "residual_usd_at_end": 3.6e-05,
+      "baseline_read_at": "2026-09-24T03:23:32.364+00:00"
+    }
+  ],
+  "run_listing": {
+    "APIFY_TOKEN": [
+      {
+        "id": "bCfByvJrRfnpCwvx6",
+        "status": "SUCCEEDED"
+      },
+      {
+        "id": "FAejWhRqDC4jfqx0l",
+        "status": "SUCCEEDED"
+      }
+    ],
+    "APIFY_TOKEN_2": []
+  },
+  "unexpected_runs": [],
+  "known_actual_usd": 0.0601,
+  "cumulative_known_actual_usd_after": 0.1803,
+  "anomalies": [],
+  "token_absent_from_evidence": true
+}

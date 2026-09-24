@@ -559,6 +559,11 @@ REACH = {
     "bench/search_v2_paid_probe.py": "guarded",
     "bench/search_v2_shadow_b3.py": "guarded",
     "bench/search_v2_results_ready.py": "unreachable",  # B5 test harness: fixtures, stubbed client
+    # V2-C1's and V2-C2's offline benchmarks: scraper.main() in a child of
+    # their own, against the test modules' scripted Apify stand-ins, with
+    # _require_token patched and sockets denied. No real client exists there.
+    "bench/search_v2_paid_overhead.py": "unreachable",
+    "bench/search_v2_paid_concurrency.py": "unreachable",
     "bench/search_v2_free_audit.py": "unreachable",     # parses scraper.py's source text
     "config.py": "unreachable",                         # a self-test string
     "profiles/global_all.py": "unreachable",            # a comment
@@ -566,8 +571,12 @@ REACH = {
 
 
 def _tracked_sources():
-    out = subprocess.run(["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True,
-                         text=True, check=True).stdout.split()
+    # Untracked (not ignored) files too: a new tool is scanned before it is
+    # committed, not after. Tracked-only is how V2-C1's overhead benchmark
+    # reached main unclassified — the suite ran while the file was untracked.
+    out = subprocess.run(["git", "ls-files", "--cached", "--others",
+                          "--exclude-standard", "*.py"], cwd=ROOT,
+                         capture_output=True, text=True, check=True).stdout.split()
     return [p for p in out if not re.search(r"(^|/)tests?/|(^|/)test_[^/]*$|^docs/", p)]
 
 

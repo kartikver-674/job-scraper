@@ -32,7 +32,14 @@ Paid units (V2-C1) add one section per sweep that has a paid plan: each
 planned search's id, provider, actor, depth, ceiling, a query FINGERPRINT (not
 the query), its status, its execution clocks and cost readings, and what its
 rows became — counts and a one-token-per-position code. No row content.
+
+Paid execution (V2-C2) adds one more when SWEEP_PAID_CONCURRENCY ran the paid
+phase: the reservation ledger (exposure held against the budget — never a cost)
+and the scheduler's clocks. A paid search's unit is then opened on its worker
+thread (defer=True) and finished on the coordinator (resumed()), so the shared
+record is only ever written by the thread that owns it.
 """
+import contextlib
 import json
 import os
 import socket
@@ -303,6 +310,29 @@ def attach(record):
     with _LOCK:
         _run["shadow_units" if record.get("shadow") else "units"].append(record)
     _count(record)
+
+
+@contextlib.contextmanager
+def resumed(record, opened=None):
+    """V2-C2: finish, on the coordinator's thread, a paid unit a worker thread
+    opened (defer=True) and ran. Inside, `record` is this thread's open unit,
+    so the serial loop's own calls — observed, paid_run, cost_observation,
+    failed — land on it exactly as they did there. On the way out its clock is
+    closed from `opened` (time.monotonic(), when the worker began): the span
+    the serial loop's unit always covered, from the start request to the done
+    marker. The caller attaches it afterwards. None (telemetry off): nothing."""
+    if record is None:
+        yield None
+        return
+    saved = _current()
+    _set_current(record)
+    try:
+        yield record
+    finally:
+        _set_current(saved)
+        if opened is not None:
+            record["finished_at"] = _now()
+            record["duration_ms"] = round((time.monotonic() - opened) * 1000)
 
 
 def observed(raw=0, normalized=0, gated=0, requests=0):
@@ -693,6 +723,21 @@ def _paid_acquired(paid_keys):
             seen.add(key)
 
 
+PAID_EXECUTION_SCHEMA = "search-v2c2.1"
+
+
+def paid_execution(section):
+    """V2-C2's own section, beside C1's paid sections and never inside them:
+    how the paid phase was scheduled and what it held against the budget.
+    Reservations are authorization exposure, not cost — the cost readings stay
+    in cost_observations, untouched. Absent unless SWEEP_PAID_CONCURRENCY ran
+    the phase. Amounts, states, clocks and unit ids only."""
+    if _run is not None:
+        with _LOCK:
+            _run["paid_execution"] = dict(_bounded(section),
+                                          schema=PAID_EXECUTION_SCHEMA)
+
+
 def _paid_finish(record):
     """paid_units[i] gets its funnel and trace; paid_summary the sweep-level
     planned-vs-executed view. Execution facts stay in the unit's units[]
@@ -934,8 +979,11 @@ def demo():
                  lambda: paid_status("paid_000", "completed"),
                  lambda: paid_unvisited("skipped_budget"),
                  lambda: cost_observation("account_usage_delta", 1.0),
-                 lambda: paid_outcome([{}], [{}], lambda r: None)):
+                 lambda: paid_outcome([{}], [{}], lambda r: None),
+                 lambda: paid_execution({"workers": 2})):
         call()
+    with resumed(None, time.monotonic()) as nothing:
+        assert nothing is None and _current() is None
     with unit("free", "nothing"):
         pass
     assert finish() is None and record() is None

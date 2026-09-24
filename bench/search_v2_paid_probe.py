@@ -23,6 +23,11 @@ account's run list since the probe began. Written: contract fields, clocks,
 counts, cost readings with timestamps and the engine's own one-token-per-
 position trace. No row content, no token, no derived profile.
 
+V2-C2: --paid-workers N runs the child with SWEEP_PAID_CONCURRENCY at N
+workers (unset otherwise, whatever the shell says) and --sweep-budget puts an
+engine cap in the profile, so the reservation guard is live too. Neither is a
+key: both C0 keys and --max-usd apply exactly as before.
+
 THE LEDGER (docs/search-v2-evidence/paid-research-ledger.json) is developer
 evidence, appended after a run. It is never authorisation: nothing read from
 it can add a key, raise a limit or lower --exposed-usd. It can only refuse —
@@ -169,9 +174,54 @@ def profile_source(args, name, work):
                      remote_scopes=[] if args.scope == "india"
                      else ["worldwide", "remote"])
         head = make_profile.render(name, fixture["derived"], prefs)
+    # V2-C2: --sweep-budget is the engine's own cap (max_spend_usd), so a
+    # probe can exercise the reservation guard live. The guard's --max-usd
+    # stays the developer's limit, decided before the call.
+    budget = ("" if args.sweep_budget is None
+              else f"'max_spend_usd': {float(args.sweep_budget)!r}, ")
     return (head + f"\nSITES = {sites!r}\nATS_BOARDS = {{}}\nFEEDS = {{}}\n"
-            f"SETTINGS = {{**globals().get('SETTINGS', {{}}), "
+            f"SETTINGS = {{**globals().get('SETTINGS', {{}}), {budget}"
             f"'output_dir': {str(work)!r}}}\n")
+
+
+def child_env(args, name):
+    """The guarded child's environment. The C2 scheduling mode is set here and
+    only here: --paid-workers N turns SWEEP_PAID_CONCURRENCY on at N workers;
+    without it both variables are removed, so a leftover in the developer's
+    shell cannot change what the evidence says ran. Neither is a spending key:
+    the guard still needs --allow-paid and SWEEP_ALLOW_PAID_BENCH=1."""
+    env = dict(os.environ, SWEEP_SEARCH_V2_TELEMETRY="1", SWEEP_RUN_ID=name)
+    env.pop("SWEEP_EXPERIENCE_MISMATCH_GUARD", None)       # off, as in production
+    for key in ("SWEEP_PAID_CONCURRENCY", "SWEEP_PAID_WORKERS"):
+        env.pop(key, None)
+    if args.paid_workers is not None:
+        env.update(SWEEP_PAID_CONCURRENCY="1", SWEEP_PAID_WORKERS=str(args.paid_workers))
+    return env
+
+
+def overlap(units):
+    """How the runs overlapped at the provider, from the provider's own
+    start/finish clocks: pairwise overlap and the most in flight at once."""
+    spans = []
+    for u in units:
+        ex = u.get("execution") or {}
+        try:
+            spans.append((u["unit_id"],
+                          datetime.fromisoformat(str(ex["actor_started_at"])),
+                          datetime.fromisoformat(str(ex["actor_finished_at"]))))
+        except (KeyError, TypeError, ValueError):
+            continue
+    pairs = [{"units": [a[0], b[0]], "overlap_s": round(max(
+        0.0, (min(a[2], b[2]) - max(a[1], b[1])).total_seconds()), 3)}
+        for i, a in enumerate(spans) for b in spans[i + 1:]]
+    edges = sorted([(s, 1) for _, s, _ in spans] + [(f, -1) for _, _, f in spans],
+                   key=lambda e: (e[0], e[1]))
+    live = peak = 0
+    for _, step in edges:
+        live += step
+        peak = max(peak, live)
+    return {"pairs": pairs, "peak_concurrent_at_provider": peak,
+            "runs_with_clocks": len(spans)}
 
 
 # ---------------------------------------------------------------------------
@@ -293,8 +343,7 @@ def probe(args):
     work = Path(tempfile.mkdtemp())
     profile = ROOT / "profiles" / f"{name}.py"
     profile.write_text(profile_source(args, name, work))
-    env = dict(os.environ, SWEEP_SEARCH_V2_TELEMETRY="1", SWEEP_RUN_ID=name)
-    env.pop("SWEEP_EXPERIENCE_MISMATCH_GUARD", None)       # off, as in production
+    env = child_env(args, name)
     armed = args.allow_paid and paid_guard.env_allows()
     began, owners, baselines = _now(), [], {}
     if armed:       # the account is read only when a run can actually start
@@ -419,6 +468,11 @@ def probe(args):
         "cumulative_intended_usd_after": str(Decimal(str(args.exposed_usd))
                                              + Decimal(intended or "0")),
         "exit": code, "wall_s": wall, "final_rows": final_rows,
+        # V2-C2: the scheduling mode the child ran, the engine's own cap, the
+        # scheduler's section, and how the runs overlapped at the provider.
+        "paid_workers": args.paid_workers, "sweep_budget_usd": args.sweep_budget,
+        "paid_execution": record.get("paid_execution"),
+        "provider_overlap": overlap(units),
         "paid_summary": summary, "units": units,
         "cost_convergence": convergence, "accounts": accounts_view,
         "run_listing": listing, "unexpected_runs": unexpected,
@@ -547,6 +601,10 @@ def main():
     ap.add_argument("--max-usd")
     ap.add_argument("--exposed-usd", default="0")
     ap.add_argument("--observe-s", type=int, default=480)
+    ap.add_argument("--paid-workers", type=int,
+                    help="V2-C2: run the child with SWEEP_PAID_CONCURRENCY at N workers")
+    ap.add_argument("--sweep-budget",
+                    help="V2-C2: the engine's own cap (max_spend_usd) in the profile")
     ap.add_argument("--ledger", default=str(LEDGER))
     ap.add_argument("--output", required=True)
     args = ap.parse_args()

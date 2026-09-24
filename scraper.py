@@ -48,12 +48,14 @@ import hashlib
 import inspect
 import json
 import os
+import queue
 import re
 import sys
+import threading
 import time
 import urllib.parse
-from collections import Counter
-from datetime import datetime, timedelta
+from collections import Counter, namedtuple
+from datetime import datetime, timedelta, timezone
 from decimal import ROUND_CEILING, Decimal
 
 import config
@@ -1244,10 +1246,14 @@ def paid_unit(n, site_key, search):
             "company_filter": bool(search.get("company"))}
 
 
-def scrape_search(client, site_key, actor_id, search):
+def scrape_search(client, site_key, actor_id, search, before_start=None):
     """Run one actor and return (rows, cost_usd).
 
     apify-client 3.x returns a typed Run object (not a dict).
+
+    `before_start` (V2-C2) is called once, immediately before the start
+    request: the last point at which nothing can yet have been charged. The
+    serial loop passes nothing.
     """
     effective = effective_search(site_key, search)
     run_input = build_input(site_key, effective)
@@ -1282,6 +1288,8 @@ def scrape_search(client, site_key, actor_id, search):
                 f"(requirements.txt pins the verified minimum).")
         start_kwargs["max_total_charge_usd"] = ceiling
         telemetry.paid_run(max_total_charge_usd=str(ceiling))
+    if before_start is not None:
+        before_start()
     starting = time.monotonic()
     run = actor.start(run_input=run_input, run_timeout=timedelta(minutes=5),
                       **start_kwargs)
@@ -1357,6 +1365,400 @@ def scrape_search(client, site_key, actor_id, search):
         for row in rows:
             row["Location"] = (row["Location"] + ", Remote").strip(", ")
     return rows, cost
+
+
+# ===========================================================================
+# V2-C2 — reservation-safe, bounded, deterministic paid concurrency
+# ===========================================================================
+# SWEEP_PAID_CONCURRENCY (default OFF). Off, main() runs its serial paid loop
+# exactly as before. On, paid_phase_c2() runs the SAME plan — order, inputs,
+# ceilings — through a coordinator that reserves every start's full provider
+# ceiling before the start can happen, lets up to SWEEP_PAID_WORKERS
+# provider-bounded searches wait on Apify at once, and integrates their results
+# in plan order. At one worker it is the serial loop plus reservation
+# accounting. See docs/search-engine-v2-c2-paid-reservations-concurrency.md.
+PAID_CONCURRENCY_FLAG = "SWEEP_PAID_CONCURRENCY"
+PAID_WORKERS_ENV = "SWEEP_PAID_WORKERS"
+PAID_WORKERS_DEFAULT = 2
+# Every start is a paid run on one account. Four is the most the offline
+# benchmark measured; the cap keeps an environment typo from becoming a burst.
+PAID_WORKERS_MAX = 4
+
+
+def paid_concurrency():
+    return os.environ.get(PAID_CONCURRENCY_FLAG, "").strip().lower() in (
+        "1", "true", "yes", "on")
+
+
+def paid_workers():
+    """Clamped, never rejected — the free providers' rule (sources/concurrency):
+    a bad number falls back to the default instead of failing a sweep."""
+    raw = os.environ.get(PAID_WORKERS_ENV, "").strip()
+    try:
+        n = int(raw) if raw else PAID_WORKERS_DEFAULT
+    except ValueError:
+        return PAID_WORKERS_DEFAULT
+    return max(1, min(PAID_WORKERS_MAX, n))
+
+
+def _utc_now():
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+
+
+class PaidExposure:
+    """What this sweep has put at risk, for deciding whether the next paid
+    search may start. AUTHORIZATION EXPOSURE, never a cost: a $0.046 hold is
+    not $0.046 spent.
+
+      committed  the full provider ceiling of every start that may have reached
+                 the provider. Never released during the sweep, whatever the run
+                 later costs: V2-C1 measured the terminal poll 7-93% low and the
+                 account delta at the $0.00005 start event alone, and Apify
+                 publishes no "this charge is final". Headroom handed back from
+                 those readings would be headroom read off a number known to lag.
+      pending    ceilings reserved for starts not yet attempted — the guard
+                 between deciding and starting. Released only when the start
+                 was never attempted.
+      unbounded  what the pre-C2 guard observed across searches that have no
+                 provider ceiling (Indeed, Naukri): lagging, but all there is.
+      observed   the pre-C2 guard's own figure for the sweep (account delta,
+                 else run-record sum). It enters through max(), so it can only
+                 make the view larger — C2 is never less cautious than the old
+                 guard — and a reading that goes DOWN hands nothing back.
+
+    One lock around every read-decide-write, so two threads can never both see
+    the same headroom. Process-local: spend by anything else on the account is
+    invisible here until an account read shows it.
+    """
+
+    def __init__(self, budget):
+        self.budget = None if budget is None else Decimal(str(budget))
+        self.committed = self.pending = self.pending_peak = Decimal(0)
+        self.unbounded = self.observed = Decimal(0)
+        self.units = {}
+        self._lock = threading.Lock()
+
+    def view(self):
+        return max(self.observed, self.committed + self.pending + self.unbounded)
+
+    def reserve(self, unit_id, ceiling):
+        """Hold a bounded start's full ceiling, or refuse it: it fits only if
+        view + ceiling <= budget."""
+        with self._lock:
+            view = self.view()
+            if self.budget is not None and view + ceiling > self.budget:
+                self.units[unit_id] = {"state": "blocked", "usd": ceiling,
+                                       "view_usd": view}
+                return False
+            self.pending += ceiling
+            self.pending_peak = max(self.pending_peak, self.pending)
+            self.units[unit_id] = {"state": "pending", "usd": ceiling,
+                                   "reserved_at": _utc_now()}
+            return True
+
+    def admit(self, unit_id):
+        """An unbounded start has no ceiling to hold. It gets the pre-C2 test —
+        stop once the budget is reached — on the C2 view, so every ceiling
+        committed before it still counts against it."""
+        with self._lock:
+            view = self.view()
+            if self.budget is not None and view >= self.budget:
+                self.units[unit_id] = {"state": "blocked", "usd": None,
+                                       "view_usd": view}
+                return False
+            self.units[unit_id] = {"state": "unbounded", "usd": None}
+            return True
+
+    def commit(self, unit_id):
+        """The start request is about to be sent. From here the provider may
+        charge — whether the call returns, raises, times out, fails or is
+        aborted, with or without a run id — so the hold is now permanent."""
+        with self._lock:
+            u = self.units[unit_id]
+            if u["state"] == "pending":
+                self.pending -= u["usd"]
+                self.committed += u["usd"]
+                u.update(state="committed", committed_at=_utc_now())
+
+    def release(self, unit_id):
+        """The start was never attempted (a local failure before the request):
+        the pending hold goes back. A committed hold never does."""
+        with self._lock:
+            u = self.units.get(unit_id)
+            if u is not None and u["state"] == "pending":
+                self.pending -= u["usd"]
+                u.update(state="released_before_network", released_at=_utc_now())
+
+    def observe(self, spent, unbounded_delta=None):
+        """The pre-C2 guard's reading after a search; for an unbounded one,
+        also what it moved by across that search."""
+        with self._lock:
+            self.observed = max(self.observed, Decimal(str(round(spent, 6))))
+            if unbounded_delta is not None:
+                self.unbounded += max(Decimal(0),
+                                      Decimal(str(round(unbounded_delta, 6))))
+
+    def snapshot(self):
+        with self._lock:
+            states = Counter(u["state"] for u in self.units.values())
+            return {"budget_usd": None if self.budget is None else str(self.budget),
+                    "committed_usd": str(self.committed),
+                    "pending_usd": str(self.pending),
+                    "pending_peak_usd": str(self.pending_peak),
+                    "unbounded_observed_usd": str(self.unbounded),
+                    "observed_usd": str(self.observed),
+                    "view_usd": str(self.view()),
+                    "committed_starts": states["committed"],
+                    "released_before_network": states["released_before_network"],
+                    "blocked": states["blocked"]}
+
+
+PaidEntry = namedtuple("PaidEntry", "n i of unit_id site_key actor_id search "
+                                    "label combo_key ceiling")
+PaidResult = namedtuple("PaidResult", "n rows cost error record opened finished sdk")
+
+
+def _sdk_counts(client):
+    """apify-client's own per-client counters: API calls made, HTTP requests
+    sent (requests - calls = the SDK's own retries) and HTTP 429s it retried
+    through — the only view of those retries from outside it. A private
+    attribute, so read defensively."""
+    try:
+        stats = client._statistics
+        return {"calls": int(stats.calls), "requests": int(stats.requests),
+                "rate_limit_errors": int(sum(stats.rate_limit_errors.values()))}
+    except Exception:
+        return None
+
+
+def _paid_worker(entry, make_client, exposure, results):
+    """One paid search on its own thread: the provider's half, nothing else.
+
+    It builds its own client — apify-client 3.1 keeps unsynchronised request
+    counters and creates its HTTP client lazily, so one instance is never
+    shared between threads — commits its reservation the instant before the
+    start request, and hands back an isolated result. It never touches
+    raw_rows, an output file, the done ledger, LAST_STATS, the coordinator's
+    spend figures or any shared telemetry: its unit is its own, deferred, until
+    the coordinator attaches it in plan order.
+    """
+    opened = time.monotonic()
+    rows = cost = error = record = sdk = None
+    try:
+        eff = effective_search(entry.site_key, entry.search)
+        with telemetry.unit("paid", entry.site_key, board=entry.actor_id,
+                            query=entry.search.get("keywords") or "(all)",
+                            location=entry.search.get("location") or "",
+                            country=SEARCH.get("country", ""),
+                            requested_limit=eff["max_results"], defer=True) as record:
+            telemetry.paid_run(unit_id=entry.unit_id)
+            client = make_client()
+            try:
+                rows, cost = scrape_search(
+                    client, entry.site_key, entry.actor_id, entry.search,
+                    before_start=lambda: exposure.commit(entry.unit_id))
+            finally:
+                sdk = _sdk_counts(client)
+    except BaseException as exc:        # the coordinator decides what it means
+        error = exc
+    finally:
+        exposure.release(entry.unit_id)     # a no-op once the start was attempted
+        results.put(PaidResult(entry.n, rows, cost, error, record, opened,
+                               time.monotonic(), sdk))
+
+
+def paid_phase_c2(plans, make_client, account_client, baseline, budget,
+                  raw_rows, done, done_path, today, emit, failures):
+    """The paid phase under SWEEP_PAID_CONCURRENCY. Returns (spent,
+    stopped_early, site_key) as main()'s serial loop leaves them.
+
+    Site by site, in plan order: a site whose provider enforces a charge
+    ceiling runs up to paid_workers() searches at once; any other site runs one
+    at a time, as it always has. Before a search may start, the coordinator —
+    this thread, alone — reserves its full ceiling (PaidExposure.reserve) or,
+    for an unbounded site, applies the old `spent >= budget` test to the same
+    view (PaidExposure.admit). The first search that does not fit stops the
+    paid phase, as the cap always has.
+
+    Results are integrated in PLAN order, never finish order: a search that
+    finished early waits in memory for every search before it. Integration is
+    the serial loop's own per-search body — account read, rows, checkpoint,
+    then the done marker — so the checkpoint-before-marker transaction, and
+    which duplicate dedupe keeps, are exactly the serial ones.
+
+    Worker threads are daemons, so an interrupt (the console stops a sweep
+    with SIGINT) still ends the process at once, as it did serially: the runs
+    already started go on at the provider, inside their ceilings.
+    """
+    workers = paid_workers()
+    exposure = PaidExposure(budget)
+    results = queue.Queue()
+    spent, stopped_early, site_key = 0.0, False, None
+    peak = {"in_flight": 0, "buffered": 0}
+    checkpoint = {"passes": 0, "wall_ms": 0, "cpu_ms": 0}
+    visited, segments = [], []
+    n = 0
+
+    def integrate(e, r):
+        nonlocal spent
+        began = time.monotonic()
+        seen = {"unit_id": e.unit_id, "provider": e.site_key,
+                "bounded": e.ceiling is not None}
+        if r is None:
+            print(f"  [{e.i}/{e.of}] {e.label:<46} — skip (done)")
+            telemetry.paid_status(e.unit_id, "skipped_done")
+            visited.append(dict(seen, reservation="none"))
+            return
+        cpu_ms = None
+        with telemetry.resumed(r.record, r.opened):
+            try:
+                if r.error is not None:
+                    raise r.error
+                rows, cost = r.rows, r.cost
+                reading = time.monotonic()
+                actual = (account_usage_usd(account_client)
+                          if baseline is not None else None)
+                read_ms = round((time.monotonic() - reading) * 1000)
+                before = spent
+                spent = (actual - baseline if actual is not None
+                         else spent + cost)
+                exposure.observe(spent, None if e.ceiling is not None
+                                 else spent - before)
+                telemetry.observed(raw=len(rows), normalized=len(rows),
+                                   gated=len(rows))
+                telemetry.paid_run(
+                    reported_cost_usd=cost,
+                    billed_delta_usd=round(spent - before, 6),
+                    budget_view_usd=round(spent, 6),
+                    budget_basis=("account_delta" if actual is not None
+                                  else "run_record_sum"),
+                    account_read_ms=read_ms if baseline is not None else None)
+                if actual is not None:
+                    telemetry.cost_observation("account_usage_delta",
+                                               spent - before)
+                if telemetry.active():
+                    for position, row in enumerate(rows, 1):
+                        row[telemetry.PAID_UNIT] = (e.unit_id, position)
+                raw_rows.extend(rows)
+                writing, cpu = time.monotonic(), time.thread_time()
+                emit(raw_rows)                                # checkpoint
+                wall_ms = round((time.monotonic() - writing) * 1000)
+                cpu_ms = round((time.thread_time() - cpu) * 1000)
+                telemetry.paid_run(checkpoint_ms=wall_ms)
+                checkpoint["passes"] += 1
+                checkpoint["wall_ms"] += wall_ms
+                checkpoint["cpu_ms"] += cpu_ms
+                with open(done_path, "a") as fh:              # mark done
+                    fh.write(e.combo_key + "\n")
+                done.add(e.combo_key)
+                print(f"  [{e.i}/{e.of}] {e.label:<46} {len(rows):>3} jobs  "
+                      f"(${cost:.3f} actor, ${spent:.2f} billed)")
+                telemetry.paid_status(e.unit_id, "completed")
+            except Exception as exc:  # isolate failures per search
+                telemetry.failed(exc)
+                telemetry.paid_run(failure_type=type(exc).__name__)
+                telemetry.paid_status(e.unit_id, "failed")
+                failures.append((e.site_key, e.label, str(exc)))
+                print(f"  [{e.i}/{e.of}] {e.label:<46} ! {exc}")
+        telemetry.attach(r.record)
+        held = exposure.units.get(e.unit_id, {})
+        visited.append(dict(
+            seen, reservation=held.get("state"),
+            reserved_usd=None if held.get("usd") is None else str(held["usd"]),
+            reserved_at=held.get("reserved_at"), committed_at=held.get("committed_at"),
+            released_at=held.get("released_at"),
+            execution_ms=round((r.finished - r.opened) * 1000),
+            buffered_wait_ms=round((began - r.finished) * 1000),
+            merge_ms=round((time.monotonic() - began) * 1000),
+            checkpoint_cpu_ms=cpu_ms, sdk=r.sdk))
+
+    for site_key, plan in plans.items():
+        if stopped_early:
+            break
+        actor_id = SITES[site_key]["actor"]
+        print(f"\n{site_key} ({actor_id})")
+        entries = []
+        for i, search in enumerate(plan, 1):
+            who = f" [{search['company']}]" if search.get("company") else ""
+            depth = effective_search(site_key, search)["max_results"]
+            entries.append(PaidEntry(
+                n, i, len(plan), paid_unit_id(n), site_key, actor_id, search,
+                f"{search['keywords'] or '(all)'}{who} @ {search['location']}",
+                f"{today}|{site_key}|{search['keywords']}|{search['location']}|"
+                f"{search.get('company') or ''}",
+                max_charge_usd(site_key, depth)))
+            n += 1
+        bounded = all(e.ceiling is not None for e in entries)
+        width = workers if bounded else 1
+        first = entries[0].n
+        head = sent = running = 0       # next to integrate, next to send, in flight
+        waiting, open_keys, refused = {}, set(), None
+        began = time.monotonic()
+        # One step per turn, in this priority: integrate the head of the plan
+        # if it is ready; else send the next search if a worker is free; else,
+        # once everything sent is integrated, stop; else wait for any result.
+        while True:
+            if head < sent and head in waiting:
+                integrate(entries[head], waiting.pop(head))
+                open_keys.discard(entries[head].combo_key)
+                head += 1
+                continue
+            e = entries[sent] if sent < len(entries) else None
+            # A repeat of a search still in flight waits for it: the serial
+            # loop would decide it against .done_combos after its twin.
+            if refused is None and e is not None and e.combo_key not in open_keys:
+                if e.combo_key in done:
+                    waiting[sent] = None                     # integrated in order
+                    sent += 1
+                    continue
+                if running < width:
+                    if not (exposure.reserve(e.unit_id, e.ceiling)
+                            if e.ceiling is not None else exposure.admit(e.unit_id)):
+                        refused = e
+                        continue
+                    open_keys.add(e.combo_key)
+                    threading.Thread(target=_paid_worker,
+                                     args=(e, make_client, exposure, results),
+                                     name=f"sweep-paid-{e.unit_id}",
+                                     daemon=True).start()
+                    running += 1
+                    peak["in_flight"] = max(peak["in_flight"], running)
+                    sent += 1
+                    continue
+            if head == sent:
+                break
+            r = results.get()
+            running -= 1
+            waiting[r.n - first] = r
+            peak["buffered"] = max(peak["buffered"], sum(
+                1 for k, v in waiting.items() if v is not None and k != head))
+        segments.append({"provider": site_key, "bounded": bounded, "workers": width,
+                         "searches": len(entries), "sent": sent,
+                         "wall_ms": round((time.monotonic() - began) * 1000)})
+        if refused is not None:
+            held = exposure.units[refused.unit_id]
+            visited.append({"unit_id": refused.unit_id, "provider": site_key,
+                            "bounded": refused.ceiling is not None,
+                            "reservation": "blocked"})
+            if refused.ceiling is not None:
+                print(f"  ⚠ spend cap ${budget:.2f}: ${held['view_usd']} held + the next "
+                      f"start's ${refused.ceiling} ceiling would exceed it — stopping.")
+            else:
+                print(f"  ⚠ spend cap ${budget:.2f} reached (${held['view_usd']} "
+                      f"held and observed) — stopping.")
+            stopped_early = True
+
+    held = exposure.snapshot()
+    print(f"\n  held for {held['committed_starts']} provider-bounded start(s): "
+          f"${held['committed_usd']} of ceiling (exposure, not spend)")
+    waits = [u["buffered_wait_ms"] for u in visited if "buffered_wait_ms" in u]
+    telemetry.paid_execution({
+        "mode": "reservation_scheduler", "workers": workers,
+        "exposure": held, "peak_in_flight": peak["in_flight"],
+        "peak_buffered": peak["buffered"],
+        "buffered_wait_ms": {"total": sum(waits), "max": max(waits, default=0)},
+        "checkpoint": checkpoint, "segments": segments, "units": visited})
+    return spent, stopped_early, site_key
 
 
 def print_plan(plans):
@@ -1445,8 +1847,25 @@ def to_output(row):
 # Populated by finalize() each call so main() can report what got filtered.
 LAST_STATS = {}
 
+# V2-C2: score_job's verdict for this row object — kept (True) or dropped
+# (False) — once it has been scored with memo=True. A paid sweep re-finalizes
+# every row acquired so far after every search, and score_job is 99.7% of a
+# pass (V2-C1 §20 measured ~225 s of CPU over 90 searches). It reads only a
+# row's acquired fields and rewrites every field it sets from them (the one it
+# reads back, `timezones`, it rewrites to the same value), so a second call on
+# the same row changes nothing; this skips that call. to_output() never reads
+# the key, and nothing that keys, filters, ranks or dedupes a row looks at it.
+SCORED = "_scored"
 
-def score_and_filter(raw_rows, stage=None):
+
+def _score_once(row):
+    kept = row.get(SCORED)
+    if kept is None:
+        kept = row[SCORED] = score_job(row) is not None
+    return row if kept else None
+
+
+def score_and_filter(raw_rows, stage=None, memo=False):
     """Score, then every hard filter finalize applies, in finalize's order.
     Returns (the rows still eligible, in arrival order; the filter counts).
 
@@ -1458,10 +1877,15 @@ def score_and_filter(raw_rows, stage=None):
     `stage` receives the boundary counts. The default is telemetry — the
     production pass. A diagnostic pass passes its own collector, so it cannot
     overwrite the production funnel in the telemetry record.
+
+    `memo` scores each row object at most once across calls (SCORED). Only
+    main() under SWEEP_PAID_CONCURRENCY asks for it; every other caller
+    re-scores, as before.
     """
     stage = stage or telemetry.stage
     stage("observed_normalized", raw_rows)
-    scored = [r for r in (score_job(row) for row in raw_rows) if r is not None]
+    score = _score_once if memo else score_job
+    scored = [r for r in (score(row) for row in raw_rows) if r is not None]
     if SETTINGS["min_score"] is not None:
         scored = [r for r in scored if r["score"] >= SETTINGS["min_score"]]
     # Per-source counts at each boundary the engine ALREADY crosses. Nothing is
@@ -1551,9 +1975,10 @@ def rank_rows(rows):
     return dedupe(rows)  # sorted first, so highest-scored duplicate wins
 
 
-def finalize(raw_rows):
-    """Score, filter, rank, and dedupe raw normalized rows into output rows."""
-    scored, stats = score_and_filter(raw_rows)
+def finalize(raw_rows, memo=False):
+    """Score, filter, rank, and dedupe raw normalized rows into output rows.
+    `memo`: see score_and_filter."""
+    scored, stats = score_and_filter(raw_rows, memo=memo)
     unique = rank_rows(scored)
     telemetry.stage("final_after_dedupe", unique)
     # V2-C1: which paid unit each survivor came from and what beat the rest,
@@ -2450,10 +2875,18 @@ def main():
     if args.only_new and seen:
         print(f"--only-new: {len(seen)} postings already reported by earlier runs\n")
 
+    # SWEEP_PAID_CONCURRENCY (V2-C2) on a sweep with a paid plan: the paid
+    # phase runs through paid_phase_c2(), and every finalize pass of this sweep
+    # scores each row once rather than once per checkpoint (score_and_filter's
+    # memo) — same passes, same files, same order. Not while the experience
+    # guard records a verdict per scoring call.
+    c2 = bool(plans) and paid_concurrency()
+    score_once = c2 and not experience_guard.enabled()
+
     def emit(rows):
         """finalize + optional new-only filter + write. Used for checkpoints too,
         so an interrupted sweep leaves a correct file behind."""
-        out = finalize(rows)
+        out = finalize(rows, memo=True) if score_once else finalize(rows)
         if args.only_new:
             before = len(out)
             out = [r for r in out if _seen_key(r) not in seen]
@@ -2493,7 +2926,8 @@ def main():
                 paid_unit(n, site_key, search) for n, (site_key, search) in
                 enumerate((s, q) for s, p in plans.items() for q in p)])
         from apify_client import ApifyClient
-        client = ApifyClient(_require_token())
+        token = _require_token()
+        client = ApifyClient(token)
         # Month-to-date spend BEFORE this sweep. Everything below measures
         # against the account rather than the actors' self-reports, so the cap
         # counts money that actually left. Falls back to summing usage_total_usd
@@ -2504,92 +2938,100 @@ def main():
                   "actor self-report, which undercounts)")
         stopped_early = False
         n = 0
-        for site_key, plan in plans.items():
-            if stopped_early:
-                break
-            actor_id = SITES[site_key]["actor"]
-            print(f"\n{site_key} ({actor_id})")
-            for i, search in enumerate(plan, 1):
-                unit_id = paid_unit_id(n)
-                n += 1
-                # The company is part of a combo's identity, not decoration:
-                # four company-filtered searches share an empty keyword and one
-                # location, so without it they collapse to a single key and
-                # three of the four paid runs silently "skip (done)".
-                who = f" [{search['company']}]" if search.get("company") else ""
-                label = f"{search['keywords'] or '(all)'}{who} @ {search['location']}"
-                combo_key = (f"{today}|{site_key}|{search['keywords']}|"
-                             f"{search['location']}|{search.get('company') or ''}")
-                if combo_key in done:
-                    print(f"  [{i}/{len(plan)}] {label:<46} — skip (done)")
-                    telemetry.paid_status(unit_id, "skipped_done")
-                    continue
-                if budget is not None and spent >= budget:
-                    print(f"  ⚠ spend cap ${budget:.2f} reached (${spent:.2f}) — stopping.")
-                    stopped_early = True
+        if c2:
+            # V2-C2: the same plan through the reservation scheduler. The
+            # token was chosen once, above; each worker gets its own client
+            # on it, and never chooses an account itself.
+            spent, stopped_early, site_key = paid_phase_c2(
+                plans, lambda: ApifyClient(token), client, baseline, budget,
+                raw_rows, done, done_path, today, emit, failures)
+        else:
+            for site_key, plan in plans.items():
+                if stopped_early:
                     break
-                # One telemetry work unit per paid search. `eff` is read
-                # through effective_search — the same call build_input goes
-                # through — so the depth recorded is the depth actually billed,
-                # not the smaller figure the plan asked for.
-                eff = effective_search(site_key, search)
-                with telemetry.unit(
-                        "paid", site_key, board=actor_id,
-                        query=search.get("keywords") or "(all)",
-                        location=search.get("location") or "",
-                        country=SEARCH.get("country", ""),
-                        requested_limit=eff["max_results"]):
-                    telemetry.paid_run(unit_id=unit_id)
-                    try:
-                        rows, cost = scrape_search(client, site_key, actor_id,
-                                                   search)
-                        reading = time.monotonic()
-                        actual = (account_usage_usd(client)
-                                  if baseline is not None else None)
-                        read_ms = round((time.monotonic() - reading) * 1000)
-                        before = spent
-                        spent = (actual - baseline if actual is not None
-                                 else spent + cost)
-                        # The actor's self-report AND the account delta, kept
-                        # apart: the audit measured a sweep self-reporting $0.53
-                        # against an account that moved $1.61, and a single
-                        # "cost" field is exactly how that went unnoticed.
-                        telemetry.observed(raw=len(rows), normalized=len(rows),
-                                           gated=len(rows))
-                        telemetry.paid_run(
-                            reported_cost_usd=cost,
-                            billed_delta_usd=round(spent - before, 6),
-                            # V2-C1: what the budget guard now believes, and
-                            # which reading it believes it from.
-                            budget_view_usd=round(spent, 6),
-                            budget_basis=("account_delta" if actual is not None
-                                          else "run_record_sum"),
-                            account_read_ms=read_ms if baseline is not None else None)
-                        if actual is not None:
-                            telemetry.cost_observation("account_usage_delta",
-                                                       spent - before)
-                        if telemetry.active():
-                            # V2-C1 provenance, the "_native" bargain: a key
-                            # to_output() never reads, only while a record is open.
-                            for position, row in enumerate(rows, 1):
-                                row[telemetry.PAID_UNIT] = (unit_id, position)
-                        raw_rows.extend(rows)
-                        writing = time.monotonic()
-                        emit(raw_rows)                            # checkpoint
-                        telemetry.paid_run(checkpoint_ms=round(
-                            (time.monotonic() - writing) * 1000))
-                        with open(done_path, "a") as fh:          # mark done
-                            fh.write(combo_key + "\n")
-                        done.add(combo_key)
-                        print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
-                              f"(${cost:.3f} actor, ${spent:.2f} billed)")
-                        telemetry.paid_status(unit_id, "completed")
-                    except Exception as exc:  # isolate failures per search
-                        telemetry.failed(exc)
-                        telemetry.paid_run(failure_type=type(exc).__name__)
-                        telemetry.paid_status(unit_id, "failed")
-                        failures.append((site_key, label, str(exc)))
-                        print(f"  [{i}/{len(plan)}] {label:<46} ! {exc}")
+                actor_id = SITES[site_key]["actor"]
+                print(f"\n{site_key} ({actor_id})")
+                for i, search in enumerate(plan, 1):
+                    unit_id = paid_unit_id(n)
+                    n += 1
+                    # The company is part of a combo's identity, not decoration:
+                    # four company-filtered searches share an empty keyword and one
+                    # location, so without it they collapse to a single key and
+                    # three of the four paid runs silently "skip (done)".
+                    who = f" [{search['company']}]" if search.get("company") else ""
+                    label = f"{search['keywords'] or '(all)'}{who} @ {search['location']}"
+                    combo_key = (f"{today}|{site_key}|{search['keywords']}|"
+                                 f"{search['location']}|{search.get('company') or ''}")
+                    if combo_key in done:
+                        print(f"  [{i}/{len(plan)}] {label:<46} — skip (done)")
+                        telemetry.paid_status(unit_id, "skipped_done")
+                        continue
+                    if budget is not None and spent >= budget:
+                        print(f"  ⚠ spend cap ${budget:.2f} reached (${spent:.2f}) — stopping.")
+                        stopped_early = True
+                        break
+                    # One telemetry work unit per paid search. `eff` is read
+                    # through effective_search — the same call build_input goes
+                    # through — so the depth recorded is the depth actually billed,
+                    # not the smaller figure the plan asked for.
+                    eff = effective_search(site_key, search)
+                    with telemetry.unit(
+                            "paid", site_key, board=actor_id,
+                            query=search.get("keywords") or "(all)",
+                            location=search.get("location") or "",
+                            country=SEARCH.get("country", ""),
+                            requested_limit=eff["max_results"]):
+                        telemetry.paid_run(unit_id=unit_id)
+                        try:
+                            rows, cost = scrape_search(client, site_key, actor_id,
+                                                       search)
+                            reading = time.monotonic()
+                            actual = (account_usage_usd(client)
+                                      if baseline is not None else None)
+                            read_ms = round((time.monotonic() - reading) * 1000)
+                            before = spent
+                            spent = (actual - baseline if actual is not None
+                                     else spent + cost)
+                            # The actor's self-report AND the account delta, kept
+                            # apart: the audit measured a sweep self-reporting $0.53
+                            # against an account that moved $1.61, and a single
+                            # "cost" field is exactly how that went unnoticed.
+                            telemetry.observed(raw=len(rows), normalized=len(rows),
+                                               gated=len(rows))
+                            telemetry.paid_run(
+                                reported_cost_usd=cost,
+                                billed_delta_usd=round(spent - before, 6),
+                                # V2-C1: what the budget guard now believes, and
+                                # which reading it believes it from.
+                                budget_view_usd=round(spent, 6),
+                                budget_basis=("account_delta" if actual is not None
+                                              else "run_record_sum"),
+                                account_read_ms=read_ms if baseline is not None else None)
+                            if actual is not None:
+                                telemetry.cost_observation("account_usage_delta",
+                                                           spent - before)
+                            if telemetry.active():
+                                # V2-C1 provenance, the "_native" bargain: a key
+                                # to_output() never reads, only while a record is open.
+                                for position, row in enumerate(rows, 1):
+                                    row[telemetry.PAID_UNIT] = (unit_id, position)
+                            raw_rows.extend(rows)
+                            writing = time.monotonic()
+                            emit(raw_rows)                            # checkpoint
+                            telemetry.paid_run(checkpoint_ms=round(
+                                (time.monotonic() - writing) * 1000))
+                            with open(done_path, "a") as fh:          # mark done
+                                fh.write(combo_key + "\n")
+                            done.add(combo_key)
+                            print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
+                                  f"(${cost:.3f} actor, ${spent:.2f} billed)")
+                            telemetry.paid_status(unit_id, "completed")
+                        except Exception as exc:  # isolate failures per search
+                            telemetry.failed(exc)
+                            telemetry.paid_run(failure_type=type(exc).__name__)
+                            telemetry.paid_status(unit_id, "failed")
+                            failures.append((site_key, label, str(exc)))
+                            print(f"  [{i}/{len(plan)}] {label:<46} ! {exc}")
         if stopped_early:
             telemetry.paid_unvisited("skipped_budget")
         telemetry.mark("paid_phase_done")
