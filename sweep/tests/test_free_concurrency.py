@@ -583,7 +583,8 @@ class ShadowIndependence(unittest.TestCase):
 class RegistryUntouched(unittest.TestCase):
     def test_active_source_count_unchanged(self):
         import config
-        self.assertEqual(sum(len(b) for b in config.ATS_BOARDS.values()), 129)
+        # 128 since V2-D5 removed greenhouse:postman (a 404 on every fetch).
+        self.assertEqual(sum(len(b) for b in config.ATS_BOARDS.values()), 128)
         self.assertEqual(sum(1 for c in config.FEEDS.values()
                              if c.get("enabled")), 5)
 

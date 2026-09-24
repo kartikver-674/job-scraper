@@ -1,0 +1,355 @@
+{
+  "schema": "search-v2d6.1",
+  "status": "MEASURED OFFLINE; native ids handled only as counts",
+  "generated_from": [
+    "sweep_1eeb9cb0018a4c528c982df5e1546f60.json",
+    "jobs_2026-09-24_2141.json",
+    "identity-counterexamples.json",
+    "shadow-b3-live-benchmark.json",
+    "65 dated output files under output/",
+    "40 seen.tsv ledgers under output/"
+  ],
+  "evidence_labels": {
+    "MEASURED": "counted or timed from a recorded run or committed evidence file",
+    "VERIFIED": "read directly from code, config or a file's contents",
+    "INFERRED": "a model with its assumptions stated beside it",
+    "UNKNOWN": "the evidence does not exist; not the same as zero"
+  },
+  "code": {
+    "label": "VERIFIED",
+    "job_key": "req_number if present -> ('req', req); else normalized company (corporate suffixes stripped) + order-insensitive title -> ('ct', c, t); else host+path of the URL -> ('url', u); else None (never deduped)",
+    "dedupe": "rank_rows: stable sort by score descending, then the first row per job_key survives; unkeyed rows all survive",
+    "survivor": "highest score; on a tie, arrival order: paid rows first in plan order, then free in registry order (lever, greenhouse, ashby, smartrecruiters, breezy, feeds); concurrency keeps registry order",
+    "cross_provider": "the same job_key across providers is one posting \u2014 the only cross-provider identity the engine has",
+    "native_capture": "sources/ats.py and sources/feeds.py stash '_native' ONLY while telemetry is active; paid rows (linkedin, indeed) get none",
+    "exports": "to_output() never reads '_native' (asserted in scraper's self-check); CSV/JSON carry apply_url, in which most ATS ids are visible",
+    "namespace_precedent": "sources/shadow.py already compares (provider family, native_id), never the raw id alone",
+    "seen_ledger": "seen.tsv lines are date<TAB>'|'.join(job_key)<TAB>title<TAB>company, appended by record_seen from OUTPUT rows; read by --only-new, which the worker never passes",
+    "other_ledgers": "sweep applied.tsv and the live feed key on scraper._seen_key of output rows; .done_combos keys search combos (date|site|keyword|location), not postings"
+  },
+  "c5_native_availability": {
+    "label": "MEASURED (identity section, gated rows)",
+    "by_family": {
+      "linkedin": {
+        "sources": 1,
+        "rows": 270,
+        "job_keys": 108,
+        "with_native_id": 0,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 0,
+        "collapsed_other": 162,
+        "native_missing_rate": 1.0
+      },
+      "indeed": {
+        "sources": 1,
+        "rows": 1070,
+        "job_keys": 430,
+        "with_native_id": 0,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 4,
+        "collapsed_other": 640,
+        "native_missing_rate": 1.0
+      },
+      "lever": {
+        "sources": 15,
+        "rows": 216,
+        "job_keys": 190,
+        "with_native_id": 216,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 1,
+        "collapsed_with_native_id_single_response": 26,
+        "native_missing_rate": 0.0
+      },
+      "greenhouse": {
+        "sources": 41,
+        "rows": 2027,
+        "job_keys": 1494,
+        "with_native_id": 2027,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 5,
+        "collapsed_with_native_id_single_response": 533,
+        "native_missing_rate": 0.0
+      },
+      "ashby": {
+        "sources": 25,
+        "rows": 682,
+        "job_keys": 540,
+        "with_native_id": 682,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 2,
+        "collapsed_with_native_id_single_response": 142,
+        "native_missing_rate": 0.0
+      },
+      "smartrecruiters": {
+        "sources": 17,
+        "rows": 110,
+        "job_keys": 94,
+        "with_native_id": 110,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 0,
+        "collapsed_with_native_id_single_response": 16,
+        "native_missing_rate": 0.0
+      },
+      "breezy": {
+        "sources": 1,
+        "rows": 3,
+        "job_keys": 3,
+        "with_native_id": 3,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 0,
+        "collapsed_with_native_id_single_response": 0,
+        "native_missing_rate": 0.0
+      },
+      "remoteok": {
+        "sources": 1,
+        "rows": 23,
+        "job_keys": 22,
+        "with_native_id": 23,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 0,
+        "collapsed_with_native_id_single_response": 1,
+        "native_missing_rate": 0.0
+      },
+      "wwr": {
+        "sources": 1,
+        "rows": 80,
+        "job_keys": 44,
+        "with_native_id": 80,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 4,
+        "collapsed_other": 36,
+        "native_missing_rate": 0.0
+      },
+      "remotive": {
+        "sources": 1,
+        "rows": 10,
+        "job_keys": 10,
+        "with_native_id": 10,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 4,
+        "collapsed_with_native_id_single_response": 0,
+        "native_missing_rate": 0.0
+      },
+      "jobicy": {
+        "sources": 1,
+        "rows": 31,
+        "job_keys": 31,
+        "with_native_id": 31,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 4,
+        "collapsed_with_native_id_single_response": 0,
+        "native_missing_rate": 0.0
+      },
+      "himalayas": {
+        "sources": 1,
+        "rows": 29,
+        "job_keys": 22,
+        "with_native_id": 29,
+        "unkeyed": 0,
+        "already_seen_earlier_source": 0,
+        "collapsed_other": 7,
+        "native_missing_rate": 0.0
+      }
+    }
+  },
+  "c5_final_url_ids": {
+    "label": "MEASURED (201 exported rows; id parsed from apply_url)",
+    "runs": 1,
+    "rows": 201,
+    "coverage": {
+      "ashby:valid": 15,
+      "greenhouse:valid": 109,
+      "indeed:valid": 20,
+      "lever:valid": 4,
+      "linkedin:valid": 35,
+      "no_native_namespace": 18
+    },
+    "native_ids": 183,
+    "ids_in_2plus_runs": 0,
+    "ids_in_2plus_runs_by_namespace": {},
+    "same_id_different_job_key": 0,
+    "same_id_different_job_key_by_namespace": {},
+    "drift_rate_by_namespace": {},
+    "drift_kind": {},
+    "same_id_different_job_key_within_one_run": 0,
+    "same_job_key_several_ids_by_namespace": {},
+    "raw_id_in_several_namespaces": 0
+  },
+  "c5_within_sweep": {
+    "label": "MEASURED; distinct ids inside one board INFERRED except the eight shadow boards, where C5 VERIFIED native_id_distinct == gated",
+    "same_native_id_different_job_key": {
+      "final_rows": 0,
+      "shadow_vs_production": 0
+    },
+    "same_job_key_distinct_native_ids_at_gate": 718,
+    "sweep_job_keys_at_gate": 2964,
+    "shadow_boards_job_keys_vs_distinct_ids": {
+      "greenhouse:fivetran": [
+        45,
+        71
+      ],
+      "greenhouse:abnormalsecurity": [
+        23,
+        25
+      ],
+      "greenhouse:apolloio": [
+        9,
+        9
+      ],
+      "greenhouse:brex": [
+        21,
+        57
+      ],
+      "greenhouse:vercel": [
+        33,
+        33
+      ],
+      "greenhouse:jumio": [
+        12,
+        12
+      ],
+      "greenhouse:catawiki": [
+        4,
+        6
+      ],
+      "greenhouse:zetaglobal": [
+        28,
+        47
+      ]
+    }
+  },
+  "across_time": {
+    "label": "MEASURED",
+    "history": {
+      "dates": [
+        "2026-08-01",
+        "2026-09-24"
+      ],
+      "runs": 65,
+      "rows": 15198,
+      "coverage": {
+        "ashby:valid": 460,
+        "greenhouse:valid": 7584,
+        "indeed:valid": 422,
+        "lever:valid": 77,
+        "linkedin:valid": 4891,
+        "no_native_namespace": 1764
+      },
+      "native_ids": 5433,
+      "ids_in_2plus_runs": 1912,
+      "ids_in_2plus_runs_by_namespace": {
+        "greenhouse": 941,
+        "indeed": 95,
+        "linkedin": 798,
+        "ashby": 66,
+        "lever": 12
+      },
+      "same_id_different_job_key": 29,
+      "same_id_different_job_key_by_namespace": {
+        "greenhouse": 21,
+        "linkedin": 7,
+        "lever": 1
+      },
+      "drift_rate_by_namespace": {
+        "greenhouse": 0.0223,
+        "indeed": 0.0,
+        "linkedin": 0.0088,
+        "ashby": 0.0,
+        "lever": 0.0833
+      },
+      "drift_kind": {
+        "title": 28,
+        "company": 1
+      },
+      "same_id_different_job_key_within_one_run": 0,
+      "same_job_key_several_ids_by_namespace": {
+        "linkedin": 121,
+        "indeed": 2,
+        "greenhouse": 96,
+        "ashby": 1
+      },
+      "raw_id_in_several_namespaces": 0
+    },
+    "b3_two_day_persistence": {
+      "file": "shadow-b3-live-benchmark.json",
+      "persisted_ids": 857,
+      "retitled": 19,
+      "rate": 0.0222
+    }
+  },
+  "seen_ledger": {
+    "label": "MEASURED",
+    "ledgers": 40,
+    "ct_not_recomputable": 7,
+    "ct_recomputes_identically": 13744,
+    "malformed_lines": 9,
+    "req_not_recomputable": 442,
+    "url_not_recomputable": 1
+  },
+  "counterexamples": {
+    "label": "VERIFIED (synthetic; no prevalence)",
+    "cases": {
+      "different_city_distinct_url_collapses": {
+        "input": 2,
+        "output": 1
+      },
+      "same_req_across_companies_collapses": {
+        "input": 2,
+        "output": 1
+      },
+      "same_url_different_titles_survives": {
+        "input": 2,
+        "output": 2
+      },
+      "query_only_job_id_collapses_without_company_title": {
+        "input": 2,
+        "output": 1
+      },
+      "distinct_req_numbers_survive": {
+        "input": 2,
+        "output": 2
+      },
+      "unkeyed_rows_survive": {
+        "input": 2,
+        "output": 2
+      }
+    }
+  },
+  "concept": {
+    "definition": "native_identity = (provider family, native id) inside one provider, job_key when the id is missing or malformed, cross-provider identity unchanged",
+    "split_effect_in_c5": {
+      "label": "MEASURED upper bound at the gate; final effect UNKNOWN",
+      "rows": 718,
+      "meaning": "rows the current key merges inside one board although each has its own id (mostly one title posted in several locations): native-first identity would show them separately \u2014 the opposite of job_key's deliberate 'not on location' rule, and a product decision"
+    },
+    "merge_effect_in_c5": {
+      "label": "MEASURED",
+      "rows": 0,
+      "meaning": "within one sweep a board lists an id once, so a merge-only rule changes nothing"
+    },
+    "merge_effect_across_time": {
+      "label": "MEASURED",
+      "history_rate": 0.0152,
+      "b3_two_day_rate": 0.0222,
+      "who_benefits": "seen.tsv (--only-new, CLI only) and applied.tsv (local sweep UI); nothing on the public worker path"
+    }
+  },
+  "migration": {
+    "label": "VERIFIED (code) + MEASURED (ledgers)",
+    "seen_tsv": "old entries stay meaningful: every well-formed 'ct' entry recomputes to its stored key under current job_key; a native key would have to be ADDED beside it (dual lookup), never replace it",
+    "historical_outputs": "carry no native id; apply_url yields one for greenhouse, lever, ashby, smartrecruiters, linkedin and indeed rows only",
+    "done_combos": "untouched by any identity change (keys search combos)",
+    "blocker": "native ids exist only when telemetry is on, so dedupe on them would make results depend on a diagnostics flag until capture is unconditional"
+  },
+  "decision": {
+    "choice": "b",
+    "action": "leave native identity diagnostic-only",
+    "why": [
+      "C5 would have merged 0 more rows (same id under two keys: 0 in the final set and 0 between shadow and production)",
+      "native-first identity would instead SPLIT up to 718 gated rows C5 merged, reversing the deliberate multi-location collapse",
+      "the real drift is across time (29 of 1912 recurring ids in history, 19 of 857 in two days on the shadow boards), and only CLI/local ledgers that the public worker never reads would gain",
+      "capture is telemetry-gated and paid rows carry no native id"
+    ],
+    "revisit_when": "a user-facing ledger (applied, dismissed, new-since-last) ships on the worker path; then add a merge-only dual lookup keyed (family, id) beside job_key, with unconditional capture"
+  }
+}

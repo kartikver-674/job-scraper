@@ -1,0 +1,910 @@
+{
+  "schema": "search-v2d5.1",
+  "status": "MEASURED OFFLINE from recorded telemetry and committed evidence; no network, no paid call, no production file changed",
+  "generated_from": [
+    "sweep_1eeb9cb0018a4c528c982df5e1546f60.json",
+    "jobs_2026-09-24_2141.json",
+    "c0-b3-free-sweep-through-guard.json",
+    "c1-cross-probe-summary.json",
+    "c1-linkedin-contract.json",
+    "c1-paid-telemetry-overhead.json",
+    "c1-probe-a-india-two-shapes.json",
+    "c1-probe-b-remote-react.json",
+    "c2-live-concurrency-canary.json",
+    "c2-paid-concurrency-benchmark.json",
+    "c3-live-batch-canary.json",
+    "c3-paid-plan-audit.json",
+    "c3-prototype-mutations.json",
+    "c3-provider-contracts.json",
+    "c35-indeed-concurrency-canary.json",
+    "c35-indeed-contract.json",
+    "c35-indeed-provider-contract.json",
+    "c35-mutations.json",
+    "c35-paid-concurrency-benchmark.json",
+    "c35-public-cap-arithmetic.json",
+    "c4-adaptive-overhead.json",
+    "c4-adaptive-replay.json",
+    "c4-mutations.json",
+    "c4-provider-rank-audit.json",
+    "c4-public-cap-arithmetic.json",
+    "c45-allocator-benchmark.json",
+    "c45-c5-preflight-after-canary.json",
+    "c45-c5-preflight.json",
+    "c45-canary-preflight.json",
+    "c45-cap-mutations.json",
+    "c45-live-multi-account-canary.json",
+    "c45-mutations.json",
+    "c5-adaptive-analysis.json",
+    "c5-final-summary.json",
+    "c5-integrated-run.json",
+    "c5-preflight-immediate.json",
+    "c5-preflight.json",
+    "c5-provider-cost-settlement.json",
+    "current-free-http.json",
+    "current-free-inventory.json",
+    "current-free-summary.json",
+    "expansion-discovery-registry.json",
+    "expansion-new-family-probes.json",
+    "expansion-validation-extra-targets.json",
+    "expansion-validation-targets.json",
+    "expansion-validation.json",
+    "first-tranche-spotchecks.json",
+    "free-concurrency-live.json",
+    "free-concurrency-replay.json",
+    "greenhouse-concurrency-live.json",
+    "greenhouse-concurrency-replay.json",
+    "identity-counterexamples.json",
+    "paid-offline-evidence.json",
+    "paid-plans.json",
+    "paid-research-ledger.json",
+    "replay-business_salesforce-india.json",
+    "replay-react_native-india.json",
+    "replay-software_fullstack-india.json",
+    "replay-software_fullstack-remote.json",
+    "results-ready-hidden-wait.json",
+    "shadow-b3-free-sweep-parity.json",
+    "shadow-b3-frozen-equivalence.json",
+    "shadow-b3-live-benchmark.json",
+    "shadow-eight-board-replay.json",
+    "smartrecruiters-pagination.json",
+    "snapshot-analysis.json",
+    "telemetry-overhead.json",
+    "config.py"
+  ],
+  "evidence_labels": {
+    "MEASURED": "counted or timed from a recorded run or committed evidence file",
+    "VERIFIED": "read directly from code, config or a file's contents",
+    "INFERRED": "a model with its assumptions stated beside it",
+    "UNKNOWN": "the evidence does not exist; not the same as zero"
+  },
+  "telemetry_records": {
+    "label": "MEASURED",
+    "items": [
+      {
+        "file": "sweep_4f9c10f062d9458fa8cb80a32ceff4ea.json",
+        "started_at": "2026-09-24T15:52:15.540+00:00",
+        "path": "paid",
+        "free_units": 0,
+        "shadow_units": 0
+      },
+      {
+        "file": "sweep_1eeb9cb0018a4c528c982df5e1546f60.json",
+        "started_at": "2026-09-24T16:11:56.862+00:00",
+        "path": "paid+free",
+        "free_units": 134,
+        "shadow_units": 8
+      }
+    ]
+  },
+  "free_phase": {
+    "label": "MEASURED",
+    "ms": 527821,
+    "from_unit_clocks_s": 527.816,
+    "share_of_sweep": 0.4005,
+    "record_sources_attempted_incl_paid": 224,
+    "record_sources_failed_incl_paid": 1,
+    "sources_attempted": 134,
+    "sources_ok": 133,
+    "retries": 0,
+    "rate_limited_429": 0
+  },
+  "scheduling": {
+    "label": "VERIFIED (sources/__init__.py, sources/concurrency.py; C5 flags from the C5 write-up \u00a71) and MEASURED (observed peak in flight per family)",
+    "order": "families one after another in ATS_BOARDS order, then feeds, then optum and enterprise (both disabled in config)",
+    "concurrent": {
+      "lever": "4 workers; boards queued in registry order, results collected in registry order",
+      "greenhouse": "4 workers; boards queued in registry order, results collected in registry order"
+    },
+    "serial": [
+      "ashby",
+      "smartrecruiters",
+      "breezy",
+      "wwr",
+      "other_feeds"
+    ],
+    "timeout": "25 s is a per-socket-operation timeout (urlopen timeout), not a per-board deadline: a steady slow body read never trips it"
+  },
+  "families": {
+    "lever": {
+      "label": "MEASURED",
+      "sources": 21,
+      "scheduling": "4 workers, registry-order FIFO",
+      "observed_peak_in_flight": 4,
+      "ok": 21,
+      "failed": [],
+      "requests": 21,
+      "retries": 0,
+      "summed_s": 1130.546,
+      "segment_wall_s": 423.698,
+      "share_of_free_phase": 0.8027,
+      "board_ms": {
+        "n": 21,
+        "min": 1309,
+        "median": 25770,
+        "p95": 153169,
+        "max": 359529
+      },
+      "slowest": [
+        {
+          "board": "lever:veeva",
+          "ms": 359529,
+          "raw": 918
+        },
+        {
+          "board": "lever:sophos",
+          "ms": 153169,
+          "raw": 84
+        },
+        {
+          "board": "lever:binance",
+          "ms": 146331,
+          "raw": 306
+        }
+      ],
+      "raw": 1915,
+      "normalized": 1915,
+      "source_gate": 216,
+      "post_hard_filter_and_score": 154,
+      "post_recency": 16,
+      "eligible": 4,
+      "final": 4,
+      "boards_with_final": {
+        "lever:coderio": 1,
+        "lever:jumpcloud": 3
+      },
+      "boards_gating_zero": 6
+    },
+    "greenhouse": {
+      "label": "MEASURED",
+      "sources": 54,
+      "scheduling": "4 workers, registry-order FIFO",
+      "observed_peak_in_flight": 4,
+      "ok": 53,
+      "failed": [
+        {
+          "board": "greenhouse:postman",
+          "category": "HTTP_404",
+          "ms": 626
+        }
+      ],
+      "requests": 53,
+      "retries": 0,
+      "summed_s": 99.751,
+      "segment_wall_s": 30.784,
+      "share_of_free_phase": 0.0583,
+      "board_ms": {
+        "n": 54,
+        "min": 454,
+        "median": 880.0,
+        "p95": 3517,
+        "max": 22845
+      },
+      "slowest": [
+        {
+          "board": "greenhouse:sumup",
+          "ms": 22845,
+          "raw": 367
+        },
+        {
+          "board": "greenhouse:elastic",
+          "ms": 9324,
+          "raw": 365
+        },
+        {
+          "board": "greenhouse:mongodb",
+          "ms": 3878,
+          "raw": 398
+        }
+      ],
+      "raw": 7162,
+      "normalized": 7162,
+      "source_gate": 2027,
+      "post_hard_filter_and_score": 552,
+      "post_recency": 439,
+      "eligible": 164,
+      "final": 109,
+      "boards_with_final": {
+        "greenhouse:gitlab": 38,
+        "greenhouse:databricks": 4,
+        "greenhouse:twilio": 7,
+        "greenhouse:mongodb": 15,
+        "greenhouse:elastic": 12,
+        "greenhouse:datadog": 1,
+        "greenhouse:stripe": 12,
+        "greenhouse:figma": 3,
+        "greenhouse:roku": 3,
+        "greenhouse:sumup": 2,
+        "greenhouse:tide": 2,
+        "greenhouse:bitwarden": 1,
+        "greenhouse:nice": 1,
+        "greenhouse:capco": 1,
+        "greenhouse:okta": 1,
+        "greenhouse:newrelic": 5,
+        "greenhouse:launchdarkly": 1
+      },
+      "boards_gating_zero": 13
+    },
+    "ashby": {
+      "label": "MEASURED",
+      "sources": 27,
+      "scheduling": "serial",
+      "observed_peak_in_flight": 1,
+      "ok": 27,
+      "failed": [],
+      "requests": 27,
+      "retries": 0,
+      "summed_s": 31.546,
+      "segment_wall_s": 31.545,
+      "share_of_free_phase": 0.0598,
+      "board_ms": {
+        "n": 27,
+        "min": 453,
+        "median": 877,
+        "p95": 2937,
+        "max": 4139
+      },
+      "slowest": [
+        {
+          "board": "ashby:ramp",
+          "ms": 4139,
+          "raw": 155
+        },
+        {
+          "board": "ashby:openai",
+          "ms": 2937,
+          "raw": 827
+        },
+        {
+          "board": "ashby:pylon",
+          "ms": 1739,
+          "raw": 18
+        }
+      ],
+      "raw": 2430,
+      "normalized": 2430,
+      "source_gate": 682,
+      "post_hard_filter_and_score": 306,
+      "post_recency": 65,
+      "eligible": 19,
+      "final": 15,
+      "boards_with_final": {
+        "ashby:openai": 12,
+        "ashby:notion": 2,
+        "ashby:clickhouse": 1
+      },
+      "boards_gating_zero": 2
+    },
+    "smartrecruiters": {
+      "label": "MEASURED",
+      "sources": 24,
+      "scheduling": "serial",
+      "observed_peak_in_flight": 1,
+      "ok": 24,
+      "failed": [],
+      "requests": 24,
+      "retries": 0,
+      "summed_s": 20.683,
+      "segment_wall_s": 20.681,
+      "share_of_free_phase": 0.0392,
+      "board_ms": {
+        "n": 24,
+        "min": 657,
+        "median": 799.5,
+        "p95": 1247,
+        "max": 1540
+      },
+      "slowest": [
+        {
+          "board": "smartrecruiters:jitterbit",
+          "ms": 1540,
+          "raw": 24
+        },
+        {
+          "board": "smartrecruiters:lingaro",
+          "ms": 1247,
+          "raw": 1
+        },
+        {
+          "board": "smartrecruiters:servicetitan",
+          "ms": 1131,
+          "raw": 8
+        }
+      ],
+      "raw": 665,
+      "normalized": 665,
+      "source_gate": 110,
+      "post_hard_filter_and_score": 84,
+      "post_recency": 29,
+      "eligible": 0,
+      "final": 0,
+      "boards_with_final": {},
+      "boards_gating_zero": 7
+    },
+    "breezy": {
+      "label": "MEASURED",
+      "sources": 3,
+      "scheduling": "serial",
+      "observed_peak_in_flight": 1,
+      "ok": 3,
+      "failed": [],
+      "requests": 3,
+      "retries": 0,
+      "summed_s": 2.45,
+      "segment_wall_s": 2.45,
+      "share_of_free_phase": 0.0046,
+      "board_ms": {
+        "n": 3,
+        "min": 702,
+        "median": 823,
+        "p95": 925,
+        "max": 925
+      },
+      "slowest": [
+        {
+          "board": "breezy:anovia",
+          "ms": 925,
+          "raw": 15
+        },
+        {
+          "board": "breezy:foundationhealth",
+          "ms": 823,
+          "raw": 32
+        },
+        {
+          "board": "breezy:iqvia",
+          "ms": 702,
+          "raw": 7
+        }
+      ],
+      "raw": 54,
+      "normalized": 54,
+      "source_gate": 3,
+      "post_hard_filter_and_score": 2,
+      "post_recency": 0,
+      "eligible": 0,
+      "final": 0,
+      "boards_with_final": {},
+      "boards_gating_zero": 2
+    },
+    "wwr": {
+      "label": "MEASURED",
+      "sources": 1,
+      "scheduling": "serial",
+      "observed_peak_in_flight": 1,
+      "ok": 1,
+      "failed": [],
+      "requests": 8,
+      "retries": 0,
+      "summed_s": 6.181,
+      "segment_wall_s": 6.182,
+      "share_of_free_phase": 0.0117,
+      "board_ms": {
+        "n": 1,
+        "min": 6181,
+        "median": 6181,
+        "p95": 6181,
+        "max": 6181
+      },
+      "slowest": [
+        {
+          "board": "wwr",
+          "ms": 6181,
+          "raw": 195
+        }
+      ],
+      "raw": 195,
+      "normalized": 195,
+      "source_gate": 80,
+      "post_hard_filter_and_score": 33,
+      "post_recency": 12,
+      "eligible": 12,
+      "final": 5,
+      "boards_with_final": {
+        "wwr": 5
+      },
+      "boards_gating_zero": 0
+    },
+    "other_feeds": {
+      "label": "MEASURED",
+      "sources": 4,
+      "scheduling": "serial",
+      "observed_peak_in_flight": 1,
+      "ok": 4,
+      "failed": [],
+      "requests": 13,
+      "retries": 0,
+      "summed_s": 12.47,
+      "segment_wall_s": 12.469,
+      "share_of_free_phase": 0.0236,
+      "board_ms": {
+        "n": 4,
+        "min": 1196,
+        "median": 2521.0,
+        "p95": 6232,
+        "max": 6232
+      },
+      "slowest": [
+        {
+          "board": "remoteok",
+          "ms": 6232,
+          "raw": 100
+        },
+        {
+          "board": "himalayas",
+          "ms": 3147,
+          "raw": 200
+        },
+        {
+          "board": "remotive",
+          "ms": 1895,
+          "raw": 19
+        }
+      ],
+      "raw": 369,
+      "normalized": 368,
+      "source_gate": 93,
+      "post_hard_filter_and_score": 60,
+      "post_recency": 54,
+      "eligible": 14,
+      "final": 13,
+      "boards_with_final": {
+        "remoteok": 5,
+        "jobicy": 8
+      },
+      "boards_gating_zero": 0
+    },
+    "optum": {
+      "sources": 0,
+      "label": "VERIFIED",
+      "note": "no unit in this record (family disabled or absent)"
+    },
+    "enterprise": {
+      "sources": 0,
+      "label": "VERIFIED",
+      "note": "no unit in this record (family disabled or absent)"
+    }
+  },
+  "dominance": {
+    "label": "MEASURED",
+    "lever_segment_s": 423.698,
+    "lever_share_of_free_phase": 0.8027,
+    "slowest_board": "lever:veeva",
+    "slowest_board_ms": 359529,
+    "slowest_board_share_of_free_phase": 0.6812,
+    "slowest_board_queued_behind_s": 64.169,
+    "serial_families_s": 73.327,
+    "finding": "the Lever segment is 80% of the free phase and one board's fetch alone 68%; every other family together is 20%"
+  },
+  "slowest_sources": {
+    "label": "MEASURED",
+    "items": [
+      {
+        "board": "lever:veeva",
+        "ms": 359529,
+        "raw": 918,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:sophos",
+        "ms": 153169,
+        "raw": 84,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:binance",
+        "ms": 146331,
+        "raw": 306,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:paytm",
+        "ms": 128213,
+        "raw": 174,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:portagepointpartners",
+        "ms": 38046,
+        "raw": 52,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:rws",
+        "ms": 36266,
+        "raw": 48,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:hevodata",
+        "ms": 34491,
+        "raw": 50,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:acceldata",
+        "ms": 32539,
+        "raw": 40,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:dozee",
+        "ms": 26570,
+        "raw": 18,
+        "requests": 1,
+        "retries": 0
+      },
+      {
+        "board": "lever:meesho",
+        "ms": 25982,
+        "raw": 51,
+        "requests": 1,
+        "retries": 0
+      }
+    ]
+  },
+  "lever_across_dates": {
+    "label": "MEASURED (clocks); throughput INFERRED: C5 recorded no bytes, so each board's 2026-09-21 response size is divided by its C5 duration \u2014 raw counts match on the largest board (918 both days)",
+    "2026-09-21_serial_audit": {
+      "file": "current-free-http.json",
+      "boards": 21,
+      "summed_s": 65.806,
+      "veeva_ms": 6748,
+      "response_bytes": 28678350
+    },
+    "2026-09-22_live_benchmark": {
+      "file": "free-concurrency-live.json",
+      "serial": {
+        "wall_s": 85.212,
+        "summed_s": 85.21,
+        "veeva_ms": 7489,
+        "retries": 0,
+        "failures": 0
+      },
+      "workers=4": {
+        "wall_s": 24.253,
+        "summed_s": 81.233,
+        "veeva_ms": 11030,
+        "retries": 0,
+        "failures": 0
+      }
+    },
+    "2026-09-24_c5": {
+      "workers": 4,
+      "wall_s": 423.698,
+      "summed_s": 1130.546,
+      "veeva_ms": 359529,
+      "retries": 0,
+      "requests": 21
+    },
+    "per_board_kb_per_s": {
+      "2026-09-21_median": 213.7,
+      "2026-09-24_c5_median": 20.7,
+      "largest_board": {
+        "board": "lever:veeva",
+        "response_bytes_2026_09_21": 12999578,
+        "2026-09-21": 1926.5,
+        "2026-09-24_c5": 36.2
+      }
+    }
+  },
+  "fifo_model": {
+    "label": "VERIFIED against C5 (check: model_s vs measured_s); what-if INFERRED",
+    "assumption": "a board takes the same time with 4 in flight; the inflated column multiplies every duration by 1.236 (Greenhouse's measured summed-time growth from serial to 4 workers, greenhouse-concurrency-live.json)",
+    "check": {
+      "lever": {
+        "measured_s": 423.698,
+        "model_s": 423.698
+      },
+      "greenhouse": {
+        "measured_s": 30.784,
+        "model_s": 30.784
+      },
+      "ashby": {
+        "measured_s": 31.545,
+        "model_s": 31.546
+      },
+      "smartrecruiters": {
+        "measured_s": 20.681,
+        "model_s": 20.683
+      },
+      "breezy": {
+        "measured_s": 2.45,
+        "model_s": 2.45
+      },
+      "other_feeds": {
+        "measured_s": 12.469,
+        "model_s": 12.47
+      },
+      "wwr": {
+        "measured_s": 6.182,
+        "model_s": 6.181
+      }
+    },
+    "what_if_serial_groups": {
+      "ashby": {
+        "serial_now_s": 31.546,
+        "model_4_workers_s": 8.087,
+        "model_4_workers_inflated_s": 9.996,
+        "floor_slowest_board_s": 4.139,
+        "saving_s": [
+          21.55,
+          23.459
+        ]
+      },
+      "smartrecruiters": {
+        "serial_now_s": 20.683,
+        "model_4_workers_s": 5.229,
+        "model_4_workers_inflated_s": 6.463,
+        "floor_slowest_board_s": 1.54,
+        "saving_s": [
+          14.22,
+          15.454
+        ]
+      },
+      "breezy": {
+        "serial_now_s": 2.45,
+        "model_4_workers_s": 0.925,
+        "model_4_workers_inflated_s": 1.143,
+        "floor_slowest_board_s": 0.925,
+        "saving_s": [
+          1.307,
+          1.525
+        ]
+      },
+      "feeds": {
+        "serial_now_s": 18.651,
+        "model_4_workers_s": 6.232,
+        "model_4_workers_inflated_s": 7.703,
+        "floor_slowest_board_s": 6.232,
+        "saving_s": [
+          10.948,
+          12.419
+        ]
+      }
+    },
+    "why_not_lever_or_greenhouse": "already at 4; each segment's floor is its slowest board (see floor in families.*.slowest)"
+  },
+  "benchmark": {
+    "label": "INFERRED; NOT RUN",
+    "ashby_smartrecruiters": {
+      "justified": true,
+      "why": "the two largest serial blocks (C5 31.5 s + 20.7 s); SmartRecruiters is latency-bound (C5 median 799.5 ms per board; median response 9841 bytes on 2026-09-21) and Ashby's 2026-09-21 audit had 3 body reads over 10x its median that serial waits out in full; model saving ~36-39 s per sweep at 4 workers, small next to C5's 527.8 s free phase but large next to a normal-day one (Lever 24.253 s at 4 workers on 2026-09-22)",
+      "ashby_2026_09_21_stragglers": [
+        {
+          "board": "ashby:clickhouse",
+          "ms": 49997
+        },
+        {
+          "board": "ashby:uipath",
+          "ms": 83477
+        },
+        {
+          "board": "ashby:xero",
+          "ms": 24339
+        }
+      ],
+      "prerequisite": "bench/search_v2_free_concurrency.py drives concurrency.ENV[provider], which admits only lever and greenhouse: each family needs its own default-off switch first, a separately reviewed change (VERIFIED)",
+      "would_test": [
+        "capture once, then socket-denied replay at serial/1/2/4: source sequence, acquired and final SHA-256, and the survivor of a synthetic cross-board twin identical to serial",
+        "live arms serial/2/4 on one host, 2 passes at different hours: wall, summed board seconds, per-board median/p95/max, failure categories, retries, 429s, peak RSS",
+        "whether an Ashby straggler recurs, and what it costs serial vs 4 workers when it is not the last board",
+        "never above 4 workers; stop on any 429 or new failure category"
+      ],
+      "not_justified": {
+        "breezy": "3 boards, 2.45 s"
+      },
+      "deferred": {
+        "feeds": "a different code path (sources.FEED_FETCHERS, not the board executor), five hosts, and WWR/Himalayas page sequentially inside one source; model saving ~11-12 s"
+      }
+    },
+    "lever_remeasure": {
+      "justified": true,
+      "kind": "latency re-measurement, not a concurrency change",
+      "why": "C5's Lever wall is 17.5x 2026-09-22's at the same 4 workers with 0 retries; its floor is one board, so no worker count helps; cause UNKNOWN (provider-side throttling INFERRED: Greenhouse's median board took 880.0 ms on the same host seconds later)",
+      "would_test": "a serial Lever-only pass, repeated at 2-3 times of day: per board response bytes, time to headers vs body-read time, and whether C5's ~20.7 kB/s median per-connection rate recurs"
+    },
+    "workers_above_4": "not recommended: no evidence; the C5 floor is one board"
+  },
+  "postman": {
+    "board": "greenhouse:postman",
+    "config": {
+      "label": "VERIFIED",
+      "file": "config.py",
+      "line": 239,
+      "text": "\"groww\": \"Groww\", \"postman\": \"Postman\",",
+      "historical_success_claims_in_config": {
+        "tokens_probed_and_resolve_2026_07_25": true,
+        "india_share_measured_12_of_114": true
+      },
+      "note": "the only success claims are config comments from 2026-07-25/26; no evidence file records a successful fetch"
+    },
+    "observations": {
+      "label": "MEASURED",
+      "items": [
+        {
+          "at": "2026-09-21T10:12:53.369644+00:00",
+          "file": "current-free-http.json",
+          "kind": "serial audit",
+          "ok": false,
+          "status": 404,
+          "ms": 335
+        },
+        {
+          "at": "2026-09-21T15:18:25.676667+00:00",
+          "file": "first-tranche-spotchecks.json",
+          "kind": "spot-check",
+          "ok": false,
+          "status": 404,
+          "ms": 474
+        },
+        {
+          "at": "2026-09-23T13:07 (date from the B4 write-up \u00a78; not in the file)",
+          "file": "greenhouse-concurrency-replay.json",
+          "kind": "capture pass",
+          "ok": false,
+          "status": 404
+        },
+        {
+          "at": "2026-09-23T13:15:30Z",
+          "file": "greenhouse-concurrency-live.json",
+          "kind": "live benchmark arm serial",
+          "ok": false,
+          "category": "HTTP_404",
+          "ms": 449
+        },
+        {
+          "at": "2026-09-23T13:15:30Z",
+          "file": "greenhouse-concurrency-live.json",
+          "kind": "live benchmark arm workers=2",
+          "ok": false,
+          "category": "HTTP_404",
+          "ms": 356
+        },
+        {
+          "at": "2026-09-23T13:15:30Z",
+          "file": "greenhouse-concurrency-live.json",
+          "kind": "live benchmark arm workers=4",
+          "ok": false,
+          "category": "HTTP_404",
+          "ms": 482
+        },
+        {
+          "at": "2026-09-23T13:15:30Z",
+          "file": "greenhouse-concurrency-live.json",
+          "kind": "live benchmark arm workers=6",
+          "ok": false,
+          "category": "HTTP_404",
+          "ms": 470
+        },
+        {
+          "at": "2026-09-23T13:15:30Z",
+          "file": "greenhouse-concurrency-live.json",
+          "kind": "live benchmark arm workers=8",
+          "ok": false,
+          "category": "HTTP_404",
+          "ms": 344
+        },
+        {
+          "at": "2026-09-24T16:31:41.163+00:00",
+          "file": "sweep_1eeb9cb0018a4c528c982df5e1546f60.json",
+          "kind": "sweep telemetry",
+          "ok": false,
+          "category": "HTTP_404",
+          "ms": 626,
+          "retries": 0
+        }
+      ]
+    },
+    "summary": {
+      "label": "MEASURED",
+      "on_file": 9,
+      "failures": 9,
+      "successes": 0,
+      "first": "2026-09-21T10:12:53.369644+00:00",
+      "last": "2026-09-24T16:31:41.163+00:00",
+      "distinct_days": 3,
+      "kinds_of_pass": [
+        "capture pass",
+        "live benchmark",
+        "serial audit",
+        "spot-check",
+        "sweep telemetry"
+      ],
+      "doc_reported_not_on_file": "V2-B2's three production sweeps, 404 once per run (B4 write-up \u00a71); dates UNKNOWN"
+    },
+    "replacement_search": {
+      "label": "VERIFIED (absence)",
+      "files_scanned": 65,
+      "postman_on_another_provider": [],
+      "other_slugs_containing_postman": [
+        {
+          "provider": "greenhouse",
+          "slug": "kellerpostman",
+          "files": [
+            "expansion-discovery-registry.json"
+          ],
+          "in_baseline": false,
+          "company_name_status": "inferred_from_slug_not_identity_verified"
+        },
+        {
+          "provider": "greenhouse",
+          "slug": "postmanlaw",
+          "files": [
+            "expansion-discovery-registry.json"
+          ],
+          "in_baseline": false,
+          "company_name_status": "inferred_from_slug_not_identity_verified"
+        }
+      ],
+      "verdict": "no committed evidence shows this employer on any other ATS or under any other slug; the two look-alike slugs are different, unverified identities (company name inferred from the slug)"
+    },
+    "decision": {
+      "action": "remove",
+      "why": "0 successes in 9 recorded fetches, 2026-09-21 to 2026-09-24, over 5 kinds of pass; no trusted replacement identity exists in the repository",
+      "change": {
+        "file": "config.py",
+        "line": 239,
+        "before": "\"groww\": \"Groww\", \"postman\": \"Postman\",",
+        "after": "\"groww\": \"Groww\","
+      },
+      "tests_that_pin_the_registry": [
+        "sweep/tests/test_free_concurrency.py:586",
+        "sweep/tests/test_free_concurrency_greenhouse.py:598",
+        "sweep/tests/test_free_concurrency_greenhouse.py:603",
+        "sweep/tests/test_free_concurrency_greenhouse.py:604",
+        "sweep/tests/test_free_concurrency_greenhouse.py:614",
+        "sweep/tests/test_search_v2_telemetry.py:199"
+      ],
+      "effect": "54 -> 53 Greenhouse boards, 129 -> 128 ATS boards, 134 -> 133 active records; one failing unit fewer per sweep (~0.3-0.6 s, run beside three other Greenhouse workers)"
+    }
+  },
+  "other_free_findings": {
+    "label": "MEASURED",
+    "smartrecruiters_boards_at_100_row_page_cap": [
+      "smartrecruiters:renesaselectronics",
+      "smartrecruiters:sia",
+      "smartrecruiters:version1",
+      "smartrecruiters:informagroupplc",
+      "smartrecruiters:metromakro"
+    ],
+    "families_with_zero_final": [
+      "smartrecruiters",
+      "breezy"
+    ],
+    "note": "SmartRecruiters pagination is its own evidence file (smartrecruiters-pagination.json), unchanged here"
+  },
+  "decision": {
+    "dominant_cost": "lever:veeva's single fetch on a slow Lever day; not worker count",
+    "postman": "remove the config entry (no verified replacement)",
+    "concurrency": "benchmark Ashby + SmartRecruiters (Free-only, after their own default-off switches); do not raise Lever/Greenhouse above 4",
+    "lever": "re-measure before changing anything"
+  }
+}

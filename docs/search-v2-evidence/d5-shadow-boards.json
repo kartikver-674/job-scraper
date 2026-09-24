@@ -1,0 +1,1362 @@
+{
+  "schema": "search-v2d5-shadow.1",
+  "status": "MEASURED OFFLINE; one natural in-sweep evaluation exists (C5)",
+  "generated_from": [
+    "c0-b3-free-sweep-through-guard.json",
+    "shadow-b3-free-sweep-parity.json",
+    "shadow-b3-live-benchmark.json",
+    "shadow-eight-board-replay.json",
+    "sweep_1eeb9cb0018a4c528c982df5e1546f60.json"
+  ],
+  "evidence_labels": {
+    "MEASURED": "counted or timed from a recorded run or committed evidence file",
+    "VERIFIED": "read directly from code, config or a file's contents",
+    "INFERRED": "a model with its assumptions stated beside it",
+    "UNKNOWN": "the evidence does not exist; not the same as zero"
+  },
+  "not_counted_separately": {
+    "shadow-b3-frozen-equivalence.json": "re-evaluates the same 2026-09-21 snapshot"
+  },
+  "observations": {
+    "label": "MEASURED",
+    "items": [
+      {
+        "id": "frozen",
+        "at": "2026-09-21",
+        "kind": "frozen audit snapshot, 5 synthetic cohorts",
+        "natural": false,
+        "fields": "eligible = eligible_final_rows, positive = positive_score_rows, per cohort",
+        "file": "shadow-eight-board-replay.json"
+      },
+      {
+        "id": "live",
+        "at": "2026-09-23T11:44:10+00:00",
+        "kind": "live public benchmark, 5 synthetic cohorts vs frozen baseline",
+        "natural": false,
+        "fields": "eligible = eligible, positive = final_new_positive, per cohort",
+        "file": "shadow-b3-live-benchmark.json"
+      },
+      {
+        "id": "shadow-b3-free-sweep-parity:on",
+        "at": "2026-09-23T12:04:04+00:00",
+        "natural": false,
+        "kind": "controlled developer free sweep over 4 public boards; fetch health only (no per-board evaluation)",
+        "file": "shadow-b3-free-sweep-parity.json"
+      },
+      {
+        "id": "shadow-b3-free-sweep-parity:production_like",
+        "at": "2026-09-23T12:04:04+00:00",
+        "natural": false,
+        "kind": "controlled developer free sweep over 4 public boards; fetch health only (no per-board evaluation)",
+        "file": "shadow-b3-free-sweep-parity.json"
+      },
+      {
+        "id": "c0-b3-free-sweep-through-guard:on",
+        "at": "2026-09-23T17:29:21+00:00",
+        "natural": false,
+        "kind": "controlled developer free sweep over 4 public boards; fetch health only (no per-board evaluation)",
+        "file": "c0-b3-free-sweep-through-guard.json"
+      },
+      {
+        "id": "c0-b3-free-sweep-through-guard:production_like",
+        "at": "2026-09-23T17:29:21+00:00",
+        "natural": false,
+        "kind": "controlled developer free sweep over 4 public boards; fetch health only (no per-board evaluation)",
+        "file": "c0-b3-free-sweep-through-guard.json"
+      },
+      {
+        "id": "telemetry:1eeb9cb0",
+        "at": "2026-09-24T16:11:56.862+00:00",
+        "natural": true,
+        "kind": "shadow tranche inside an integrated sweep, judged against that sweep's real 224-source result (one synthetic default profile)",
+        "file": "sweep_1eeb9cb0018a4c528c982df5e1546f60.json",
+        "status": "evaluated",
+        "totals": {
+          "eligible": 11,
+          "baseline_final": 201,
+          "combined_final": 212,
+          "baseline_positive": 131,
+          "combined_positive": 140,
+          "baseline_top_n": 20,
+          "baseline_top_n_retained": 20,
+          "top_n_new": 0
+        },
+        "cost_ms": {
+          "fetch_wall_ms": 8753,
+          "evaluation_wall_ms": 1330
+        }
+      }
+    ]
+  },
+  "boards": {
+    "greenhouse:fivetran": {
+      "observations": [
+        {
+          "obs": "frozen",
+          "at": "2026-09-21",
+          "ok": true,
+          "ms": 827,
+          "raw": 197,
+          "retries": null,
+          "eligible_by_cohort": [
+            6,
+            5,
+            6,
+            6,
+            6
+          ],
+          "positive_by_cohort": [
+            1,
+            0,
+            1,
+            0,
+            1
+          ],
+          "top20_entries": 3,
+          "overlap_with_baseline_raw": 1
+        },
+        {
+          "obs": "live",
+          "at": "2026-09-23T11:44:10+00:00",
+          "ok": true,
+          "ms": 1230,
+          "retries": 0,
+          "raw": 198,
+          "eligible_by_cohort": [
+            8,
+            4,
+            8,
+            8,
+            8
+          ],
+          "positive_by_cohort": [
+            1,
+            0,
+            1,
+            0,
+            1
+          ],
+          "top20_entries": 3,
+          "native_id_distinct_of_raw": [
+            198,
+            198
+          ],
+          "ids_persisted_since_2026_09_21": 191,
+          "persisted_id_retitled": 4
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:on",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 1089,
+          "retries": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:production_like",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 27089,
+          "retries": 1
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:on",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 921,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:production_like",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 863,
+          "retries": 0
+        },
+        {
+          "obs": "telemetry:1eeb9cb0",
+          "at": "2026-09-24T16:33:44.722+00:00",
+          "ok": true,
+          "ms": 1522,
+          "retries": 0,
+          "raw": 197,
+          "gated": 71,
+          "funnel": {
+            "observed_normalized": 71,
+            "post_hard_filter_and_score": 12,
+            "post_recency": 12,
+            "post_salary_reachability_visa_eor": 0,
+            "post_location_eligible": 0
+          },
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap_with_production": 0,
+          "native_overlap_with_production": 0,
+          "native_id_distinct_of_gated": [
+            71,
+            71
+          ],
+          "job_keys_of_gated": [
+            45,
+            71
+          ]
+        }
+      ],
+      "summary": {
+        "label": "MEASURED",
+        "dates": [
+          "2026-09-21",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "fetches": 7,
+        "fetch_ok": 3,
+        "fetch_failures": 0,
+        "fetch_outcome_not_recorded": 4,
+        "retries": 1,
+        "ms": {
+          "n": 7,
+          "min": 827,
+          "median": 1089,
+          "p95": 27089,
+          "max": 27089
+        },
+        "raw_range": [
+          197,
+          198
+        ],
+        "natural_observations": 1,
+        "natural_with_new_positive_final": 0,
+        "natural_final_new": 0,
+        "natural_final_new_positive": 0,
+        "natural_top20_new": 0,
+        "natural_overlap_with_production": 0,
+        "synthetic_cohorts_with_positive": [
+          3,
+          3
+        ]
+      },
+      "decision": {
+        "action": "keep_shadow",
+        "why": "1 natural observation(s); promotion needs repeated natural evidence and one is never enough"
+      }
+    },
+    "greenhouse:abnormalsecurity": {
+      "observations": [
+        {
+          "obs": "frozen",
+          "at": "2026-09-21",
+          "ok": true,
+          "ms": 609,
+          "raw": 78,
+          "retries": null,
+          "eligible_by_cohort": [
+            4,
+            5,
+            4,
+            4,
+            4
+          ],
+          "positive_by_cohort": [
+            1,
+            2,
+            0,
+            1,
+            1
+          ],
+          "top20_entries": 4,
+          "overlap_with_baseline_raw": 0
+        },
+        {
+          "obs": "live",
+          "at": "2026-09-23T11:44:10+00:00",
+          "ok": true,
+          "ms": 452,
+          "retries": 0,
+          "raw": 82,
+          "eligible_by_cohort": [
+            3,
+            7,
+            3,
+            3,
+            3
+          ],
+          "positive_by_cohort": [
+            1,
+            2,
+            0,
+            1,
+            1
+          ],
+          "top20_entries": 4,
+          "native_id_distinct_of_raw": [
+            82,
+            82
+          ],
+          "ids_persisted_since_2026_09_21": 76,
+          "persisted_id_retitled": 1
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:on",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 475,
+          "retries": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:production_like",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 683,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:on",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 595,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:production_like",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 751,
+          "retries": 0
+        },
+        {
+          "obs": "telemetry:1eeb9cb0",
+          "at": "2026-09-24T16:33:46.244+00:00",
+          "ok": true,
+          "ms": 784,
+          "retries": 0,
+          "raw": 83,
+          "gated": 25,
+          "funnel": {
+            "observed_normalized": 25,
+            "post_hard_filter_and_score": 11,
+            "post_recency": 5,
+            "post_salary_reachability_visa_eor": 3,
+            "post_location_eligible": 3
+          },
+          "eligible": 3,
+          "eligible_positive": 3,
+          "final_new": 3,
+          "final_new_positive": 3,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 29,
+          "key_overlap_with_production": 0,
+          "native_overlap_with_production": 0,
+          "native_id_distinct_of_gated": [
+            25,
+            25
+          ],
+          "job_keys_of_gated": [
+            23,
+            25
+          ]
+        }
+      ],
+      "summary": {
+        "label": "MEASURED",
+        "dates": [
+          "2026-09-21",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "fetches": 7,
+        "fetch_ok": 3,
+        "fetch_failures": 0,
+        "fetch_outcome_not_recorded": 4,
+        "retries": 0,
+        "ms": {
+          "n": 7,
+          "min": 452,
+          "median": 609,
+          "p95": 784,
+          "max": 784
+        },
+        "raw_range": [
+          78,
+          83
+        ],
+        "natural_observations": 1,
+        "natural_with_new_positive_final": 1,
+        "natural_final_new": 3,
+        "natural_final_new_positive": 3,
+        "natural_top20_new": 0,
+        "natural_overlap_with_production": 0,
+        "synthetic_cohorts_with_positive": [
+          4,
+          4
+        ]
+      },
+      "decision": {
+        "action": "keep_shadow",
+        "why": "1 natural observation(s); promotion needs repeated natural evidence and one is never enough"
+      }
+    },
+    "greenhouse:apolloio": {
+      "observations": [
+        {
+          "obs": "frozen",
+          "at": "2026-09-21",
+          "ok": true,
+          "ms": 450,
+          "raw": 47,
+          "retries": null,
+          "eligible_by_cohort": [
+            2,
+            0,
+            2,
+            2,
+            2
+          ],
+          "positive_by_cohort": [
+            1,
+            0,
+            0,
+            0,
+            1
+          ],
+          "top20_entries": 2,
+          "overlap_with_baseline_raw": 0
+        },
+        {
+          "obs": "live",
+          "at": "2026-09-23T11:44:10+00:00",
+          "ok": true,
+          "ms": 603,
+          "retries": 0,
+          "raw": 49,
+          "eligible_by_cohort": [
+            2,
+            0,
+            2,
+            2,
+            2
+          ],
+          "positive_by_cohort": [
+            1,
+            0,
+            0,
+            0,
+            1
+          ],
+          "top20_entries": 2,
+          "native_id_distinct_of_raw": [
+            49,
+            49
+          ],
+          "ids_persisted_since_2026_09_21": 46,
+          "persisted_id_retitled": 3
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:on",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 440,
+          "retries": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:production_like",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 449,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:on",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 614,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:production_like",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 1445,
+          "retries": 0
+        },
+        {
+          "obs": "telemetry:1eeb9cb0",
+          "at": "2026-09-24T16:33:47.029+00:00",
+          "ok": true,
+          "ms": 703,
+          "retries": 0,
+          "raw": 51,
+          "gated": 9,
+          "funnel": {
+            "observed_normalized": 9,
+            "post_hard_filter_and_score": 1,
+            "post_recency": 0,
+            "post_salary_reachability_visa_eor": 0,
+            "post_location_eligible": 0
+          },
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap_with_production": 0,
+          "native_overlap_with_production": 0,
+          "native_id_distinct_of_gated": [
+            9,
+            9
+          ],
+          "job_keys_of_gated": [
+            9,
+            9
+          ]
+        }
+      ],
+      "summary": {
+        "label": "MEASURED",
+        "dates": [
+          "2026-09-21",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "fetches": 7,
+        "fetch_ok": 3,
+        "fetch_failures": 0,
+        "fetch_outcome_not_recorded": 4,
+        "retries": 0,
+        "ms": {
+          "n": 7,
+          "min": 440,
+          "median": 603,
+          "p95": 1445,
+          "max": 1445
+        },
+        "raw_range": [
+          47,
+          51
+        ],
+        "natural_observations": 1,
+        "natural_with_new_positive_final": 0,
+        "natural_final_new": 0,
+        "natural_final_new_positive": 0,
+        "natural_top20_new": 0,
+        "natural_overlap_with_production": 0,
+        "synthetic_cohorts_with_positive": [
+          2,
+          2
+        ]
+      },
+      "decision": {
+        "action": "keep_shadow",
+        "why": "1 natural observation(s); promotion needs repeated natural evidence and one is never enough"
+      }
+    },
+    "greenhouse:brex": {
+      "observations": [
+        {
+          "obs": "frozen",
+          "at": "2026-09-21",
+          "ok": true,
+          "ms": 781,
+          "raw": 251,
+          "retries": null,
+          "eligible_by_cohort": [
+            0,
+            4,
+            0,
+            0,
+            0
+          ],
+          "positive_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "top20_entries": 1,
+          "overlap_with_baseline_raw": 0
+        },
+        {
+          "obs": "live",
+          "at": "2026-09-23T11:44:10+00:00",
+          "ok": true,
+          "ms": 777,
+          "retries": 0,
+          "raw": 253,
+          "eligible_by_cohort": [
+            0,
+            9,
+            0,
+            0,
+            0
+          ],
+          "positive_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "top20_entries": 1,
+          "native_id_distinct_of_raw": [
+            253,
+            253
+          ],
+          "ids_persisted_since_2026_09_21": 246,
+          "persisted_id_retitled": 4
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:on",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 765,
+          "retries": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:production_like",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 789,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:on",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 899,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:production_like",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 1087,
+          "retries": 0
+        },
+        {
+          "obs": "telemetry:1eeb9cb0",
+          "at": "2026-09-24T16:33:47.732+00:00",
+          "ok": true,
+          "ms": 1214,
+          "retries": 0,
+          "raw": 258,
+          "gated": 57,
+          "funnel": {
+            "observed_normalized": 57,
+            "post_hard_filter_and_score": 3,
+            "post_recency": 2,
+            "post_salary_reachability_visa_eor": 1,
+            "post_location_eligible": 1
+          },
+          "eligible": 1,
+          "eligible_positive": 0,
+          "final_new": 1,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 169,
+          "key_overlap_with_production": 0,
+          "native_overlap_with_production": 0,
+          "native_id_distinct_of_gated": [
+            57,
+            57
+          ],
+          "job_keys_of_gated": [
+            21,
+            57
+          ]
+        }
+      ],
+      "summary": {
+        "label": "MEASURED",
+        "dates": [
+          "2026-09-21",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "fetches": 7,
+        "fetch_ok": 3,
+        "fetch_failures": 0,
+        "fetch_outcome_not_recorded": 4,
+        "retries": 0,
+        "ms": {
+          "n": 7,
+          "min": 765,
+          "median": 789,
+          "p95": 1214,
+          "max": 1214
+        },
+        "raw_range": [
+          251,
+          258
+        ],
+        "natural_observations": 1,
+        "natural_with_new_positive_final": 0,
+        "natural_final_new": 1,
+        "natural_final_new_positive": 0,
+        "natural_top20_new": 0,
+        "natural_overlap_with_production": 0,
+        "synthetic_cohorts_with_positive": [
+          1,
+          1
+        ]
+      },
+      "decision": {
+        "action": "keep_shadow",
+        "why": "1 natural observation(s); promotion needs repeated natural evidence and one is never enough"
+      }
+    },
+    "greenhouse:vercel": {
+      "observations": [
+        {
+          "obs": "frozen",
+          "at": "2026-09-21",
+          "ok": true,
+          "ms": 635,
+          "raw": 84,
+          "retries": null,
+          "eligible_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "positive_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "top20_entries": 0,
+          "overlap_with_baseline_raw": 0
+        },
+        {
+          "obs": "live",
+          "at": "2026-09-23T11:44:10+00:00",
+          "ok": true,
+          "ms": 462,
+          "retries": 0,
+          "raw": 89,
+          "eligible_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "positive_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "top20_entries": 0,
+          "native_id_distinct_of_raw": [
+            89,
+            89
+          ],
+          "ids_persisted_since_2026_09_21": 83,
+          "persisted_id_retitled": 7
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:on",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 496,
+          "retries": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:production_like",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 1504,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:on",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 1096,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:production_like",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 666,
+          "retries": 0
+        },
+        {
+          "obs": "telemetry:1eeb9cb0",
+          "at": "2026-09-24T16:33:48.946+00:00",
+          "ok": true,
+          "ms": 1182,
+          "retries": 0,
+          "raw": 87,
+          "gated": 33,
+          "funnel": {
+            "observed_normalized": 33,
+            "post_hard_filter_and_score": 7,
+            "post_recency": 7,
+            "post_salary_reachability_visa_eor": 1,
+            "post_location_eligible": 1
+          },
+          "eligible": 1,
+          "eligible_positive": 1,
+          "final_new": 1,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 40,
+          "key_overlap_with_production": 0,
+          "native_overlap_with_production": 0,
+          "native_id_distinct_of_gated": [
+            33,
+            33
+          ],
+          "job_keys_of_gated": [
+            33,
+            33
+          ]
+        }
+      ],
+      "summary": {
+        "label": "MEASURED",
+        "dates": [
+          "2026-09-21",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "fetches": 7,
+        "fetch_ok": 3,
+        "fetch_failures": 0,
+        "fetch_outcome_not_recorded": 4,
+        "retries": 0,
+        "ms": {
+          "n": 7,
+          "min": 462,
+          "median": 666,
+          "p95": 1504,
+          "max": 1504
+        },
+        "raw_range": [
+          84,
+          89
+        ],
+        "natural_observations": 1,
+        "natural_with_new_positive_final": 1,
+        "natural_final_new": 1,
+        "natural_final_new_positive": 1,
+        "natural_top20_new": 0,
+        "natural_overlap_with_production": 0,
+        "synthetic_cohorts_with_positive": [
+          1,
+          1
+        ]
+      },
+      "decision": {
+        "action": "keep_shadow",
+        "why": "1 natural observation(s); promotion needs repeated natural evidence and one is never enough"
+      }
+    },
+    "greenhouse:jumio": {
+      "observations": [
+        {
+          "obs": "frozen",
+          "at": "2026-09-21",
+          "ok": true,
+          "ms": 410,
+          "raw": 27,
+          "retries": null,
+          "eligible_by_cohort": [
+            0,
+            5,
+            0,
+            0,
+            0
+          ],
+          "positive_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "top20_entries": 0,
+          "overlap_with_baseline_raw": 0
+        },
+        {
+          "obs": "live",
+          "at": "2026-09-23T11:44:10+00:00",
+          "ok": true,
+          "ms": 396,
+          "retries": 0,
+          "raw": 27,
+          "eligible_by_cohort": [
+            0,
+            3,
+            0,
+            0,
+            0
+          ],
+          "positive_by_cohort": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "top20_entries": 0,
+          "native_id_distinct_of_raw": [
+            27,
+            27
+          ],
+          "ids_persisted_since_2026_09_21": 27,
+          "persisted_id_retitled": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:on",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 482,
+          "retries": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:production_like",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 501,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:on",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 544,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:production_like",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 526,
+          "retries": 0
+        },
+        {
+          "obs": "telemetry:1eeb9cb0",
+          "at": "2026-09-24T16:33:50.128+00:00",
+          "ok": true,
+          "ms": 1244,
+          "retries": 0,
+          "raw": 28,
+          "gated": 12,
+          "funnel": {
+            "observed_normalized": 12,
+            "post_hard_filter_and_score": 5,
+            "post_recency": 4,
+            "post_salary_reachability_visa_eor": 4,
+            "post_location_eligible": 4
+          },
+          "eligible": 4,
+          "eligible_positive": 4,
+          "final_new": 4,
+          "final_new_positive": 4,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 86,
+          "key_overlap_with_production": 0,
+          "native_overlap_with_production": 0,
+          "native_id_distinct_of_gated": [
+            12,
+            12
+          ],
+          "job_keys_of_gated": [
+            12,
+            12
+          ]
+        }
+      ],
+      "summary": {
+        "label": "MEASURED",
+        "dates": [
+          "2026-09-21",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "fetches": 7,
+        "fetch_ok": 3,
+        "fetch_failures": 0,
+        "fetch_outcome_not_recorded": 4,
+        "retries": 0,
+        "ms": {
+          "n": 7,
+          "min": 396,
+          "median": 501,
+          "p95": 1244,
+          "max": 1244
+        },
+        "raw_range": [
+          27,
+          28
+        ],
+        "natural_observations": 1,
+        "natural_with_new_positive_final": 1,
+        "natural_final_new": 4,
+        "natural_final_new_positive": 4,
+        "natural_top20_new": 0,
+        "natural_overlap_with_production": 0,
+        "synthetic_cohorts_with_positive": [
+          1,
+          0
+        ]
+      },
+      "decision": {
+        "action": "keep_shadow",
+        "why": "1 natural observation(s); promotion needs repeated natural evidence and one is never enough"
+      }
+    },
+    "greenhouse:catawiki": {
+      "observations": [
+        {
+          "obs": "frozen",
+          "at": "2026-09-21",
+          "ok": true,
+          "ms": 507,
+          "raw": 47,
+          "retries": null,
+          "eligible_by_cohort": [
+            0,
+            3,
+            0,
+            0,
+            0
+          ],
+          "positive_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "top20_entries": 0,
+          "overlap_with_baseline_raw": 0
+        },
+        {
+          "obs": "live",
+          "at": "2026-09-23T11:44:10+00:00",
+          "ok": true,
+          "ms": 437,
+          "retries": 0,
+          "raw": 46,
+          "eligible_by_cohort": [
+            0,
+            4,
+            0,
+            0,
+            0
+          ],
+          "positive_by_cohort": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "top20_entries": 0,
+          "native_id_distinct_of_raw": [
+            46,
+            46
+          ],
+          "ids_persisted_since_2026_09_21": 45,
+          "persisted_id_retitled": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:on",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 5249,
+          "retries": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:production_like",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 468,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:on",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 757,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:production_like",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 612,
+          "retries": 0
+        },
+        {
+          "obs": "telemetry:1eeb9cb0",
+          "at": "2026-09-24T16:33:51.372+00:00",
+          "ok": true,
+          "ms": 782,
+          "retries": 0,
+          "raw": 46,
+          "gated": 6,
+          "funnel": {
+            "observed_normalized": 6,
+            "post_hard_filter_and_score": 2,
+            "post_recency": 2,
+            "post_salary_reachability_visa_eor": 2,
+            "post_location_eligible": 2
+          },
+          "eligible": 2,
+          "eligible_positive": 1,
+          "final_new": 2,
+          "final_new_positive": 1,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": 47,
+          "key_overlap_with_production": 0,
+          "native_overlap_with_production": 0,
+          "native_id_distinct_of_gated": [
+            6,
+            6
+          ],
+          "job_keys_of_gated": [
+            4,
+            6
+          ]
+        }
+      ],
+      "summary": {
+        "label": "MEASURED",
+        "dates": [
+          "2026-09-21",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "fetches": 7,
+        "fetch_ok": 3,
+        "fetch_failures": 0,
+        "fetch_outcome_not_recorded": 4,
+        "retries": 0,
+        "ms": {
+          "n": 7,
+          "min": 437,
+          "median": 612,
+          "p95": 5249,
+          "max": 5249
+        },
+        "raw_range": [
+          46,
+          47
+        ],
+        "natural_observations": 1,
+        "natural_with_new_positive_final": 1,
+        "natural_final_new": 2,
+        "natural_final_new_positive": 1,
+        "natural_top20_new": 0,
+        "natural_overlap_with_production": 0,
+        "synthetic_cohorts_with_positive": [
+          1,
+          1
+        ]
+      },
+      "decision": {
+        "action": "keep_shadow",
+        "why": "1 natural observation(s); promotion needs repeated natural evidence and one is never enough"
+      }
+    },
+    "greenhouse:zetaglobal": {
+      "observations": [
+        {
+          "obs": "frozen",
+          "at": "2026-09-21",
+          "ok": true,
+          "ms": 1506,
+          "raw": 145,
+          "retries": null,
+          "eligible_by_cohort": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "positive_by_cohort": [
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "top20_entries": 1,
+          "overlap_with_baseline_raw": 0
+        },
+        {
+          "obs": "live",
+          "at": "2026-09-23T11:44:10+00:00",
+          "ok": true,
+          "ms": 688,
+          "retries": 0,
+          "raw": 144,
+          "eligible_by_cohort": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "positive_by_cohort": [
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "top20_entries": 1,
+          "native_id_distinct_of_raw": [
+            144,
+            144
+          ],
+          "ids_persisted_since_2026_09_21": 143,
+          "persisted_id_retitled": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:on",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 744,
+          "retries": 0
+        },
+        {
+          "obs": "shadow-b3-free-sweep-parity:production_like",
+          "at": "2026-09-23T12:04:04+00:00",
+          "ok": null,
+          "ms": 735,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:on",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 766,
+          "retries": 0
+        },
+        {
+          "obs": "c0-b3-free-sweep-through-guard:production_like",
+          "at": "2026-09-23T17:29:21+00:00",
+          "ok": null,
+          "ms": 739,
+          "retries": 0
+        },
+        {
+          "obs": "telemetry:1eeb9cb0",
+          "at": "2026-09-24T16:33:52.155+00:00",
+          "ok": true,
+          "ms": 1319,
+          "retries": 0,
+          "raw": 140,
+          "gated": 47,
+          "funnel": {
+            "observed_normalized": 47,
+            "post_hard_filter_and_score": 6,
+            "post_recency": 1,
+            "post_salary_reachability_visa_eor": 0,
+            "post_location_eligible": 0
+          },
+          "eligible": 0,
+          "eligible_positive": 0,
+          "final_new": 0,
+          "final_new_positive": 0,
+          "final_replaces": 0,
+          "top_n_new": 0,
+          "best_new_rank": null,
+          "key_overlap_with_production": 0,
+          "native_overlap_with_production": 0,
+          "native_id_distinct_of_gated": [
+            47,
+            47
+          ],
+          "job_keys_of_gated": [
+            28,
+            47
+          ]
+        }
+      ],
+      "summary": {
+        "label": "MEASURED",
+        "dates": [
+          "2026-09-21",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "fetches": 7,
+        "fetch_ok": 3,
+        "fetch_failures": 0,
+        "fetch_outcome_not_recorded": 4,
+        "retries": 0,
+        "ms": {
+          "n": 7,
+          "min": 688,
+          "median": 744,
+          "p95": 1506,
+          "max": 1506
+        },
+        "raw_range": [
+          140,
+          145
+        ],
+        "natural_observations": 1,
+        "natural_with_new_positive_final": 0,
+        "natural_final_new": 0,
+        "natural_final_new_positive": 0,
+        "natural_top20_new": 0,
+        "natural_overlap_with_production": 0,
+        "synthetic_cohorts_with_positive": [
+          1,
+          1
+        ]
+      },
+      "decision": {
+        "action": "keep_shadow",
+        "why": "1 natural observation(s); promotion needs repeated natural evidence and one is never enough"
+      }
+    }
+  },
+  "decision": {
+    "promote": [],
+    "keep_shadow": [
+      "greenhouse:abnormalsecurity",
+      "greenhouse:apolloio",
+      "greenhouse:brex",
+      "greenhouse:catawiki",
+      "greenhouse:fivetran",
+      "greenhouse:jumio",
+      "greenhouse:vercel",
+      "greenhouse:zetaglobal"
+    ],
+    "rule": "promote only on repeated natural evidence; one observation is never enough, and synthetic cohorts or developer sweeps are not natural",
+    "natural_observations": 1,
+    "closest_to_the_bar": [
+      "greenhouse:abnormalsecurity",
+      "greenhouse:vercel",
+      "greenhouse:catawiki"
+    ],
+    "revisit_when": "the B3 experiment's 10-20 natural sweeps exist (bench/search_v2_shadow_production.py over their records)"
+  }
+}

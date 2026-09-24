@@ -594,14 +594,15 @@ class ShadowIndependence(unittest.TestCase):
 class RegistryUntouched(unittest.TestCase):
     """12. The production registry this stage must not move."""
 
-    # sha256 of the 54 Greenhouse tokens in registry order, taken 2026-09-23.
+    # sha256 of the 53 Greenhouse tokens in registry order: the 2026-09-23
+    # order (9ab5cfe2...) with postman removed by V2-D5, nothing else moved.
     GREENHOUSE_ORDER_SHA256 = (
-        "9ab5cfe2362e879c0f766ba3962c7b0275fc7ee50867064e3c075bfd7e25aedc")
+        "c317397f4ee18316b2d96d19dc9b7a27d5df9d9634cafb95b09a0247b5d0d677")
 
     def test_counts(self):
         import config
-        self.assertEqual(sum(len(b) for b in config.ATS_BOARDS.values()), 129)
-        self.assertEqual(len(config.ATS_BOARDS["greenhouse"]), 54)
+        self.assertEqual(sum(len(b) for b in config.ATS_BOARDS.values()), 128)
+        self.assertEqual(len(config.ATS_BOARDS["greenhouse"]), 53)
         self.assertEqual(sum(1 for c in config.FEEDS.values() if c.get("enabled")), 5)
         self.assertEqual(list(config.ATS_BOARDS),
                          ["lever", "greenhouse", "ashby", "smartrecruiters", "breezy"])
@@ -611,7 +612,8 @@ class RegistryUntouched(unittest.TestCase):
         tokens = list(config.ATS_BOARDS["greenhouse"])
         self.assertEqual(hashlib.sha256("\n".join(tokens).encode()).hexdigest(),
                          self.GREENHOUSE_ORDER_SHA256)
-        self.assertIn("postman", tokens)       # the known 404 stays in the baseline
+        # Mutation P: the dead board is gone, not expected healthy.
+        self.assertNotIn("postman", tokens)
         self.assertFalse(set(tokens) & set(shadow.BOARDS["greenhouse"]))
 
 

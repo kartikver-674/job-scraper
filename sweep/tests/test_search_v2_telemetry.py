@@ -192,11 +192,12 @@ class ShadowIsIsolated(unittest.TestCase):
             self.assertNotIn(token, live, f"{token} leaked into ATS_BOARDS")
 
     def test_registry_size_unchanged(self):
-        """134 active records: 129 ATS boards + 5 enabled feeds."""
+        """133 active records: 128 ATS boards + 5 enabled feeds (V2-D5 removed
+        greenhouse:postman)."""
         import config
         boards = sum(len(b) for b in config.ATS_BOARDS.values())
         enabled_feeds = sum(1 for c in config.FEEDS.values() if c.get("enabled"))
-        self.assertEqual(boards, 129)
+        self.assertEqual(boards, 128)
         self.assertEqual(enabled_feeds, 5)
         self.assertFalse(config.OPTUM.get("enabled"))
         self.assertFalse(config.ENTERPRISE.get("enabled"))

@@ -236,7 +236,9 @@ ATS_BOARDS = {
     # this whole dict rather than adding to it.
     "greenhouse": {
         # phonepe removed 2026-09-11: its greenhouse AND lever boards both 404.
-        "groww": "Groww", "postman": "Postman",
+        # postman removed 2026-09-24 (V2-D5): HTTP 404 on every one of nine
+        # fetches on file, 2026-09-21..24, and no verified replacement board.
+        "groww": "Groww",
         "druva": "Druva", "slice": "Slice",
         "gitlab": "GitLab",           # 30/187 India — an all-remote company
         "databricks": "Databricks",   # 76/800
