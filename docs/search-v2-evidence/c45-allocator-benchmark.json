@@ -1,0 +1,387 @@
+{
+  "status": "MEASURED offline: pure allocator functions, invented capacities, the current default plan's ceilings; no client, no token",
+  "plan": {
+    "units": 90,
+    "by_provider": {
+      "linkedin": 18,
+      "indeed": 72
+    },
+    "ceilings_usd": {
+      "linkedin": "0.046",
+      "indeed": "0.135"
+    },
+    "bounded_exposure_usd": "10.548"
+  },
+  "buffer_per_account_usd": "0.01",
+  "shapes": {
+    "A_one_large_account": {
+      "accounts_usd": [
+        "19.99"
+      ],
+      "most_headroom": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 1,
+        "leftover_usd": "9.442",
+        "stranded_usd": "0"
+      },
+      "best_fit": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 1,
+        "leftover_usd": "9.442",
+        "stranded_usd": "0"
+      },
+      "exact": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 1,
+        "leftover_usd": "9.442",
+        "stranded_usd": "0"
+      }
+    },
+    "B_many_equal_5usd": {
+      "accounts_usd": [
+        "4.99",
+        "4.99",
+        "4.99",
+        "4.99",
+        "4.99"
+      ],
+      "most_headroom": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 5,
+        "leftover_usd": "14.402",
+        "stranded_usd": "0"
+      },
+      "best_fit": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 3,
+        "leftover_usd": "14.402",
+        "stranded_usd": "0"
+      },
+      "exact": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 3,
+        "leftover_usd": "14.402",
+        "stranded_usd": "0"
+      }
+    },
+    "C_fragmented_c5_preflight": {
+      "accounts_usd": [
+        "4.5509",
+        "3.3978",
+        "1.5253",
+        "0.50",
+        "0.0114"
+      ],
+      "most_headroom": {
+        "admitted": 84,
+        "of": 90,
+        "admitted_usd": "9.738",
+        "accounts_used": 4,
+        "leftover_usd": "0.2474",
+        "stranded_usd": "0.2474"
+      },
+      "best_fit": {
+        "admitted": 84,
+        "of": 90,
+        "admitted_usd": "9.738",
+        "accounts_used": 4,
+        "leftover_usd": "0.2474",
+        "stranded_usd": "0.2474"
+      },
+      "exact": {
+        "admitted": 85,
+        "of": 90,
+        "admitted_usd": "9.873",
+        "accounts_used": 4,
+        "leftover_usd": "0.1124",
+        "stranded_usd": "0.1124"
+      }
+    },
+    "D_fresh_near_5usd": {
+      "accounts_usd": [
+        "4.98",
+        "4.94",
+        "4.99",
+        "4.89"
+      ],
+      "most_headroom": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 4,
+        "leftover_usd": "9.252",
+        "stranded_usd": "0"
+      },
+      "best_fit": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 3,
+        "leftover_usd": "9.252",
+        "stranded_usd": "0"
+      },
+      "exact": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 3,
+        "leftover_usd": "9.252",
+        "stranded_usd": "0"
+      }
+    },
+    "E_aggregate_enough_no_account_fits": {
+      "accounts_usd": [
+        "0.10",
+        "0.10",
+        "0.10"
+      ],
+      "most_headroom": {
+        "admitted": 0,
+        "of": 1,
+        "admitted_usd": "0",
+        "accounts_used": 0,
+        "leftover_usd": "0.30",
+        "stranded_usd": "0.30"
+      },
+      "best_fit": {
+        "admitted": 0,
+        "of": 1,
+        "admitted_usd": "0",
+        "accounts_used": 0,
+        "leftover_usd": "0.30",
+        "stranded_usd": "0.30"
+      },
+      "exact": {
+        "admitted": 0,
+        "of": 1,
+        "admitted_usd": "0",
+        "accounts_used": 0,
+        "leftover_usd": "0.30",
+        "stranded_usd": "0.30"
+      }
+    },
+    "F_exact_fit_boundary": {
+      "accounts_usd": [
+        "5.274",
+        "5.274"
+      ],
+      "most_headroom": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 2,
+        "leftover_usd": "0.000",
+        "stranded_usd": "0"
+      },
+      "best_fit": {
+        "admitted": 89,
+        "of": 90,
+        "admitted_usd": "10.413",
+        "accounts_used": 2,
+        "leftover_usd": "0.135",
+        "stranded_usd": "0.135"
+      },
+      "exact": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 2,
+        "leftover_usd": "0.000",
+        "stranded_usd": "0"
+      }
+    },
+    "F_one_mill_short": {
+      "accounts_usd": [
+        "5.274",
+        "5.273"
+      ],
+      "most_headroom": {
+        "admitted": 89,
+        "of": 90,
+        "admitted_usd": "10.413",
+        "accounts_used": 2,
+        "leftover_usd": "0.134",
+        "stranded_usd": "0.134"
+      },
+      "best_fit": {
+        "admitted": 89,
+        "of": 90,
+        "admitted_usd": "10.413",
+        "accounts_used": 2,
+        "leftover_usd": "0.134",
+        "stranded_usd": "0.134"
+      },
+      "exact": {
+        "admitted": 89,
+        "of": 90,
+        "admitted_usd": "10.413",
+        "accounts_used": 2,
+        "leftover_usd": "0.134",
+        "stranded_usd": "0.134"
+      }
+    },
+    "G_mixed_best_fit_strands": {
+      "accounts_usd": [
+        "0.181",
+        "0.227"
+      ],
+      "most_headroom": {
+        "admitted": 5,
+        "of": 5,
+        "admitted_usd": "0.408",
+        "accounts_used": 2,
+        "leftover_usd": "0.000",
+        "stranded_usd": "0"
+      },
+      "best_fit": {
+        "admitted": 4,
+        "of": 5,
+        "admitted_usd": "0.273",
+        "accounts_used": 2,
+        "leftover_usd": "0.135",
+        "stranded_usd": "0.135"
+      },
+      "exact": {
+        "admitted": 5,
+        "of": 5,
+        "admitted_usd": "0.408",
+        "accounts_used": 2,
+        "leftover_usd": "0.000",
+        "stranded_usd": "0"
+      }
+    },
+    "G_mixed_most_headroom_strands": {
+      "accounts_usd": [
+        "0.092",
+        "0.135"
+      ],
+      "most_headroom": {
+        "admitted": 2,
+        "of": 3,
+        "admitted_usd": "0.092",
+        "accounts_used": 2,
+        "leftover_usd": "0.135",
+        "stranded_usd": "0.135"
+      },
+      "best_fit": {
+        "admitted": 3,
+        "of": 3,
+        "admitted_usd": "0.227",
+        "accounts_used": 2,
+        "leftover_usd": "0.000",
+        "stranded_usd": "0"
+      },
+      "exact": {
+        "admitted": 3,
+        "of": 3,
+        "admitted_usd": "0.227",
+        "accounts_used": 2,
+        "leftover_usd": "0.000",
+        "stranded_usd": "0"
+      }
+    },
+    "H_c5_plan_three_fresh_accounts": {
+      "accounts_usd": [
+        "4.99",
+        "4.99",
+        "4.99"
+      ],
+      "most_headroom": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 3,
+        "leftover_usd": "4.422",
+        "stranded_usd": "0"
+      },
+      "best_fit": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 3,
+        "leftover_usd": "4.422",
+        "stranded_usd": "0"
+      },
+      "exact": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 3,
+        "leftover_usd": "4.422",
+        "stranded_usd": "0"
+      }
+    },
+    "H_c5_plan_tight_two_accounts": {
+      "accounts_usd": [
+        "5.29",
+        "5.29"
+      ],
+      "most_headroom": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 2,
+        "leftover_usd": "0.032",
+        "stranded_usd": "0"
+      },
+      "best_fit": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 2,
+        "leftover_usd": "0.032",
+        "stranded_usd": "0"
+      },
+      "exact": {
+        "admitted": 90,
+        "of": 90,
+        "admitted_usd": "10.548",
+        "accounts_used": 2,
+        "leftover_usd": "0.032",
+        "stranded_usd": "0"
+      }
+    }
+  },
+  "stress": {
+    "instances": 500,
+    "seed": 45,
+    "admitted_fewer_than_exact": {
+      "most_headroom": 193,
+      "best_fit": 169,
+      "exact": 0
+    },
+    "mean_stranded_usd": {
+      "most_headroom": "0.1271",
+      "best_fit": "0.1133",
+      "exact": "0.0598"
+    }
+  },
+  "overhead": {
+    "5_accounts": {
+      "planning_cpu_ms": 46.45,
+      "planning_peak_kib": 18.7
+    },
+    "10_accounts": {
+      "planning_cpu_ms": 108.26,
+      "planning_peak_kib": 30.7
+    },
+    "20_accounts": {
+      "planning_cpu_ms": 232.45,
+      "planning_peak_kib": 54.6
+    },
+    "per_start_pool_ms_with_ledger_fsync": 1.683,
+    "ledger_writes_per_start": 4
+  }
+}

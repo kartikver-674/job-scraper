@@ -1,0 +1,198 @@
+{
+  "status": "MEASURED offline: each mutation applied to scraper.py, the C4.5 suite run, the file restored byte-identical",
+  "source_sha256": "1ad640a6be3c42e8311e490391fec10333d9abbccf1d5be83486327e6a7be569",
+  "baseline": "green",
+  "mutations": [
+    {
+      "mutation": "A",
+      "what": "Sum duplicate token accounts twice",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_6_two_slots_on_one_account_are_one_account"
+      ],
+      "suite_s": 9.7
+    },
+    {
+      "mutation": "B",
+      "what": "Aggregate headroom admits a unit no one account fits",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_3_aggregate_enough_but_no_account_fits_one_unit",
+        "test_7_many_tiny_fragments_hold_nothing",
+        "test_exact_against_exhaustive_search_no_false_negative",
+        "test_the_preflight_fails_when_the_pool_cannot_place_the_plan"
+      ],
+      "suite_s": 9.7
+    },
+    {
+      "mutation": "C",
+      "what": "Release committed monetary ceiling after a successful run",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_an_ambiguous_start_keeps_both_ceilings_and_is_never_retried",
+        "test_per_account_committed_never_exceeds_its_capacity",
+        "test_pre_network_local_failure_releases_everything"
+      ],
+      "suite_s": 9.9
+    },
+    {
+      "mutation": "D",
+      "what": "Release committed after FAILED / ABORTED / TIMED-OUT",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_provider_failed_timed_out_aborted_keep_money_free_runtime"
+      ],
+      "suite_s": 9.9
+    },
+    {
+      "mutation": "E",
+      "what": "Choose the account only after the worker starts",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_a_worker_begins_with_both_ceilings_pending_and_its_accounts_client",
+        "test_an_account_credit_refusal_stops_and_retries_nothing",
+        "test_every_start_carries_its_assigned_accounts_token_and_ceiling",
+        "test_per_account_committed_never_exceeds_its_capacity"
+      ],
+      "suite_s": 8.3
+    },
+    {
+      "mutation": "F",
+      "what": "The worker chooses its own token",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_a_crash_before_any_assignment_is_written_proceeds",
+        "test_an_account_credit_refusal_stops_and_retries_nothing",
+        "test_b_a_crash_after_a_pending_hold_is_written_proceeds",
+        "test_every_start_carries_its_assigned_accounts_token_and_ceiling",
+        "test_per_account_committed_never_exceeds_its_capacity"
+      ],
+      "suite_s": 7.9
+    },
+    {
+      "mutation": "G",
+      "what": "Observed actual spend reopens account capacity",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_an_ambiguous_start_keeps_both_ceilings_and_is_never_retried",
+        "test_per_account_committed_never_exceeds_its_capacity",
+        "test_pre_network_local_failure_releases_everything"
+      ],
+      "suite_s": 9.9
+    },
+    {
+      "mutation": "H",
+      "what": "Ignore the global Sweep max_spend_usd under the pool",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_the_sweep_budget_still_binds_however_much_the_pool_holds"
+      ],
+      "suite_s": 9.9
+    },
+    {
+      "mutation": "I",
+      "what": "Ignore account runtime memory",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_a_busy_account_waits_it_is_not_a_budget_failure",
+        "test_an_account_that_can_never_fit_the_run_stops_the_phase",
+        "test_memory_is_counted_per_account_at_the_provider"
+      ],
+      "suite_s": 10.0
+    },
+    {
+      "mutation": "J",
+      "what": "Strict round-robin assignment",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_3_aggregate_enough_but_no_account_fits_one_unit",
+        "test_4_5_exact_equality_fits_and_a_mill_less_does_not",
+        "test_7_many_tiny_fragments_hold_nothing",
+        "test_8_best_fit_keeps_the_large_account_large",
+        "test_8b_each_greedy_order_strands_a_plan_the_exact_one_places",
+        "test_9_the_c5_plan_across_fresh_and_fragmented_accounts",
+        "test_byte_identical_at_every_worker_count",
+        "test_committed_is_never_released_whatever_a_run_cost",
+        "test_every_start_carries_its_assigned_accounts_token_and_ceiling",
+        "test_exact_against_exhaustive_search_no_false_negative",
+        "test_per_account_committed_never_exceeds_its_capacity",
+        "test_the_preflight_fails_when_the_pool_cannot_place_the_plan",
+        "test_the_projection_reports_leftover_and_stranded",
+        "test_the_same_shadow_decisions_and_losses",
+        "test_the_same_starts_inputs_and_ceilings",
+        "test_the_section_says_what_was_planned_and_what_ran",
+        "test_unit_identity_and_funnels_are_the_accounts_business_not",
+        "test_unplaced_searches_stop_at_the_first_one_as_the_cap_does"
+      ],
+      "suite_s": 7.6
+    },
+    {
+      "mutation": "K",
+      "what": "Completion order decides integration (and the duplicate winner)",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_byte_identical_at_every_worker_count",
+        "test_the_first_planned_twin_wins_on_another_account_finishing_last",
+        "test_the_same_shadow_decisions_and_losses"
+      ],
+      "suite_s": 10.1
+    },
+    {
+      "mutation": "L",
+      "what": "A token value reaches telemetry",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_7_no_token_value_in_repr_snapshot_or_exclusion",
+        "test_no_token_value_reaches_any_artifact"
+      ],
+      "suite_s": 10.0
+    },
+    {
+      "mutation": "M",
+      "what": "Two slots on one account get separate exposure ledgers",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_6_two_slots_on_one_account_are_one_account"
+      ],
+      "suite_s": 10.0
+    },
+    {
+      "mutation": "N",
+      "what": "An ambiguous start is retried at once on another account",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_a_provider_resource_refusal_is_account_resource",
+        "test_an_account_credit_refusal_stops_and_retries_nothing",
+        "test_an_ambiguous_start_keeps_both_ceilings_and_is_never_retried"
+      ],
+      "suite_s": 10.1
+    },
+    {
+      "mutation": "O",
+      "what": "Multi-account mode defaults ON",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_byte_identical_at_every_worker_count",
+        "test_default_is_off_and_only_the_conventional_values_count",
+        "test_the_first_planned_twin_wins_on_another_account_finishing_last",
+        "test_the_same_requests_bytes_and_section",
+        "test_the_same_shadow_decisions_and_losses",
+        "test_the_same_starts_inputs_and_ceilings",
+        "test_the_scheduler_gets_no_pool",
+        "test_unit_identity_and_funnels_are_the_accounts_business_not"
+      ],
+      "suite_s": 6.6
+    },
+    {
+      "mutation": "P",
+      "what": "The flag changes behaviour while OFF",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_the_same_requests_bytes_and_section"
+      ],
+      "suite_s": 8.7
+    }
+  ],
+  "caught": 16,
+  "total": 16
+}

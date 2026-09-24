@@ -9,7 +9,16 @@
     "C3.5",
     "C4"
   ],
-  "counting": "Running totals include C0's run. The shared C1-C4 ceiling is checked against the all-inclusive total, which is stricter than required, never looser. Free metadata and account GETs are not paid exposure and are not entries.",
+  "counting": "Running totals include C0's run. The shared C1-C4 ceiling is checked against the all-inclusive total of C0-C4 entries, which is stricter than required, never looser. A stage outside ceiling_covers is checked against its own separate_budgets ceiling, which is a cumulative figure (every earlier entry plus that stage's worst case). Free metadata and account GETs are not paid exposure and are not entries.",
+  "separate_budgets": {
+    "C5": {
+      "ceiling_usd": "11.33",
+      "covers": "one integrated C5 Sweep of the default plan (18 LinkedIn + 72 Indeed starts, bounded exposure $10.548), on top of $0.773 already recorded",
+      "outside": "the shared C1-C4 $2.00 ceiling; never counted against it",
+      "basis": "0.773 recorded + 10.548 bounded = 11.321, rounded up to the cent",
+      "approval": "recorded 2026-09-24 as the ceiling C5 checkpoint 1 computed; refuse-only like the rest of this file. Spending needs the operator's explicit 'RUN C5' and both C0 keys; this entry authorises nothing"
+    }
+  },
   "entries": [
     {
       "stage": "C0",

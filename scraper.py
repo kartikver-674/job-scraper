@@ -56,7 +56,7 @@ import time
 import urllib.parse
 from collections import Counter, namedtuple
 from datetime import datetime, timedelta, timezone
-from decimal import ROUND_CEILING, Decimal
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 
 import config
 import enrich
@@ -1305,7 +1305,8 @@ def provider_positions(site_key, links):
     return [None if p is None or claims[p] > 1 else p for p in got]
 
 
-def scrape_search(client, site_key, actor_id, search, before_start=None):
+def scrape_search(client, site_key, actor_id, search, before_start=None,
+                  after_start=None, after_run=None):
     """Run one actor and return (rows, cost_usd).
 
     apify-client 3.x returns a typed Run object (not a dict).
@@ -1313,6 +1314,11 @@ def scrape_search(client, site_key, actor_id, search, before_start=None):
     `before_start` (V2-C2) is called once, immediately before the start
     request: the last point at which nothing can yet have been charged. The
     serial loop passes nothing.
+
+    V2-C4.5, for the account pool only: `after_start(run_id)` once the start
+    returned, and `after_run(status)` with the status the polling ended on,
+    so a run's memory and run slot are released only once the provider says
+    it has ended. Neither may raise; neither is passed outside the pool.
     """
     effective = effective_search(site_key, search)
     run_input = build_input(site_key, effective)
@@ -1353,6 +1359,8 @@ def scrape_search(client, site_key, actor_id, search, before_start=None):
     run = actor.start(run_input=run_input, run_timeout=timedelta(minutes=5),
                       **start_kwargs)
     start_ms = round((time.monotonic() - starting) * 1000)
+    if after_start is not None:
+        after_start(getattr(run, "id", None))
     rc = client.run(run.id)
     # Recorded the moment they exist. Without a run ID and a build ID no future
     # measurement can join Sweep's account of a search to Apify's — which is
@@ -1380,6 +1388,8 @@ def scrape_search(client, site_key, actor_id, search, before_start=None):
     else:
         rc.abort()          # deadline blown — stop the run server-side
         run = rc.get()
+    if after_run is not None:
+        after_run(getattr(run, "status", None))
     telemetry.paid_run(poll_count=polls,
                        actor_status=getattr(run, "status", "NO RUN"),
                        actor_finished_at=getattr(run, "finished_at", ""),
@@ -1581,6 +1591,535 @@ class PaidExposure:
                     "blocked": states["blocked"]}
 
 
+# ===========================================================================
+# V2-C4.5 — one sweep, several authorised accounts
+# ===========================================================================
+# SWEEP_PAID_MULTI_ACCOUNT (default OFF, and only under SWEEP_PAID_CONCURRENCY).
+# Off, _require_token picks one account for the whole sweep, as it always has.
+# On, every configured account is read once, before any start, and each
+# provider-bounded search is ASSIGNED to one of them — the whole plan, exactly,
+# before the first start — so a sweep whose bounded exposure no single account
+# can hold may still run. Every start must then fit, in full, in BOTH the
+# sweep's PaidExposure (the one budget, unchanged) and its own account's, and
+# its account must have the memory and a run slot for it. The only difference
+# at the provider is whose token a start carries. See
+# docs/search-engine-v2-c45-multi-account-paid-execution.md.
+PAID_MULTI_ACCOUNT_FLAG = "SWEEP_PAID_MULTI_ACCOUNT"
+# Kept back from each account's own headroom for the platform usage that lands
+# on it beside its runs' charges (dataset and API reads): measured at
+# $0.000009-0.000039 per probe of one or two runs across V2-C1..C3.5, so about
+# $0.00002 a run. A cent is more than 100x what one account running its share
+# of a 90-search plan leaves. Never folded into an actor's ceiling.
+ACCOUNT_BUFFER_USD = Decimal("0.01")
+POOL_RECORD = "paid_account_ledger.json"
+# A run in one of these holds neither memory nor a run slot at the provider.
+TERMINAL_STATUSES = frozenset({"SUCCEEDED", "FAILED", "TIMED-OUT", "ABORTED"})
+_POOL_SLOT_RE = re.compile(r"APIFY_TOKEN(_[1-9][0-9]*)?")
+_MILL = Decimal("0.001")
+# How a provider says no to a start for the account's reasons, not the run's.
+_ACCOUNT_REFUSALS = (
+    ("ACCOUNT_CREDIT", re.compile(r"usage hard limit|monthly usage|not enough credit"
+                                  r"|insufficient (?:credit|funds)", re.I)),
+    ("ACCOUNT_RESOURCE", re.compile(r"memory limit|concurrent|too many (?:running|runs)",
+                                    re.I)))
+
+
+def paid_multi_account():
+    return os.environ.get(PAID_MULTI_ACCOUNT_FLAG, "").strip().lower() in (
+        "1", "true", "yes", "on")
+
+
+def pool_tokens(env=None):
+    """apify_tokens(), narrowed to APIFY_TOKEN and APIFY_TOKEN_<n> (n >= 1, no
+    leading zero): the pool spends on every account it is given, so a name
+    that is not a slot is not one. apify_tokens() itself is untouched — the
+    single-account path, the rescore tool and the UI read it as before."""
+    return [(n, t) for n, t in apify_tokens(env) if _POOL_SLOT_RE.fullmatch(n)]
+
+
+def _require_token_pool():
+    """The pool's credential step, as _require_token is the single account's —
+    the developer guard wraps both, so an unauthorised developer run reaches
+    neither. Every configured slot; which account runs what is decided on
+    facts read afterwards, never on a variable's name."""
+    from dotenv import load_dotenv
+    load_dotenv()
+    tokens = pool_tokens()
+    if not tokens:
+        sys.exit("APIFY_TOKEN not found. Add it to a .env file in this folder.")
+    return tokens
+
+
+class PoolAccount:
+    """One underlying Apify account, however many slots hold a key to it.
+
+    Its money is a PaidExposure of its own, the C2 ledger, whose budget is the
+    headroom read before the sweep less ACCOUNT_BUFFER_USD: a snapshot, never
+    replenished — not by a run that cost less than its ceiling, a $0 reading or
+    a lagging account delta. Its memory and run slots are the other half: held
+    while a run lives and freed once the provider reports the run terminal.
+    The token is held here and handed only to that account's clients; repr()
+    and snapshot() carry the label."""
+
+    def __init__(self, label, slots, token, reading, make_client):
+        self.label, self.slots, self._token = label, list(slots), token
+        self.plan = reading["plan"]
+        self.headroom = reading["headroom_usd"]
+        self.baseline = reading["used_usd"]
+        self.memory_mb, self.run_slots = reading["memory_mb"], reading["run_slots"]
+        self.exposure = PaidExposure(max(Decimal(0), self.headroom - ACCOUNT_BUFFER_USD))
+        self.reserved_mb = self.in_flight = self.live = self.held_unknown = 0
+        self.peak_mb = self.peak_in_flight = self.starts = self.failures = 0
+        self.spent = 0.0
+        self._make_client = make_client
+        self.read_client = make_client(token)   # the coordinator's, for account reads
+
+    def __repr__(self):
+        return f"PoolAccount({self.label})"
+
+    def client(self):
+        """A new client per search on this account, as C2 builds them."""
+        return self._make_client(self._token)
+
+
+def _account_reading(me, limits):
+    """What one account can hold, from users/me and users/me/limits. Headroom
+    is the SMALLER of the hard monthly limit and the plan's included credit,
+    less this cycle's usage, floored to $0.001: never spending into overage
+    the account has not prepaid, and never more than its own limit allows. A
+    limit that cannot be read is no headroom and no capacity."""
+    lim, cur = limits.get("limits") or {}, limits.get("current") or {}
+    plan = getattr(me, "plan", None)
+    caps = [Decimal(str(c)) for c in (lim.get("max_monthly_usage_usd"),
+                                      getattr(plan, "monthly_usage_credits_usd", None))
+            if c is not None]
+    used = Decimal(str(cur.get("monthly_usage_usd") or 0))
+    headroom = max(Decimal(0), min(caps) - used) if caps else Decimal(0)
+
+    def free(limit, in_use, scale=1):
+        return (0 if lim.get(limit) is None or cur.get(in_use) is None
+                else max(0, int((lim[limit] - cur[in_use]) * scale)))
+    return {"plan": getattr(plan, "id", None),
+            "headroom_usd": headroom.quantize(_MILL, rounding=ROUND_FLOOR),
+            "used_usd": float(used),
+            "memory_mb": free("max_actor_memory_gbytes", "actor_memory_gbytes", 1024),
+            "run_slots": free("max_concurrent_actor_jobs", "active_actor_job_count")}
+
+
+def discover_accounts(tokens, make_client):
+    """([PoolAccount] in slot order, one per underlying account, [excluded]).
+
+    Two free reads per slot: users/me says WHO — a token is not an account,
+    and two slots holding keys to one account are one balance, one memory
+    limit and one set of run slots — and users/me/limits says how much. A slot
+    whose account cannot be identified is left out: counted once too often it
+    would double a balance. Where two slots are one account, the smaller of
+    their readings stands. Labels are account_000, account_001, ... in slot
+    order; no account id, username or email is kept."""
+    found, excluded = {}, []
+    for slot, token in tokens:
+        try:
+            client = make_client(token)
+            me = client.user().get()
+            reading = _account_reading(me, client.user().limits().model_dump())
+            ident = getattr(me, "id", None)
+        except Exception as exc:        # the type only: a message can quote a request
+            excluded.append({"slot": slot, "reason": f"unreadable ({type(exc).__name__})"})
+            continue
+        if not ident:
+            excluded.append({"slot": slot, "reason": "no account id"})
+        elif ident in found:
+            first = found[ident]
+            first["slots"].append(slot)
+            excluded.append({"slot": slot, "reason": f"same account as {first['slots'][0]}"})
+            first["reading"] = dict(first["reading"], **{
+                k: min(first["reading"][k], reading[k])
+                for k in ("headroom_usd", "memory_mb", "run_slots")})
+        else:
+            found[ident] = {"slots": [slot], "token": token, "reading": reading}
+    accounts = [PoolAccount(f"account_{i:03d}", f["slots"], f["token"], f["reading"],
+                            make_client)
+                for i, f in enumerate(found.values())]
+    return accounts, excluded
+
+
+def _placements(cap, sizes, limits):
+    """Every tuple of counts of `sizes` (each within its limit) that fits `cap`."""
+    if not sizes:
+        yield ()
+        return
+    for n in range(min(limits[0], cap // sizes[0]) + 1):
+        for rest in _placements(cap - n * sizes[0], sizes[1:], limits[1:]):
+            yield (n,) + rest
+
+
+def _suffix_tables(caps, sizes, totals):
+    """tables[k]: {counts of every size but the smallest, placed on accounts
+    k.. : the most of the smallest size that can go beside them}. Exact —
+    every split over those accounts is tried, and for a fixed split of the
+    larger sizes, as many of the smallest as fit is never worse — so a missing
+    key or a short count is a proof that no placement exists."""
+    big, small = sizes[:-1], sizes[-1]
+    tables = [None] * len(caps) + [{(0,) * len(big): 0}]
+    for k in range(len(caps) - 1, -1, -1):
+        table = {}
+        for key, have in tables[k + 1].items():
+            room = [t - h for t, h in zip(totals, key)]
+            for y in _placements(caps[k], big, room):
+                left = caps[k] - sum(a * b for a, b in zip(y, big))
+                new = tuple(a + b for a, b in zip(key, y))
+                n = min(totals[-1], have + left // small)
+                if table.get(new, -1) < n:
+                    table[new] = n
+        tables[k] = table
+    return tables
+
+
+def place_units(units, accounts):
+    """The allocator. units: [(unit_id, ceiling)] in plan order, every ceiling
+    a whole number of mills; accounts: [(label, capacity)]. Returns
+    {unit_id: label} for the LONGEST PREFIX of the plan that can be placed
+    whole, each unit wholly on one account — a bin-packing question, not "does
+    the sum fit": two accounts with $0.10 each hold no $0.135 search.
+
+    Deterministic and exact: accounts are filled smallest first (best fit —
+    a nearly spent account takes the unit it can still hold, and the large
+    ones stay large), each as full as it can be while what is left can still
+    be placed on the rest, which _suffix_tables proves. Within one size, units
+    take accounts in that fill order, in plan order."""
+    if not units or not accounts:
+        return {}
+    mills = [int((c / _MILL).to_integral_value(rounding=ROUND_CEILING)) for _, c in units]
+    order = sorted(range(len(accounts)), key=lambda i: (accounts[i][1], i))
+    caps = [int((accounts[i][1] / _MILL).to_integral_value(rounding=ROUND_FLOOR))
+            for i in order]
+    sizes = sorted(set(mills), reverse=True)
+
+    def counts(n):
+        c = Counter(mills[:n])
+        return [c[s] for s in sizes]
+
+    def feasible(n):
+        totals = counts(n)
+        return _suffix_tables(caps, sizes, totals)[0].get(tuple(totals[:-1]), -1) >= totals[-1]
+
+    lo, hi = 0, len(units)                  # placeable prefixes are downward-closed
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        lo, hi = (mid, hi) if feasible(mid) else (lo, mid - 1)
+    if lo == 0:
+        return {}
+    remaining = counts(lo)
+    tables = _suffix_tables(caps, sizes, remaining)
+    quota = []
+    for k, cap in enumerate(caps):
+        best = None
+        for y in _placements(cap, sizes[:-1], remaining[:-1]):
+            left = cap - sum(a * b for a, b in zip(y, sizes))
+            x = min(remaining[-1], left // sizes[-1])
+            rest = tuple(r - a for r, a in zip(remaining[:-1], y))
+            if tables[k + 1].get(rest, -1) >= remaining[-1] - x:
+                score = (cap - left + x * sizes[-1], y)
+                if best is None or score > best[0]:
+                    best = (score, y + (x,))
+        quota.append(dict(zip(sizes, best[1])))
+        remaining = [r - a for r, a in zip(remaining, best[1])]
+    out = {}
+    for (unit_id, _), size in zip(units[:lo], mills[:lo]):
+        k = next(k for k, q in enumerate(quota) if q.get(size))
+        quota[k][size] -= 1
+        out[unit_id] = accounts[order[k]][0]
+    return out
+
+
+def project_assignment(units, accounts):
+    """The pool's plan for `units` ([(unit_id, provider, ceiling)], bounded,
+    plan order) over `accounts` ([PoolAccount]): ({unit_id: account}, the
+    report a preflight prints). Money only — memory and run slots are decided
+    as the searches go, and never move a search to another account."""
+    by_label = {a.label: a for a in accounts}
+    placed = place_units([(u, c) for u, _, c in units],
+                         [(a.label, a.exposure.budget) for a in accounts])
+    # Stranded: what an account has left that no UNPLACED search could use.
+    # With the whole plan placed nothing is stranded; what is left is unused.
+    smallest = min((c for u, _, c in units if u not in placed), default=None)
+    rows = []
+    for a in accounts:
+        mine = [(p, c) for u, p, c in units if placed.get(u) == a.label]
+        left = a.exposure.budget - sum((c for _, c in mine), Decimal(0))
+        rows.append({"account": a.label, "slots": a.slots, "plan": a.plan,
+                     "headroom_usd": str(a.headroom),
+                     "capacity_usd": str(a.exposure.budget),
+                     "projected_units": dict(Counter(p for p, _ in mine)),
+                     "projected_usd": str(sum((c for _, c in mine), Decimal(0))),
+                     "leftover_usd": str(left),
+                     "stranded_usd": str(left if smallest is not None and left < smallest
+                                         else Decimal(0)),
+                     "memory_mb": a.memory_mb, "run_slots": a.run_slots})
+    report = {"account_count": len(accounts),
+              "buffer_per_account_usd": str(ACCOUNT_BUFFER_USD),
+              "aggregate_headroom_usd": str(sum((a.headroom for a in accounts), Decimal(0))),
+              "aggregate_capacity_usd": str(sum((a.exposure.budget for a in accounts),
+                                                Decimal(0))),
+              "bounded_units": len(units),
+              "bounded_exposure_usd": str(sum((c for _, _, c in units), Decimal(0))),
+              "placed_units": len(placed),
+              "allocation_feasible": len(placed) == len(units),
+              "stranded_usd": str(sum((Decimal(r["stranded_usd"]) for r in rows),
+                                      Decimal(0))),
+              "accounts": rows}
+    return {u: by_label[label] for u, label in placed.items()}, report
+
+
+def actor_memory_mb(client, actor_id):
+    """The memory a start gets when it names none — Sweep never names one, so
+    this is what each run holds on its account. One free read of the actor's
+    record; None when unreadable, which the pool treats as the whole account."""
+    try:
+        return int(client.actor(actor_id).get().default_run_options.memory_mbytes)
+    except Exception:
+        return None
+
+
+class AccountLedger:
+    """paid_account_ledger.json beside the outputs: per unit, the account it
+    was assigned to, its ceiling, the reservation state, and — once they
+    exist — the run id and the status the provider ended it on. Written whole
+    (temp, fsync, rename) at every transition, and "committed" BEFORE the start
+    request, so a crash can leave a hold for a request never sent (safe) but
+    never forget one that may have spent. No token, no query."""
+
+    def __init__(self, path):
+        self.path, self._lock = path, threading.Lock()
+        self.doc = {"schema": "search-v2c45.1", "started_at": _utc_now(),
+                    "finished": False, "units": {}}
+
+    @classmethod
+    def open(cls, output_dir):
+        """The ledger for this sweep's paid phase. An earlier one that did not
+        finish with any start committed STOPS the sweep: its ceilings may
+        still be charged on accounts this sweep would read as having headroom,
+        and which search was bought where is the operator's to reconcile, not
+        a resume's to guess. Anything else is kept, renamed, never lost."""
+        path = os.path.join(output_dir, POOL_RECORD)
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    old = json.load(fh)
+            except (OSError, ValueError):
+                old = None
+            held = [u for u, v in ((old or {}).get("units") or {}).items()
+                    if v.get("state") == "committed"]
+            if old is None or (held and not old.get("finished")):
+                sys.exit(f"Refusing to start: {path} records "
+                         f"{len(held) if old else 'unreadable'} committed paid start(s) "
+                         f"from a paid phase that did not finish. Their ceilings may "
+                         f"still be charged. Review it, then move it aside to run again.")
+            os.replace(path, f"{path}.{datetime.now():%Y%m%d_%H%M%S}")
+        return cls(path)
+
+    def set(self, unit_id, **fields):
+        with self._lock:
+            self.doc["units"].setdefault(unit_id, {}).update(fields)
+            self._write()
+
+    def finish(self):
+        with self._lock:
+            self.doc.update(finished=True, finished_at=_utc_now())
+            self._write()
+
+    def _write(self):
+        with _replaced(self.path, encoding="utf-8") as fh:
+            json.dump(self.doc, fh, indent=1)
+
+
+class _PooledHolds:
+    """One pooled search's three holds — the sweep's ceiling, its account's
+    ceiling, its account's memory and run slot — behind the commit/release
+    interface _paid_worker already calls on a PaidExposure."""
+
+    def __init__(self, pool, exposure, acct, unit_id, mb):
+        self.pool, self.exposure, self.acct = pool, exposure, acct
+        self.unit_id, self.mb = unit_id, mb
+        self.attempted = self.freed = False
+        self.run_id = self.status = None
+
+    def commit(self, unit_id):
+        """Both ceilings committed, then persisted, then the start. If the
+        write fails, the start is never sent and both holds stay (safe)."""
+        self.exposure.commit(unit_id)
+        self.acct.exposure.commit(unit_id)
+        self.pool.ledger.set(unit_id, state="committed", committed_at=_utc_now())
+        self.attempted = True
+
+    def started(self, run_id):
+        self.run_id = run_id
+        with contextlib.suppress(OSError):     # the run exists: never fail its poll
+            self.pool.ledger.set(self.unit_id, run_id=run_id)
+
+    def ended(self, status):
+        self.status = status
+        if status in TERMINAL_STATUSES:
+            self.pool.free(self)
+        with contextlib.suppress(OSError):
+            self.pool.ledger.set(self.unit_id, provider_status=status)
+
+    def release(self, unit_id):
+        """The worker is done. Pending holds go back only if the start was
+        never attempted; memory and slot then too. A run whose end the
+        provider never confirmed keeps them for the rest of the sweep."""
+        self.exposure.release(unit_id)
+        self.acct.exposure.release(unit_id)
+        if not self.attempted:
+            self.pool.free(self)
+            with contextlib.suppress(OSError):
+                self.pool.ledger.set(unit_id, state="released_before_network")
+        self.pool.done(self)
+
+    def hooks(self):
+        return {"after_start": self.started, "after_run": self.ended}
+
+
+class AccountPool:
+    """The accounts a C2 coordinator may assign searches to, the plan's
+    assignment, and the runtime capacity each account has left. The
+    coordinator alone assigns and reserves; a worker gets its account's client
+    and a _PooledHolds, never a choice."""
+
+    def __init__(self, accounts, excluded, ledger):
+        self.accounts, self.excluded, self.ledger = accounts, excluded, ledger
+        self.assignment, self.memory, self.report = {}, {}, None
+        self.dispatched = []
+        self._lock = threading.Lock()
+
+    @classmethod
+    def open(cls, output_dir, make_client):
+        ledger = AccountLedger.open(output_dir)      # before any credential
+        accounts, excluded = discover_accounts(_require_token_pool(), make_client)
+        pool = cls(accounts, excluded, ledger)
+        for a in accounts:
+            print(f"  {a.label}  {', '.join(a.slots):<30} ${a.headroom} headroom, "
+                  f"${a.exposure.budget} usable, {a.memory_mb} MB, "
+                  f"{a.run_slots} run slot(s)")
+        for x in excluded:
+            print(f"  {x['slot']:<16} not pooled: {x['reason']}")
+        return pool
+
+    def plan(self, site_entries, done):
+        """Assign every bounded search not already done, in plan order, before
+        the first start; read each provider's run memory once."""
+        units = [(e.unit_id, e.site_key, e.ceiling) for entries in site_entries.values()
+                 for e in entries if e.ceiling is not None and e.combo_key not in done]
+        self.assignment, self.report = project_assignment(units, self.accounts)
+        for site in site_entries:
+            self.memory[site] = (actor_memory_mb(self.accounts[0].read_client,
+                                                 SITES[site]["actor"])
+                                 if self.accounts else None)
+        for u, site, ceiling in units:
+            acct = self.assignment.get(u)
+            self.ledger.set(u, provider=site, ceiling_usd=str(ceiling),
+                            account=acct.label if acct else None,
+                            state="assigned" if acct else "unassigned")
+        r = self.report
+        print(f"  pool: {r['placed_units']}/{r['bounded_units']} bounded search(es) "
+              f"placed, ${r['bounded_exposure_usd']} of ceilings on "
+              f"${r['aggregate_capacity_usd']} usable across {r['account_count']} "
+              f"account(s) (not a provider guarantee)")
+
+    def _mb(self, e, acct):
+        mb = self.memory.get(e.site_key)
+        return acct.memory_mb if mb is None else mb
+
+    def verdict(self, e):
+        """"go" | "wait" (its account's earlier run still holds what it needs)
+        | the reason it can never start on its account in this sweep."""
+        if e.ceiling is None:
+            return "unbounded"
+        acct = self.assignment.get(e.unit_id)
+        if acct is None:
+            return "unassigned"
+        mb = self._mb(e, acct)
+        with self._lock:
+            if (acct.reserved_mb + mb <= acct.memory_mb
+                    and acct.in_flight + 1 <= acct.run_slots):
+                return "go"
+            return "wait" if acct.live else "account_resources"
+
+    def hold(self, e, exposure):
+        """Its account's ceiling and runtime capacity, after the sweep's own
+        ceiling is held. None if the account cannot hold the ceiling."""
+        acct = self.assignment[e.unit_id]
+        if not acct.exposure.reserve(e.unit_id, e.ceiling):
+            return None
+        mb = self._mb(e, acct)
+        with self._lock:
+            acct.reserved_mb += mb
+            acct.in_flight += 1
+            acct.live += 1
+            acct.starts += 1
+            acct.peak_mb = max(acct.peak_mb, acct.reserved_mb)
+            acct.peak_in_flight = max(acct.peak_in_flight, acct.in_flight)
+            self.dispatched.append(acct.label)
+        self.ledger.set(e.unit_id, state="pending", reserved_at=_utc_now())
+        return _PooledHolds(self, exposure, acct, e.unit_id, mb)
+
+    def free(self, holds):
+        with self._lock:
+            if not holds.freed:
+                holds.freed = True
+                holds.acct.reserved_mb -= holds.mb
+                holds.acct.in_flight -= 1
+
+    def done(self, holds):
+        with self._lock:
+            holds.acct.live -= 1
+            if not holds.freed:
+                holds.acct.held_unknown += 1
+
+    def refusal(self, holds, error):
+        """ACCOUNT_CREDIT / ACCOUNT_RESOURCE when the provider refused the
+        START for the account's reasons (attempted, no run), else None."""
+        if holds is None or error is None or not holds.attempted or holds.run_id:
+            return None
+        return next((kind for kind, pattern in _ACCOUNT_REFUSALS
+                     if pattern.search(str(error))), None)
+
+    def read(self, unit_id):
+        return account_usage_usd(self.assignment[unit_id].read_client)
+
+    def settle(self, unit_id, actual, cost):
+        """The pre-C2 guard's figure, per account from that account's own
+        reading (never one account's delta derived from another's), summed.
+        It only ever enlarges an account's view, as C2's observe does."""
+        acct = self.assignment[unit_id]
+        acct.spent = (actual - acct.baseline if actual is not None else acct.spent + cost)
+        acct.exposure.observe(acct.spent)
+        return sum(a.spent for a in self.accounts)
+
+    def snapshot(self):
+        with self._lock:
+            used = [a for a in self.accounts if a.starts]
+            per = []
+            for a, row in zip(self.accounts, (self.report or {}).get("accounts") or
+                              [{}] * len(self.accounts)):
+                held = a.exposure.snapshot()
+                per.append(dict(row, account=a.label, slots=a.slots,
+                                committed_usd=held["committed_usd"],
+                                pending_peak_usd=held["pending_peak_usd"],
+                                remaining_usd=str(a.exposure.budget - a.exposure.committed
+                                                  - a.exposure.pending),
+                                starts=a.starts, failures=a.failures,
+                                peak_in_flight=a.peak_in_flight, peak_memory_mb=a.peak_mb,
+                                runtime_held_unknown=a.held_unknown))
+            return dict({k: v for k, v in (self.report or {}).items() if k != "accounts"},
+                        actor_memory_mb=dict(self.memory), excluded_slots=self.excluded,
+                        accounts_used=len(used),
+                        account_switches=sum(1 for a, b in zip(self.dispatched,
+                                                                self.dispatched[1:])
+                                             if a != b),
+                        accounts=per)
+
+
 PaidEntry = namedtuple("PaidEntry", "n i of unit_id site_key actor_id search "
                                     "label combo_key ceiling")
 PaidResult = namedtuple("PaidResult", "n rows cost error record opened finished sdk")
@@ -1599,7 +2138,7 @@ def _sdk_counts(client):
         return None
 
 
-def _paid_worker(entry, make_client, exposure, results):
+def _paid_worker(entry, make_client, exposure, results, hooks=None):
     """One paid search on its own thread: the provider's half, nothing else.
 
     It builds its own client — apify-client 3.1 keeps unsynchronised request
@@ -1609,6 +2148,10 @@ def _paid_worker(entry, make_client, exposure, results):
     raw_rows, an output file, the done ledger, LAST_STATS, the coordinator's
     spend figures or any shared telemetry: its unit is its own, deferred, until
     the coordinator attaches it in plan order.
+
+    V2-C4.5: under the account pool, `make_client` is its ASSIGNED account's,
+    `exposure` holds both ceilings and that account's runtime capacity, and
+    `hooks` tell it when the run exists and when it ended. It chooses nothing.
     """
     opened = time.monotonic()
     rows = cost = error = record = sdk = None
@@ -1624,7 +2167,7 @@ def _paid_worker(entry, make_client, exposure, results):
             try:
                 rows, cost = scrape_search(
                     client, entry.site_key, entry.actor_id, entry.search,
-                    before_start=lambda: exposure.commit(entry.unit_id))
+                    before_start=lambda: exposure.commit(entry.unit_id), **(hooks or {}))
             finally:
                 sdk = _sdk_counts(client)
     except BaseException as exc:        # the coordinator decides what it means
@@ -1636,7 +2179,7 @@ def _paid_worker(entry, make_client, exposure, results):
 
 
 def paid_phase_c2(plans, make_client, account_client, baseline, budget,
-                  raw_rows, done, done_path, today, emit, failures):
+                  raw_rows, done, done_path, today, emit, failures, pool=None):
     """The paid phase under SWEEP_PAID_CONCURRENCY. Returns (spent,
     stopped_early, site_key) as main()'s serial loop leaves them.
 
@@ -1657,6 +2200,16 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
     Worker threads are daemons, so an interrupt (the console stops a sweep
     with SIGINT) still ends the process at once, as it did serially: the runs
     already started go on at the provider, inside their ceilings.
+
+    V2-C4.5, `pool` (SWEEP_PAID_MULTI_ACCOUNT): every bounded search not yet
+    done is assigned an account before the first start (AccountPool.plan).
+    A search then starts only when its account has the memory and a run slot
+    for it (else it WAITS for that account's earlier run — it never moves),
+    the sweep's PaidExposure holds its ceiling, and so does its account's.
+    Its account's reading is the one integrated. An unbounded or unplaced
+    search, an account that can never fit it, or a provider refusing a start
+    for the account's credit or resources stops the phase: no search is
+    retried elsewhere. Nothing else — plan, inputs, order, bytes — differs.
     """
     workers = paid_workers()
     exposure = PaidExposure(budget)
@@ -1665,13 +2218,34 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
     peak = {"in_flight": 0, "buffered": 0}
     checkpoint = {"passes": 0, "wall_ms": 0, "cpu_ms": 0}
     visited, segments = [], []
+    holds = {}                                  # unit_id -> _PooledHolds
     n = 0
+    site_entries = {}
+    for site_key, plan in plans.items():
+        actor_id = SITES[site_key]["actor"]
+        entries = site_entries[site_key] = []
+        for i, search in enumerate(plan, 1):
+            who = f" [{search['company']}]" if search.get("company") else ""
+            depth = effective_search(site_key, search)["max_results"]
+            entries.append(PaidEntry(
+                n, i, len(plan), paid_unit_id(n), site_key, actor_id, search,
+                f"{search['keywords'] or '(all)'}{who} @ {search['location']}",
+                f"{today}|{site_key}|{search['keywords']}|{search['location']}|"
+                f"{search.get('company') or ''}",
+                max_charge_usd(site_key, depth)))
+            n += 1
+    site_key = None
+    if pool is not None:
+        pool.plan(site_entries, done)
 
     def integrate(e, r):
         nonlocal spent
         began = time.monotonic()
         seen = {"unit_id": e.unit_id, "provider": e.site_key,
                 "bounded": e.ceiling is not None}
+        if pool is not None:
+            acct = pool.assignment.get(e.unit_id)
+            seen["account"] = acct.label if acct else None
         if r is None:
             print(f"  [{e.i}/{e.of}] {e.label:<46} — skip (done)")
             telemetry.paid_status(e.unit_id, "skipped_done")
@@ -1684,12 +2258,18 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
                     raise r.error
                 rows, cost = r.rows, r.cost
                 reading = time.monotonic()
-                actual = (account_usage_usd(account_client)
-                          if baseline is not None else None)
+                if pool is None:
+                    actual = (account_usage_usd(account_client)
+                              if baseline is not None else None)
+                else:
+                    actual = pool.read(e.unit_id)
                 read_ms = round((time.monotonic() - reading) * 1000)
                 before = spent
-                spent = (actual - baseline if actual is not None
-                         else spent + cost)
+                if pool is None:
+                    spent = (actual - baseline if actual is not None
+                             else spent + cost)
+                else:
+                    spent = pool.settle(e.unit_id, actual, cost)
                 exposure.observe(spent, None if e.ceiling is not None
                                  else spent - before)
                 telemetry.observed(raw=len(rows), normalized=len(rows),
@@ -1700,7 +2280,8 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
                     budget_view_usd=round(spent, 6),
                     budget_basis=("account_delta" if actual is not None
                                   else "run_record_sum"),
-                    account_read_ms=read_ms if baseline is not None else None)
+                    account_read_ms=(read_ms if baseline is not None or pool is not None
+                                     else None))
                 if actual is not None:
                     telemetry.cost_observation("account_usage_delta",
                                                spent - before)
@@ -1729,12 +2310,21 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
                 telemetry.paid_status(e.unit_id, "failed")
                 failures.append((e.site_key, e.label, str(exc)))
                 print(f"  [{e.i}/{e.of}] {e.label:<46} ! {exc}")
+                if pool is not None:
+                    pool.assignment[e.unit_id].failures += 1
             # V2-C4 (default off): what this search added, in plan order,
             # read off the checkpoint just made. Observes; decides nothing.
             paid_adaptive.integrated(e.unit_id, r.rows if ok else None, ok,
                                      first + sent, exposure.committed)
         telemetry.attach(r.record)
         held = exposure.units.get(e.unit_id, {})
+        extra = {}
+        if e.unit_id in holds:
+            h = holds[e.unit_id]
+            extra = {"provider_status": h.status, "runtime_freed": h.freed,
+                     "account_refusal": pool.refusal(h, r.error)}
+            with contextlib.suppress(OSError):
+                pool.ledger.set(e.unit_id, integrated="completed" if ok else "failed")
         visited.append(dict(
             seen, reservation=held.get("state"),
             reserved_usd=None if held.get("usd") is None else str(held["usd"]),
@@ -1743,29 +2333,19 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
             execution_ms=round((r.finished - r.opened) * 1000),
             buffered_wait_ms=round((began - r.finished) * 1000),
             merge_ms=round((time.monotonic() - began) * 1000),
-            checkpoint_cpu_ms=cpu_ms, sdk=r.sdk))
+            checkpoint_cpu_ms=cpu_ms, sdk=r.sdk, **extra))
 
-    for site_key, plan in plans.items():
+    for site_key, entries in site_entries.items():
         if stopped_early:
             break
         actor_id = SITES[site_key]["actor"]
         print(f"\n{site_key} ({actor_id})")
-        entries = []
-        for i, search in enumerate(plan, 1):
-            who = f" [{search['company']}]" if search.get("company") else ""
-            depth = effective_search(site_key, search)["max_results"]
-            entries.append(PaidEntry(
-                n, i, len(plan), paid_unit_id(n), site_key, actor_id, search,
-                f"{search['keywords'] or '(all)'}{who} @ {search['location']}",
-                f"{today}|{site_key}|{search['keywords']}|{search['location']}|"
-                f"{search.get('company') or ''}",
-                max_charge_usd(site_key, depth)))
-            n += 1
         bounded = all(e.ceiling is not None for e in entries)
         width = workers if bounded else 1
         first = entries[0].n
         head = sent = running = 0       # next to integrate, next to send, in flight
         waiting, open_keys, refused = {}, set(), None
+        refusal = halted = None         # V2-C4.5: why the pool stopped it
         began = time.monotonic()
         # One step per turn, in this priority: integrate the head of the plan
         # if it is ready; else send the next search if a worker is free; else,
@@ -1779,36 +2359,74 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
             e = entries[sent] if sent < len(entries) else None
             # A repeat of a search still in flight waits for it: the serial
             # loop would decide it against .done_combos after its twin.
-            if refused is None and e is not None and e.combo_key not in open_keys:
+            if (refused is None and halted is None and e is not None
+                    and e.combo_key not in open_keys):
                 if e.combo_key in done:
                     waiting[sent] = None                     # integrated in order
                     sent += 1
                     continue
                 if running < width:
-                    if not (exposure.reserve(e.unit_id, e.ceiling)
-                            if e.ceiling is not None else exposure.admit(e.unit_id)):
-                        refused = e
+                    verdict = "go" if pool is None else pool.verdict(e)
+                    if verdict not in ("go", "wait"):
+                        refused, refusal = e, verdict
                         continue
-                    open_keys.add(e.combo_key)
-                    threading.Thread(target=_paid_worker,
-                                     args=(e, make_client, exposure, results),
-                                     name=f"sweep-paid-{e.unit_id}",
-                                     daemon=True).start()
-                    running += 1
-                    peak["in_flight"] = max(peak["in_flight"], running)
-                    sent += 1
-                    continue
+                    if verdict == "go":
+                        if not (exposure.reserve(e.unit_id, e.ceiling)
+                                if e.ceiling is not None else exposure.admit(e.unit_id)):
+                            refused = e
+                            continue
+                        held_by, client_for, hooks = exposure, make_client, None
+                        if pool is not None:
+                            held_by = pool.hold(e, exposure)
+                            if held_by is None:
+                                exposure.release(e.unit_id)
+                                refused, refusal = e, "account_capacity"
+                                continue
+                            holds[e.unit_id] = held_by
+                            client_for, hooks = held_by.acct.client, held_by.hooks()
+                        open_keys.add(e.combo_key)
+                        # Single-account: the same four arguments as ever.
+                        threading.Thread(target=_paid_worker,
+                                         args=(e, client_for, held_by, results)
+                                         + ((hooks,) if hooks else ()),
+                                         name=f"sweep-paid-{e.unit_id}",
+                                         daemon=True).start()
+                        running += 1
+                        peak["in_flight"] = max(peak["in_flight"], running)
+                        sent += 1
+                        continue
             if head == sent:
                 break
             r = results.get()
             running -= 1
             waiting[r.n - first] = r
+            if pool is not None and halted is None:
+                kind = pool.refusal(holds.get(entries[r.n - first].unit_id), r.error)
+                if kind:
+                    halted = (entries[r.n - first], kind)
             peak["buffered"] = max(peak["buffered"], sum(
                 1 for k, v in waiting.items() if v is not None and k != head))
         segments.append({"provider": site_key, "bounded": bounded, "workers": width,
                          "searches": len(entries), "sent": sent,
                          "wall_ms": round((time.monotonic() - began) * 1000)})
-        if refused is not None:
+        if halted is not None:
+            unit, kind = halted
+            print(f"  ⚠ {kind}: the provider refused {unit.unit_id}'s start on "
+                  f"{pool.assignment[unit.unit_id].label} — stopping; its ceiling "
+                  f"stays held and it is not retried elsewhere.")
+            telemetry.note(f"V2-C4.5: {kind} refusal on {unit.unit_id} stopped the "
+                           f"paid phase; nothing was retried on another account.")
+            telemetry.paid_unvisited("skipped_account")
+            stopped_early = True
+        if refused is not None and refusal is not None:
+            visited.append({"unit_id": refused.unit_id, "provider": site_key,
+                            "bounded": refused.ceiling is not None,
+                            "reservation": "blocked_account", "reason": refusal})
+            print(f"  ⚠ account pool: {refused.unit_id} cannot start ({refusal}) — "
+                  f"stopping.")
+            telemetry.paid_unvisited("skipped_account")
+            stopped_early = True
+        elif refused is not None:
             held = exposure.units[refused.unit_id]
             visited.append({"unit_id": refused.unit_id, "provider": site_key,
                             "bounded": refused.ceiling is not None,
@@ -1825,12 +2443,16 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
     print(f"\n  held for {held['committed_starts']} provider-bounded start(s): "
           f"${held['committed_usd']} of ceiling (exposure, not spend)")
     waits = [u["buffered_wait_ms"] for u in visited if "buffered_wait_ms" in u]
-    telemetry.paid_execution({
+    section = {
         "mode": "reservation_scheduler", "workers": workers,
         "exposure": held, "peak_in_flight": peak["in_flight"],
         "peak_buffered": peak["buffered"],
         "buffered_wait_ms": {"total": sum(waits), "max": max(waits, default=0)},
-        "checkpoint": checkpoint, "segments": segments, "units": visited})
+        "checkpoint": checkpoint, "segments": segments, "units": visited}
+    if pool is not None:
+        section["accounts"] = pool.snapshot()
+        pool.ledger.finish()
+    telemetry.paid_execution(section)
     return spent, stopped_early, site_key
 
 
@@ -3021,16 +3643,27 @@ def main():
                            "the V2-C4 evidence gate, so it ran as shadow — the "
                            "full plan, nothing skipped or cut.")
         from apify_client import ApifyClient
-        token = _require_token()
-        client = ApifyClient(token)
-        # Month-to-date spend BEFORE this sweep. Everything below measures
-        # against the account rather than the actors' self-reports, so the cap
-        # counts money that actually left. Falls back to summing usage_total_usd
-        # if the account can't be read — better an undercount than no guard.
-        baseline = account_usage_usd(client)
-        if baseline is None:
-            print("  (could not read account usage — spend cap falls back to the "
-                  "actor self-report, which undercounts)")
+        # V2-C4.5 (default off): every configured account, pooled, under C2 only.
+        pool = None
+        if paid_multi_account() and not c2:
+            print(f"  ({PAID_MULTI_ACCOUNT_FLAG} needs {PAID_CONCURRENCY_FLAG}; "
+                  f"one account, as before)")
+            telemetry.note(f"{PAID_MULTI_ACCOUNT_FLAG} was set without "
+                           f"{PAID_CONCURRENCY_FLAG}: one account, as before.")
+        if c2 and paid_multi_account():
+            pool = AccountPool.open(SETTINGS["output_dir"], ApifyClient)
+            token = client = baseline = None
+        else:
+            token = _require_token()
+            client = ApifyClient(token)
+            # Month-to-date spend BEFORE this sweep. Everything below measures
+            # against the account rather than the actors' self-reports, so the cap
+            # counts money that actually left. Falls back to summing usage_total_usd
+            # if the account can't be read — better an undercount than no guard.
+            baseline = account_usage_usd(client)
+            if baseline is None:
+                print("  (could not read account usage — spend cap falls back to the "
+                      "actor self-report, which undercounts)")
         stopped_early = False
         n = 0
         if c2:
@@ -3039,7 +3672,7 @@ def main():
             # on it, and never chooses an account itself.
             spent, stopped_early, site_key = paid_phase_c2(
                 plans, lambda: ApifyClient(token), client, baseline, budget,
-                raw_rows, done, done_path, today, emit, failures)
+                raw_rows, done, done_path, today, emit, failures, pool=pool)
         else:
             for site_key, plan in plans.items():
                 if stopped_early:

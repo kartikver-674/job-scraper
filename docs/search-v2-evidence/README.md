@@ -275,6 +275,23 @@ paid call:
   `bench/search_v2_paid_concurrency.py --arms serial,serial+shadow,2,2+shadow`.
 - `c4-mutations.json`: the stage's mutation checks, both passes.
 
+Added by V2-C4.5 (2026-09-24),
+[multi-account paid execution](../search-engine-v2-c45-multi-account-paid-execution.md)
+— one sweep may place its bounded searches across several authorised accounts
+(`SWEEP_PAID_MULTI_ACCOUNT`, default off). No paid call:
+
+- `c45-allocator-benchmark.json`: OFFLINE. Most-headroom and best-fit greedy
+  against the exact allocator on shapes A-H and 500 random pools over the
+  default plan's ceilings; planning CPU and memory at 5/10/20 accounts; the
+  pool's per-start cost with the durable ledger. `bench/search_v2_paid_accounts.py`.
+- `c45-mutations.json`: the stage's sixteen mutation checks (A-P).
+- `c45-c5-preflight.json` (ZERO PAID): C5's checkpoint 1 through the account
+  pool — every configured slot read (free GETs through a client with no start),
+  deduplicated, the default plan placed, and the guarded child run WITHOUT keys.
+  `bench/search_v2_paid_probe.py --preflight`.
+- `paid-research-ledger.json` gains `separate_budgets.C5` ($11.33 cumulative,
+  outside the C1-C4 $2.00): refuse-only, as the rest of the file.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

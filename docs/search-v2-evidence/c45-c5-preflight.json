@@ -1,0 +1,214 @@
+{
+  "status": "MEASURED LIVE, ZERO PAID: free account and actor reads only; the guarded child ran without keys",
+  "stage": "C5",
+  "observed_at": "2026-09-24T15:11:22.767+00:00",
+  "code_revision": "22a89a22b909f59c8d48c4e556b1df780ef01baf-dirty",
+  "mode": {
+    "full_plan": true,
+    "paid_workers": 2,
+    "adaptive_mode": "shadow",
+    "multi_account": true
+  },
+  "child_env_flags": {
+    "SWEEP_FREE_GREENHOUSE_CONCURRENCY": "1",
+    "SWEEP_FREE_GREENHOUSE_WORKERS": "4",
+    "SWEEP_FREE_LEVER_CONCURRENCY": "1",
+    "SWEEP_FREE_LEVER_WORKERS": "4",
+    "SWEEP_FREE_SOURCE_SHADOW": "1",
+    "SWEEP_PAID_ADAPTIVE_MODE": "shadow",
+    "SWEEP_PAID_CONCURRENCY": "1",
+    "SWEEP_PAID_MULTI_ACCOUNT": "1",
+    "SWEEP_PAID_WORKERS": "2",
+    "SWEEP_RESULTS_READY_EARLY": "1",
+    "SWEEP_SEARCH_V2_TELEMETRY": "1"
+  },
+  "plan": {
+    "linkedin": {
+      "starts": 18,
+      "depth": 15,
+      "ceiling_usd": "0.046"
+    },
+    "indeed": {
+      "starts": 72,
+      "depth": 15,
+      "ceiling_usd": "0.135"
+    }
+  },
+  "logical_searches": 90,
+  "physical_starts": 90,
+  "bounded_exposure_usd": "10.548",
+  "engine_cap_usd": "10.55",
+  "guard": {
+    "exposed_before_usd": "0.773",
+    "after_usd": "11.321",
+    "max_usd": "11.33",
+    "preview_exit": 1,
+    "preview": [
+      "PAID PREFLIGHT \u2014 nothing has been started",
+      "  linkedin  curious_coder/linkedin-jobs-scraper     18 start(s)  depth 15  ceiling $0.046 per start, provider-enforced",
+      "  indeed    misceres/indeed-scraper                 72 start(s)  depth 15  ceiling $0.135 per start, provider-enforced",
+      "  worst case this run: $10.548",
+      "  exposure before: $0.773   after: $11.321   limit (--max-usd): $11.33",
+      "Paid benchmark execution blocked. Missing: --allow-paid and SWEEP_ALLOW_PAID_BENCH=1.",
+      "To intentionally permit paid developer execution, pass --allow-paid AND set SWEEP_ALLOW_PAID_BENCH=1. Both are required; an APIFY_TOKEN, a .env or a paid profile is not permission."
+    ]
+  },
+  "token_slots": [
+    "APIFY_TOKEN",
+    "APIFY_TOKEN_2",
+    "APIFY_TOKEN_3",
+    "APIFY_TOKEN_4",
+    "APIFY_TOKEN_5"
+  ],
+  "excluded_slots": [],
+  "actor_memory_mb": {
+    "linkedin": 512,
+    "indeed": 4096
+  },
+  "pool": {
+    "account_count": 5,
+    "buffer_per_account_usd": "0.01",
+    "aggregate_headroom_usd": "9.929",
+    "aggregate_capacity_usd": "9.879",
+    "bounded_units": 90,
+    "bounded_exposure_usd": "10.548",
+    "placed_units": 84,
+    "allocation_feasible": false,
+    "stranded_usd": "0.141",
+    "accounts": [
+      {
+        "account": "account_000",
+        "slots": [
+          "APIFY_TOKEN"
+        ],
+        "plan": "FREE",
+        "headroom_usd": "3.407",
+        "capacity_usd": "3.397",
+        "projected_units": {
+          "indeed": 25
+        },
+        "projected_usd": "3.375",
+        "leftover_usd": "0.022",
+        "stranded_usd": "0.022",
+        "memory_mb": 16384,
+        "run_slots": 5
+      },
+      {
+        "account": "account_001",
+        "slots": [
+          "APIFY_TOKEN_2"
+        ],
+        "plan": "FREE",
+        "headroom_usd": "0.021",
+        "capacity_usd": "0.011",
+        "projected_units": {},
+        "projected_usd": "0",
+        "leftover_usd": "0.011",
+        "stranded_usd": "0.011",
+        "memory_mb": 16384,
+        "run_slots": 5
+      },
+      {
+        "account": "account_002",
+        "slots": [
+          "APIFY_TOKEN_3"
+        ],
+        "plan": "FREE",
+        "headroom_usd": "0.509",
+        "capacity_usd": "0.499",
+        "projected_units": {
+          "linkedin": 2,
+          "indeed": 3
+        },
+        "projected_usd": "0.497",
+        "leftover_usd": "0.002",
+        "stranded_usd": "0.002",
+        "memory_mb": 16384,
+        "run_slots": 5
+      },
+      {
+        "account": "account_003",
+        "slots": [
+          "APIFY_TOKEN_4"
+        ],
+        "plan": "FREE",
+        "headroom_usd": "0.993",
+        "capacity_usd": "0.983",
+        "projected_units": {
+          "linkedin": 15,
+          "indeed": 2
+        },
+        "projected_usd": "0.960",
+        "leftover_usd": "0.023",
+        "stranded_usd": "0.023",
+        "memory_mb": 16384,
+        "run_slots": 5
+      },
+      {
+        "account": "account_004",
+        "slots": [
+          "APIFY_TOKEN_5"
+        ],
+        "plan": "FREE",
+        "headroom_usd": "4.999",
+        "capacity_usd": "4.989",
+        "projected_units": {
+          "linkedin": 1,
+          "indeed": 36
+        },
+        "projected_usd": "4.906",
+        "leftover_usd": "0.083",
+        "stranded_usd": "0.083",
+        "memory_mb": 16384,
+        "run_slots": 5
+      }
+    ]
+  },
+  "readiness": [
+    {
+      "account": "account_000",
+      "heaviest_run_mb": 4096,
+      "runs_at_once": 4,
+      "supports_workers": true
+    },
+    {
+      "account": "account_001",
+      "heaviest_run_mb": null,
+      "runs_at_once": null,
+      "supports_workers": true
+    },
+    {
+      "account": "account_002",
+      "heaviest_run_mb": 4096,
+      "runs_at_once": 4,
+      "supports_workers": true
+    },
+    {
+      "account": "account_003",
+      "heaviest_run_mb": 4096,
+      "runs_at_once": 4,
+      "supports_workers": true
+    },
+    {
+      "account": "account_004",
+      "heaviest_run_mb": 4096,
+      "runs_at_once": 4,
+      "supports_workers": true
+    }
+  ],
+  "single_account": {
+    "most_headroom_usd": "4.999",
+    "holds_cap_plus_0_10": false
+  },
+  "checks": {
+    "preview_blocked_without_keys": true,
+    "every_search_bounded": true,
+    "engine_cap_holds_bounded_exposure": true,
+    "c0_cumulative_within_max_usd": true,
+    "research_ledger_allows": true,
+    "pool_places_every_bounded_search": false,
+    "placed_accounts_support_workers": true
+  },
+  "paid_calls": 0,
+  "ready_for_c5_review": false
+}

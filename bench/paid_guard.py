@@ -153,22 +153,28 @@ def main(argv=None):
                 authorize(plan, args.allow_paid, args.max_usd, args.exposed_usd)
                 authorized = True
 
-        real = scraper._require_token
+        # Both credential steps: the single account's, and V2-C4.5's pool.
+        real = {name: getattr(scraper, name)
+                for name in ("_require_token", "_require_token_pool")}
 
-        def credential_step():
-            # The engine calls this only when its plan is paid, before any
-            # client exists. Unauthorised here means the run went paid
-            # although the plan checked above did not.
-            if not authorized:
-                raise PaidBenchBlocked(
-                    f"{BLOCKED} The engine reached its credential step without "
-                    f"an authorised paid plan.\n{HOW}")
-            return real()
-        scraper._require_token = credential_step
+        def credential_step(step):
+            def guarded():
+                # The engine calls this only when its plan is paid, before any
+                # client exists. Unauthorised here means the run went paid
+                # although the plan checked above did not.
+                if not authorized:
+                    raise PaidBenchBlocked(
+                        f"{BLOCKED} The engine reached its credential step without "
+                        f"an authorised paid plan.\n{HOW}")
+                return step()
+            return guarded
+        for name, step in real.items():
+            setattr(scraper, name, credential_step(step))
         try:
             scraper.main()
         finally:
-            scraper._require_token = real
+            for name, step in real.items():
+                setattr(scraper, name, step)
     finally:
         sys.argv = saved
 

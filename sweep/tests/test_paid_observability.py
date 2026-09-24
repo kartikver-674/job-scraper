@@ -838,7 +838,18 @@ class ResearchLedger(unittest.TestCase):
                                      Decimal(e["intended_max_usd"]))
             self.assertAlmostEqual(e["cumulative_known_actual_usd"], float(actual), 6)
             self.assertTrue((probe.LEDGER.parent / e["evidence"]).exists(), e["evidence"])
-        self.assertLessEqual(intended, Decimal(ledger["ceiling_usd"]))
+            # V2-C4.5: a stage with its own budget is checked against it,
+            # cumulatively; every other entry against the shared ceiling.
+            ceiling, _ = probe.ledger_ceiling(ledger, None if e["stage"] == "C0"
+                                              else e["stage"])
+            self.assertIsNotNone(ceiling, e["stage"])
+            self.assertLessEqual(Decimal(e["cumulative_intended_usd"]), ceiling
+                                 if e["stage"] in ledger.get("separate_budgets", {})
+                                 else Decimal(ledger["ceiling_usd"]))
+        shared = [e for e in ledger["entries"]
+                  if e["stage"] not in ledger.get("separate_budgets", {})]
+        self.assertLessEqual(sum((Decimal(e["intended_max_usd"]) for e in shared),
+                                 Decimal(0)), Decimal(ledger["ceiling_usd"]))
         self.assertEqual(ledger["entries"][0]["stage"], "C0")
         self.assertNotRegex(text, r"apify_api_\w+")
         for word in ("title", "company", "description", "url"):

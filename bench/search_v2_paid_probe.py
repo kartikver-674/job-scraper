@@ -28,6 +28,14 @@ workers (unset otherwise, whatever the shell says) and --sweep-budget puts an
 engine cap in the profile, so the reservation guard is live too. Neither is a
 key: both C0 keys and --max-usd apply exactly as before.
 
+V2-C4.5, for C5: --full-plan runs the repository's default plan — every
+enabled paid site, the free sources, production's free flags — instead of one
+--site; --adaptive-mode and --multi-account set those two modes in the child
+(and only there); --keep-output DIR keeps the outputs and telemetry for the
+offline analysis; --preflight reads every configured account (free GETs,
+through a client that cannot start anything), places the plan on them and
+runs the guarded child WITHOUT keys for C0's preview. None is a key.
+
 THE LEDGER (docs/search-v2-evidence/paid-research-ledger.json) is developer
 evidence, appended after a run. It is never authorisation: nothing read from
 it can add a key, raise a limit or lower --exposed-usd. It can only refuse —
@@ -41,6 +49,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -50,6 +59,7 @@ import time
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT)]
@@ -74,6 +84,14 @@ EXECUTION = ("ok", "failure_category", "failure_type", "started_at", "finished_a
              "max_total_charge_usd", "provider_ceiling_usd", "charged_events",
              "cost_observations", "reported_cost_usd", "billed_delta_usd",
              "budget_view_usd", "budget_basis", "raw_count", "dataset_retrieved_at")
+# V2-C4.5: what --full-plan sets in the child, as production has them (B2-B5).
+PRODUCTION_FREE_FLAGS = {
+    "SWEEP_FREE_SOURCE_SHADOW": "1",
+    "SWEEP_FREE_LEVER_CONCURRENCY": "1", "SWEEP_FREE_LEVER_WORKERS": "4",
+    "SWEEP_FREE_GREENHOUSE_CONCURRENCY": "1", "SWEEP_FREE_GREENHOUSE_WORKERS": "4",
+    "SWEEP_RESULTS_READY_EARLY": "1"}
+ADAPTIVE_MODE = "SWEEP_PAID_ADAPTIVE_MODE"
+MULTI_ACCOUNT = "SWEEP_PAID_MULTI_ACCOUNT"
 
 
 def _now():
@@ -97,19 +115,32 @@ def _plain(value):
 # ---------------------------------------------------------------------------
 def guard_argv(args, profile):
     """The guarded child. Both keys and both limits come from THIS command
-    line only; the ledger is not an input."""
-    return paid_guard.engine_argv(
-        ["--profile", profile, "--site", args.site, "--limit", str(args.searches),
-         "--keywords", args.keywords, "--yes"],
-        allow_paid=args.allow_paid, max_usd=args.max_usd,
-        exposed_usd=args.exposed_usd)
+    line only; the ledger is not an input. --full-plan: the profile's plan,
+    whole — no --site, --limit or --keywords."""
+    engine = (["--profile", profile, "--yes"] if getattr(args, "full_plan", False) else
+              ["--profile", profile, "--site", args.site, "--limit", str(args.searches),
+               "--keywords", args.keywords, "--yes"])
+    return paid_guard.engine_argv(engine, allow_paid=args.allow_paid,
+                                  max_usd=args.max_usd, exposed_usd=args.exposed_usd)
 
 
 def load_ledger(path=LEDGER):
     return json.loads(Path(path).read_text()) if Path(path).exists() else None
 
 
-def ledger_blocks(ledger, exposed_usd, max_usd):
+def ledger_ceiling(ledger, stage=None):
+    """(ceiling, what it is) for `stage`: the shared C1-C4 ceiling for a stage
+    it covers (or no stage), else the stage's own separately approved budget,
+    else None — a stage with no budget in the ledger has none."""
+    if stage is None or stage in (ledger.get("ceiling_covers") or ()):
+        return Decimal(ledger["ceiling_usd"]), "the shared research ceiling"
+    own = (ledger.get("separate_budgets") or {}).get(stage)
+    if own is None:
+        return None, f"no research budget for stage {stage}"
+    return Decimal(own["ceiling_usd"]), f"stage {stage}'s separate research budget"
+
+
+def ledger_blocks(ledger, exposed_usd, max_usd, stage=None):
     """A reason to refuse, or None. Refusal only: the ledger can stop a run
     whose own arguments understate what it records, never permit one."""
     if not ledger:
@@ -119,9 +150,11 @@ def ledger_blocks(ledger, exposed_usd, max_usd):
     if Decimal(str(exposed_usd)) < committed:
         return (f"--exposed-usd {exposed_usd} is below the ${committed} of intended "
                 f"exposure the research ledger already records")
-    if Decimal(str(max_usd)) > Decimal(ledger["ceiling_usd"]):
-        return (f"--max-usd {max_usd} exceeds the shared research ceiling "
-                f"${ledger['ceiling_usd']}")
+    ceiling, what = ledger_ceiling(ledger, stage)
+    if ceiling is None:
+        return f"the research ledger records {what}"
+    if Decimal(str(max_usd)) > ceiling:
+        return f"--max-usd {max_usd} exceeds {what} ${ceiling}"
     return None
 
 
@@ -157,7 +190,10 @@ def paid_view(record):
 
 def profile_source(args, name, work):
     """A temporary profile: --site alone, free sources off, outputs in `work`.
-    With --case, a synthetic cohort rendered the way the worker renders one."""
+    With --case, a synthetic cohort rendered the way the worker renders one.
+    With --full-plan (V2-C4.5), the repository's defaults, whole."""
+    if getattr(args, "full_plan", False):
+        return _full_plan_source(args, work)
     import config
     locations = [x.strip() for x in args.location.split(",") if x.strip()]
     sites = {k: {"enabled": False} for k in config.SITES}
@@ -184,6 +220,15 @@ def profile_source(args, name, work):
             f"'output_dir': {str(work)!r}}}\n")
 
 
+def _full_plan_source(args, work):
+    budget = ("" if args.sweep_budget is None
+              else f"'max_spend_usd': {float(args.sweep_budget)!r}, ")
+    # The repository's default plan, whole: every enabled paid site and the
+    # free sources, under this sweep's cap and its own outputs.
+    return ('"""TEMPORARY C5 profile: the repository defaults; deleted after the '
+            'run."""\n' f"SETTINGS = {{{budget}'output_dir': {str(work)!r}}}\n")
+
+
 def child_env(args, name):
     """The guarded child's environment. The C2 scheduling mode is set here and
     only here: --paid-workers N turns SWEEP_PAID_CONCURRENCY on at N workers;
@@ -196,6 +241,16 @@ def child_env(args, name):
         env.pop(key, None)
     if args.paid_workers is not None:
         env.update(SWEEP_PAID_CONCURRENCY="1", SWEEP_PAID_WORKERS=str(args.paid_workers))
+    # V2-C4.5: the adaptive and account-pool modes, and --full-plan's free
+    # flags, likewise set here only — a leftover in the shell changes nothing.
+    for key in (ADAPTIVE_MODE, MULTI_ACCOUNT):
+        env.pop(key, None)
+    if getattr(args, "adaptive_mode", None):
+        env[ADAPTIVE_MODE] = args.adaptive_mode
+    if getattr(args, "multi_account", False):
+        env[MULTI_ACCOUNT] = "1"
+    if getattr(args, "full_plan", False):
+        env.update(PRODUCTION_FREE_FLAGS)
     return env
 
 
@@ -229,12 +284,31 @@ def overlap(units):
 # ---------------------------------------------------------------------------
 def accounts():
     """(name, client) per configured account. The name is the variable's,
-    e.g. APIFY_TOKEN_2; the token itself never leaves this function's clients."""
+    e.g. APIFY_TOKEN_2; the token itself never leaves this function's clients.
+    V2-C4.5: one per UNDERLYING account (the engine's own users/me dedup), so
+    two slots holding keys to one account are read, and counted, once."""
     from apify_client import ApifyClient
     from dotenv import load_dotenv
     import scraper
     load_dotenv()
-    return [(name, ApifyClient(token)) for name, token in scraper.apify_tokens()]
+    pooled, _ = scraper.discover_accounts(scraper.apify_tokens(), ApifyClient)
+    return [(a.slots[0], a.read_client) for a in pooled]
+
+
+class ReadOnlyClient:
+    """V2-C4.5's preflight client: an account's own records and an actor's,
+    and nothing that can start, abort or change anything."""
+
+    def __init__(self, token):
+        from apify_client import ApifyClient
+        self._client = ApifyClient(token)
+
+    def user(self):
+        user = self._client.user()
+        return SimpleNamespace(get=user.get, limits=user.limits)
+
+    def actor(self, actor_id):
+        return SimpleNamespace(get=self._client.actor(actor_id).get)
 
 
 def _run_reading(run):
@@ -361,6 +435,13 @@ def account_view(name, readings, settled_runs_usd):
                                     else round(last - settled_runs_usd, 6))}
 
 
+def _per_provider(units, key):
+    """One value when every unit agrees (a single-site probe, as before), else
+    {provider: value}."""
+    values = {u["provider"]: u.get(key) for u in units}
+    return next(iter(values.values())) if len(set(values.values())) == 1 else values
+
+
 def revision():
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
                           text=True).stdout.strip()
@@ -374,7 +455,8 @@ def revision():
 # ---------------------------------------------------------------------------
 def probe(args):
     ledger = load_ledger(args.ledger)
-    reason = ledger_blocks(ledger, args.exposed_usd, args.max_usd)
+    reason = ledger_blocks(ledger, args.exposed_usd, args.max_usd,
+                           getattr(args, "stage", None))
     if reason:
         sys.exit(f"Probe refused: {reason}.")
     name = f"c1probe_{secrets.token_hex(4)}"
@@ -400,7 +482,12 @@ def probe(args):
         final_rows = len(json.loads(Path(found[0]).read_text())) if found else None
     finally:
         profile.unlink(missing_ok=True)
-        shutil.rmtree(work, ignore_errors=True)
+        if getattr(args, "keep_output", None):
+            # V2-C4.5: C5's outputs and telemetry, for the offline analysis —
+            # into a gitignored directory the developer named.
+            shutil.move(str(work), args.keep_output)
+        else:
+            shutil.rmtree(work, ignore_errors=True)
 
     units = paid_view(record)
     run_ids = [u["execution"]["actor_run_id"] for u in units
@@ -409,7 +496,21 @@ def probe(args):
         sys.exit(code or "No actor run was started; nothing to record.")
 
     owned = {}
+    # V2-C4.5: under the pool, the engine's own section says which account
+    # (by slot) ran each unit; the scan below is the fallback.
+    by_slot = dict(owners)
+    slot_of = {row["account"]: row["slots"][0] for row in
+               ((record.get("paid_execution") or {}).get("accounts") or {})
+               .get("accounts") or []}
+    for u in (record.get("paid_execution") or {}).get("units") or []:
+        rid = next((x["execution"]["actor_run_id"] for x in units
+                    if x["unit_id"] == u["unit_id"] and (x.get("execution") or {})
+                    .get("actor_run_id")), None)
+        if rid and slot_of.get(u.get("account")) in by_slot:
+            owned[rid] = (slot_of[u["account"]], by_slot[slot_of[u["account"]]])
     for rid in run_ids:
+        if rid in owned:
+            continue
         for acct_name, client in owners:
             try:
                 if client.run(rid).get() is not None:
@@ -423,7 +524,8 @@ def probe(args):
                                baselines, args.observe_s)
     listing = {}
     for acct_name, client in owners:
-        found = client.runs().list(desc=True, limit=25, started_after=began).items
+        found = client.runs().list(desc=True, limit=max(25, len(run_ids) + 25),
+                                   started_after=began).items
         listing[acct_name] = [{"id": r.id, "status": r.status} for r in found]
     unexpected = [r["id"] for rows in listing.values() for r in rows
                   if r["id"] not in run_ids]
@@ -494,15 +596,20 @@ def probe(args):
                   "unchanged engine",
         "stage": args.stage, "purpose": args.purpose,
         "observed_at": began, "engine_exited_at": exited, "code_revision": revision(),
-        "provider": args.site,
-        "actor": units[0]["actor"],
+        "provider": "+".join(sorted({u["provider"] for u in units})),
+        "actor": units[0]["actor"] if len({u["actor"] for u in units}) == 1
+        else sorted({u["actor"] for u in units}),
         "actor_build_numbers": sorted({(u.get("execution") or {}).get(
             "actor_build_number") for u in units} - {None}),
         # Developer-chosen generic queries; never derived from a résumé.
-        "shape": {"keywords": args.keywords, "locations": args.location,
-                  "synthetic_case": args.case, "scope": args.scope},
-        "requested_depth": units[0]["requested_depth"],
-        "charge_ceiling_usd_per_start": units[0]["charge_ceiling_usd"],
+        "shape": ({"full_plan": True} if getattr(args, "full_plan", False) else
+                  {"keywords": args.keywords, "locations": args.location,
+                   "synthetic_case": args.case, "scope": args.scope}),
+        "requested_depth": _per_provider(units, "requested_depth"),
+        "charge_ceiling_usd_per_start": _per_provider(units, "charge_ceiling_usd"),
+        "adaptive_mode": getattr(args, "adaptive_mode", None),
+        "multi_account": bool(getattr(args, "multi_account", False)),
+        "kept_output": getattr(args, "keep_output", None),
         "actor_starts": len(run_ids), "intended_max_usd": intended,
         "exposed_usd_before": args.exposed_usd,
         "cumulative_intended_usd_after": str(Decimal(str(args.exposed_usd))
@@ -527,7 +634,7 @@ def probe(args):
     out["token_absent_from_evidence"] = True
     Path(args.output).write_text(json.dumps(out, indent=2, default=str) + "\n")
     if ledger is not None:
-        entry = {"stage": args.stage, "at": began, "provider": args.site,
+        entry = {"stage": args.stage, "at": began, "provider": out["provider"],
                  "actor": out["actor"], "purpose": args.purpose,
                  "actor_starts": len(run_ids),
                  "requested_depth": out["requested_depth"],
@@ -544,6 +651,126 @@ def probe(args):
         "actor_starts", "intended_max_usd", "known_actual_usd",
         "cumulative_intended_usd_after", "cumulative_known_actual_usd_after",
         "final_rows", "anomalies")}, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# V2-C4.5: C5's zero-paid preflight
+# ---------------------------------------------------------------------------
+_PREVIEW_SITE = re.compile(r"^\s{2}(\w+)\s+\S+\s+(\d+) start\(s\)\s+depth (\d+)\s+"
+                           r"ceiling (?:\$(\S+) per start|NONE)", re.M)
+
+
+def preview_plan(text):
+    """{site: (starts, depth, ceiling or None)} from the guard's own preview —
+    the plan the engine would run, as the engine's dry run in that child saw
+    it — in plan order."""
+    return {m[1]: (int(m[2]), int(m[3]), None if m[4] is None else Decimal(m[4]))
+            for m in _PREVIEW_SITE.finditer(text)}
+
+
+def pool_readiness(report, accounts, memory, workers):
+    """Per placed account: how many of its heaviest provider's runs it can
+    hold at once, and whether that is at least `workers` — so plan-order
+    dispatch is never throttled by an account, only by the worker count."""
+    rows = []
+    for a, row in zip(accounts, report["accounts"]):
+        heaviest = max((memory.get(p) or a.memory_mb for p in row["projected_units"]),
+                       default=None)
+        at_once = (None if heaviest is None else
+                   min(a.memory_mb // heaviest if heaviest else 0, a.run_slots))
+        rows.append({"account": a.label, "heaviest_run_mb": heaviest,
+                     "runs_at_once": at_once,
+                     "supports_workers": at_once is None or at_once >= workers})
+    return rows
+
+
+def preflight(args):
+    """Zero paid calls. Reads every configured account (users/me and
+    users/me/limits, free) and each paid actor's record (free) through
+    ReadOnlyClient, which has no start; places the plan the guarded child
+    previews; runs that child WITHOUT keys. Writes the report, no token."""
+    if args.allow_paid:
+        sys.exit("--preflight never spends: drop --allow-paid.")
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
+    import scraper
+    ledger = load_ledger(args.ledger)
+    name = f"c5pre_{secrets.token_hex(4)}"
+    work = Path(tempfile.mkdtemp())
+    profile = ROOT / "profiles" / f"{name}.py"
+    profile.write_text(profile_source(args, name, work))
+    env = child_env(args, name)
+    env.pop(paid_guard.FLAG, None)               # the preview never holds a key
+    try:
+        child = subprocess.run(guard_argv(args, name), cwd=ROOT, env=env,
+                               capture_output=True, text=True)
+    finally:
+        profile.unlink(missing_ok=True)
+        shutil.rmtree(work, ignore_errors=True)
+    preview = child.stdout + child.stderr
+    plan = preview_plan(preview)
+    units, n = [], 0
+    for site, (starts, _, ceiling) in plan.items():
+        for _ in range(starts):
+            units.append((scraper.paid_unit_id(n), site, ceiling))
+            n += 1
+    bounded = [u for u in units if u[2] is not None]
+    exposure = sum((c for *_, c in bounded), Decimal(0))
+    tokens = scraper.pool_tokens()
+    accounts, excluded = scraper.discover_accounts(tokens, ReadOnlyClient)
+    memory = {site: scraper.actor_memory_mb(accounts[0].read_client,
+                                            scraper.SITES[site]["actor"])
+              for site in plan} if accounts else {}
+    _, report = scraper.project_assignment(bounded, accounts)
+    workers = args.paid_workers or 1
+    ready = pool_readiness(report, accounts, memory, workers)
+    cap = None if args.sweep_budget is None else Decimal(str(args.sweep_budget))
+    after = Decimal(str(args.exposed_usd)) + exposure
+    single_best = max((a.headroom for a in accounts), default=Decimal(0))
+    checks = {
+        "preview_blocked_without_keys": child.returncode != 0 and "blocked" in preview,
+        "every_search_bounded": len(bounded) == len(units) and bool(units),
+        "engine_cap_holds_bounded_exposure": cap is not None and cap >= exposure,
+        "c0_cumulative_within_max_usd": after <= Decimal(str(args.max_usd)),
+        "research_ledger_allows": ledger_blocks(ledger, args.exposed_usd, args.max_usd,
+                                                args.stage) is None,
+        "pool_places_every_bounded_search": report["allocation_feasible"],
+        "placed_accounts_support_workers": all(r["supports_workers"] for r in ready),
+    }
+    out = {"status": "MEASURED LIVE, ZERO PAID: free account and actor reads only; "
+                     "the guarded child ran without keys",
+           "stage": args.stage, "observed_at": _now(), "code_revision": revision(),
+           "mode": {"full_plan": bool(getattr(args, "full_plan", False)),
+                    "paid_workers": args.paid_workers,
+                    "adaptive_mode": getattr(args, "adaptive_mode", None),
+                    "multi_account": bool(getattr(args, "multi_account", False))},
+           "child_env_flags": {k: v for k, v in sorted(env.items())
+                               if k.startswith("SWEEP_") and k != "SWEEP_RUN_ID"},
+           "plan": {site: {"starts": s_, "depth": d, "ceiling_usd": None if c is None
+                           else str(c)} for site, (s_, d, c) in plan.items()},
+           "logical_searches": len(units), "physical_starts": len(units),
+           "bounded_exposure_usd": str(exposure),
+           "engine_cap_usd": None if cap is None else str(cap),
+           "guard": {"exposed_before_usd": str(args.exposed_usd),
+                     "after_usd": str(after), "max_usd": str(args.max_usd),
+                     "preview_exit": child.returncode,
+                     "preview": [ln for ln in preview.splitlines() if ln.strip()]},
+           "token_slots": [s_ for s_, _ in tokens],
+           "excluded_slots": excluded, "actor_memory_mb": memory,
+           "pool": report, "readiness": ready,
+           "single_account": {"most_headroom_usd": str(single_best),
+                              "holds_cap_plus_0_10": cap is not None
+                              and single_best >= cap + Decimal("0.10")},
+           "checks": checks, "paid_calls": 0,
+           "ready_for_c5_review": all(checks.values())}
+    text = json.dumps(out, indent=2, default=str)
+    if any(token in text for _, token in tokens):
+        sys.exit("A token reached the preflight; nothing written.")
+    Path(args.output).write_text(text + "\n")
+    print(json.dumps({k: out[k] for k in ("logical_searches", "bounded_exposure_usd",
+                                          "engine_cap_usd", "checks",
+                                          "ready_for_c5_review")}, indent=2))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -646,6 +873,16 @@ def main():
     ap.add_argument("--sweep-budget",
                     help="V2-C2: the engine's own cap (max_spend_usd) in the profile")
     ap.add_argument("--ledger", default=str(LEDGER))
+    # V2-C4.5, for C5.
+    ap.add_argument("--full-plan", action="store_true",
+                    help="the repository's default plan, free sources included")
+    ap.add_argument("--adaptive-mode", choices=["off", "shadow", "enforce"])
+    ap.add_argument("--multi-account", action="store_true",
+                    help="SWEEP_PAID_MULTI_ACCOUNT in the child (needs --paid-workers)")
+    ap.add_argument("--keep-output", metavar="DIR",
+                    help="keep the outputs and telemetry here (under output/)")
+    ap.add_argument("--preflight", action="store_true",
+                    help="zero paid calls: accounts, placement and C0's preview")
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
     if args.summarize:
@@ -653,9 +890,16 @@ def main():
         Path(args.output).write_text(json.dumps(out, indent=2) + "\n")
         print(json.dumps(out["ranges"], indent=2))
         return
-    if not (args.keywords and args.location and args.max_usd):
-        ap.error("a probe needs --keywords, --location and --max-usd")
+    if args.multi_account and args.paid_workers is None:
+        ap.error("--multi-account runs under the C2 scheduler: give --paid-workers")
+    if not args.max_usd or not (args.full_plan or (args.keywords and args.location)):
+        ap.error("a probe needs --max-usd and --full-plan, or --keywords and --location")
+    if args.keep_output and Path(args.keep_output).exists():
+        ap.error(f"--keep-output {args.keep_output} exists; name a new directory")
     os.environ.pop("JOB_PROFILE", None)   # the default SITES, not someone's profile
+    if args.preflight:
+        preflight(args)
+        return
     probe(args)
 
 
