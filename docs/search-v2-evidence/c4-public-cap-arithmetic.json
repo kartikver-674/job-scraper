@@ -1,0 +1,375 @@
+{
+  "status": "DERIVED OFFLINE through the real spend_cap_for, plan.cost, max_charge_usd and PaidExposure; arithmetic, not a sweep",
+  "measured_at": "2026-09-24T15:37:16+05:30",
+  "code_revision": "ccd572006dcc78217d92445308f2b91f52a59569-dirty",
+  "plans": [
+    {
+      "plan": "repository_defaults",
+      "estimate_usd": 6.966,
+      "bounded_exposure_usd": "10.548",
+      "unbounded_estimate_usd": 0,
+      "unbounded_searches": 0,
+      "searches": {
+        "linkedin": 18,
+        "indeed": 72
+      },
+      "estimate_per_search_usd": {
+        "linkedin": 0.027,
+        "indeed": 0.09
+      },
+      "cap_allowance_per_search_usd_before_c4": {
+        "linkedin": 0.03375,
+        "indeed": 0.1125
+      },
+      "ceiling_per_search_usd": {
+        "linkedin": "0.046",
+        "indeed": "0.135"
+      },
+      "all_ceilings_usd": "10.548",
+      "cap_usd_before_c4": "8.71",
+      "cap_usd_c4": "10.55",
+      "cap_holds_every_ceiling_before_c4": false,
+      "cap_holds_every_ceiling_c4": true,
+      "admitted_c2_before_c4": {
+        "linkedin": 18,
+        "indeed": 58
+      },
+      "admitted_c2_c4": {
+        "linkedin": 18,
+        "indeed": 72
+      },
+      "admitted_serial_flag_off_before_c4": {
+        "linkedin": 18,
+        "indeed": 72
+      },
+      "admitted_serial_flag_off_c4": {
+        "linkedin": 18,
+        "indeed": 72
+      }
+    },
+    {
+      "plan": "software_fullstack",
+      "estimate_usd": 0.468,
+      "bounded_exposure_usd": "0.724",
+      "unbounded_estimate_usd": 0,
+      "unbounded_searches": 0,
+      "searches": {
+        "linkedin": 4,
+        "indeed": 4
+      },
+      "estimate_per_search_usd": {
+        "linkedin": 0.027,
+        "indeed": 0.09
+      },
+      "cap_allowance_per_search_usd_before_c4": {
+        "linkedin": 0.03375,
+        "indeed": 0.1125
+      },
+      "ceiling_per_search_usd": {
+        "linkedin": "0.046",
+        "indeed": "0.135"
+      },
+      "all_ceilings_usd": "0.724",
+      "cap_usd_before_c4": "0.59",
+      "cap_usd_c4": "0.73",
+      "cap_holds_every_ceiling_before_c4": false,
+      "cap_holds_every_ceiling_c4": true,
+      "admitted_c2_before_c4": {
+        "linkedin": 4,
+        "indeed": 3
+      },
+      "admitted_c2_c4": {
+        "linkedin": 4,
+        "indeed": 4
+      },
+      "admitted_serial_flag_off_before_c4": {
+        "linkedin": 4,
+        "indeed": 4
+      },
+      "admitted_serial_flag_off_c4": {
+        "linkedin": 4,
+        "indeed": 4
+      }
+    },
+    {
+      "plan": "react_native",
+      "estimate_usd": 0.468,
+      "bounded_exposure_usd": "0.724",
+      "unbounded_estimate_usd": 0,
+      "unbounded_searches": 0,
+      "searches": {
+        "linkedin": 4,
+        "indeed": 4
+      },
+      "estimate_per_search_usd": {
+        "linkedin": 0.027,
+        "indeed": 0.09
+      },
+      "cap_allowance_per_search_usd_before_c4": {
+        "linkedin": 0.03375,
+        "indeed": 0.1125
+      },
+      "ceiling_per_search_usd": {
+        "linkedin": "0.046",
+        "indeed": "0.135"
+      },
+      "all_ceilings_usd": "0.724",
+      "cap_usd_before_c4": "0.59",
+      "cap_usd_c4": "0.73",
+      "cap_holds_every_ceiling_before_c4": false,
+      "cap_holds_every_ceiling_c4": true,
+      "admitted_c2_before_c4": {
+        "linkedin": 4,
+        "indeed": 3
+      },
+      "admitted_c2_c4": {
+        "linkedin": 4,
+        "indeed": 4
+      },
+      "admitted_serial_flag_off_before_c4": {
+        "linkedin": 4,
+        "indeed": 4
+      },
+      "admitted_serial_flag_off_c4": {
+        "linkedin": 4,
+        "indeed": 4
+      }
+    },
+    {
+      "plan": "business_salesforce",
+      "estimate_usd": 3.702,
+      "bounded_exposure_usd": "1.086",
+      "unbounded_estimate_usd": 3.0,
+      "unbounded_searches": 6,
+      "searches": {
+        "linkedin": 6,
+        "indeed": 6,
+        "naukri": 6
+      },
+      "estimate_per_search_usd": {
+        "linkedin": 0.027,
+        "indeed": 0.09,
+        "naukri": 0.5
+      },
+      "cap_allowance_per_search_usd_before_c4": {
+        "linkedin": 0.03375,
+        "indeed": 0.1125,
+        "naukri": 0.625
+      },
+      "ceiling_per_search_usd": {
+        "linkedin": "0.046",
+        "indeed": "0.135",
+        "naukri": null
+      },
+      "all_ceilings_usd": "1.086",
+      "cap_usd_before_c4": "4.63",
+      "cap_usd_c4": "4.84",
+      "cap_holds_every_ceiling_before_c4": true,
+      "cap_holds_every_ceiling_c4": true,
+      "admitted_c2_before_c4": {
+        "linkedin": 6,
+        "indeed": 6,
+        "naukri": 6
+      },
+      "admitted_c2_c4": {
+        "linkedin": 6,
+        "indeed": 6,
+        "naukri": 6
+      },
+      "admitted_serial_flag_off_before_c4": {
+        "linkedin": 6,
+        "indeed": 6,
+        "naukri": 6
+      },
+      "admitted_serial_flag_off_c4": {
+        "linkedin": 6,
+        "indeed": 6,
+        "naukri": 6
+      }
+    },
+    {
+      "plan": "multiple_roles_locations",
+      "estimate_usd": 5.872,
+      "bounded_exposure_usd": "2.896",
+      "unbounded_estimate_usd": 4.0,
+      "unbounded_searches": 8,
+      "searches": {
+        "linkedin": 16,
+        "indeed": 16,
+        "naukri": 8
+      },
+      "estimate_per_search_usd": {
+        "linkedin": 0.027,
+        "indeed": 0.09,
+        "naukri": 0.5
+      },
+      "cap_allowance_per_search_usd_before_c4": {
+        "linkedin": 0.03375,
+        "indeed": 0.1125,
+        "naukri": 0.625
+      },
+      "ceiling_per_search_usd": {
+        "linkedin": "0.046",
+        "indeed": "0.135",
+        "naukri": null
+      },
+      "all_ceilings_usd": "2.896",
+      "cap_usd_before_c4": "7.34",
+      "cap_usd_c4": "7.9",
+      "cap_holds_every_ceiling_before_c4": true,
+      "cap_holds_every_ceiling_c4": true,
+      "admitted_c2_before_c4": {
+        "linkedin": 16,
+        "indeed": 16,
+        "naukri": 8
+      },
+      "admitted_c2_c4": {
+        "linkedin": 16,
+        "indeed": 16,
+        "naukri": 8
+      },
+      "admitted_serial_flag_off_before_c4": {
+        "linkedin": 16,
+        "indeed": 16,
+        "naukri": 8
+      },
+      "admitted_serial_flag_off_c4": {
+        "linkedin": 16,
+        "indeed": 16,
+        "naukri": 8
+      }
+    },
+    {
+      "plan": "public_scope_india__software_fullstack",
+      "estimate_usd": 1.404,
+      "bounded_exposure_usd": "2.172",
+      "unbounded_estimate_usd": 0,
+      "unbounded_searches": 0,
+      "searches": {
+        "linkedin": 12,
+        "indeed": 12
+      },
+      "estimate_per_search_usd": {
+        "linkedin": 0.027,
+        "indeed": 0.09
+      },
+      "cap_allowance_per_search_usd_before_c4": {
+        "linkedin": 0.03375,
+        "indeed": 0.1125
+      },
+      "ceiling_per_search_usd": {
+        "linkedin": "0.046",
+        "indeed": "0.135"
+      },
+      "all_ceilings_usd": "2.172",
+      "cap_usd_before_c4": "1.75",
+      "cap_usd_c4": "2.18",
+      "cap_holds_every_ceiling_before_c4": false,
+      "cap_holds_every_ceiling_c4": true,
+      "admitted_c2_before_c4": {
+        "linkedin": 12,
+        "indeed": 8
+      },
+      "admitted_c2_c4": {
+        "linkedin": 12,
+        "indeed": 12
+      },
+      "admitted_serial_flag_off_before_c4": {
+        "linkedin": 12,
+        "indeed": 12
+      },
+      "admitted_serial_flag_off_c4": {
+        "linkedin": 12,
+        "indeed": 12
+      }
+    },
+    {
+      "plan": "public_scope_remote__software_fullstack",
+      "estimate_usd": 0.234,
+      "bounded_exposure_usd": "0.362",
+      "unbounded_estimate_usd": 0,
+      "unbounded_searches": 0,
+      "searches": {
+        "linkedin": 2,
+        "indeed": 2
+      },
+      "estimate_per_search_usd": {
+        "linkedin": 0.027,
+        "indeed": 0.09
+      },
+      "cap_allowance_per_search_usd_before_c4": {
+        "linkedin": 0.03375,
+        "indeed": 0.1125
+      },
+      "ceiling_per_search_usd": {
+        "linkedin": "0.046",
+        "indeed": "0.135"
+      },
+      "all_ceilings_usd": "0.362",
+      "cap_usd_before_c4": "0.5",
+      "cap_usd_c4": "0.5",
+      "cap_holds_every_ceiling_before_c4": true,
+      "cap_holds_every_ceiling_c4": true,
+      "admitted_c2_before_c4": {
+        "linkedin": 2,
+        "indeed": 2
+      },
+      "admitted_c2_c4": {
+        "linkedin": 2,
+        "indeed": 2
+      },
+      "admitted_serial_flag_off_before_c4": {
+        "linkedin": 2,
+        "indeed": 2
+      },
+      "admitted_serial_flag_off_c4": {
+        "linkedin": 2,
+        "indeed": 2
+      }
+    },
+    {
+      "plan": "public_scope_global__software_fullstack",
+      "estimate_usd": 2.106,
+      "bounded_exposure_usd": "3.258",
+      "unbounded_estimate_usd": 0,
+      "unbounded_searches": 0,
+      "searches": {
+        "linkedin": 18,
+        "indeed": 18
+      },
+      "estimate_per_search_usd": {
+        "linkedin": 0.027,
+        "indeed": 0.09
+      },
+      "cap_allowance_per_search_usd_before_c4": {
+        "linkedin": 0.03375,
+        "indeed": 0.1125
+      },
+      "ceiling_per_search_usd": {
+        "linkedin": "0.046",
+        "indeed": "0.135"
+      },
+      "all_ceilings_usd": "3.258",
+      "cap_usd_before_c4": "2.63",
+      "cap_usd_c4": "3.26",
+      "cap_holds_every_ceiling_before_c4": false,
+      "cap_holds_every_ceiling_c4": true,
+      "admitted_c2_before_c4": {
+        "linkedin": 18,
+        "indeed": 13
+      },
+      "admitted_c2_c4": {
+        "linkedin": 18,
+        "indeed": 18
+      },
+      "admitted_serial_flag_off_before_c4": {
+        "linkedin": 18,
+        "indeed": 18
+      },
+      "admitted_serial_flag_off_c4": {
+        "linkedin": 18,
+        "indeed": 18
+      }
+    }
+  ]
+}

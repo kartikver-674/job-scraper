@@ -61,6 +61,7 @@ from decimal import ROUND_CEILING, Decimal
 import config
 import enrich
 import experience_guard
+import paid_adaptive
 import skill_concepts
 import sources
 import telemetry
@@ -1255,18 +1256,53 @@ def paid_unit_id(n):
 def paid_unit(n, site_key, search):
     """V2-C1: planned paid search `n` as telemetry records it, with the depth
     and ceiling scrape_search will use. No query text: a fingerprint tells a
-    repeat of one search from a different one without saying what it was."""
+    repeat of one search from a different one without saying what it was.
+    V2-C4's keyword_fp leaves the location out, so the same keyword searched
+    in two places — India and Remote — can be paired without naming either."""
     depth = effective_search(site_key, search)["max_results"]
     ceiling = max_charge_usd(site_key, depth)
+    keyword = (site_key, search.get("keywords") or "", search.get("company") or "")
     shape = "|".join((site_key, search.get("keywords") or "",
                       search.get("location") or "", search.get("company") or ""))
     return {"unit_id": paid_unit_id(n), "plan_index": n, "provider": site_key,
             "actor": SITES[site_key]["actor"], "requested_depth": depth,
             "charge_ceiling_usd": None if ceiling is None else str(ceiling),
             "query_fp": hashlib.sha256(shape.encode()).hexdigest()[:12],
+            "keyword_fp": hashlib.sha256("|".join(keyword).encode()).hexdigest()[:12],
             "location_mode": ("remote" if remote_was_queried(site_key, search)
                               else "place"),
             "company_filter": bool(search.get("company"))}
+
+
+_POSITION_RE = re.compile(r"[1-9][0-9]*")
+
+
+def provider_positions(site_key, links):
+    """V2-C4: each result's rank as the PROVIDER gave it, or None — UNKNOWN.
+
+    search_rank is the dataset index, and the dataset is the actor's PUSH
+    order: LinkedIn's actor fetches details concurrently, and V2-C3 measured
+    six runs whose dataset order was nothing like LinkedIn's rank (C1's first
+    read 15, 14, 13, 12, 11, 10, 6, 8, 4, 9, 5, 3, 7, 2, 1). LinkedIn's own rank
+    is the `position` parameter of each result's `link`. Indeed publishes none
+    (build 0.0.111's dataset schema has no rank field), so it is UNKNOWN —
+    never its dataset order.
+
+    Per run: a position that is missing, malformed or not a positive integer is
+    UNKNOWN, and so is every claim to one position made twice, since a
+    duplicate says a claim is wrong and nothing says which. A position past the
+    requested depth is kept: an overshooting run's 16th result is its 16th.
+    """
+    if site_key != "linkedin":
+        return [None] * len(links)
+    got = []
+    for link in links:
+        values = (urllib.parse.parse_qs(urllib.parse.urlsplit(link).query).get("position")
+                  if isinstance(link, str) else None)
+        got.append(int(values[0]) if values and len(values) == 1
+                   and _POSITION_RE.fullmatch(values[0]) else None)
+    claims = Counter(p for p in got if p is not None)
+    return [None if p is None or claims[p] > 1 else p for p in got]
 
 
 def scrape_search(client, site_key, actor_id, search, before_start=None):
@@ -1369,14 +1405,22 @@ def scrape_search(client, site_key, actor_id, search, before_start=None):
     # enumerate: the dataset preserves the actor's result order, so the index IS
     # the position within this search.
     label = f"{search.get('keywords') or '(all)'} @ {search.get('location') or ''}"
-    rows = []
+    rows, links = [], []
     reading = time.monotonic()
     for rank, item in enumerate(
             client.dataset(run.default_dataset_id).iterate_items(), 1):
         row = normalize(item, site_key)
         row["search_query"] = label
+        # The dataset index — the actor's push order, NOT the provider's rank
+        # (V2-C3 §14). Kept as it is: an output column. The rank is below.
         row["search_rank"] = rank
         rows.append(row)
+        links.append(item.get("link") if isinstance(item, dict) else None)
+    if telemetry.active():
+        # V2-C4, the "_native" bargain: a key to_output() never reads, only
+        # while a record is open, for depth analysis by the provider's rank.
+        for row, position in zip(rows, provider_positions(site_key, links)):
+            row[telemetry.PROVIDER_POSITION] = position
     telemetry.paid_run(dataset_retrieved_at=datetime.now().isoformat(
         timespec="milliseconds"),
         dataset_ms=round((time.monotonic() - reading) * 1000))  # read + normalize
@@ -1633,7 +1677,7 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
             telemetry.paid_status(e.unit_id, "skipped_done")
             visited.append(dict(seen, reservation="none"))
             return
-        cpu_ms = None
+        cpu_ms, ok = None, False
         with telemetry.resumed(r.record, r.opened):
             try:
                 if r.error is not None:
@@ -1678,12 +1722,17 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
                 print(f"  [{e.i}/{e.of}] {e.label:<46} {len(rows):>3} jobs  "
                       f"(${cost:.3f} actor, ${spent:.2f} billed)")
                 telemetry.paid_status(e.unit_id, "completed")
+                ok = True
             except Exception as exc:  # isolate failures per search
                 telemetry.failed(exc)
                 telemetry.paid_run(failure_type=type(exc).__name__)
                 telemetry.paid_status(e.unit_id, "failed")
                 failures.append((e.site_key, e.label, str(exc)))
                 print(f"  [{e.i}/{e.of}] {e.label:<46} ! {exc}")
+            # V2-C4 (default off): what this search added, in plan order,
+            # read off the checkpoint just made. Observes; decides nothing.
+            paid_adaptive.integrated(e.unit_id, r.rows if ok else None, ok,
+                                     first + sent, exposure.committed)
         telemetry.attach(r.record)
         held = exposure.units.get(e.unit_id, {})
         visited.append(dict(
@@ -1858,7 +1907,10 @@ def to_output(row):
         # own apply_url. Free sources answer no query and leave both blank.
         #
         # Stamped in scrape_search BEFORE finalize() dedupes, so the value
-        # describes the search that actually produced the row. NOTE that dedupe
+        # describes the search that actually produced the row. search_rank is
+        # the DATASET index, i.e. the actor's push order, not the provider's
+        # rank (V2-C3 §14): LinkedIn's is the `position` in apply_url, which
+        # V2-C4 telemetry records as provider_positions. NOTE that dedupe
         # then keeps one row per posting and the survivor's rank is whichever
         # search sorted first, NOT the lowest rank across searches — a depth
         # analysis built on this is an upper bound on what a shallower sweep
@@ -2008,6 +2060,9 @@ def finalize(raw_rows, memo=False):
     # V2-C1: which paid unit each survivor came from and what beat the rest,
     # read off dedupe's own result. A no-op unless the sweep has a paid plan.
     telemetry.paid_outcome(scored, unique, job_key)
+    # V2-C4: the same two lists, held for the adaptive shadow's observation of
+    # this checkpoint. A single `is None` test unless it is on.
+    paid_adaptive.capture(scored, unique)
     # normalized_rows, not raw_rows: by the time finalize sees them the
     # adapters have already mapped every row into the internal schema. The raw
     # endpoint counts live per source and are summed in telemetry.finish().
@@ -2831,6 +2886,14 @@ def main():
             "max_results": {
                 site_key: effective_search(site_key, plan[0])["max_results"]
                 for site_key, plan in plans.items()},
+            # V2-C4: the provider-enforced ceiling ONE search carries at that
+            # depth, from the function scrape_search applies — null where the
+            # provider has none. What a cap must hold to authorise the plan;
+            # not a cost estimate.
+            "charge_ceiling_usd": {
+                site_key: (lambda c: None if c is None else str(c))(max_charge_usd(
+                    site_key, effective_search(site_key, plan[0])["max_results"]))
+                for site_key, plan in plans.items()},
             "free_sources": n_boards + n_feeds + n_optum + n_ent,
         }))
         return
@@ -2942,13 +3005,21 @@ def main():
     # --- Paid Apify sites (checkpoint after every search so a stop never loses data) ---
     if plans:
         telemetry.mark("paid_phase_start")
+        units = None
         if telemetry.active():
             # V2-C1: every planned search gets its id now, in the order the
             # loop below visits them, so one that is skipped, stopped or fails
             # before any actor run exists still has an identity.
-            telemetry.paid_plan([
-                paid_unit(n, site_key, search) for n, (site_key, search) in
-                enumerate((s, q) for s, p in plans.items() for q in p)])
+            units = [paid_unit(n, site_key, search) for n, (site_key, search) in
+                     enumerate((s, q) for s, p in plans.items() for q in p)]
+            telemetry.paid_plan(units, budget)
+        # V2-C4, SWEEP_PAID_ADAPTIVE_MODE (default off; shadow needs telemetry).
+        # Shadow records what candidate policies WOULD have decided; nothing is
+        # enforced, so the plan, the requests and every byte are as off.
+        if paid_adaptive.start(units, budget, job_key) == "enforce":
+            telemetry.note("SWEEP_PAID_ADAPTIVE_MODE=enforce: no policy has passed "
+                           "the V2-C4 evidence gate, so it ran as shadow — the "
+                           "full plan, nothing skipped or cut.")
         from apify_client import ApifyClient
         token = _require_token()
         client = ApifyClient(token)
@@ -3006,6 +3077,7 @@ def main():
                             country=SEARCH.get("country", ""),
                             requested_limit=eff["max_results"]):
                         telemetry.paid_run(unit_id=unit_id)
+                        ok = False
                         try:
                             rows, cost = scrape_search(client, site_key, actor_id,
                                                        search)
@@ -3050,12 +3122,15 @@ def main():
                             print(f"  [{i}/{len(plan)}] {label:<46} {len(rows):>3} jobs  "
                                   f"(${cost:.3f} actor, ${spent:.2f} billed)")
                             telemetry.paid_status(unit_id, "completed")
+                            ok = True
                         except Exception as exc:  # isolate failures per search
                             telemetry.failed(exc)
                             telemetry.paid_run(failure_type=type(exc).__name__)
                             telemetry.paid_status(unit_id, "failed")
                             failures.append((site_key, label, str(exc)))
                             print(f"  [{i}/{len(plan)}] {label:<46} ! {exc}")
+                        # V2-C4 (default off): as in paid_phase_c2's integrate.
+                        paid_adaptive.integrated(unit_id, rows if ok else None, ok, n)
         if stopped_early:
             telemetry.paid_unvisited("skipped_budget")
         telemetry.mark("paid_phase_done")
@@ -3095,6 +3170,7 @@ def main():
         # the run whose per-source failure categories are most worth having, and
         # the audit's whole complaint is that this case leaves no trace at all.
         telemetry.counts(normalized_rows=0, eligible_rows=0, final_rows=0)
+        telemetry.paid_adaptive(paid_adaptive.finish(telemetry.record(), max_charge_usd))
         written = telemetry.finish()
         if written:
             print(f"  telemetry: {written}")
@@ -3141,6 +3217,11 @@ def main():
                        engine=shadow_engine(out_rows, raw_rows))
         except Exception as exc:
             print(f"  (shadow tranche skipped: {exc})")
+
+    # V2-C4 (default off): every candidate policy's decisions, priced against
+    # the final result — after it is written, like the shadow tranche. The
+    # last finalize pass above is the one it reads.
+    telemetry.paid_adaptive(paid_adaptive.finish(telemetry.record(), max_charge_usd))
 
     # Identity BEFORE dedupe, over the complete accumulated row set: the audit
     # could only report the current heuristic's own output, never what it merged

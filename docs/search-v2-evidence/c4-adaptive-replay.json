@@ -1,0 +1,4034 @@
+{
+  "status": "OFFLINE REPLAY: synthetic adversarial fixtures and captured traces through paid_adaptive; no engine, no client, no network",
+  "measured_at": "2026-09-24T15:37:16+05:30",
+  "policy_version": "c4.1",
+  "candidates": [
+    "marginal_streak:n=2",
+    "marginal_streak:n=3",
+    "marginal_streak:n=5",
+    "top_k_stable:k=10,m=3",
+    "top_k_stable:k=20,m=3",
+    "top_k_stable:k=20,m=5",
+    "provider_marginal_streak:n=3",
+    "provider_marginal_streak:n=5",
+    "remote_after_places:m=1",
+    "remote_after_places:m=2",
+    "depth_prefix:d=5,m=3",
+    "depth_prefix:d=10,m=3"
+  ],
+  "promoted": [],
+  "fixtures": {
+    "all_useful": {
+      "doc": "1. Every search adds jobs, and each one's best job reaches the top 10.",
+      "final_jobs": 40,
+      "logical_executed": 8,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 5
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 40,
+            "eligible_positive": 40,
+            "final": 40,
+            "final_marginal": 40,
+            "top10": 10,
+            "top20": 20,
+            "top50": 40,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 8,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.240"
+            }
+          },
+          "10": {
+            "eligible": 40,
+            "eligible_positive": 40,
+            "final": 40,
+            "final_marginal": 40,
+            "top10": 10,
+            "top20": 20,
+            "top50": 40,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 8,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.120"
+            }
+          },
+          "15": {
+            "eligible": 40,
+            "eligible_positive": 40,
+            "final": 40,
+            "final_marginal": 40,
+            "top10": 10,
+            "top20": 20,
+            "top50": 40
+          }
+        }
+      },
+      "pairs": []
+    },
+    "early_then_dry": {
+      "doc": "2. Three useful searches, then seven that only repeat what they found.",
+      "final_jobs": 9,
+      "logical_executed": 10,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": "paid_004",
+          "would_skip": 5,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 5,
+            "max_exposure_avoided_usd": "0.230"
+          },
+          "fired_at": [
+            "paid_004"
+          ]
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": "paid_005",
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": "paid_007",
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_007"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": "paid_005",
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": "paid_005",
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": "paid_007",
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_007"
+          ]
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_007"
+          ]
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 5
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 9,
+            "final_marginal": 0,
+            "top10": 9,
+            "top20": 9,
+            "top50": 9,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 10,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.300"
+            }
+          },
+          "10": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 9,
+            "final_marginal": 0,
+            "top10": 9,
+            "top20": 9,
+            "top50": 9,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 10,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.150"
+            }
+          },
+          "15": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 9,
+            "final_marginal": 0,
+            "top10": 9,
+            "top20": 9,
+            "top50": 9
+          }
+        }
+      },
+      "pairs": []
+    },
+    "dry_spell_then_value": {
+      "doc": "3. A dry spell of five, then the sweep's best job. Any N-zeros-then-stop\nrule with N <= 5 stops before it.",
+      "final_jobs": 10,
+      "logical_executed": 10,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": "paid_004",
+          "would_skip": 5,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 4,
+            "final_marginal_lost": 4,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 4,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 5,
+            "max_exposure_avoided_usd": "0.230"
+          },
+          "fired_at": [
+            "paid_004"
+          ]
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": "paid_005",
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 4,
+            "final_marginal_lost": 4,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 4,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": "paid_007",
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 4,
+            "final_marginal_lost": 4,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 4,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_007"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": "paid_005",
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 4,
+            "final_marginal_lost": 4,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 4,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": "paid_005",
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 4,
+            "final_marginal_lost": 4,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 4,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": "paid_007",
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 4,
+            "final_marginal_lost": 4,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 4,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_007"
+          ]
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 4,
+            "final_marginal_lost": 4,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 4,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 4,
+            "final_marginal_lost": 4,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 4,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_007"
+          ]
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 5
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 25,
+            "eligible_positive": 25,
+            "final": 10,
+            "final_marginal": 7,
+            "top10": 10,
+            "top20": 10,
+            "top50": 10,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 10,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.300"
+            }
+          },
+          "10": {
+            "eligible": 25,
+            "eligible_positive": 25,
+            "final": 10,
+            "final_marginal": 7,
+            "top10": 10,
+            "top20": 10,
+            "top50": 10,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 10,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.150"
+            }
+          },
+          "15": {
+            "eligible": 25,
+            "eligible_positive": 25,
+            "final": 10,
+            "final_marginal": 7,
+            "top10": 10,
+            "top20": 10,
+            "top50": 10
+          }
+        }
+      },
+      "pairs": []
+    },
+    "duplicate_heavy_late_unique": {
+      "doc": "4. Every later search is 80% repeats \u2014 and carries one unique job near\nthe top. A duplicate rate is not redundancy.",
+      "final_jobs": 10,
+      "logical_executed": 6,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 5
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 10,
+            "final_marginal": 6,
+            "top10": 10,
+            "top20": 10,
+            "top50": 10,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.180"
+            }
+          },
+          "10": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 10,
+            "final_marginal": 6,
+            "top10": 10,
+            "top20": 10,
+            "top50": 10,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.090"
+            }
+          },
+          "15": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 10,
+            "final_marginal": 6,
+            "top10": 10,
+            "top20": 10,
+            "top50": 10
+          }
+        }
+      },
+      "pairs": []
+    },
+    "top20_stable_total_growing": {
+      "doc": "5. The first search fills the top 20; five more add only jobs ranked\nbelow it. The top 20 never moves while the result keeps growing.",
+      "final_jobs": 35,
+      "logical_executed": 6,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": "paid_003",
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 6,
+            "final_marginal_lost": 6,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 6,
+            "best_lost_rank": 24
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": "paid_003",
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 6,
+            "final_marginal_lost": 6,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 6,
+            "best_lost_rank": 24
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": "paid_005",
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 5
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 20,
+            "eligible_positive": 20,
+            "final": 20,
+            "final_marginal": 20,
+            "top10": 5,
+            "top20": 5,
+            "top50": 20,
+            "loss": {
+              "final_lost": 15,
+              "final_marginal_lost": 15,
+              "top10_lost": 5,
+              "top20_lost": 15,
+              "top50_lost": 15,
+              "best_lost_rank": 6
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 15,
+              "max_exposure_avoided_usd": "0.180"
+            }
+          },
+          "10": {
+            "eligible": 25,
+            "eligible_positive": 25,
+            "final": 25,
+            "final_marginal": 25,
+            "top10": 10,
+            "top20": 10,
+            "top50": 25,
+            "loss": {
+              "final_lost": 10,
+              "final_marginal_lost": 10,
+              "top10_lost": 0,
+              "top20_lost": 10,
+              "top50_lost": 10,
+              "best_lost_rank": 11
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 10,
+              "max_exposure_avoided_usd": "0.090"
+            }
+          },
+          "15": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 30,
+            "final_marginal": 30,
+            "top10": 10,
+            "top20": 15,
+            "top50": 30
+          }
+        }
+      },
+      "pairs": []
+    },
+    "top20_stable_then_displaced": {
+      "doc": "6. The brief's top-K fixture: search 1 fills the top 20, searches 2-5\nadd low-ranked jobs, search 6 brings a new rank-1 job and several more.",
+      "final_jobs": 32,
+      "logical_executed": 6,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": "paid_003",
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 6,
+            "final_marginal_lost": 6,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 6,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": "paid_003",
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 6,
+            "final_marginal_lost": 6,
+            "top10_lost": 4,
+            "top20_lost": 4,
+            "top50_lost": 6,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 5
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 17,
+            "eligible_positive": 17,
+            "final": 17,
+            "final_marginal": 17,
+            "top10": 9,
+            "top20": 9,
+            "top50": 17,
+            "loss": {
+              "final_lost": 15,
+              "final_marginal_lost": 15,
+              "top10_lost": 1,
+              "top20_lost": 11,
+              "top50_lost": 15,
+              "best_lost_rank": 10
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 15,
+              "max_exposure_avoided_usd": "0.180"
+            }
+          },
+          "10": {
+            "eligible": 22,
+            "eligible_positive": 22,
+            "final": 22,
+            "final_marginal": 22,
+            "top10": 10,
+            "top20": 14,
+            "top50": 22,
+            "loss": {
+              "final_lost": 10,
+              "final_marginal_lost": 10,
+              "top10_lost": 0,
+              "top20_lost": 6,
+              "top50_lost": 10,
+              "best_lost_rank": 15
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 10,
+              "max_exposure_avoided_usd": "0.090"
+            }
+          },
+          "15": {
+            "eligible": 27,
+            "eligible_positive": 27,
+            "final": 27,
+            "final_marginal": 27,
+            "top10": 10,
+            "top20": 19,
+            "top50": 27
+          }
+        }
+      },
+      "pairs": []
+    },
+    "provider_a_low_b_high": {
+      "doc": "7. LinkedIn stops adding after its first search; Indeed adds every time.",
+      "final_jobs": 22,
+      "logical_executed": 12,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": "paid_002",
+          "would_skip": 9,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 18,
+            "final_marginal_lost": 18,
+            "top10_lost": 7,
+            "top20_lost": 16,
+            "top50_lost": 18,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 9,
+            "max_exposure_avoided_usd": "0.948"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": "paid_003",
+          "would_skip": 8,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 18,
+            "final_marginal_lost": 18,
+            "top10_lost": 7,
+            "top20_lost": 16,
+            "top50_lost": 18,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 8,
+            "max_exposure_avoided_usd": "0.902"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": "paid_005",
+          "would_skip": 6,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 18,
+            "final_marginal_lost": 18,
+            "top10_lost": 7,
+            "top20_lost": 16,
+            "top50_lost": 18,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 6,
+            "max_exposure_avoided_usd": "0.810"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": "paid_003",
+          "would_skip": 8,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 18,
+            "final_marginal_lost": 18,
+            "top10_lost": 7,
+            "top20_lost": 16,
+            "top50_lost": 18,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 8,
+            "max_exposure_avoided_usd": "0.902"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": "paid_003",
+          "would_skip": 8,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 18,
+            "final_marginal_lost": 18,
+            "top10_lost": 7,
+            "top20_lost": 16,
+            "top50_lost": 18,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 8,
+            "max_exposure_avoided_usd": "0.902"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": "paid_005",
+          "would_skip": 6,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 18,
+            "final_marginal_lost": 18,
+            "top10_lost": 7,
+            "top20_lost": 16,
+            "top50_lost": 18,
+            "best_lost_rank": 1
+          },
+          "savings": {
+            "logical_avoided": 6,
+            "max_exposure_avoided_usd": "0.810"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 2,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 2,
+            "max_exposure_avoided_usd": "0.092"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_005"
+          ]
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 5
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        }
+      ],
+      "depth": {
+        "indeed": {
+          "status": "UNKNOWN",
+          "reason": "no provider position on these rows; dataset order is the actor's push order, not a rank"
+        },
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 24,
+            "eligible_positive": 24,
+            "final": 4,
+            "final_marginal": 0,
+            "top10": 3,
+            "top20": 4,
+            "top50": 4,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.180"
+            }
+          },
+          "10": {
+            "eligible": 24,
+            "eligible_positive": 24,
+            "final": 4,
+            "final_marginal": 0,
+            "top10": 3,
+            "top20": 4,
+            "top50": 4,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.090"
+            }
+          },
+          "15": {
+            "eligible": 24,
+            "eligible_positive": 24,
+            "final": 4,
+            "final_marginal": 0,
+            "top10": 3,
+            "top20": 4,
+            "top50": 4
+          }
+        }
+      },
+      "pairs": []
+    },
+    "pair_high_overlap": {
+      "doc": "8. High overlap: the first two Remote twins repeat India entirely, the\nnext three repeat 9 of 10 \u2014 and each of those still adds one job.",
+      "final_jobs": 53,
+      "logical_executed": 10,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": "paid_009",
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_009"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 4,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 3,
+            "final_marginal_lost": 3,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 51
+          },
+          "savings": {
+            "logical_avoided": 4,
+            "max_exposure_avoided_usd": "0.184"
+          },
+          "fired_at": [
+            "paid_001"
+          ]
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 3,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 3,
+            "final_marginal_lost": 3,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 51
+          },
+          "savings": {
+            "logical_avoided": 3,
+            "max_exposure_avoided_usd": "0.138"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 50,
+            "eligible_positive": 50,
+            "final": 25,
+            "final_marginal": 0,
+            "top10": 10,
+            "top20": 19,
+            "top50": 25,
+            "loss": {
+              "final_lost": 28,
+              "final_marginal_lost": 6,
+              "top10_lost": 0,
+              "top20_lost": 1,
+              "top50_lost": 25,
+              "best_lost_rank": 16
+            },
+            "savings": {
+              "units_cut": 10,
+              "eligible_rows_not_bought": 50,
+              "max_exposure_avoided_usd": "0.300"
+            }
+          },
+          "10": {
+            "eligible": 100,
+            "eligible_positive": 100,
+            "final": 53,
+            "final_marginal": 6,
+            "top10": 10,
+            "top20": 20,
+            "top50": 50,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 10,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.150"
+            }
+          },
+          "15": {
+            "eligible": 100,
+            "eligible_positive": 100,
+            "final": 53,
+            "final_marginal": 6,
+            "top10": 10,
+            "top20": 20,
+            "top50": 50
+          }
+        }
+      },
+      "pairs": [
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw0",
+          "place_units": [
+            "paid_000"
+          ],
+          "remote_unit": "paid_001",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 10,
+          "if_remote_skipped": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          }
+        },
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw1",
+          "place_units": [
+            "paid_002"
+          ],
+          "remote_unit": "paid_003",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 10,
+          "if_remote_skipped": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          }
+        },
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw2",
+          "place_units": [
+            "paid_004"
+          ],
+          "remote_unit": "paid_005",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 9,
+          "if_remote_skipped": {
+            "final_lost": 1,
+            "final_marginal_lost": 1,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 51
+          }
+        },
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw3",
+          "place_units": [
+            "paid_006"
+          ],
+          "remote_unit": "paid_007",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 9,
+          "if_remote_skipped": {
+            "final_lost": 1,
+            "final_marginal_lost": 1,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 52
+          }
+        },
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw4",
+          "place_units": [
+            "paid_008"
+          ],
+          "remote_unit": "paid_009",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 9,
+          "if_remote_skipped": {
+            "final_lost": 1,
+            "final_marginal_lost": 1,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 53
+          }
+        }
+      ]
+    },
+    "pair_zero_overlap": {
+      "doc": "9. Remote shares nothing with India.",
+      "final_jobs": 100,
+      "logical_executed": 10,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": "paid_009",
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_009"
+          ]
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_002"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 50,
+            "eligible_positive": 50,
+            "final": 50,
+            "final_marginal": 50,
+            "top10": 10,
+            "top20": 19,
+            "top50": 25,
+            "loss": {
+              "final_lost": 50,
+              "final_marginal_lost": 50,
+              "top10_lost": 0,
+              "top20_lost": 1,
+              "top50_lost": 25,
+              "best_lost_rank": 16
+            },
+            "savings": {
+              "units_cut": 10,
+              "eligible_rows_not_bought": 50,
+              "max_exposure_avoided_usd": "0.300"
+            }
+          },
+          "10": {
+            "eligible": 100,
+            "eligible_positive": 100,
+            "final": 100,
+            "final_marginal": 100,
+            "top10": 10,
+            "top20": 20,
+            "top50": 50,
+            "loss": {
+              "final_lost": 0,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 0,
+              "best_lost_rank": null
+            },
+            "savings": {
+              "units_cut": 10,
+              "eligible_rows_not_bought": 0,
+              "max_exposure_avoided_usd": "0.150"
+            }
+          },
+          "15": {
+            "eligible": 100,
+            "eligible_positive": 100,
+            "final": 100,
+            "final_marginal": 100,
+            "top10": 10,
+            "top20": 20,
+            "top50": 50
+          }
+        }
+      },
+      "pairs": [
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw0",
+          "place_units": [
+            "paid_000"
+          ],
+          "remote_unit": "paid_001",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 0,
+          "if_remote_skipped": {
+            "final_lost": 10,
+            "final_marginal_lost": 10,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 51
+          }
+        },
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw1",
+          "place_units": [
+            "paid_002"
+          ],
+          "remote_unit": "paid_003",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 0,
+          "if_remote_skipped": {
+            "final_lost": 10,
+            "final_marginal_lost": 10,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 52
+          }
+        },
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw2",
+          "place_units": [
+            "paid_004"
+          ],
+          "remote_unit": "paid_005",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 0,
+          "if_remote_skipped": {
+            "final_lost": 10,
+            "final_marginal_lost": 10,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 53
+          }
+        },
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw3",
+          "place_units": [
+            "paid_006"
+          ],
+          "remote_unit": "paid_007",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 0,
+          "if_remote_skipped": {
+            "final_lost": 10,
+            "final_marginal_lost": 10,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 54
+          }
+        },
+        {
+          "provider": "linkedin",
+          "keyword_fp": "kw4",
+          "place_units": [
+            "paid_008"
+          ],
+          "remote_unit": "paid_009",
+          "remote_eligible_jobs": 10,
+          "overlap_with_places": 0,
+          "if_remote_skipped": {
+            "final_lost": 10,
+            "final_marginal_lost": 10,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": 55
+          }
+        }
+      ]
+    },
+    "depth_front_loaded": {
+      "doc": "10. Every useful job at positions 1-5.",
+      "final_jobs": 40,
+      "logical_executed": 6,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 5
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {
+            "linkedin": 10
+          },
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": [
+            "paid_003"
+          ]
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 30,
+            "final_marginal": 30,
+            "top10": 10,
+            "top20": 20,
+            "top50": 30,
+            "loss": {
+              "final_lost": 10,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 10,
+              "best_lost_rank": 31
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 60,
+              "max_exposure_avoided_usd": "0.180"
+            }
+          },
+          "10": {
+            "eligible": 60,
+            "eligible_positive": 60,
+            "final": 35,
+            "final_marginal": 30,
+            "top10": 10,
+            "top20": 20,
+            "top50": 35,
+            "loss": {
+              "final_lost": 5,
+              "final_marginal_lost": 0,
+              "top10_lost": 0,
+              "top20_lost": 0,
+              "top50_lost": 5,
+              "best_lost_rank": 31
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 30,
+              "max_exposure_avoided_usd": "0.090"
+            }
+          },
+          "15": {
+            "eligible": 90,
+            "eligible_positive": 90,
+            "final": 40,
+            "final_marginal": 30,
+            "top10": 10,
+            "top20": 20,
+            "top50": 40
+          }
+        }
+      },
+      "pairs": []
+    },
+    "depth_back_loaded": {
+      "doc": "11. The useful job is at position 15 only.",
+      "final_jobs": 20,
+      "logical_executed": 6,
+      "candidates": [
+        {
+          "candidate_id": "marginal_streak:n=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "top_k_stable:k=20,m=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "provider_marginal_streak:n=5",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=1",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "remote_after_places:m=2",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=5,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        },
+        {
+          "candidate_id": "depth_prefix:d=10,m=3",
+          "would_stop_after": null,
+          "would_skip": 0,
+          "would_use_depth": {},
+          "loss": {
+            "final_lost": 0,
+            "final_marginal_lost": 0,
+            "top10_lost": 0,
+            "top20_lost": 0,
+            "top50_lost": 0,
+            "best_lost_rank": null
+          },
+          "savings": {
+            "logical_avoided": 0,
+            "max_exposure_avoided_usd": "0"
+          },
+          "fired_at": []
+        }
+      ],
+      "depth": {
+        "linkedin": {
+          "status": "MEASURED",
+          "requested_depth": 15,
+          "unknown_position_rows": 0,
+          "note": "a prefix of the provider's own positions; that a run at the lower depth returns exactly these rows is NOT proven",
+          "5": {
+            "eligible": 30,
+            "eligible_positive": 30,
+            "final": 5,
+            "final_marginal": 0,
+            "top10": 0,
+            "top20": 5,
+            "top50": 5,
+            "loss": {
+              "final_lost": 15,
+              "final_marginal_lost": 6,
+              "top10_lost": 10,
+              "top20_lost": 15,
+              "top50_lost": 15,
+              "best_lost_rank": 1
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 60,
+              "max_exposure_avoided_usd": "0.180"
+            }
+          },
+          "10": {
+            "eligible": 60,
+            "eligible_positive": 60,
+            "final": 10,
+            "final_marginal": 0,
+            "top10": 0,
+            "top20": 10,
+            "top50": 10,
+            "loss": {
+              "final_lost": 10,
+              "final_marginal_lost": 6,
+              "top10_lost": 10,
+              "top20_lost": 10,
+              "top50_lost": 10,
+              "best_lost_rank": 1
+            },
+            "savings": {
+              "units_cut": 6,
+              "eligible_rows_not_bought": 30,
+              "max_exposure_avoided_usd": "0.090"
+            }
+          },
+          "15": {
+            "eligible": 90,
+            "eligible_positive": 90,
+            "final": 20,
+            "final_marginal": 6,
+            "top10": 10,
+            "top20": 20,
+            "top50": 20
+          }
+        }
+      },
+      "pairs": []
+    }
+  },
+  "gate_across_fixtures": {
+    "marginal_streak:n=2": {
+      "fired_in": [
+        "early_then_dry",
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_final_in": [
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_top10_in": [
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "max_final_lost": 18,
+      "max_top10_lost": 7,
+      "best_lost_rank": 1,
+      "logical_avoided_total": 19
+    },
+    "marginal_streak:n=3": {
+      "fired_in": [
+        "early_then_dry",
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_final_in": [
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_top10_in": [
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "max_final_lost": 18,
+      "max_top10_lost": 7,
+      "best_lost_rank": 1,
+      "logical_avoided_total": 16
+    },
+    "marginal_streak:n=5": {
+      "fired_in": [
+        "early_then_dry",
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_final_in": [
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_top10_in": [
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "max_final_lost": 18,
+      "max_top10_lost": 7,
+      "best_lost_rank": 1,
+      "logical_avoided_total": 10
+    },
+    "top_k_stable:k=10,m=3": {
+      "fired_in": [
+        "early_then_dry",
+        "dry_spell_then_value",
+        "top20_stable_total_growing",
+        "top20_stable_then_displaced",
+        "provider_a_low_b_high",
+        "pair_high_overlap",
+        "pair_zero_overlap"
+      ],
+      "lost_final_in": [
+        "dry_spell_then_value",
+        "top20_stable_total_growing",
+        "top20_stable_then_displaced",
+        "provider_a_low_b_high"
+      ],
+      "lost_top10_in": [
+        "dry_spell_then_value",
+        "top20_stable_then_displaced",
+        "provider_a_low_b_high"
+      ],
+      "max_final_lost": 18,
+      "max_top10_lost": 7,
+      "best_lost_rank": 1,
+      "logical_avoided_total": 20
+    },
+    "top_k_stable:k=20,m=3": {
+      "fired_in": [
+        "early_then_dry",
+        "dry_spell_then_value",
+        "top20_stable_total_growing",
+        "top20_stable_then_displaced",
+        "provider_a_low_b_high"
+      ],
+      "lost_final_in": [
+        "dry_spell_then_value",
+        "top20_stable_total_growing",
+        "top20_stable_then_displaced",
+        "provider_a_low_b_high"
+      ],
+      "lost_top10_in": [
+        "dry_spell_then_value",
+        "top20_stable_then_displaced",
+        "provider_a_low_b_high"
+      ],
+      "max_final_lost": 18,
+      "max_top10_lost": 7,
+      "best_lost_rank": 1,
+      "logical_avoided_total": 20
+    },
+    "top_k_stable:k=20,m=5": {
+      "fired_in": [
+        "early_then_dry",
+        "dry_spell_then_value",
+        "top20_stable_total_growing",
+        "provider_a_low_b_high"
+      ],
+      "lost_final_in": [
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_top10_in": [
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "max_final_lost": 18,
+      "max_top10_lost": 7,
+      "best_lost_rank": 1,
+      "logical_avoided_total": 10
+    },
+    "provider_marginal_streak:n=3": {
+      "fired_in": [
+        "early_then_dry",
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_final_in": [
+        "dry_spell_then_value"
+      ],
+      "lost_top10_in": [
+        "dry_spell_then_value"
+      ],
+      "max_final_lost": 4,
+      "max_top10_lost": 4,
+      "best_lost_rank": 1,
+      "logical_avoided_total": 10
+    },
+    "provider_marginal_streak:n=5": {
+      "fired_in": [
+        "early_then_dry",
+        "dry_spell_then_value",
+        "provider_a_low_b_high"
+      ],
+      "lost_final_in": [
+        "dry_spell_then_value"
+      ],
+      "lost_top10_in": [
+        "dry_spell_then_value"
+      ],
+      "max_final_lost": 4,
+      "max_top10_lost": 4,
+      "best_lost_rank": 1,
+      "logical_avoided_total": 4
+    },
+    "remote_after_places:m=1": {
+      "fired_in": [
+        "pair_high_overlap"
+      ],
+      "lost_final_in": [
+        "pair_high_overlap"
+      ],
+      "lost_top10_in": [],
+      "max_final_lost": 3,
+      "max_top10_lost": 0,
+      "best_lost_rank": 51,
+      "logical_avoided_total": 4
+    },
+    "remote_after_places:m=2": {
+      "fired_in": [
+        "pair_high_overlap"
+      ],
+      "lost_final_in": [
+        "pair_high_overlap"
+      ],
+      "lost_top10_in": [],
+      "max_final_lost": 3,
+      "max_top10_lost": 0,
+      "best_lost_rank": 51,
+      "logical_avoided_total": 3
+    },
+    "depth_prefix:d=5,m=3": {
+      "fired_in": [
+        "all_useful",
+        "early_then_dry",
+        "dry_spell_then_value",
+        "duplicate_heavy_late_unique",
+        "top20_stable_total_growing",
+        "top20_stable_then_displaced",
+        "provider_a_low_b_high",
+        "depth_front_loaded"
+      ],
+      "lost_final_in": [],
+      "lost_top10_in": [],
+      "max_final_lost": 0,
+      "max_top10_lost": 0,
+      "best_lost_rank": null,
+      "logical_avoided_total": 0
+    },
+    "depth_prefix:d=10,m=3": {
+      "fired_in": [
+        "all_useful",
+        "early_then_dry",
+        "dry_spell_then_value",
+        "duplicate_heavy_late_unique",
+        "top20_stable_total_growing",
+        "top20_stable_then_displaced",
+        "provider_a_low_b_high",
+        "pair_high_overlap",
+        "pair_zero_overlap",
+        "depth_front_loaded"
+      ],
+      "lost_final_in": [],
+      "lost_top10_in": [],
+      "max_final_lost": 0,
+      "max_top10_lost": 0,
+      "best_lost_rank": null,
+      "logical_avoided_total": 0
+    }
+  },
+  "captured": {
+    "sweeps": [
+      {
+        "evidence": "c1-probe-a-india-two-shapes.json",
+        "stage": "C1",
+        "units": [
+          {
+            "unit_id": "paid_000",
+            "provider": "linkedin",
+            "location_mode": "place",
+            "funnel": {
+              "raw": 15,
+              "eligible": 13,
+              "eligible_positive": 5,
+              "final": 13,
+              "final_marginal": 12
+            },
+            "acquired_repeat_of_earlier_paid": 0,
+            "provider_positions_known": true
+          },
+          {
+            "unit_id": "paid_001",
+            "provider": "linkedin",
+            "location_mode": "place",
+            "funnel": {
+              "raw": 15,
+              "eligible": 13,
+              "eligible_positive": 10,
+              "final": 12,
+              "final_marginal": 12
+            },
+            "acquired_repeat_of_earlier_paid": 2,
+            "provider_positions_known": true
+          }
+        ]
+      },
+      {
+        "evidence": "c1-probe-b-remote-react.json",
+        "stage": "C1",
+        "units": [
+          {
+            "unit_id": "paid_000",
+            "provider": "linkedin",
+            "location_mode": "remote",
+            "funnel": {
+              "raw": 15,
+              "eligible": 12,
+              "eligible_positive": 12,
+              "final": 12,
+              "final_marginal": 12
+            },
+            "acquired_repeat_of_earlier_paid": 0,
+            "provider_positions_known": true
+          }
+        ]
+      },
+      {
+        "evidence": "c2-live-concurrency-canary.json",
+        "stage": "C2",
+        "units": [
+          {
+            "unit_id": "paid_000",
+            "provider": "linkedin",
+            "location_mode": "place",
+            "funnel": {
+              "raw": 15,
+              "eligible": 13,
+              "eligible_positive": 5,
+              "final": 13,
+              "final_marginal": 12
+            },
+            "acquired_repeat_of_earlier_paid": 0,
+            "provider_positions_known": true
+          },
+          {
+            "unit_id": "paid_001",
+            "provider": "linkedin",
+            "location_mode": "place",
+            "funnel": {
+              "raw": 15,
+              "eligible": 14,
+              "eligible_positive": 11,
+              "final": 13,
+              "final_marginal": 13
+            },
+            "acquired_repeat_of_earlier_paid": 1,
+            "provider_positions_known": true
+          }
+        ]
+      },
+      {
+        "evidence": "c35-indeed-contract.json",
+        "stage": "C3.5",
+        "units": [
+          {
+            "unit_id": "paid_000",
+            "provider": "indeed",
+            "location_mode": "place",
+            "funnel": {
+              "raw": 15,
+              "eligible": 1,
+              "eligible_positive": 1,
+              "final": 1,
+              "final_marginal": 1
+            },
+            "acquired_repeat_of_earlier_paid": 0,
+            "provider_positions_known": false
+          }
+        ]
+      },
+      {
+        "evidence": "c35-indeed-concurrency-canary.json",
+        "stage": "C3.5",
+        "units": [
+          {
+            "unit_id": "paid_000",
+            "provider": "indeed",
+            "location_mode": "place",
+            "funnel": {
+              "raw": 15,
+              "eligible": 2,
+              "eligible_positive": 2,
+              "final": 2,
+              "final_marginal": 2
+            },
+            "acquired_repeat_of_earlier_paid": 0,
+            "provider_positions_known": false
+          },
+          {
+            "unit_id": "paid_001",
+            "provider": "indeed",
+            "location_mode": "place",
+            "funnel": {
+              "raw": 15,
+              "eligible": 0,
+              "eligible_positive": 0,
+              "final": 0,
+              "final_marginal": 0
+            },
+            "acquired_repeat_of_earlier_paid": 1,
+            "provider_positions_known": false
+          }
+        ]
+      }
+    ],
+    "units": 8,
+    "largest_sweep_units": 2,
+    "linkedin_by_provider_position": {
+      "1-5": {
+        "rows": 25,
+        "eligible": 22,
+        "eligible_positive": 14,
+        "final": 20,
+        "final_positive": 12,
+        "acquired_repeat": 3
+      },
+      "6-10": {
+        "rows": 25,
+        "eligible": 21,
+        "eligible_positive": 15,
+        "final": 21,
+        "final_positive": 15,
+        "acquired_repeat": 0
+      },
+      "11-15": {
+        "rows": 25,
+        "eligible": 22,
+        "eligible_positive": 14,
+        "final": 22,
+        "final_positive": 14,
+        "acquired_repeat": 0
+      }
+    },
+    "linkedin_depth_prefix": {
+      "5": {
+        "units": 5,
+        "rows_not_bought": 50,
+        "final_rows_lost_upper_bound": 43,
+        "final_positive_rows_lost_upper_bound": 29,
+        "eligible_rows_lost": 43
+      },
+      "10": {
+        "units": 5,
+        "rows_not_bought": 25,
+        "final_rows_lost_upper_bound": 22,
+        "final_positive_rows_lost_upper_bound": 14,
+        "eligible_rows_lost": 22
+      }
+    },
+    "indeed_position": "UNKNOWN: build 0.0.111's dataset schema has no rank field; dataset order is not evidence of rank",
+    "top_k": "UNKNOWN: the recorded traces carry no score and no job key",
+    "stopping_policies_exercised": {},
+    "stopping_note": "no captured sweep has more than 2 paid searches, so no streak of 2 or more can form in one and no stopping, skipping or depth rule is exercised by real data; C5 is that sample"
+  }
+}

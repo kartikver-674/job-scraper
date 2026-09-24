@@ -1,0 +1,77 @@
+{
+  "status": "VERIFIED from providers' public records (free, unauthenticated GETs; no token) and V2-C3's measured LinkedIn runs; no paid call",
+  "read_at": "2026-09-24",
+  "question": "Does each paid provider expose a trustworthy per-result rank, and a continuation contract that would make progressive depth safe?",
+  "linkedin": {
+    "actor": "curious_coder/linkedin-jobs-scraper",
+    "rank": "each result's link carries position=N (V2-C3 \u00a714: 90 of 90 items in 6 single-URL runs; a permutation of 1..15 per run; dataset order is push order, not position)",
+    "rank_source_evidence": "c3-provider-contracts.json linkedin.measured_on_single_url_runs",
+    "input_fields": [
+      "autoConvertToAiSearch",
+      "companyIds",
+      "datePosted",
+      "distance",
+      "geoId",
+      "keywords",
+      "limitPerSource",
+      "location",
+      "scrapeCompany",
+      "splitByLocation",
+      "splitCountry",
+      "under10Applicants",
+      "urls"
+    ],
+    "continuation": "none documented: urls + limitPerSource (+ legacy count); no offset, page or cursor input, so a second run at a larger depth is a new purchase that may repeat or reorder the first",
+    "progressive_depth": "UNKNOWN -> not implemented"
+  },
+  "indeed": {
+    "actor": "misceres/indeed-scraper",
+    "build": {
+      "id": "QCL4zRJXp3sSD0xkl",
+      "number": "0.0.111",
+      "finished_at": "2026-09-22T13:27:45.471Z"
+    },
+    "dataset_schema_fields": [
+      "company",
+      "companyIndeedUrl",
+      "companyInfo",
+      "description",
+      "descriptionHTML",
+      "error",
+      "errorDescription",
+      "experienceLevel",
+      "externalApplyLink",
+      "id",
+      "isExpired",
+      "jobSetting",
+      "jobType",
+      "location",
+      "positionName",
+      "postedAt",
+      "postingDateParsed",
+      "rating",
+      "reviewsCount",
+      "salary",
+      "scrapedAt",
+      "searchInput",
+      "url",
+      "urlInput"
+    ],
+    "rank_field": null,
+    "rank": "UNKNOWN: none of the 24 documented dataset fields is a rank, position, page or index ('positionName' is the job title); a result's url is viewjob?jk=<id>",
+    "dataset_order": "not evidence of rank: the dataset is what the actor pushed, in the order it pushed it",
+    "input_fields": [
+      "country",
+      "followApplyRedirects",
+      "location",
+      "maxItemsPerSearch",
+      "parseCompanyDetails",
+      "position",
+      "saveOnlyUniqueItems",
+      "startUrls"
+    ],
+    "continuation": "none: maxItemsPerSearch only; no offset, page or cursor input",
+    "progressive_depth": "UNKNOWN -> not implemented"
+  },
+  "naukri": "out of scope (disabled; unchanged)"
+}

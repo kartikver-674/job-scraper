@@ -557,6 +557,10 @@ PAID_SCHEMA = "search-v2c1.1"
 # it, so it cannot reach the CSV or the JSON, and nothing that keys, scores,
 # ranks or dedupes a row looks at it.
 PAID_UNIT = "_paid_unit"
+# V2-C4: the result's rank as the PROVIDER gave it (scraper.provider_positions),
+# or None for UNKNOWN. The same bargain: stamped only while a record is open,
+# never read by to_output(). search_rank, the dataset index, is push order.
+PROVIDER_POSITION = "_provider_position"
 
 # Which cost reading may ever be called final. V2-C0's one live run read
 # $0.02805 on its terminal poll and $0.01405 as an account delta against a
@@ -595,17 +599,19 @@ def _guarded(fn, *args):
              f"{type(exc).__name__}")
 
 
-def paid_plan(units):
-    """Every planned paid search, before anything runs (scraper.paid_unit)."""
+def paid_plan(units, budget_usd=None):
+    """Every planned paid search, before anything runs (scraper.paid_unit),
+    and V2-C4: the sweep's max_spend_usd as the engine was handed it."""
     if _run is not None:
-        _guarded(_paid_plan, units)
+        _guarded(_paid_plan, units, budget_usd)
 
 
-def _paid_plan(units):
+def _paid_plan(units, budget_usd):
     entries = [dict(_bounded(u), status="planned") for u in units]
     with _LOCK:
         _run["paid_units"] = entries
         _run["_paid_ix"] = {e["unit_id"]: e for e in entries}
+        _run["_paid_budget"] = budget_usd
 
 
 def paid_status(unit_id, status):
@@ -659,7 +665,9 @@ def _paid_reach(name, rows):
             continue
         p = positions.setdefault(where, {})
         p["reach"] = name
-        if not first and "score" in row:
+        if first:
+            p["provider_position"] = row.get(PROVIDER_POSITION)
+        elif "score" in row:
             p["positive"] = row["score"] > 0
 
 
@@ -723,6 +731,16 @@ def _paid_acquired(paid_keys):
             seen.add(key)
 
 
+def paid_adaptive(section):
+    """V2-C4's section (paid_adaptive.finish): what each candidate policy
+    would have decided, and what that would have saved and lost — beside the
+    C1/C2 sections, never inside them. Absent unless
+    SWEEP_PAID_ADAPTIVE_MODE ran. Ids, fingerprints, counts and amounts."""
+    if _run is not None and section is not None:
+        with _LOCK:
+            _run["paid_adaptive"] = _bounded(section)
+
+
 PAID_EXECUTION_SCHEMA = "search-v2c2.1"
 
 
@@ -756,7 +774,61 @@ def _paid_finish(record):
         entry["funnel"] = _funnel(entry, executed.get(entry["unit_id"]), rows, stages)
         entry["trace"] = (None if entry["funnel"] is None
                           else " ".join(_token(p) for p in rows))
+        # V2-C4: aligned with the trace, token for token. None is UNKNOWN —
+        # never the dataset index, which is the actor's push order.
+        entry["provider_positions"] = (None if entry["funnel"] is None else
+                                       [p.get("provider_position") for p in rows])
     record["paid_summary"] = _paid_summary(record, executed)
+    record["paid_summary"]["by_provider_position"] = _by_position(record["paid_units"],
+                                                                  by_unit)
+    budget = record.get("_paid_budget")
+    exposure = Decimal(record["paid_summary"]["planned_bounded_exposure_usd"])
+    record["paid_summary"]["budget_usd"] = None if budget is None else str(budget)
+    # Whether the engine's cap could hold every planned ceiling. None when there
+    # is no cap, or when an unbounded search makes the question unanswerable.
+    record["paid_summary"]["budget_holds_planned_bounded_exposure"] = (
+        None if budget is None or record["paid_summary"]["planned_unbounded_units"]
+        else Decimal(str(budget)) >= exposure)
+
+
+def _by_position(entries, by_unit):
+    """V2-C1's depth view corrected (V2-C3 §14): contribution by the
+    PROVIDER's position, five wide, per provider. Positions the provider did
+    not give are counted under "unknown", never guessed from dataset order."""
+    out = {}
+    for entry in entries:
+        if entry.get("funnel") is None:
+            continue
+        mine = out.setdefault(entry["provider"], {})
+        depth = entry.get("requested_depth") or 0
+        for _, p in by_unit.get(entry["unit_id"], []):
+            position = p.get("provider_position")
+            b = mine.setdefault(position_bucket(position), dict.fromkeys((
+                "rows", "beyond_requested_depth", "eligible", "eligible_positive",
+                "final", "final_positive", "final_marginal"), 0))
+            b["rows"] += 1
+            b["beyond_requested_depth"] += position is not None and position > depth
+            eligible = p.get("reach") in PAID_STAGES[-2:]
+            final = p.get("reach") == PAID_STAGES[-1]
+            b["eligible"] += eligible
+            b["eligible_positive"] += eligible and bool(p.get("positive"))
+            b["final"] += final
+            b["final_positive"] += final and bool(p.get("positive"))
+            b["final_marginal"] += final and bool(p.get("marginal"))
+    return {prov: dict(sorted(b.items(), key=lambda kv: _bucket_order(kv[0])))
+            for prov, b in out.items()}
+
+
+def position_bucket(position):
+    """Five-wide provider-position bucket ("1-5", "6-10", ...) or "unknown"."""
+    if position is None:
+        return "unknown"
+    lo = (position - 1) // 5 * 5 + 1
+    return f"{lo}-{lo + 4}"
+
+
+def _bucket_order(name):
+    return (1, 0) if name == "unknown" else (0, int(name.split("-")[0]))
 
 
 def _funnel(entry, ex, rows, stages):
@@ -890,7 +962,7 @@ def finish():
             _paid_finish(record)
         except Exception as exc:
             record["notes"].append(f"paid units not assembled: {type(exc).__name__}")
-    for key in ("_paid_ix", "_paid_pos", "_paid_stages"):
+    for key in ("_paid_ix", "_paid_pos", "_paid_stages", "_paid_budget"):
         record.pop(key, None)
     path = os.path.join(record["output_dir"], "telemetry",
                         f"sweep_{record['sweep_id']}.json")
@@ -980,7 +1052,8 @@ def demo():
                  lambda: paid_unvisited("skipped_budget"),
                  lambda: cost_observation("account_usage_delta", 1.0),
                  lambda: paid_outcome([{}], [{}], lambda r: None),
-                 lambda: paid_execution({"workers": 2})):
+                 lambda: paid_execution({"workers": 2}),
+                 lambda: paid_adaptive({"mode": "shadow"})):
         call()
     with resumed(None, time.monotonic()) as nothing:
         assert nothing is None and _current() is None

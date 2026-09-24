@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+from decimal import Decimal
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -42,9 +43,19 @@ def cost(raw, rates, basis=None):
     `basis` is per site (config.SITE_RATE_BASIS). A site whose basis equals the
     depth it always runs at is therefore unscaled, which is what naukri needs:
     a per-run minimum is not a per-result price.
+
+    V2-C4 keeps a second figure beside the estimate, never mixed into it:
+    AUTHORIZATION EXPOSURE, the provider-enforced ceiling every search carries
+    (the engine's own `charge_ceiling_usd`, per site, from the same dry run).
+    `bounded_exposure` is what those ceilings sum to — the most the bounded
+    searches can be charged, not what they are expected to cost. A site with
+    no ceiling is counted in `unbounded_searches` and priced only by its
+    estimate, `unbounded_estimate`, which is not a maximum of anything. A plan
+    from an engine that predates the field has no known ceiling at all.
     """
     basis = basis or {}
     depth = raw.get("max_results") or {}
+    ceilings = raw.get("charge_ceiling_usd") or {}
     lines = []
     for site, searches in raw["sites"].items():
         site_basis = basis.get(site) or DEFAULT_RATE_BASIS
@@ -52,6 +63,7 @@ def cost(raw, rates, basis=None):
         # would reprice a paid site to free.
         results = depth.get(site) or site_basis
         rate = rates.get(site, 0.0) * results / site_basis
+        ceiling = ceilings.get(site)
         lines.append({
             "site": site,
             "searches": len(searches),
@@ -59,11 +71,19 @@ def cost(raw, rates, basis=None):
             "rate": rate,
             "subtotal": round(len(searches) * rate, 4),
             "free": rate == 0.0,
+            # Per search, as a decimal string; None: no provider ceiling.
+            "ceiling": ceiling,
         })
+    bounded = [l for l in lines if l["ceiling"] is not None]
+    unbounded = [l for l in lines if l["ceiling"] is None and not l["free"]]
     return {
         "profile": raw["profile"],
         "lines": lines,
         "total": round(sum(l["subtotal"] for l in lines), 4),
         "total_searches": sum(l["searches"] for l in lines),
         "free_sources": raw.get("free_sources", 0),
+        "bounded_exposure": str(sum((Decimal(l["ceiling"]) * l["searches"]
+                                     for l in bounded), Decimal(0))),
+        "unbounded_estimate": round(sum(l["subtotal"] for l in unbounded), 4),
+        "unbounded_searches": sum(l["searches"] for l in unbounded),
     }

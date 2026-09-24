@@ -252,6 +252,29 @@ may overlap Indeed:
   audited. `bench/search_v2_paid_concurrency.py --public-cap`.
 - `c35-mutations.json`: the stage's mutation checks.
 
+Added by V2-C4 (2026-09-24),
+[adaptive paid execution](../search-engine-v2-c4-adaptive-paid-execution.md) —
+outcome B: the generated cap holds the plan's ceilings, LinkedIn's rank is
+recorded, adaptive policies are evaluated in shadow and none is promoted. No
+paid call:
+
+- `c4-public-cap-arithmetic.json`: OFFLINE arithmetic. The cap before C4 and
+  the C4 cap against every ceiling, and the starts C2 and the serial loop would
+  admit under each, for the plans C3 audited.
+  `bench/search_v2_paid_concurrency.py --public-cap`.
+- `c4-provider-rank-audit.json`: whether each paid actor exposes a result rank
+  and a continuation contract: LinkedIn's `position` (C3's measurement), Indeed's
+  24 documented dataset fields (none a rank; one free public GET of its build
+  record), neither with an offset.
+- `c4-adaptive-replay.json`: OFFLINE. The eleven adversarial fixtures through
+  `paid_adaptive` (every candidate's decisions, loss and savings), the
+  cross-fixture falsification table, and the captured C1-C3.5 traces
+  re-indexed by LinkedIn's position. `bench/search_v2_paid_adaptive.py`.
+- `c4-adaptive-overhead.json`: OFFLINE. The 90-search default plan, serial and
+  2 workers, adaptive off vs shadow: wall, CPU, RSS, record size, request logs.
+  `bench/search_v2_paid_concurrency.py --arms serial,serial+shadow,2,2+shadow`.
+- `c4-mutations.json`: the stage's mutation checks, both passes.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

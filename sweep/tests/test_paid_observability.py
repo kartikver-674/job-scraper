@@ -568,7 +568,10 @@ class Privacy(unittest.TestCase):
         self.assertEqual(set(u), {"unit_id", "plan_index", "provider", "actor",
                                   "requested_depth", "charge_ceiling_usd", "query_fp",
                                   "location_mode", "company_filter", "status",
-                                  "funnel", "trace"})
+                                  "funnel", "trace",
+                                  # V2-C4: a location-free fingerprint (pairs)
+                                  # and the provider's own rank per position.
+                                  "keyword_fp", "provider_positions"})
         v2a = {"path", "family", "board", "query", "location", "country",
                "requested_limit", "timeout_s", "started_at", "finished_at",
                "duration_ms", "ok", "failure_category", "failure", "requests",

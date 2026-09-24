@@ -7,6 +7,7 @@ import sys
 import tempfile
 import threading
 from datetime import datetime
+from decimal import ROUND_CEILING, Decimal
 
 from flask import (Flask, Response, abort, redirect, render_template,
                    request, url_for)
@@ -98,11 +99,29 @@ SPEND_CAP_HEADROOM = 1.25
 # Naukri alone is $0.50 per run minimum (config.SITE_RATES), so a cap below
 # that would stop the sweep before its first search could finish.
 SPEND_CAP_FLOOR_USD = 0.50
+_CENT = Decimal("0.01")
 
 
-def spend_cap_for(estimate_usd):
-    """The hard stop to write into the profile for a plan estimated at this."""
-    return round(max(SPEND_CAP_FLOOR_USD, estimate_usd * SPEND_CAP_HEADROOM), 2)
+def spend_cap_for(plan):
+    """The hard stop to write into the profile for a costed plan (plan.cost).
+
+    Sweep generates this; the user never types it — no screen, form field or
+    API takes a cap from them — so it may be corrected, and V2-C4 corrects it.
+    1.25 x the estimate alone let a reservation-safe engine (V2-C2) authorise
+    only 76 of the default plan's 90 searches: an Indeed search is estimated
+    at $0.09, capped at $0.1125, and carries a $0.135 provider ceiling. The cap
+    is therefore also at least every bounded search's ceiling plus the old
+    headroom on whatever is unbounded, rounded UP to the cent, so it can
+    never sit below the exposure it has to hold. With no known ceiling (an
+    older engine's plan) it is the estimate-based cap it always was.
+    """
+    cap = round(max(SPEND_CAP_FLOOR_USD, plan["total"] * SPEND_CAP_HEADROOM), 2)
+    bounded = Decimal(plan.get("bounded_exposure") or 0)
+    if not bounded:
+        return cap
+    need = bounded + (Decimal(str(plan.get("unbounded_estimate") or 0))
+                      * Decimal(str(SPEND_CAP_HEADROOM)))
+    return max(cap, float(need.quantize(_CENT, rounding=ROUND_CEILING)))
 
 
 class ParseInFlight(Exception):
@@ -1035,7 +1054,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         # once, so the figure /confirm promises the user and the figure the
         # engine enforces cannot be two different numbers.
         out["spend_cap"] = (0.0 if free_only()
-                            else spend_cap_for(out["total"]))
+                            else spend_cap_for(out))
         app.state["plan"] = out
         return out
 

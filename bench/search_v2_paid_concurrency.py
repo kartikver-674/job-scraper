@@ -36,6 +36,11 @@ V2-C3.5 (Indeed provider-bounded, so C2 overlaps it too) adds
   --public-cap  instead of sweeping: the public app's spend cap against every
             provider ceiling for the plans V2-C3 audited, and the starts C2
             admits under it. Arithmetic through the real functions; no sweep.
+
+V2-C4 adds
+  ARM+shadow  the same arm with SWEEP_PAID_ADAPTIVE_MODE=shadow (e.g.
+            serial+shadow, 2+shadow): the adaptive shadow's overhead, and its
+            request log, which must equal the arm's without it.
 """
 import argparse
 import hashlib
@@ -131,8 +136,11 @@ def modelled_wait_s(scripts, n_linkedin, workers, indeed_bounded):
 def arm(mode, plan, wait, scale, indeed_runtimes=RUNTIMES_S):
     """One sweep in this process; prints its measurements as JSON. mode
     "calibrate" only times the host; "oldN" is C2 at N workers with Indeed
-    unbounded, as before V2-C3.5."""
+    unbounded, as before V2-C3.5; "ARM+shadow" is ARM under the V2-C4
+    adaptive shadow."""
     import socket
+    name = mode
+    mode, _, adaptive = mode.partition("+")
 
     def deny(*a, **kw):
         raise RuntimeError("offline benchmark: network forbidden")
@@ -183,14 +191,23 @@ def arm(mode, plan, wait, scale, indeed_runtimes=RUNTIMES_S):
     wall, cpu = time.perf_counter(), time.process_time()
     got = c2.c2_sweep(
         scripts, workers=workers, keywords=overhead.KEYWORDS, locations=overhead.PLACES,
-        site_locations=places, sites=sites, account=account, patches=patches)
+        site_locations=places, sites=sites, account=account, patches=patches,
+        env={"SWEEP_PAID_ADAPTIVE_MODE": adaptive or None})
     wall, cpu = time.perf_counter() - wall, time.process_time() - cpu
     after = calibration(scraper, probe_rows)
     record = got.telemetry or {}
     ex = record.get("paid_execution") or {}
     kinds = [c[0] for c in got.client.calls]
     print(json.dumps({
-        "arm": mode, "plan": plan, "wait": wait, "scale": scale if wait == "scaled" else None,
+        "arm": name, "plan": plan, "wait": wait, "scale": scale if wait == "scaled" else None,
+        "adaptive": adaptive or "off",
+        # Every request the engine made, as a multiset: an arm and its
+        # +shadow twin must make exactly the same ones.
+        "requests_total": len(kinds),
+        "request_log_sha256": hashlib.sha256(json.dumps(sorted(
+            json.dumps(c, default=str) for c in got.client.calls)).encode()).hexdigest(),
+        "adaptive_section_bytes": (len(json.dumps(record["paid_adaptive"]))
+                                   if "paid_adaptive" in record else None),
         "wall_s": round(wall, 3), "cpu_s": round(cpu, 3),
         "peak_rss_kb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         // (1024 if sys.platform == "darwin" else 1),
@@ -223,14 +240,16 @@ def arm(mode, plan, wait, scale, indeed_runtimes=RUNTIMES_S):
 
 
 def public_cap():
-    """V2-C3.5: the public app's spend cap (sweep.app.spend_cap_for — 1.25 x
-    the estimate, floored at $0.50) against every provider ceiling, for the
-    plans V2-C3 audited, and the starts C2 admits under it in plan order. A
-    bounded start must fit its full ceiling (PaidExposure.reserve); an
-    unbounded one is admitted while the view is under the cap and then adds its
-    ESTIMATED cost — optimistic, since a real reading lags and admits more. The
-    serial loop stops once the estimated spend reaches the cap. Arithmetic
-    through the real functions: no sweep, no client, no network."""
+    """V2-C3.5, recomputed by V2-C4: the public app's spend cap against every
+    provider ceiling, for the plans V2-C3 audited, and the starts C2 admits
+    under it in plan order — for the cap before C4 (1.25 x the estimate,
+    floored at $0.50) and the cap C4 generates (sweep.app.spend_cap_for,
+    which also holds every bounded ceiling). A bounded start must fit its full
+    ceiling (PaidExposure.reserve); an unbounded one is admitted while the view
+    is under the cap and then adds its ESTIMATED cost — optimistic, since a
+    real reading lags and admits more. The serial loop stops once the
+    estimated spend reaches the cap. Arithmetic through the real functions: no
+    sweep, no client, no network."""
     from collections import Counter
     from decimal import Decimal
 
@@ -244,18 +263,22 @@ def public_cap():
     for name, case in c3.cases():
         with c3.lowered(scraper, config, case):
             units = c3.current_plan(scraper)
-        raw = {"profile": name, "sites": {}, "max_results": {}}
+        raw = {"profile": name, "sites": {}, "max_results": {}, "charge_ceiling_usd": {}}
         for u in units:
             raw["sites"].setdefault(u["site"], []).append(u)
             raw["max_results"][u["site"]] = u["depth"]
+            raw["charge_ceiling_usd"][u["site"]] = (None if u["ceiling"] is None
+                                                    else str(u["ceiling"]))
         costed = cost(raw, config.SITE_RATES, config.SITE_RATE_BASIS)
         rate = {line["site"]: line["rate"] for line in costed["lines"]}
-        cap = Decimal(str(spend_cap_for(costed["total"])))
+        # The pre-C4 cap is the same function handed no ceiling.
+        caps = {"before_c4": Decimal(str(spend_cap_for({"total": costed["total"]}))),
+                "c4": Decimal(str(spend_cap_for(costed)))}
 
-        def admitted(indeed_bounded):
+        def admitted(cap):
             exposure, n = scraper.PaidExposure(cap), Counter()
             for u in units:
-                if u["ceiling"] is not None and (indeed_bounded or u["site"] != "indeed"):
+                if u["ceiling"] is not None:
                     if not exposure.reserve(u["index"], u["ceiling"]):
                         break
                     exposure.commit(u["index"])
@@ -265,28 +288,33 @@ def public_cap():
                     exposure.observe(0, unbounded_delta=rate[u["site"]])
                 n[u["site"]] += 1
             return dict(n)
-        spent, serial = 0.0, Counter()
-        for u in units:
-            if spent >= float(cap):
-                break
-            spent += rate[u["site"]]
-            serial[u["site"]] += 1
+
+        def serial(cap):
+            spent, n = 0.0, Counter()
+            for u in units:
+                if spent >= float(cap):
+                    break
+                spent += rate[u["site"]]
+                n[u["site"]] += 1
+            return dict(n)
         ceilings = {s: us[0]["ceiling"] for s, us in raw["sites"].items()}
         every = sum((u["ceiling"] for u in units if u["ceiling"] is not None), Decimal(0))
         rows.append({
-            "plan": name, "estimate_usd": costed["total"], "cap_usd": str(cap),
+            "plan": name, "estimate_usd": costed["total"],
+            "bounded_exposure_usd": costed["bounded_exposure"],
+            "unbounded_estimate_usd": costed["unbounded_estimate"],
+            "unbounded_searches": costed["unbounded_searches"],
             "searches": {s: len(us) for s, us in raw["sites"].items()},
             "estimate_per_search_usd": {s: round(r, 5) for s, r in rate.items()},
-            "cap_allowance_per_search_usd": {s: round(r * SPEND_CAP_HEADROOM, 5)
-                                             for s, r in rate.items()},
+            "cap_allowance_per_search_usd_before_c4": {
+                s: round(r * SPEND_CAP_HEADROOM, 5) for s, r in rate.items()},
             "ceiling_per_search_usd": {s: None if c is None else str(c)
                                        for s, c in ceilings.items()},
             "all_ceilings_usd": str(every),
-            "unbounded_searches": sum(1 for u in units if u["ceiling"] is None),
-            "cap_holds_every_ceiling": every <= cap,
-            "admitted_c2_indeed_unbounded_as_before": admitted(False),
-            "admitted_c2_indeed_bounded_c35": admitted(True),
-            "admitted_serial_flag_off": dict(serial)})
+            **{f"cap_usd_{k}": str(c) for k, c in caps.items()},
+            **{f"cap_holds_every_ceiling_{k}": every <= c for k, c in caps.items()},
+            **{f"admitted_c2_{k}": admitted(c) for k, c in caps.items()},
+            **{f"admitted_serial_flag_off_{k}": serial(c) for k, c in caps.items()}})
     return {"status": "DERIVED OFFLINE through the real spend_cap_for, plan.cost, "
                       "max_charge_usd and PaidExposure; arithmetic, not a sweep",
             "measured_at": datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -429,8 +457,20 @@ def main():
                 # unbounded, as C2 ran it before.
                 "speedup_vs_old_same_workers": (
                     round(med(f"old{a}", "wall_s") / med(a, "wall_s"), 3)
-                    if f"old{a}" in runs else None)}
+                    if f"old{a}" in runs else None),
+                # V2-C4: the adaptive shadow against the same arm without it.
+                "wall_vs_off": (round(med(a, "wall_s") / med(a.split("+")[0], "wall_s"), 3)
+                                if "+" in a and a.split("+")[0] in runs else None),
+                "cpu_vs_off": (round(med(a, "cpu_s") / med(a.split("+")[0], "cpu_s"), 3)
+                               if "+" in a and a.split("+")[0] in runs else None),
+                "record_bytes": med(a, "record_bytes"),
+                "adaptive_section_bytes": clean(a)[0]["adaptive_section_bytes"],
+                "requests_total": clean(a)[0]["requests_total"]}
                 for a in arms},
+            "request_logs_equal_to_off": {
+                a: len({r["request_log_sha256"] for r in every
+                        if r["arm"] in (a, a.split("+")[0])}) == 1
+                for a in arms if "+" in a},
         })
     out = {
         "status": "MEASURED OFFLINE; scripted provider (KeyedClient), no network",

@@ -1,0 +1,338 @@
+{
+  "status": "MEASURED OFFLINE: each mutation one exact edit applied alone; six suites run (test_paid_adaptive, test_indeed_bounded, test_paid_concurrency, test_paid_observability, test_paid_contract, test_paid_dev_guard); the file restored and its SHA-256 compared",
+  "measured_at": "2026-09-24",
+  "summary": "18 of 18 caught after one test fix. First pass: 17 of 18; M survived because the privacy test compared upper-case markers and a job key is the lower-cased company and title. The test now compares case-insensitively; M re-run alone is caught. Every mutated file restored byte-identical.",
+  "first_pass": [
+    {
+      "id": "A",
+      "mutation": "search_rank used as LinkedIn provider position",
+      "file": "scraper.py",
+      "result": "FAILED (failures=3)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.DepthByProviderPosition.test_live_positions_not_push_order",
+        "test_paid_adaptive.ProviderPositionsEndToEnd.test_the_record_holds_the_providers_rank_in_dataset_order",
+        "test_paid_adaptive.ProviderPositionsEndToEnd.test_unknown_and_indeed_are_counted_as_unknown"
+      ],
+      "seconds": 50.2,
+      "restored_byte_identical": true,
+      "sha256": "1ce320b9afc868e82883539cb033c3fc72eeddca496563bda0783ff8861fe8d8"
+    },
+    {
+      "id": "B",
+      "mutation": "a missing position falls back to the dataset rank",
+      "file": "scraper.py",
+      "result": "FAILED (failures=3)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.ProviderPositions.test_malformed_is_unknown",
+        "test_paid_adaptive.ProviderPositions.test_missing_is_unknown_never_the_dataset_index",
+        "test_paid_adaptive.ProviderPositions.test_no_link_is_unknown"
+      ],
+      "seconds": 51.3,
+      "restored_byte_identical": true,
+      "sha256": "1ce320b9afc868e82883539cb033c3fc72eeddca496563bda0783ff8861fe8d8"
+    },
+    {
+      "id": "C",
+      "mutation": "SHADOW skips a real search (serial loop)",
+      "file": "scraper.py",
+      "result": "FAILED (failures=6)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.DepthByProviderPosition.test_live_positions_not_push_order",
+        "test_paid_adaptive.NoFutureInformation.test_live_observations_do_not_see_later_searches",
+        "test_paid_adaptive.ShadowIsOff.test_only_shadow_and_enforce_write_the_section",
+        "test_paid_adaptive.ShadowIsOff.test_the_c1_record_is_untouched",
+        "test_paid_adaptive.ShadowIsOff.test_the_same_bytes_ledgers_ranking_and_survivor",
+        "test_paid_adaptive.ShadowIsOff.test_the_same_requests"
+      ],
+      "seconds": 51.3,
+      "restored_byte_identical": true,
+      "sha256": "1ce320b9afc868e82883539cb033c3fc72eeddca496563bda0783ff8861fe8d8"
+    },
+    {
+      "id": "D",
+      "mutation": "SHADOW changes the requested depth",
+      "file": "scraper.py",
+      "result": "FAILED (failures=8)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.BudgetSafetyUnderShadow.test_the_reservation_ledger_is_the_same",
+        "test_paid_adaptive.DepthByProviderPosition.test_live_positions_not_push_order",
+        "test_paid_adaptive.ResumeUnderShadow.test_a_resumed_sweep_observes_only_what_it_ran",
+        "test_paid_adaptive.ShadowIsOff.test_only_shadow_and_enforce_write_the_section",
+        "test_paid_adaptive.ShadowIsOff.test_the_c1_record_is_untouched",
+        "test_paid_adaptive.ShadowIsOff.test_the_same_bytes_ledgers_ranking_and_survivor",
+        "test_paid_adaptive.ShadowIsOff.test_the_same_requests",
+        "test_paid_adaptive.ShadowIsOff.test_the_same_reservations"
+      ],
+      "seconds": 45.6,
+      "restored_byte_identical": true,
+      "sha256": "1ce320b9afc868e82883539cb033c3fc72eeddca496563bda0783ff8861fe8d8"
+    },
+    {
+      "id": "E",
+      "mutation": "the automatic cap ignores Indeed's ceilings",
+      "file": "sweep/plan.py",
+      "result": "FAILED (failures=9)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.AutomaticCap.test_a_pricing_change_moves_the_cap",
+        "test_paid_adaptive.AutomaticCap.test_an_unbounded_provider_stays_an_estimate_beside_the_ceilings",
+        "test_paid_adaptive.AutomaticCap.test_depth_moves_the_exposure",
+        "test_paid_adaptive.AutomaticCap.test_indeed_only",
+        "test_paid_adaptive.AutomaticCap.test_the_default_plan_is_authorised_in_full",
+        "test_paid_adaptive.AutomaticCap.test_the_public_global_plan",
+        "test_paid_adaptive.AutomaticCap.test_the_public_india_plan",
+        "test_paid_adaptive.AutomaticCap.test_the_public_remote_plan_keeps_the_floor",
+        "test_paid_adaptive.TheAppStampsTheGeneratedCap.test_confirm_and_run_carry_the_ceiling_holding_cap"
+      ],
+      "seconds": 51.8,
+      "restored_byte_identical": true,
+      "sha256": "3c6cbdc1ba7f78dca970dce251c5a4c42693cf67b8458562e4807b6d6905afba"
+    },
+    {
+      "id": "F",
+      "mutation": "the automatic cap ignores LinkedIn's ceilings",
+      "file": "sweep/plan.py",
+      "result": "FAILED (failures=9)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.AutomaticCap.test_a_pricing_change_moves_the_cap",
+        "test_paid_adaptive.AutomaticCap.test_an_unbounded_provider_stays_an_estimate_beside_the_ceilings",
+        "test_paid_adaptive.AutomaticCap.test_depth_moves_the_exposure",
+        "test_paid_adaptive.AutomaticCap.test_linkedin_only",
+        "test_paid_adaptive.AutomaticCap.test_the_default_plan_is_authorised_in_full",
+        "test_paid_adaptive.AutomaticCap.test_the_public_global_plan",
+        "test_paid_adaptive.AutomaticCap.test_the_public_india_plan",
+        "test_paid_adaptive.AutomaticCap.test_the_public_remote_plan_keeps_the_floor",
+        "test_paid_adaptive.TheAppStampsTheGeneratedCap.test_confirm_and_run_carry_the_ceiling_holding_cap"
+      ],
+      "seconds": 52.4,
+      "restored_byte_identical": true,
+      "sha256": "3c6cbdc1ba7f78dca970dce251c5a4c42693cf67b8458562e4807b6d6905afba"
+    },
+    {
+      "id": "G",
+      "mutation": "an explicit (supplied) cap is silently raised",
+      "file": "scraper.py",
+      "result": "FAILED (failures=39)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.BudgetSafetyUnderShadow.test_the_reservation_ledger_is_the_same",
+        "test_paid_adaptive.SuppliedCapsAreNeverRaised.test_above_the_plans_exposure_it_is_the_budget_as_given",
+        "test_paid_adaptive.SuppliedCapsAreNeverRaised.test_below_the_plans_exposure_the_engine_runs_what_fits",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_a_ceiling_the_provider_rejected",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_a_cheap_settled_run_is_still_the_whole_ceiling",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_a_dataset_read_that_fails",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_an_account_read_that_fails",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_an_ambiguous_start_with_no_run_id",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_engine_deadline_then_abort",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_provider_aborted_at_the_ceiling",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_provider_failed",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_provider_timed_out",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_the_actors_no_results_error_item",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_the_full_depth_returned",
+        "test_indeed_bounded.FailuresKeepTheirCeiling.test_zero_rows",
+        "test_indeed_bounded.MixedExposure.test_indeed_starts_see_the_linkedin_ceilings_already_held",
+        "test_indeed_bounded.MixedExposure.test_linkedin_starts_see_the_indeed_ceilings_already_held",
+        "test_indeed_bounded.Reservation.test_a_budget_of_exactly_one_ceiling_starts_one",
+        "test_indeed_bounded.Reservation.test_a_budget_of_exactly_two_ceilings_starts_two_and_blocks_the_third",
+        "test_indeed_bounded.Reservation.test_a_tenth_of_a_cent_short_does_not_fit",
+        "test_indeed_bounded.Reservation.test_the_reservation_exists_before_its_worker_starts",
+        "test_paid_concurrency.MixedProviders.test_a_bounded_site_after_an_unbounded_one_counts_its_spend",
+        "test_paid_concurrency.MixedProviders.test_linkedin_ceilings_stay_visible_to_indeed",
+        "test_paid_concurrency.ReservationBudget.test_11_an_engine_deadline_abort_keeps_its_ceiling",
+        "test_paid_concurrency.ReservationBudget.test_11b_a_provider_timeout_keeps_its_ceiling",
+        "test_paid_concurrency.ReservationBudget.test_13_a_blocked_unit_holds_nothing_and_sends_nothing",
+        "test_paid_concurrency.ReservationBudget.test_1_budget_010_two_starts_the_third_blocked",
+        "test_paid_concurrency.ReservationBudget.test_2_budget_0091_one_start",
+        "test_paid_concurrency.ReservationBudget.test_3_budget_exactly_0092_two_starts",
+        "test_paid_concurrency.ReservationBudget.test_5_an_account_delta_of_zero_adds_no_capacity",
+        "test_paid_concurrency.ReservationBudget.test_6_a_terminal_run_reading_of_000205_adds_no_capacity",
+        "test_paid_concurrency.ReservationBudget.test_8_a_run_that_failed_after_its_start_keeps_its_ceiling",
+        "test_paid_concurrency.ReservationBudget.test_9_a_start_that_raised_keeps_its_ceiling_run_id_or_not",
+        "test_paid_concurrency.ReservationBudget.test_a_reservation_exists_before_its_worker_starts",
+        "test_paid_concurrency.SerialParity.test_where_the_reservation_stops_what_the_lagging_guard_let_through",
+        "test_paid_concurrency.Telemetry.test_telemetry_off_still_reserves_and_writes_no_record",
+        "test_paid_concurrency.Telemetry.test_the_section_is_bounded_and_known",
+        "test_paid_observability.BehaviourEquivalence.test_the_same_budget_decision",
+        "test_paid_observability.Summary.test_planned_attempted_completed_failed_skipped"
+      ],
+      "seconds": 52.0,
+      "restored_byte_identical": true,
+      "sha256": "1ce320b9afc868e82883539cb033c3fc72eeddca496563bda0783ff8861fe8d8"
+    },
+    {
+      "id": "H",
+      "mutation": "the unbounded estimate is counted as a ceiling",
+      "file": "sweep/plan.py",
+      "result": "FAILED (failures=2)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.AutomaticCap.test_an_older_engine_plan_keeps_the_estimate_cap",
+        "test_paid_adaptive.AutomaticCap.test_an_unbounded_provider_stays_an_estimate_beside_the_ceilings"
+      ],
+      "seconds": 51.4,
+      "restored_byte_identical": true,
+      "sha256": "3c6cbdc1ba7f78dca970dce251c5a4c42693cf67b8458562e4807b6d6905afba"
+    },
+    {
+      "id": "I",
+      "mutation": "a policy decides with the next search's observation",
+      "file": "paid_adaptive.py",
+      "result": "FAILED (failures=7)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.LossesAreCountedAgainstTheWholeResult.test_a_stable_top_20_can_still_lose_the_rest",
+        "test_paid_adaptive.LossesAreCountedAgainstTheWholeResult.test_one_provider_can_stop_while_the_other_runs",
+        "test_paid_adaptive.LossesAreCountedAgainstTheWholeResult.test_the_top_k_fixture_shows_the_rank_one_job_a_naive_stop_misses",
+        "test_paid_adaptive.LossesAreCountedAgainstTheWholeResult.test_where_the_tail_really_is_dry_the_same_rule_loses_nothing",
+        "test_paid_adaptive.NoFutureInformation.test_a_different_future_changes_no_past_decision",
+        "test_paid_adaptive.NoFutureInformation.test_every_decision_is_the_one_its_prefix_makes",
+        "test_paid_adaptive.StructuralPairs.test_high_overlap"
+      ],
+      "seconds": 51.8,
+      "restored_byte_identical": true,
+      "sha256": "6678647548f2451f01696bdcb0e5b30cb0a58cfb32ca785f21ea6e88866c8b1e"
+    },
+    {
+      "id": "J",
+      "mutation": "the top-K counterfactual counts one job twice",
+      "file": "paid_adaptive.py",
+      "result": "FAILED (failures=3)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.DepthByProviderPosition.test_front_loaded_depth_5_loses_nothing_that_mattered",
+        "test_paid_adaptive.LossesAreCountedAgainstTheWholeResult.test_a_job_two_skipped_searches_share_is_one_lost_job",
+        "test_paid_adaptive.TheRankIsRankRows.test_equal_on_ties_duplicates_and_unkeyed_rows"
+      ],
+      "seconds": 51.8,
+      "restored_byte_identical": true,
+      "sha256": "6678647548f2451f01696bdcb0e5b30cb0a58cfb32ca785f21ea6e88866c8b1e"
+    },
+    {
+      "id": "K",
+      "mutation": "depth analysis reads the dataset push order",
+      "file": "paid_adaptive.py",
+      "result": "FAILED (failures=1)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.DepthByProviderPosition.test_live_positions_not_push_order"
+      ],
+      "seconds": 51.6,
+      "restored_byte_identical": true,
+      "sha256": "6678647548f2451f01696bdcb0e5b30cb0a58cfb32ca785f21ea6e88866c8b1e"
+    },
+    {
+      "id": "L",
+      "mutation": "an adaptive run bypasses C2's reservation",
+      "file": "scraper.py",
+      "result": "FAILED (failures=1)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.BudgetSafetyUnderShadow.test_the_reservation_ledger_is_the_same"
+      ],
+      "seconds": 51.9,
+      "restored_byte_identical": true,
+      "sha256": "1ce320b9afc868e82883539cb033c3fc72eeddca496563bda0783ff8861fe8d8"
+    },
+    {
+      "id": "M",
+      "mutation": "adaptive telemetry carries a job key (company + title)",
+      "file": "paid_adaptive.py",
+      "result": "OK",
+      "caught": false,
+      "failing_tests": [],
+      "seconds": 51.6,
+      "restored_byte_identical": true,
+      "sha256": "6678647548f2451f01696bdcb0e5b30cb0a58cfb32ca785f21ea6e88866c8b1e"
+    },
+    {
+      "id": "N",
+      "mutation": "the replay tool can build a real paid client",
+      "file": "bench/search_v2_paid_adaptive.py",
+      "result": "FAILED (failures=3)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.ReplayToolIsUnreachable.test_its_imports",
+        "test_paid_adaptive.ReplayToolIsUnreachable.test_the_c0_scan_finds_nothing_to_classify",
+        "test_paid_dev_guard.Reachability.test_every_file_that_can_reach_paid_code_is_classified"
+      ],
+      "seconds": 51.3,
+      "restored_byte_identical": true,
+      "sha256": "1580465198f8046035eb2d710b5d90411b7beecff30446511cc6bdf76a66edf5"
+    },
+    {
+      "id": "O",
+      "mutation": "the adaptive mode defaults to shadow",
+      "file": "paid_adaptive.py",
+      "result": "FAILED (failures=3)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.ModeDefaults.test_a_sweep_without_the_variable_writes_no_section",
+        "test_paid_adaptive.ModeDefaults.test_off_unless_asked",
+        "test_paid_adaptive.ShadowIsOff.test_only_shadow_and_enforce_write_the_section"
+      ],
+      "seconds": 50.0,
+      "restored_byte_identical": true,
+      "sha256": "6678647548f2451f01696bdcb0e5b30cb0a58cfb32ca785f21ea6e88866c8b1e"
+    },
+    {
+      "id": "P",
+      "mutation": "a duplicate position claim is trusted",
+      "file": "scraper.py",
+      "result": "FAILED (failures=2)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.ProviderPositions.test_a_duplicate_claim_makes_both_unknown",
+        "test_paid_adaptive.ProviderPositionsEndToEnd.test_unknown_and_indeed_are_counted_as_unknown"
+      ],
+      "seconds": 50.2,
+      "restored_byte_identical": true,
+      "sha256": "1ce320b9afc868e82883539cb033c3fc72eeddca496563bda0783ff8861fe8d8"
+    },
+    {
+      "id": "Q",
+      "mutation": "the automatic cap rounds to nearest, not up",
+      "file": "sweep/app.py",
+      "result": "FAILED (failures=3)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.AutomaticCap.test_a_pricing_change_moves_the_cap",
+        "test_paid_adaptive.AutomaticCap.test_rounded_up_never_down",
+        "test_paid_adaptive.AutomaticCap.test_the_public_india_plan"
+      ],
+      "seconds": 49.8,
+      "restored_byte_identical": true,
+      "sha256": "c4213c8edf80c5e8655b5bccb1a1c815cce3c28d05545519677fb55505132480"
+    },
+    {
+      "id": "S",
+      "mutation": "telemetry fills an unknown position with the dataset index",
+      "file": "telemetry.py",
+      "result": "FAILED (failures=1)",
+      "caught": true,
+      "failing_tests": [
+        "test_paid_adaptive.ProviderPositionsEndToEnd.test_unknown_and_indeed_are_counted_as_unknown"
+      ],
+      "seconds": 49.7,
+      "restored_byte_identical": true,
+      "sha256": "e6752c3b26563a63210512936aecdccc507a86daae0dcc9cc4fcc40c63a4d79e"
+    }
+  ],
+  "m_rerun_after_test_fix": {
+    "id": "M",
+    "mutation": "adaptive telemetry carries a job key (company + title)",
+    "file": "paid_adaptive.py",
+    "result": "FAILED (failures=1)",
+    "caught": true,
+    "failing_tests": [
+      "test_paid_adaptive.Privacy.test_the_section_holds_no_row_query_url_or_token"
+    ],
+    "seconds": 50.1,
+    "restored_byte_identical": true,
+    "sha256": "6678647548f2451f01696bdcb0e5b30cb0a58cfb32ca785f21ea6e88866c8b1e"
+  }
+}

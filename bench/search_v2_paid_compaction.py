@@ -176,13 +176,14 @@ def overlap_candidates(config, units):
                          "semantic_only": semantic[:3]}}
 
 
-def spend_cap_admission(units, estimate):
+def spend_cap_admission(units, costed):
     """How many LinkedIn searches the public app's cap lets start under C2's
     full-ceiling reservation, and what the prototype's batching would have
     admitted with budget-aware shrinking and — to show why it existed —
-    without it."""
+    without it. (Since V2-C4 the cap holds every provider ceiling.)"""
     from sweep.app import spend_cap_for
-    cap = Decimal(str(spend_cap_for(estimate)))
+    cap = Decimal(str(spend_cap_for(costed)))
+    estimate = costed["total"]
     li = [u for u in units if u["site"] == "linkedin"]
     if not li or li[0]["ceiling"] is None:
         return None
@@ -208,11 +209,14 @@ def spend_cap_admission(units, estimate):
 
 def audit_plan(config, name, units):
     from sweep.plan import cost
-    raw = {"profile": name, "sites": {}, "max_results": {}}
+    raw = {"profile": name, "sites": {}, "max_results": {}, "charge_ceiling_usd": {}}
     for u in units:
         raw["sites"].setdefault(u["site"], []).append(u)
         raw["max_results"][u["site"]] = u["depth"]
-    estimate = cost(raw, config.SITE_RATES, config.SITE_RATE_BASIS)["total"]
+        raw["charge_ceiling_usd"][u["site"]] = (None if u["ceiling"] is None
+                                                else str(u["ceiling"]))
+    costed = cost(raw, config.SITE_RATES, config.SITE_RATE_BASIS)
+    estimate = costed["total"]
     out = {"plan": name, "logical_searches": len(units), "current_physical_starts": len(units),
            "by_provider": {}, "estimate_usd": estimate}
     for site, us in raw["sites"].items():
@@ -238,7 +242,7 @@ def audit_plan(config, name, units):
                 size: len(hypothetical_starts(us, size)) for size in SIZES},
             "overlap_candidates": overlap_candidates(config, us),
         }
-    out["public_spend_cap"] = spend_cap_admission(units, estimate)
+    out["public_spend_cap"] = spend_cap_admission(units, costed)
     return out
 
 
