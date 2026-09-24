@@ -1,0 +1,104 @@
+{
+  "status": "MEASURED offline: each mutation applied to scraper.py, the C4.5 suite run (the clamp's mutations), the file restored byte-identical",
+  "source_sha256": "29c58df6f44ca8c7c45d239add874ceba9ca4a78062eba38006d5497a92548d0",
+  "baseline": "green",
+  "mutations": [
+    {
+      "mutation": "A",
+      "what": "The clamp raises an account's capacity",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_13_14_real_readings_stay_the_providers_the_clamp_is_labelled",
+        "test_1_unset_is_c45_exactly",
+        "test_2_3_the_clamp_only_ever_lowers",
+        "test_4_one_ceiling_holds_one_linkedin_search_per_account",
+        "test_5_6_two_searches_two_accounts_and_never_the_small_one"
+      ],
+      "suite_s": 11.6
+    },
+    {
+      "mutation": "B",
+      "what": "The clamp rewrites the provider's headroom reading",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_13_14_real_readings_stay_the_providers_the_clamp_is_labelled",
+        "test_2_3_the_clamp_only_ever_lowers"
+      ],
+      "suite_s": 11.5
+    },
+    {
+      "mutation": "C",
+      "what": "The clamp affects the single-account path",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_9_10_ignored_without_the_pool_even_when_malformed"
+      ],
+      "suite_s": 11.5
+    },
+    {
+      "mutation": "D",
+      "what": "The clamp stays on when the variable is unset",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_1_unset_is_c45_exactly",
+        "test_a_busy_account_waits_it_is_not_a_budget_failure",
+        "test_an_account_that_can_never_fit_the_run_stops_the_phase",
+        "test_byte_identical_at_every_worker_count",
+        "test_committed_is_never_released_whatever_a_run_cost",
+        "test_every_start_carries_its_assigned_accounts_token_and_ceiling",
+        "test_memory_is_counted_per_account_at_the_provider",
+        "test_no_batching_one_logical_search_one_start",
+        "test_per_account_committed_never_exceeds_its_capacity",
+        "test_the_preflight_fails_when_an_account_cannot_run_two_at_once",
+        "test_the_preflight_places_c5_on_three_fresh_accounts_and_spends_nothing",
+        "test_the_same_shadow_decisions_and_losses",
+        "test_the_same_starts_inputs_and_ceilings",
+        "test_the_section_says_what_was_planned_and_what_ran",
+        "test_unit_identity_and_funnels_are_the_accounts_business_not",
+        "test_unplaced_searches_stop_at_the_first_one_as_the_cap_does"
+      ],
+      "suite_s": 7.3
+    },
+    {
+      "mutation": "E",
+      "what": "The clamp becomes the sweep's budget",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_12_no_token_under_the_clamp",
+        "test_4_one_ceiling_holds_one_linkedin_search_per_account",
+        "test_5_6_two_searches_two_accounts_and_never_the_small_one",
+        "test_7_the_sweep_budget_is_untouched",
+        "test_8_the_provider_ceiling_is_untouched"
+      ],
+      "suite_s": 11.7
+    },
+    {
+      "mutation": "F",
+      "what": "The clamp is parsed through a float",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_11_malformed_zero_or_negative_refuses_before_any_credential",
+        "test_13_14_real_readings_stay_the_providers_the_clamp_is_labelled",
+        "test_4_one_ceiling_holds_one_linkedin_search_per_account",
+        "test_5_6_two_searches_two_accounts_and_never_the_small_one",
+        "test_7_the_sweep_budget_is_untouched",
+        "test_8_the_provider_ceiling_is_untouched"
+      ],
+      "suite_s": 11.6
+    },
+    {
+      "mutation": "G",
+      "what": "The allocator ignores the clamp (two searches, one account)",
+      "verdict": "caught",
+      "failing_tests": [
+        "test_4_one_ceiling_holds_one_linkedin_search_per_account",
+        "test_5_6_two_searches_two_accounts_and_never_the_small_one",
+        "test_7_the_sweep_budget_is_untouched",
+        "test_8_the_provider_ceiling_is_untouched"
+      ],
+      "suite_s": 11.6
+    }
+  ],
+  "caught": 7,
+  "total": 7
+}

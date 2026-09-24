@@ -92,6 +92,7 @@ PRODUCTION_FREE_FLAGS = {
     "SWEEP_RESULTS_READY_EARLY": "1"}
 ADAPTIVE_MODE = "SWEEP_PAID_ADAPTIVE_MODE"
 MULTI_ACCOUNT = "SWEEP_PAID_MULTI_ACCOUNT"
+ACCOUNT_CAP = "SWEEP_PAID_ACCOUNT_CAP_USD"     # the canary's developer-only clamp
 
 
 def _now():
@@ -243,12 +244,14 @@ def child_env(args, name):
         env.update(SWEEP_PAID_CONCURRENCY="1", SWEEP_PAID_WORKERS=str(args.paid_workers))
     # V2-C4.5: the adaptive and account-pool modes, and --full-plan's free
     # flags, likewise set here only — a leftover in the shell changes nothing.
-    for key in (ADAPTIVE_MODE, MULTI_ACCOUNT):
+    for key in (ADAPTIVE_MODE, MULTI_ACCOUNT, ACCOUNT_CAP):
         env.pop(key, None)
     if getattr(args, "adaptive_mode", None):
         env[ADAPTIVE_MODE] = args.adaptive_mode
     if getattr(args, "multi_account", False):
         env[MULTI_ACCOUNT] = "1"
+    if getattr(args, "account_cap_usd", None):
+        env[ACCOUNT_CAP] = str(args.account_cap_usd)
     if getattr(args, "full_plan", False):
         env.update(PRODUCTION_FREE_FLAGS)
     return env
@@ -717,7 +720,9 @@ def preflight(args):
     bounded = [u for u in units if u[2] is not None]
     exposure = sum((c for *_, c in bounded), Decimal(0))
     tokens = scraper.pool_tokens()
-    accounts, excluded = scraper.discover_accounts(tokens, ReadOnlyClient)
+    # The child's clamp, read the child's way, so the placement here is its.
+    accounts, excluded = scraper.discover_accounts(tokens, ReadOnlyClient,
+                                                   scraper.paid_account_cap(env))
     memory = {site: scraper.actor_memory_mb(accounts[0].read_client,
                                             scraper.SITES[site]["actor"])
               for site in plan} if accounts else {}
@@ -741,6 +746,7 @@ def preflight(args):
                      "the guarded child ran without keys",
            "stage": args.stage, "observed_at": _now(), "code_revision": revision(),
            "mode": {"full_plan": bool(getattr(args, "full_plan", False)),
+                    "account_cap_usd": getattr(args, "account_cap_usd", None),
                     "paid_workers": args.paid_workers,
                     "adaptive_mode": getattr(args, "adaptive_mode", None),
                     "multi_account": bool(getattr(args, "multi_account", False))},
@@ -883,6 +889,10 @@ def main():
                     help="keep the outputs and telemetry here (under output/)")
     ap.add_argument("--preflight", action="store_true",
                     help="zero paid calls: accounts, placement and C0's preview")
+    ap.add_argument("--account-cap-usd", metavar="USD",
+                    help="the canary's developer-only per-account clamp "
+                         "(SWEEP_PAID_ACCOUNT_CAP_USD in the child); never with "
+                         "--full-plan")
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
     if args.summarize:
@@ -892,6 +902,9 @@ def main():
         return
     if args.multi_account and args.paid_workers is None:
         ap.error("--multi-account runs under the C2 scheduler: give --paid-workers")
+    if args.account_cap_usd and (args.full_plan or not args.multi_account):
+        ap.error("--account-cap-usd is the canary's clamp: --multi-account only, and "
+                 "never with --full-plan (C5 runs on the accounts' real capacity)")
     if not args.max_usd or not (args.full_plan or (args.keywords and args.location)):
         ap.error("a probe needs --max-usd and --full-plan, or --keywords and --location")
     if args.keep_output and Path(args.keep_output).exists():

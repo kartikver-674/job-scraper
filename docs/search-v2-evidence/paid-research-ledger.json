@@ -11,6 +11,13 @@
   ],
   "counting": "Running totals include C0's run. The shared C1-C4 ceiling is checked against the all-inclusive total of C0-C4 entries, which is stricter than required, never looser. A stage outside ceiling_covers is checked against its own separate_budgets ceiling, which is a cumulative figure (every earlier entry plus that stage's worst case). Free metadata and account GETs are not paid exposure and are not entries.",
   "separate_budgets": {
+    "C4.5": {
+      "ceiling_usd": "0.87",
+      "covers": "the C4.5 live multi-account canary: 2 LinkedIn starts (depth 15, $0.046 ceiling each) on 2 distinct accounts, $0.092 bounded, on top of $0.773 already recorded",
+      "outside": "the shared C1-C4 $2.00 ceiling and C5's budget",
+      "basis": "0.773 recorded + 0.092 bounded = 0.865, rounded up to the cent",
+      "approval": "the operator's C4.5 canary brief of 2026-09-24; refuse-only like the rest of this file. Spending needs both C0 keys; this entry authorises nothing"
+    },
     "C5": {
       "ceiling_usd": "11.33",
       "covers": "one integrated C5 Sweep of the default plan (18 LinkedIn + 72 Indeed starts, bounded exposure $10.548), on top of $0.773 already recorded",

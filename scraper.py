@@ -56,7 +56,7 @@ import time
 import urllib.parse
 from collections import Counter, namedtuple
 from datetime import datetime, timedelta, timezone
-from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, InvalidOperation
 
 import config
 import enrich
@@ -1629,6 +1629,31 @@ def paid_multi_account():
         "1", "true", "yes", "on")
 
 
+# Developer-only (V2-C4.5's live canary): the most ONE pooled account may be
+# given in this sweep. It clamps the pool's own usable capacity and nothing
+# else — not the provider's reading, not the sweep's budget, not a ceiling —
+# and can only lower it. Read only under the pool; unset, it does not exist.
+PAID_ACCOUNT_CAP_ENV = "SWEEP_PAID_ACCOUNT_CAP_USD"
+
+
+def paid_account_cap(env=None):
+    """The clamp as a Decimal, or None when unset or empty. Any other value
+    that is not a positive finite amount refuses the paid phase: a clamp
+    someone set and mistyped must not silently become no clamp."""
+    env = os.environ if env is None else env
+    raw = (env.get(PAID_ACCOUNT_CAP_ENV) or "").strip()
+    if not raw:
+        return None
+    try:
+        cap = Decimal(raw)
+    except InvalidOperation:
+        cap = None
+    if cap is None or not cap.is_finite() or cap <= 0:
+        sys.exit(f"Refusing to start: {PAID_ACCOUNT_CAP_ENV}={raw!r} is not a positive "
+                 f"dollar amount. Unset it to use each account's real capacity.")
+    return cap
+
+
 def pool_tokens(env=None):
     """apify_tokens(), narrowed to APIFY_TOKEN and APIFY_TOKEN_<n> (n >= 1, no
     leading zero): the pool spends on every account it is given, so a name
@@ -1659,15 +1684,24 @@ class PoolAccount:
     a lagging account delta. Its memory and run slots are the other half: held
     while a run lives and freed once the provider reports the run terminal.
     The token is held here and handed only to that account's clients; repr()
-    and snapshot() carry the label."""
+    and snapshot() carry the label.
 
-    def __init__(self, label, slots, token, reading, make_client):
+    Three figures, kept apart: `headroom`, the provider's reading;
+    `real_capacity`, that less the buffer; and the ledger's budget, the
+    EFFECTIVE capacity — the real one, or less where the developer-only
+    SWEEP_PAID_ACCOUNT_CAP_USD clamps it (`cap`). The allocator and the
+    account's ledger use the effective one; the readings are never rewritten."""
+
+    def __init__(self, label, slots, token, reading, make_client, cap=None):
         self.label, self.slots, self._token = label, list(slots), token
         self.plan = reading["plan"]
         self.headroom = reading["headroom_usd"]
         self.baseline = reading["used_usd"]
         self.memory_mb, self.run_slots = reading["memory_mb"], reading["run_slots"]
-        self.exposure = PaidExposure(max(Decimal(0), self.headroom - ACCOUNT_BUFFER_USD))
+        self.real_capacity = max(Decimal(0), self.headroom - ACCOUNT_BUFFER_USD)
+        self.cap = cap
+        self.exposure = PaidExposure(self.real_capacity if cap is None
+                                     else min(self.real_capacity, cap))
         self.reserved_mb = self.in_flight = self.live = self.held_unknown = 0
         self.peak_mb = self.peak_in_flight = self.starts = self.failures = 0
         self.spent = 0.0
@@ -1706,7 +1740,7 @@ def _account_reading(me, limits):
             "run_slots": free("max_concurrent_actor_jobs", "active_actor_job_count")}
 
 
-def discover_accounts(tokens, make_client):
+def discover_accounts(tokens, make_client, cap=None):
     """([PoolAccount] in slot order, one per underlying account, [excluded]).
 
     Two free reads per slot: users/me says WHO — a token is not an account,
@@ -1715,7 +1749,9 @@ def discover_accounts(tokens, make_client):
     whose account cannot be identified is left out: counted once too often it
     would double a balance. Where two slots are one account, the smaller of
     their readings stands. Labels are account_000, account_001, ... in slot
-    order; no account id, username or email is kept."""
+    order; no account id, username or email is kept. `cap`: the
+    developer-only clamp (paid_account_cap), applied to each account's
+    effective capacity only."""
     found, excluded = {}, []
     for slot, token in tokens:
         try:
@@ -1738,7 +1774,7 @@ def discover_accounts(tokens, make_client):
         else:
             found[ident] = {"slots": [slot], "token": token, "reading": reading}
     accounts = [PoolAccount(f"account_{i:03d}", f["slots"], f["token"], f["reading"],
-                            make_client)
+                            make_client, cap)
                 for i, f in enumerate(found.values())]
     return accounts, excluded
 
@@ -1848,19 +1884,29 @@ def project_assignment(units, accounts):
         mine = [(p, c) for u, p, c in units if placed.get(u) == a.label]
         left = a.exposure.budget - sum((c for _, c in mine), Decimal(0))
         rows.append({"account": a.label, "slots": a.slots, "plan": a.plan,
-                     "headroom_usd": str(a.headroom),
-                     "capacity_usd": str(a.exposure.budget),
+                     "headroom_usd": str(a.headroom),               # the provider's
+                     "real_capacity_usd": str(a.real_capacity),     # less the buffer
+                     "effective_capacity_usd": str(a.exposure.budget),   # what is used
+                     "developer_clamped": a.exposure.budget < a.real_capacity,
                      "projected_units": dict(Counter(p for p, _ in mine)),
                      "projected_usd": str(sum((c for _, c in mine), Decimal(0))),
                      "leftover_usd": str(left),
                      "stranded_usd": str(left if smallest is not None and left < smallest
                                          else Decimal(0)),
                      "memory_mb": a.memory_mb, "run_slots": a.run_slots})
+    cap = next((a.cap for a in accounts if a.cap is not None), None)
     report = {"account_count": len(accounts),
               "buffer_per_account_usd": str(ACCOUNT_BUFFER_USD),
+              "developer_account_cap": None if cap is None else {
+                  "usd": str(cap),
+                  "what": f"{PAID_ACCOUNT_CAP_ENV}: a developer-only clamp imposed "
+                          f"locally on each account's usable capacity for this sweep; "
+                          f"not provider capacity and not the sweep's budget"},
               "aggregate_headroom_usd": str(sum((a.headroom for a in accounts), Decimal(0))),
-              "aggregate_capacity_usd": str(sum((a.exposure.budget for a in accounts),
-                                                Decimal(0))),
+              "aggregate_real_capacity_usd": str(sum((a.real_capacity for a in accounts),
+                                                     Decimal(0))),
+              "aggregate_effective_capacity_usd": str(sum(
+                  (a.exposure.budget for a in accounts), Decimal(0))),
               "bounded_units": len(units),
               "bounded_exposure_usd": str(sum((c for _, _, c in units), Decimal(0))),
               "placed_units": len(placed),
@@ -1994,13 +2040,19 @@ class AccountPool:
 
     @classmethod
     def open(cls, output_dir, make_client):
+        cap = paid_account_cap()                     # a bad clamp stops it here
         ledger = AccountLedger.open(output_dir)      # before any credential
-        accounts, excluded = discover_accounts(_require_token_pool(), make_client)
+        accounts, excluded = discover_accounts(_require_token_pool(), make_client, cap)
         pool = cls(accounts, excluded, ledger)
+        if cap is not None:
+            print(f"  ({PAID_ACCOUNT_CAP_ENV}={cap}: developer-only clamp on each "
+                  f"account's usable capacity, not provider capacity)")
         for a in accounts:
             print(f"  {a.label}  {', '.join(a.slots):<30} ${a.headroom} headroom, "
-                  f"${a.exposure.budget} usable, {a.memory_mb} MB, "
-                  f"{a.run_slots} run slot(s)")
+                  f"${a.real_capacity} usable"
+                  + (f" (${a.exposure.budget} under the clamp)"
+                     if a.exposure.budget < a.real_capacity else "")
+                  + f", {a.memory_mb} MB, {a.run_slots} run slot(s)")
         for x in excluded:
             print(f"  {x['slot']:<16} not pooled: {x['reason']}")
         return pool
@@ -2023,7 +2075,8 @@ class AccountPool:
         r = self.report
         print(f"  pool: {r['placed_units']}/{r['bounded_units']} bounded search(es) "
               f"placed, ${r['bounded_exposure_usd']} of ceilings on "
-              f"${r['aggregate_capacity_usd']} usable across {r['account_count']} "
+              f"${r['aggregate_effective_capacity_usd']} usable across "
+              f"{r['account_count']} "
               f"account(s) (not a provider guarantee)")
 
     def _mb(self, e, acct):

@@ -24,6 +24,7 @@ import random
 import re
 import shutil
 import socket
+import sys
 import tempfile
 import threading
 import unittest
@@ -689,7 +690,7 @@ class Execution(unittest.TestCase):
                                           "account_002": 3}), workers)
             for row in section(got)["accounts"]:
                 self.assertLessEqual(Decimal(row["committed_usd"]),
-                                     Decimal(row["capacity_usd"]))
+                                     Decimal(row["effective_capacity_usd"]))
                 self.assertEqual(Decimal(row["committed_usd"]),
                                  by[row["account"]] * LI)
 
@@ -729,7 +730,7 @@ class Execution(unittest.TestCase):
                         three_accounts(), keywords=KW[:6], workers=4)
         for row in section(got)["accounts"]:
             self.assertEqual(Decimal(row["remaining_usd"]),
-                             Decimal(row["capacity_usd"]) - Decimal(row["committed_usd"]))
+                             Decimal(row["effective_capacity_usd"]) - Decimal(row["committed_usd"]))
         self.assertEqual(Decimal(got.execution["exposure"]["committed_usd"]), 6 * LI)
         # A seventh search has nowhere to go, although every run cost nothing.
         got7, _ = pooled([Script(c2.solo(u), usage=0.0) for u in range(6)]
@@ -1241,8 +1242,13 @@ class C5Probe(unittest.TestCase):
         self.assertIsNone(probe.ledger_blocks(ledger, "0.773", "11.33", "C5"))
         self.assertIn("exceeds stage C5", probe.ledger_blocks(ledger, "0.773", "11.34",
                                                               "C5"))
-        self.assertIn("no research budget for stage C4.5",
-                      probe.ledger_blocks(ledger, "0.773", "0.10", "C4.5"))
+        self.assertIn("no research budget for stage C6",
+                      probe.ledger_blocks(ledger, "0.773", "0.10", "C6"))
+        # V2-C4.5's live canary: its own tight budget, $0.773 + $0.092 rounded up.
+        self.assertEqual(ledger["separate_budgets"]["C4.5"]["ceiling_usd"], "0.87")
+        self.assertIsNone(probe.ledger_blocks(ledger, "0.773", "0.87", "C4.5"))
+        self.assertIn("exceeds stage C4.5", probe.ledger_blocks(ledger, "0.773", "0.88",
+                                                                "C4.5"))
         self.assertIn("shared", probe.ledger_blocks(ledger, "0.773", "2.01", "C4"))
         self.assertIn("shared", probe.ledger_blocks(ledger, "0.773", "2.01"))
 
@@ -1350,6 +1356,175 @@ class Benchmark(unittest.TestCase):
         for banned in ("apify_client", "_require_token", "engine_argv(", "APIFY_TOKEN",
                        "scrape_search(", ".start(run_input", "actor(", "scraper.main("):
             self.assertNotIn(banned, source)
+
+
+# ===========================================================================
+# 10. The canary's developer-only per-account clamp (SWEEP_PAID_ACCOUNT_CAP_USD)
+# ===========================================================================
+CAP = scraper.PAID_ACCOUNT_CAP_ENV
+
+
+def rows_of(got):
+    return {r["account"]: r for r in section(got)["accounts"]}
+
+
+class AccountCap(unittest.TestCase):
+
+    def test_1_unset_is_c45_exactly(self):
+        """Unset (or empty) is 51764a0: effective == real == headroom - buffer,
+        and the sweep's requests, bytes and assignment equal a clamp too large
+        to bind."""
+        for value in (None, "", "  "):
+            self.assertIsNone(scraper.paid_account_cap({CAP: value} if value is not None
+                                                       else {}))
+        runs = {v: pooled(c2.staggered([c2.solo(u) for u in range(6)]), three_accounts(),
+                          keywords=KW[:6], workers=2, env={CAP: v})[0]
+                for v in (None, "1000")}
+        a, b = runs[None], runs["1000"]
+        self.assertEqual(Counter(map(repr, a.client.kinds("start"))),
+                         Counter(map(repr, b.client.kinds("start"))))
+        self.assertEqual((a.csv, a.json, a.seen, a.done), (b.csv, b.json, b.seen, b.done))
+        self.assertEqual(assigned(a), assigned(b))
+        self.assertIsNone(section(a)["developer_account_cap"])
+        for row in rows_of(a).values():
+            self.assertEqual(Decimal(row["effective_capacity_usd"]),
+                             Decimal(row["real_capacity_usd"]))
+            self.assertEqual(Decimal(row["real_capacity_usd"]),
+                             Decimal(row["headroom_usd"]) - BUFFER)
+            self.assertFalse(row["developer_clamped"])
+
+    def test_2_3_the_clamp_only_ever_lowers(self):
+        accounts, _ = scraper.discover_accounts(
+            [("APIFY_TOKEN", SECRETS[0]), ("APIFY_TOKEN_2", SECRETS[1])],
+            Fakes({SECRETS[0]: Acct("u0", capacity="0.092"),
+                   SECRETS[1]: Acct("u1", capacity="4.990")}), Decimal("1.0"))
+        self.assertEqual([a.exposure.budget for a in accounts],
+                         [Decimal("0.092"), Decimal("1.0")])      # real wins, cap wins
+        self.assertEqual([a.real_capacity for a in accounts],
+                         [Decimal("0.092"), Decimal("4.990")])
+        self.assertTrue(all(isinstance(a.exposure.budget, Decimal) for a in accounts))
+
+    def test_4_one_ceiling_holds_one_linkedin_search_per_account(self):
+        got, _ = pooled(li_units(4), [Acct(f"u{i}") for i in range(4)], keywords=KW[:4],
+                        workers=2, env={CAP: "0.046"})
+        self.assertEqual(Counter(owners(got, None).values()),
+                         Counter({f"account_{i:03d}": 1 for i in range(4)}))
+        self.assertEqual(owners(got, None), assigned(got))
+
+    def test_5_6_two_searches_two_accounts_and_never_the_small_one(self):
+        """Mutation G's test: the canary's shape. The $0.011 account (slot
+        order first) cannot hold a $0.046 search; the two go to two others."""
+        got, accounts = pooled(li_units(2), [Acct("uS", capacity="0.011"),
+                                             Acct("uA", capacity="0.499"),
+                                             Acct("uB", capacity="4.550")],
+                               keywords=KW[:2], workers=2, env={CAP: "0.046"})
+        by_provider = owners(got, accounts)
+        self.assertEqual(set(by_provider.values()), {"account_001", "account_002"})
+        self.assertNotIn("account_000", by_provider.values())
+        rows = rows_of(got)
+        self.assertEqual(rows["account_000"]["starts"], 0)
+        for label in ("account_001", "account_002"):
+            self.assertEqual(Decimal(rows[label]["committed_usd"]), LI)
+            self.assertGreaterEqual(Decimal(rows[label]["real_capacity_usd"]), LI)
+
+    def test_7_the_sweep_budget_is_untouched(self):
+        """Mutation E's test."""
+        got, _ = pooled(li_units(3), [Acct(f"u{i}") for i in range(3)], keywords=KW[:3],
+                        workers=2, budget=0.092, env={CAP: "0.046"})
+        self.assertEqual(len(got.client.kinds("start")), 2)
+        self.assertEqual(got.execution["exposure"]["budget_usd"], "0.092")
+        self.assertEqual(got.status()[-1], "skipped_budget")
+
+    def test_8_the_provider_ceiling_is_untouched(self):
+        got, _ = pooled(li_units(2), [Acct(f"u{i}") for i in range(2)], keywords=KW[:2],
+                        workers=2, env={CAP: "0.046"})
+        self.assertEqual([c[3] for c in got.client.kinds("start")], [LI, LI])
+        self.assertEqual(scraper.max_charge_usd("linkedin", 15), LI)
+
+    def test_9_10_ignored_without_the_pool_even_when_malformed(self):
+        """Mutation C's test: serial, and C2 with the pool off — the clamp,
+        valid or not, changes nothing."""
+        for workers in (c2.SERIAL, 2):
+            base = c2.c2_sweep(li_units(2), keywords=KW[:2], workers=workers, account=[1.0])
+            for value in ("0.001", "abc", "-1"):
+                got = c2.c2_sweep(li_units(2), keywords=KW[:2], workers=workers,
+                                  account=[1.0], env={CAP: value, FLAG: None})
+                # One thread: the exact sequence. Two: the same requests (their
+                # interleaving is the threads', as in C2's own parity tests).
+                self.assertEqual(got.client.calls if workers is c2.SERIAL
+                                 else Counter(map(repr, got.client.calls)),
+                                 base.client.calls if workers is c2.SERIAL
+                                 else Counter(map(repr, base.client.calls)),
+                                 (workers, value))
+                self.assertEqual((got.csv, got.json, got.seen, got.done),
+                                 (base.csv, base.json, base.seen, base.done))
+
+    def test_11_malformed_zero_or_negative_refuses_before_any_credential(self):
+        """Fail closed: a clamp someone set and mistyped is not no clamp."""
+        for value in ("0", "0.0", "-0.046", "abc", "nan", "inf", "-inf", "1e", "$0.046"):
+            with self.assertRaises(SystemExit, msg=value):
+                scraper.paid_account_cap({CAP: value})
+            reached = []
+            got, _ = pooled(li_units(2), [Acct("u0"), Acct("u1")], keywords=KW[:2],
+                            env={CAP: value},
+                            patches=[mock.patch.object(
+                                scraper, "_require_token_pool",
+                                lambda: reached.append(1) or [])])
+            self.assertIn("Refusing to start", got.log, value)
+            self.assertEqual((reached, got.client.kinds("start")), ([], []), value)
+        self.assertEqual(scraper.paid_account_cap({CAP: " 0.046 "}), Decimal("0.046"))
+
+    def test_12_no_token_under_the_clamp(self):
+        out = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, out, True)
+        got, _ = pooled(li_units(2), [Acct("u0"), Acct("u1")], keywords=KW[:2],
+                        env={CAP: "0.046"}, out=out)
+        for body in (got.log.encode(), got.telemetry_text.encode(),
+                     *tree_bytes(out).values()):
+            for secret in SECRETS:
+                self.assertNotIn(secret.encode(), body)
+
+    def test_13_14_real_readings_stay_the_providers_the_clamp_is_labelled(self):
+        """Mutation B's test: headroom and real capacity are the provider's
+        reading; the clamp shows only as the effective capacity."""
+        got, _ = pooled(li_units(2), [Acct("u0", headroom="3.407"), Acct("u1", headroom="0.021")],
+                        keywords=KW[:2], env={CAP: "0.046"})
+        s = section(got)
+        self.assertEqual(s["developer_account_cap"]["usd"], "0.046")
+        self.assertIn("developer-only", s["developer_account_cap"]["what"])
+        self.assertIn("not provider capacity", s["developer_account_cap"]["what"])
+        rows = rows_of(got)
+        self.assertEqual((rows["account_000"]["headroom_usd"],
+                          rows["account_000"]["real_capacity_usd"],
+                          rows["account_000"]["effective_capacity_usd"],
+                          rows["account_000"]["developer_clamped"]),
+                         ("3.407", "3.397", "0.046", True))
+        self.assertEqual((rows["account_001"]["headroom_usd"],
+                          rows["account_001"]["real_capacity_usd"],
+                          rows["account_001"]["effective_capacity_usd"],
+                          rows["account_001"]["developer_clamped"]),
+                         ("0.021", "0.011", "0.011", False))
+        self.assertEqual(s["aggregate_headroom_usd"], "3.428")
+        self.assertEqual(s["aggregate_real_capacity_usd"], "3.408")
+        self.assertEqual(s["aggregate_effective_capacity_usd"], "0.057")
+        self.assertIn("developer-only clamp", got.log)
+
+    def test_the_probe_sets_it_in_the_child_only_and_never_for_c5(self):
+        with b3._env(**{CAP: "0.001"}):
+            leftover = probe.child_env(probe_args(account_cap_usd=None), "p")
+            set_ = probe.child_env(probe_args(full_plan=False, account_cap_usd="0.046"), "p")
+        self.assertNotIn(CAP, leftover)                    # a shell leftover is dropped
+        self.assertEqual(set_[CAP], "0.046")
+        for extra in (["--full-plan"], []):
+            argv = ["probe", "--max-usd", "0.87", "--account-cap-usd", "0.046",
+                    "--keywords", "K", "--location", "India", "--paid-workers", "2",
+                    "--output", "x.json", *extra]
+            if not extra:
+                argv.remove("--paid-workers"), argv.remove("2")   # and no pool
+            with mock.patch.object(sys, "argv", argv), \
+                    contextlib.redirect_stderr(io.StringIO()), \
+                    self.assertRaises(SystemExit):
+                probe.main()
 
 
 if __name__ == "__main__":
