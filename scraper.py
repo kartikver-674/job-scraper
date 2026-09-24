@@ -1126,11 +1126,34 @@ ACTOR_CHARGE_MODEL = {
         "overshoot": Decimal("1.5"),
         "provider_minimum_usd": Decimal("0.001"),   # minimalMaxTotalChargeUsd
     },
-    # Indeed and Naukri are deliberately absent. Their inputs and economics are
-    # unchanged by this patch, Naukri's own minimalMaxTotalChargeUsd is $0.10
-    # against a per-run model Sweep already treats as a floor, and adding a
-    # ceiling there would be a second, unmeasured behaviour change. Absent means
-    # "no ceiling computed", which max_charge_usd reports as None.
+    # V2-C3.5. Read on 2026-09-24 from misceres~indeed-scraper's record (build
+    # 0.0.111) and its store pricing page. Current entry, PAY_PER_EVENT, started
+    # 2026-03-26, one event only:
+    #   result ("Job listing", "Cost per every job listing returned")
+    #                              FREE $0.006 / BRONZE $0.005 ... DIAMOND $0.001
+    #   no apify-actor-start event is priced
+    #   minimalMaxTotalChargeUsd   null
+    #   platform usage             included (isUserPayingForPlatformUsage: false)
+    # `result` is a CUSTOM event, charged by the actor's own code, so the bound
+    # rests on Apify's rule rather than on the actor counting right: a user is
+    # "never charged for produced events over the defined limit", and the
+    # platform aborts the run there. See
+    # docs/search-engine-v2-c35-indeed-bounded-execution.md.
+    "indeed": {
+        "result_usd": Decimal("0.006"),      # FREE tier, the dearest published
+        "start_usd": Decimal("0"),           # no start event is priced
+        "start_events": 0,
+        # The changelog records this actor overshooting maxItemsPerSearch
+        # ("slight overflows", 2025-07-11; "exceeding the specified limit",
+        # 2026-01-15). LinkedIn's headroom, for LinkedIn's reason: a ceiling at
+        # exactly the depth would abort an honest run that ran one row over.
+        "overshoot": Decimal("1.5"),
+        "provider_minimum_usd": Decimal("0"),       # minimalMaxTotalChargeUsd: null
+    },
+    # Naukri is deliberately absent: disabled by default, and its own
+    # minimalMaxTotalChargeUsd ($0.10) and per-event prices have not been
+    # measured against a run. Absent means "no ceiling computed", which
+    # max_charge_usd reports as None — and C2 then runs it one at a time.
 }
 
 # Rounded UP to a tenth of a cent. Coarser than the published $0.00005 event
@@ -1420,7 +1443,8 @@ class PaidExposure:
                  between deciding and starting. Released only when the start
                  was never attempted.
       unbounded  what the pre-C2 guard observed across searches that have no
-                 provider ceiling (Indeed, Naukri): lagging, but all there is.
+                 provider ceiling (Naukri since V2-C3.5): lagging, but all
+                 there is.
       observed   the pre-C2 guard's own figure for the sweep (account delta,
                  else run-record sum). It enters through max(), so it can only
                  make the view larger — C2 is never less cautious than the old

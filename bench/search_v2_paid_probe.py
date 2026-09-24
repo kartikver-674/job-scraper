@@ -253,6 +253,44 @@ def _priced(run):
         return None
 
 
+def run_contract(client, run):
+    """V2-C3.5: the contract as the provider ran it, from records free to read:
+    the input the actor received, the options and memory it ran with, who pays
+    for platform usage, and the charge. Fields and numbers only; the input is
+    the developer's own synthetic query."""
+    opts = getattr(run, "options", None)
+    try:
+        received = (client.key_value_store(run.default_key_value_store_id)
+                    .get_record("INPUT") or {}).get("value")
+    except Exception:
+        received = None
+    return {"memory_mbytes": getattr(opts, "memory_mbytes", None),
+            "timeout_secs": getattr(opts, "timeout_secs", None),
+            "max_items": getattr(opts, "max_items", None),
+            "max_total_charge_usd": getattr(opts, "max_total_charge_usd", None),
+            "platform_usage_billing_model": getattr(run, "platform_usage_billing_model",
+                                                    None),
+            "pricing_model": (_plain(run.pricing_info) or {}).get("pricing_model"),
+            "charged_events": dict(run.charged_event_counts or {}),
+            "usage_total_usd": run.usage_total_usd,
+            "input_received": received}
+
+
+def account_limits(client):
+    """V2-C3.5: the account's memory and concurrency limits and what it had in
+    use before the probe started anything — whether N runs of an actor's
+    default memory fit at once is the provider's rule, not Sweep's."""
+    try:
+        d = client.user().limits().model_dump()
+    except Exception:
+        return None
+    lim, cur = d.get("limits") or {}, d.get("current") or {}
+    return {"max_actor_memory_gbytes": lim.get("max_actor_memory_gbytes"),
+            "max_concurrent_actor_jobs": lim.get("max_concurrent_actor_jobs"),
+            "actor_memory_gbytes_in_use": cur.get("actor_memory_gbytes"),
+            "active_actor_jobs": cur.get("active_actor_job_count")}
+
+
 def settle(values):
     """Index of the first reading of the final unchanged streak, if that
     streak is at least two readings long; else None (never settled here)."""
@@ -349,8 +387,8 @@ def probe(args):
     if armed:       # the account is read only when a run can actually start
         owners = accounts()
         import scraper
-        baselines = {n: {"usd": scraper.account_usage_usd(c), "read_at": _now()}
-                     for n, c in owners}
+        baselines = {n: {"usd": scraper.account_usage_usd(c), "read_at": _now(),
+                         "limits": account_limits(c)} for n, c in owners}
     try:
         started = time.perf_counter()
         code = subprocess.run(guard_argv(args, name), cwd=ROOT, env=env).returncode
@@ -427,7 +465,8 @@ def probe(args):
                             "actor_finished_at": ex.get("actor_finished_at"),
                             "engine_readings": engine, "provider_readings": readings,
                             "settled": settled, "events_priced_usd": _priced(last[rid]),
-                            "charge_ceiling_usd": ceiling})
+                            "charge_ceiling_usd": ceiling,
+                            "provider_contract": run_contract(owned[rid][1], last[rid])})
     last_finish = max((c["actor_finished_at"] for c in convergence), default=None)
     accounts_view = []
     for acct_name, readings in acct.items():
@@ -437,6 +476,7 @@ def probe(args):
             (Decimal(str(c["settled"]["usd"])) for c in convergence
              if c["settled"] and owned[c["run_id"]][0] == acct_name), Decimal(0))))
         view["baseline_read_at"] = baselines.get(acct_name, {}).get("read_at")
+        view["limits_before"] = baselines.get(acct_name, {}).get("limits")
         accounts_view.append(view)
         if view["covered_at"] is None:
             anomalies.append(f"{acct_name}: account delta never covered its runs' "

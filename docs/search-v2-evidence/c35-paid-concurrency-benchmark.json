@@ -1,0 +1,809 @@
+{
+  "status": "MEASURED OFFLINE; scripted provider (KeyedClient), no network",
+  "measured_at": "2026-09-24T14:00:13+05:30",
+  "code_revision": "61681c9cc782f2995b3a47a360ac755c9edb6f1c-dirty",
+  "host_best_calibration_cpu_ms_per_row": 3.5044,
+  "host_slow_threshold": "a before/after calibration above 1.25 x the best seen; such an arm is measured again up to 2 times and every attempt kept",
+  "runtimes_s": [
+    16,
+    22,
+    34,
+    40
+  ],
+  "indeed_runtimes_s": [
+    4.134,
+    4.693,
+    5.123
+  ],
+  "indeed_runtimes_source": "MEASURED live: the three C3.5 canary runs' actor runtimes (Phase 1 4.134 s; Phase 2 4.693 and 5.123 s), n=3",
+  "start_s": 0.6,
+  "dataset_s": 0.9,
+  "poll_s": 5.0,
+  "groups": [
+    {
+      "plan": "default",
+      "wait": "scaled",
+      "repeats": 1,
+      "scale": 10.0,
+      "all_runs": {
+        "serial": [
+          {
+            "arm": "serial",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 339.567,
+            "cpu_s": 224.478,
+            "peak_rss_kb": 68560,
+            "paid_phase_s": 334.609,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 223.392,
+              "wall_s": 223.799
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.504,
+              "wall_s": 0.549
+            },
+            "peak_in_flight": {
+              "all": 1,
+              "linkedin": 1,
+              "indeed": 1
+            },
+            "peak_buffered": null,
+            "buffered_wait_ms": null,
+            "committed_usd": null,
+            "pending_peak_usd": null,
+            "checkpoint": null,
+            "segments": [],
+            "modelled_wait_s": 111.5,
+            "record_bytes": 286306,
+            "calibration_before": {
+              "wall_ms_per_row": 3.5114,
+              "cpu_ms_per_row": 3.5086
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5081,
+              "cpu_ms_per_row": 3.5055
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 64008,
+              "finalize": 63698
+            }
+          }
+        ],
+        "old1": [
+          {
+            "arm": "old1",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 123.186,
+            "cpu_s": 8.445,
+            "peak_rss_kb": 68640,
+            "paid_phase_s": 122.994,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 7.29,
+              "wall_s": 7.306
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.51,
+              "wall_s": 0.556
+            },
+            "peak_in_flight": {
+              "all": 1,
+              "linkedin": 1,
+              "indeed": 1
+            },
+            "peak_buffered": 0,
+            "buffered_wait_ms": {
+              "total": 8,
+              "max": 1
+            },
+            "committed_usd": "0.828",
+            "pending_peak_usd": "0.046",
+            "checkpoint": {
+              "passes": 90,
+              "wall_ms": 7852,
+              "cpu_ms": 7785
+            },
+            "segments": [
+              {
+                "provider": "linkedin",
+                "bounded": true,
+                "workers": 1,
+                "wall_ms": 53809
+              },
+              {
+                "provider": "indeed",
+                "bounded": false,
+                "workers": 1,
+                "wall_ms": 69184
+              }
+            ],
+            "modelled_wait_s": 111.5,
+            "record_bytes": 320665,
+            "calibration_before": {
+              "wall_ms_per_row": 3.5194,
+              "cpu_ms_per_row": 3.5163
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5185,
+              "cpu_ms_per_row": 3.5157
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 2402,
+              "finalize": 2073
+            }
+          }
+        ],
+        "old2": [
+          {
+            "arm": "old2",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 97.028,
+            "cpu_s": 8.335,
+            "peak_rss_kb": 70064,
+            "paid_phase_s": 96.835,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 7.165,
+              "wall_s": 7.18
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.507,
+              "wall_s": 0.552
+            },
+            "peak_in_flight": {
+              "all": 2,
+              "linkedin": 2,
+              "indeed": 1
+            },
+            "peak_buffered": 1,
+            "buffered_wait_ms": {
+              "total": 4752,
+              "max": 1513
+            },
+            "committed_usd": "0.828",
+            "pending_peak_usd": "0.046",
+            "checkpoint": {
+              "passes": 90,
+              "wall_ms": 7720,
+              "cpu_ms": 7662
+            },
+            "segments": [
+              {
+                "provider": "linkedin",
+                "bounded": true,
+                "workers": 2,
+                "wall_ms": 27654
+              },
+              {
+                "provider": "indeed",
+                "bounded": false,
+                "workers": 1,
+                "wall_ms": 69180
+              }
+            ],
+            "modelled_wait_s": 86.65,
+            "record_bytes": 320675,
+            "calibration_before": {
+              "wall_ms_per_row": 3.5127,
+              "cpu_ms_per_row": 3.5097
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5067,
+              "cpu_ms_per_row": 3.5044
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 2377,
+              "finalize": 2043
+            }
+          }
+        ],
+        "old3": [
+          {
+            "arm": "old3",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 88.767,
+            "cpu_s": 8.352,
+            "peak_rss_kb": 68848,
+            "paid_phase_s": 88.57,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 7.2,
+              "wall_s": 7.213
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.506,
+              "wall_s": 0.549
+            },
+            "peak_in_flight": {
+              "all": 3,
+              "linkedin": 3,
+              "indeed": 1
+            },
+            "peak_buffered": 1,
+            "buffered_wait_ms": {
+              "total": 4709,
+              "max": 1618
+            },
+            "committed_usd": "0.828",
+            "pending_peak_usd": "0.046",
+            "checkpoint": {
+              "passes": 90,
+              "wall_ms": 7751,
+              "cpu_ms": 7693
+            },
+            "segments": [
+              {
+                "provider": "linkedin",
+                "bounded": true,
+                "workers": 3,
+                "wall_ms": 19428
+              },
+              {
+                "provider": "indeed",
+                "bounded": false,
+                "workers": 1,
+                "wall_ms": 69141
+              }
+            ],
+            "modelled_wait_s": 78.7,
+            "record_bytes": 320667,
+            "calibration_before": {
+              "wall_ms_per_row": 3.6027,
+              "cpu_ms_per_row": 3.5323
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5117,
+              "cpu_ms_per_row": 3.5089
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 2372,
+              "finalize": 2045
+            }
+          }
+        ],
+        "old4": [
+          {
+            "arm": "old4",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 85.236,
+            "cpu_s": 8.223,
+            "peak_rss_kb": 68816,
+            "paid_phase_s": 85.042,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 7.078,
+              "wall_s": 7.094
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.506,
+              "wall_s": 0.55
+            },
+            "peak_in_flight": {
+              "all": 4,
+              "linkedin": 4,
+              "indeed": 1
+            },
+            "peak_buffered": 3,
+            "buffered_wait_ms": {
+              "total": 9045,
+              "max": 2121
+            },
+            "committed_usd": "0.828",
+            "pending_peak_usd": "0.046",
+            "checkpoint": {
+              "passes": 90,
+              "wall_ms": 7638,
+              "cpu_ms": 7575
+            },
+            "segments": [
+              {
+                "provider": "linkedin",
+                "bounded": true,
+                "workers": 4,
+                "wall_ms": 15895
+              },
+              {
+                "provider": "indeed",
+                "bounded": false,
+                "workers": 1,
+                "wall_ms": 69145
+              }
+            ],
+            "modelled_wait_s": 75.55,
+            "record_bytes": 320688,
+            "calibration_before": {
+              "wall_ms_per_row": 3.519,
+              "cpu_ms_per_row": 3.5159
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5153,
+              "cpu_ms_per_row": 3.5123
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 2340,
+              "finalize": 2014
+            }
+          }
+        ],
+        "1": [
+          {
+            "arm": "1",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 123.118,
+            "cpu_s": 8.479,
+            "peak_rss_kb": 68688,
+            "paid_phase_s": 122.923,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 7.304,
+              "wall_s": 7.318
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.507,
+              "wall_s": 0.551
+            },
+            "peak_in_flight": {
+              "all": 1,
+              "linkedin": 1,
+              "indeed": 1
+            },
+            "peak_buffered": 0,
+            "buffered_wait_ms": {
+              "total": 8,
+              "max": 1
+            },
+            "committed_usd": "10.548",
+            "pending_peak_usd": "0.135",
+            "checkpoint": {
+              "passes": 90,
+              "wall_ms": 7859,
+              "cpu_ms": 7795
+            },
+            "segments": [
+              {
+                "provider": "linkedin",
+                "bounded": true,
+                "workers": 1,
+                "wall_ms": 53785
+              },
+              {
+                "provider": "indeed",
+                "bounded": true,
+                "workers": 1,
+                "wall_ms": 69136
+              }
+            ],
+            "modelled_wait_s": 111.5,
+            "record_bytes": 327790,
+            "calibration_before": {
+              "wall_ms_per_row": 3.5143,
+              "cpu_ms_per_row": 3.5115
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5117,
+              "cpu_ms_per_row": 3.5086
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 2416,
+              "finalize": 2081
+            }
+          }
+        ],
+        "2": [
+          {
+            "arm": "2",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 62.598,
+            "cpu_s": 7.639,
+            "peak_rss_kb": 68992,
+            "paid_phase_s": 62.402,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 6.549,
+              "wall_s": 6.567
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.498,
+              "wall_s": 0.541
+            },
+            "peak_in_flight": {
+              "all": 2,
+              "linkedin": 2,
+              "indeed": 2
+            },
+            "peak_buffered": 1,
+            "buffered_wait_ms": {
+              "total": 8055,
+              "max": 1519
+            },
+            "committed_usd": "10.548",
+            "pending_peak_usd": "0.135",
+            "checkpoint": {
+              "passes": 90,
+              "wall_ms": 7099,
+              "cpu_ms": 7034
+            },
+            "segments": [
+              {
+                "provider": "linkedin",
+                "bounded": true,
+                "workers": 2,
+                "wall_ms": 27627
+              },
+              {
+                "provider": "indeed",
+                "bounded": true,
+                "workers": 2,
+                "wall_ms": 34774
+              }
+            ],
+            "modelled_wait_s": 56.75,
+            "record_bytes": 327833,
+            "calibration_before": {
+              "wall_ms_per_row": 3.5171,
+              "cpu_ms_per_row": 3.5147
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5132,
+              "cpu_ms_per_row": 3.5107
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 2175,
+              "finalize": 1864
+            }
+          }
+        ],
+        "3": [
+          {
+            "arm": "3",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 42.625,
+            "cpu_s": 7.155,
+            "peak_rss_kb": 68832,
+            "paid_phase_s": 42.432,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 6.144,
+              "wall_s": 6.169
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.487,
+              "wall_s": 0.532
+            },
+            "peak_in_flight": {
+              "all": 3,
+              "linkedin": 3,
+              "indeed": 3
+            },
+            "peak_buffered": 2,
+            "buffered_wait_ms": {
+              "total": 12749,
+              "max": 1595
+            },
+            "committed_usd": "10.548",
+            "pending_peak_usd": "0.135",
+            "checkpoint": {
+              "passes": 90,
+              "wall_ms": 6685,
+              "cpu_ms": 6618
+            },
+            "segments": [
+              {
+                "provider": "linkedin",
+                "bounded": true,
+                "workers": 3,
+                "wall_ms": 19410
+              },
+              {
+                "provider": "indeed",
+                "bounded": true,
+                "workers": 3,
+                "wall_ms": 23021
+              }
+            ],
+            "modelled_wait_s": 38.65,
+            "record_bytes": 327868,
+            "calibration_before": {
+              "wall_ms_per_row": 3.5293,
+              "cpu_ms_per_row": 3.5195
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5108,
+              "cpu_ms_per_row": 3.5084
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 2036,
+              "finalize": 1748
+            }
+          }
+        ],
+        "4": [
+          {
+            "arm": "4",
+            "plan": "default",
+            "wait": "scaled",
+            "scale": 10.0,
+            "wall_s": 33.693,
+            "cpu_s": 6.836,
+            "peak_rss_kb": 68960,
+            "paid_phase_s": 33.497,
+            "starts": 90,
+            "polls": 196,
+            "account_reads": 91,
+            "final_rows": 484,
+            "outputs_sha256": "d2fa12d2973e8b30c2cb4df1d5e1f517e4c0d67f451e59afdcfd09a558fb4e33",
+            "done_ledger_sha256": "9a1e4cb1ef33262d57db0dce2dacf0d0e1831c8b7e35f46c067ff69e593522d6",
+            "finalize": {
+              "calls": 91,
+              "cpu_s": 5.881,
+              "wall_s": 5.92
+            },
+            "write_outputs": {
+              "calls": 91,
+              "cpu_s": 0.491,
+              "wall_s": 0.54
+            },
+            "peak_in_flight": {
+              "all": 4,
+              "linkedin": 4,
+              "indeed": 4
+            },
+            "peak_buffered": 3,
+            "buffered_wait_ms": {
+              "total": 16995,
+              "max": 2110
+            },
+            "committed_usd": "10.548",
+            "pending_peak_usd": "0.135",
+            "checkpoint": {
+              "passes": 90,
+              "wall_ms": 6449,
+              "cpu_ms": 6359
+            },
+            "segments": [
+              {
+                "provider": "linkedin",
+                "bounded": true,
+                "workers": 4,
+                "wall_ms": 15912
+              },
+              {
+                "provider": "indeed",
+                "bounded": true,
+                "workers": 4,
+                "wall_ms": 17583
+              }
+            ],
+            "modelled_wait_s": 30.45,
+            "record_bytes": 327887,
+            "calibration_before": {
+              "wall_ms_per_row": 3.5115,
+              "cpu_ms_per_row": 3.5088
+            },
+            "calibration_after": {
+              "wall_ms_per_row": 3.5111,
+              "cpu_ms_per_row": 3.5085
+            },
+            "user_interactive_qos": true,
+            "host_slow": false,
+            "cpu_row_equivalents": {
+              "process": 1948,
+              "finalize": 1676
+            }
+          }
+        ]
+      },
+      "rejected_for_host_speed": {
+        "serial": [],
+        "old1": [],
+        "old2": [],
+        "old3": [],
+        "old4": [],
+        "1": [],
+        "2": [],
+        "3": [],
+        "4": []
+      },
+      "outputs_identical_across_every_run": true,
+      "done_ledgers_identical": true,
+      "arms_still_on_a_slow_host": {
+        "serial": 0,
+        "old1": 0,
+        "old2": 0,
+        "old3": 0,
+        "old4": 0,
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0
+      },
+      "median": {
+        "serial": {
+          "wall_s": 339.567,
+          "cpu_s": 224.478,
+          "cpu_row_equivalents": 64008,
+          "finalize_row_equivalents": 63698,
+          "paid_phase_s": 334.609,
+          "peak_rss_kb": 68560,
+          "speedup_vs_serial": 1.0,
+          "speedup_vs_old_same_workers": null
+        },
+        "old1": {
+          "wall_s": 123.186,
+          "cpu_s": 8.445,
+          "cpu_row_equivalents": 2402,
+          "finalize_row_equivalents": 2073,
+          "paid_phase_s": 122.994,
+          "peak_rss_kb": 68640,
+          "speedup_vs_serial": 2.757,
+          "speedup_vs_old_same_workers": null
+        },
+        "old2": {
+          "wall_s": 97.028,
+          "cpu_s": 8.335,
+          "cpu_row_equivalents": 2377,
+          "finalize_row_equivalents": 2043,
+          "paid_phase_s": 96.835,
+          "peak_rss_kb": 70064,
+          "speedup_vs_serial": 3.5,
+          "speedup_vs_old_same_workers": null
+        },
+        "old3": {
+          "wall_s": 88.767,
+          "cpu_s": 8.352,
+          "cpu_row_equivalents": 2372,
+          "finalize_row_equivalents": 2045,
+          "paid_phase_s": 88.57,
+          "peak_rss_kb": 68848,
+          "speedup_vs_serial": 3.825,
+          "speedup_vs_old_same_workers": null
+        },
+        "old4": {
+          "wall_s": 85.236,
+          "cpu_s": 8.223,
+          "cpu_row_equivalents": 2340,
+          "finalize_row_equivalents": 2014,
+          "paid_phase_s": 85.042,
+          "peak_rss_kb": 68816,
+          "speedup_vs_serial": 3.984,
+          "speedup_vs_old_same_workers": null
+        },
+        "1": {
+          "wall_s": 123.118,
+          "cpu_s": 8.479,
+          "cpu_row_equivalents": 2416,
+          "finalize_row_equivalents": 2081,
+          "paid_phase_s": 122.923,
+          "peak_rss_kb": 68688,
+          "speedup_vs_serial": 2.758,
+          "speedup_vs_old_same_workers": 1.001
+        },
+        "2": {
+          "wall_s": 62.598,
+          "cpu_s": 7.639,
+          "cpu_row_equivalents": 2175,
+          "finalize_row_equivalents": 1864,
+          "paid_phase_s": 62.402,
+          "peak_rss_kb": 68992,
+          "speedup_vs_serial": 5.425,
+          "speedup_vs_old_same_workers": 1.55
+        },
+        "3": {
+          "wall_s": 42.625,
+          "cpu_s": 7.155,
+          "cpu_row_equivalents": 2036,
+          "finalize_row_equivalents": 1748,
+          "paid_phase_s": 42.432,
+          "peak_rss_kb": 68832,
+          "speedup_vs_serial": 7.966,
+          "speedup_vs_old_same_workers": 2.083
+        },
+        "4": {
+          "wall_s": 33.693,
+          "cpu_s": 6.836,
+          "cpu_row_equivalents": 1948,
+          "finalize_row_equivalents": 1676,
+          "paid_phase_s": 33.497,
+          "peak_rss_kb": 68960,
+          "speedup_vs_serial": 10.078,
+          "speedup_vs_old_same_workers": 2.53
+        }
+      }
+    }
+  ],
+  "limits": [
+    "Synthetic rows (V2-C1's generator); scoring cost grows with real descriptions, which are longer.",
+    "Scaled waits divide provider time by --scale but not CPU, so local work is --scale times heavier against the wait than in a real sweep.",
+    "Indeed runtimes: MEASURED live: the three C3.5 canary runs' actor runtimes (Phase 1 4.134 s; Phase 2 4.693 and 5.123 s), n=3.",
+    "One laptop; Oracle's cores and quota differ. A first run on 2026-09-24 was discarded when its later arms slowed ~2.8x per row under host contention; the calibration exists because of it."
+  ]
+}

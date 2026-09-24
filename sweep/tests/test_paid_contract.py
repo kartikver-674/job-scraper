@@ -250,7 +250,7 @@ class ChargeCeiling(unittest.TestCase):
                                 model["provider_minimum_usd"])
 
     def test_no_ceiling_for_sites_without_a_model(self):
-        self.assertIsNone(scraper.max_charge_usd("indeed", 15))
+        # Indeed has had a model since V2-C3.5 (test_indeed_bounded).
         self.assertIsNone(scraper.max_charge_usd("naukri", 50))
 
     def test_ceiling_is_a_decimal_not_a_float(self):

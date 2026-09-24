@@ -867,6 +867,12 @@ def mixed(n_li, n_in, usage_in=0.02):
     return li_scripts, in_scripts
 
 
+def unbounded_indeed():
+    """Indeed without its V2-C3.5 charge model: no ceiling anywhere, as before."""
+    return mock.patch.object(scraper, "ACTOR_CHARGE_MODEL", {
+        k: v for k, v in scraper.ACTOR_CHARGE_MODEL.items() if k != "indeed"})
+
+
 BOTH = ("linkedin", "indeed")
 # Two LinkedIn searches and three Indeed ones for one keyword.
 PLACES = {"linkedin": ["Bengaluru", "Hyderabad"],
@@ -874,10 +880,15 @@ PLACES = {"linkedin": ["Bengaluru", "Hyderabad"],
 
 
 class MixedProviders(unittest.TestCase):
+    """What C2 does with a provider that has NO charge ceiling. Indeed played
+    that part until V2-C3.5 bounded it, and plays it here with its model
+    removed (unbounded_indeed); Naukri is the real one today
+    (test_indeed_bounded.Classification)."""
 
     def test_indeed_never_enters_the_pool(self):
         li_s, in_s = mixed(3, 3)
-        got = c2_sweep(li_s + in_s, keywords=KW[:3], sites=BOTH, workers=4)
+        got = c2_sweep(li_s + in_s, keywords=KW[:3], sites=BOTH, workers=4,
+                       patches=[unbounded_indeed()])
         self.assertEqual(got.client.peak[INDEED], 1)
         self.assertEqual(got.client.peak[LINKEDIN], 3)
         segments = {s["provider"]: s for s in got.execution["segments"]}
@@ -900,9 +911,11 @@ class MixedProviders(unittest.TestCase):
         li_s, in_s = mixed(2, 3)
         account = [0.0, 0.03, 0.06, 0.08, 0.1, 0.12]
         serial = c2_sweep(li_s + in_s, keywords=KW[:1], site_locations=PLACES,
-                          sites=BOTH, account=account)
+                          sites=BOTH, account=account,
+                          patches=[unbounded_indeed()])
         got = c2_sweep(li_s + in_s, keywords=KW[:1], site_locations=PLACES,
-                       sites=BOTH, workers=4, account=account)
+                       sites=BOTH, workers=4, account=account,
+                       patches=[unbounded_indeed()])
 
         def tail(calls):
             first = next(i for i, c in enumerate(calls)
@@ -920,9 +933,10 @@ class MixedProviders(unittest.TestCase):
         li_s, in_s = mixed(2, 3)
         account = [0.0, 0.03, 0.06, 0.08, 0.10, 0.12]
         new = c2_sweep(li_s + in_s, keywords=KW[:1], site_locations=PLACES, sites=BOTH,
-                       workers=4, budget=0.10, account=account)
+                       workers=4, budget=0.10, account=account,
+                       patches=[unbounded_indeed()])
         old = c2_sweep(li_s + in_s, keywords=KW[:1], site_locations=PLACES, sites=BOTH,
-                       budget=0.10, account=account)
+                       budget=0.10, account=account, patches=[unbounded_indeed()])
         by_actor = lambda got: Counter(c[1] for c in got.client.kinds("start"))
         self.assertEqual(by_actor(new), {LINKEDIN: 2, INDEED: 1})
         self.assertEqual(by_actor(old), {LINKEDIN: 2, INDEED: 2})
@@ -939,13 +953,14 @@ class MixedProviders(unittest.TestCase):
         order = ("indeed", "linkedin", "naukri")
         account = [0.0, 0.035, 0.07, 0.07, 0.07]
         got = c2_sweep(in_s + li_s, keywords=KW[:2], sites=BOTH, site_order=order,
-                       workers=4, budget=0.10, account=account)
+                       workers=4, budget=0.10, account=account,
+                       patches=[unbounded_indeed()])
         self.assertEqual(Counter(c[1] for c in got.client.kinds("start")), {INDEED: 2})
         self.assertEqual(got.execution["units"][-1]["reservation"], "blocked")
         self.assertEqual(Decimal(got.execution["exposure"]["unbounded_observed_usd"]),
                          Decimal("0.07"))
         old = c2_sweep(in_s + li_s, keywords=KW[:2], sites=BOTH, site_order=order,
-                       budget=0.10, account=account)
+                       budget=0.10, account=account, patches=[unbounded_indeed()])
         self.assertEqual(Counter(c[1] for c in old.client.kinds("start")),
                          {INDEED: 2, LINKEDIN: 2})
 

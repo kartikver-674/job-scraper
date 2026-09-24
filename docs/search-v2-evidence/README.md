@@ -227,6 +227,31 @@ no compaction shipped:
   telemetry, probe, tests) — not merged; kept so the evidence is reproducible.
 - `c3-prototype-mutations.json`: the prototype's 16 mutation checks.
 
+Added by V2-C3.5 (2026-09-24),
+[Indeed bounded execution](../search-engine-v2-c35-indeed-bounded-execution.md) —
+outcome A: every Indeed start carries a provider-enforced $0.135 ceiling and C2
+may overlap Indeed:
+
+- `c35-indeed-provider-contract.json`: the Indeed actor's public record, build,
+  input schema, pricing history and store page (free GETs), the Apify
+  documentation the bound rests on, the Free plan's limits, and the Phase 1 run
+  record's applied price, options and billing model.
+- `c35-indeed-contract.json` (C3.5, PAID): one Indeed start through the serial
+  engine path behind C0's two keys: ceiling recorded, 15/15 rows, `result` x 15
+  = $0.09, platform usage billed to the developer. A ledger entry.
+- `c35-indeed-concurrency-canary.json` (C3.5, PAID): two Indeed starts at once
+  through the C2 scheduler: both ceilings recorded, overlap, 0 retries/429s,
+  $0.270 held throughout. A ledger entry.
+- `c35-paid-concurrency-benchmark.json`: OFFLINE. The repository default's
+  shape (18 LinkedIn + 72 Indeed): the serial loop, C2 with Indeed unbounded as
+  before, and C3.5 at 1-4 workers, provider time scaled 1:10 with Indeed's
+  runtimes from the three live runs. Reproduce with
+  `bench/search_v2_paid_concurrency.py --plans default ...`.
+- `c35-public-cap-arithmetic.json`: OFFLINE arithmetic. The public app's spend
+  cap against every ceiling, and the starts C2 would admit, for the plans C3
+  audited. `bench/search_v2_paid_concurrency.py --public-cap`.
+- `c35-mutations.json`: the stage's mutation checks.
+
 Public normalized JD snapshots remain only in `/tmp`; they are not committed.
 Their absence on another machine means offline row replay needs a new public
 census. Numeric artifacts, exact registry and inputs remain reviewable without

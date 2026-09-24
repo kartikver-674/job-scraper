@@ -46,6 +46,7 @@ TOKEN = "apify_api_C0FIXTURE0000000000000000"       # not a real token
 DEFAULT_SITES = copy.deepcopy(scraper.SITES)        # what an unset SITES inherits
 LINKEDIN = "curious_coder/linkedin-jobs-scraper"
 INDEED = "misceres/indeed-scraper"
+NAUKRI = "muhammetakkurtt/naukri-job-scraper"
 
 _REAL_CONNECT = socket.socket.connect
 _REAL_CREATE = socket.create_connection
@@ -261,12 +262,14 @@ class Preflight(unittest.TestCase):
 
     PLAN = {"linkedin": {"actor": LINKEDIN, "starts": 1, "depth": 15,
                          "ceiling_usd": Decimal("0.046")}}
-    MIXED = dict(PLAN, indeed={"actor": INDEED, "starts": 2, "depth": 15,
+    # Naukri is the provider with no charge model since V2-C3.5 bounded Indeed.
+    MIXED = dict(PLAN, naukri={"actor": NAUKRI, "starts": 2, "depth": 50,
                                "ceiling_usd": None})
 
     def test_the_ceiling_is_the_current_b1_value(self):
         self.assertEqual(scraper.max_charge_usd("linkedin", 15), Decimal("0.046"))
-        self.assertIsNone(scraper.max_charge_usd("indeed", 15))
+        self.assertEqual(scraper.max_charge_usd("indeed", 15), Decimal("0.135"))
+        self.assertIsNone(scraper.max_charge_usd("naukri", 50))
 
     def test_worst_case(self):
         self.assertEqual(paid_guard.worst_case(self.PLAN), Decimal("0.046"))
@@ -274,8 +277,8 @@ class Preflight(unittest.TestCase):
 
     def test_the_preflight_says_everything_before_anything_starts(self):
         text = paid_guard.preflight(self.MIXED, Decimal("0.50"), Decimal("0.10"))
-        for part in ("nothing has been started", "linkedin", LINKEDIN, "indeed",
-                     INDEED, "1 start(s)", "2 start(s)", "depth 15",
+        for part in ("nothing has been started", "linkedin", LINKEDIN, "naukri",
+                     NAUKRI, "1 start(s)", "2 start(s)", "depth 15", "depth 50",
                      "$0.046 per start, provider-enforced",
                      "NONE — not provider-bounded", "UNBOUNDED",
                      "exposure before: $0.10", "limit (--max-usd): $0.50"):
@@ -342,7 +345,9 @@ class GuardedEngine(unittest.TestCase):
         self.assertIn(f"{len(plan['indeed']):>3} start(s)", got.log)
         self.assertIn(LINKEDIN, got.log)
         self.assertIn(INDEED, got.log)
-        self.assertIn("worst case this run: UNBOUNDED", got.log)
+        # V2-C3.5: 18 x $0.046 + 72 x $0.135, every start provider-bounded.
+        self.assertIn("ceiling $0.135 per start, provider-enforced", got.log)
+        self.assertIn("worst case this run: $10.548", got.log)
 
     def test_the_environment_key_alone_is_blocked(self):
         got = engine(INCIDENT, env=BOTH)
@@ -379,7 +384,8 @@ class GuardedEngine(unittest.TestCase):
         self.assertEqual(linkedin["max_total_charge_usd"], Decimal("0.046"))
         self.assertEqual(linkedin["run_input"]["limitPerSource"], 15)
         self.assertEqual(linkedin["run_input"]["count"], 15)
-        self.assertIsNone(indeed["max_total_charge_usd"])
+        self.assertEqual(indeed["max_total_charge_usd"], Decimal("0.135"))
+        self.assertEqual(indeed["run_input"]["maxItemsPerSearch"], 15)
         self.assertIn("PAID PREFLIGHT", got.log)
         self.assertLess(got.log.index("PAID PREFLIGHT"), got.log.index(f"({LINKEDIN})"))
         self.assertNotIn(TOKEN, got.text)
@@ -396,7 +402,7 @@ class GuardedEngine(unittest.TestCase):
 
     def test_a_site_without_a_provider_ceiling_cannot_run_under_a_limit(self):
         got = engine(["--allow-paid", "--max-usd", "0.50", "--",
-                      "--site", "indeed", "--limit", "1", "--yes"], env=BOTH)
+                      "--site", "naukri", "--limit", "1", "--yes"], env=BOTH)
         self.assertTrue(got.blocked)
         self.assertIn("no provider-side charge ceiling", got.text)
         self.assertNothingPaidBegan(got)

@@ -25,7 +25,8 @@ class PlanAudit(unittest.TestCase):
         for site in (li, ind):
             self.assertEqual((site["exact_execution_duplicates"], site["repeated_combos"]),
                              ([], []))
-        self.assertEqual((li["bounded"], ind["bounded"]), (True, False))
+        # Indeed was unbounded when C3 audited; V2-C3.5 gave it a ceiling.
+        self.assertEqual((li["bounded"], ind["bounded"]), (True, True))
         self.assertEqual(li["hypothetical_physical_starts_by_batch_size"],
                          {1: 18, 2: 9, 3: 6, 4: 5})
         self.assertEqual(li["overlap_candidates"]

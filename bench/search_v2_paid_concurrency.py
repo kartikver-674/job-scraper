@@ -12,7 +12,8 @@ patched and sockets denied — the harness the C2 tests use.
 Plans
   c1        V2-C1's 90-search replay (bench/search_v2_paid_overhead.py): 9
             keywords x 5 places x LinkedIn and Indeed, 15 synthetic rows each.
-            Indeed has no provider ceiling, so under C2 its 45 run one at a time.
+            Until V2-C3.5 Indeed had no provider ceiling, so under C2 its 45 ran
+            one at a time; the oldN arms below reproduce that.
   linkedin  the same plan's 45 LinkedIn searches alone: the part C2 may overlap.
 
 Waits
@@ -23,6 +24,18 @@ Waits
             5/--scale s; start 0.6 s and dataset 0.9 s, scaled alike. CPU is not
             scaled — so local work weighs --scale times more against the wait
             here than in a real sweep. Label every scaled figure accordingly.
+
+V2-C3.5 (Indeed provider-bounded, so C2 overlaps it too) adds
+  default   the repository default's shape: 9 keywords x {India, Remote} on
+            LinkedIn (18) and x the eight default places on Indeed (72).
+  oldN      an arm run as C2 was before C3.5: Indeed's charge model removed,
+            so its searches run one at a time, unreserved. N is the workers.
+  --indeed-runtimes S,S,..  Indeed's per-run seconds for the scaled waits
+            (e.g. the C3.5 canary's); LinkedIn's distribution when not given,
+            which is then synthetic for Indeed — say so.
+  --public-cap  instead of sweeping: the public app's spend cap against every
+            provider ceiling for the plans V2-C3 audited, and the starts C2
+            admits under it. Arithmetic through the real functions; no sweep.
 """
 import argparse
 import hashlib
@@ -41,6 +54,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT)]
 
 RUNTIMES_S = (16, 22, 34, 40)          # V2-C1 §9/§19: 15.9-39.6 s measured
+DEFAULT_LINKEDIN_PLACES = ("India", "Remote")      # config.SITES["linkedin"]
 START_S, DATASET_S, POLL_S = 0.6, 0.9, 5.0
 # A laptop's speed is not constant: the first run of this benchmark lost its
 # second half to host contention (CPU time for identical work grew ~2.8x as
@@ -98,9 +112,26 @@ def timed(module, name, box):
     return wrapper
 
 
-def arm(mode, plan, wait, scale):
+def modelled_wait_s(scripts, n_linkedin, workers, indeed_bounded):
+    """The pure wait schedule: each provider's searches in plan order, greedy
+    over its width — 1 when serial or unbounded — LinkedIn's segment first,
+    as paid_phase_c2 runs them. No CPU, no account reads."""
+    def span(durations, width):
+        free = [0.0] * width
+        for d in durations:
+            free[free.index(min(free))] += d
+        return max(free, default=0.0)
+    d = [s.delay.get("start", 0) + s.polls * s.delay.get("get", 0)
+         + s.delay.get("dataset", 0) for s in scripts]
+    w = workers or 1
+    return round(span(d[:n_linkedin], w)
+                 + span(d[n_linkedin:], w if indeed_bounded else 1), 3)
+
+
+def arm(mode, plan, wait, scale, indeed_runtimes=RUNTIMES_S):
     """One sweep in this process; prints its measurements as JSON. mode
-    "calibrate" only times the host."""
+    "calibrate" only times the host; "oldN" is C2 at N workers with Indeed
+    unbounded, as before V2-C3.5."""
     import socket
 
     def deny(*a, **kw):
@@ -121,14 +152,19 @@ def arm(mode, plan, wait, scale):
         print(json.dumps({"arm": mode, "calibration_before": before,
                           "user_interactive_qos": qos}))
         return
-    scripts = overhead.scripts(c1)
-    sites = ("linkedin", "indeed")
+    scripts, sites, places = overhead.scripts(c1), ("linkedin", "indeed"), None
+    n_linkedin = len(scripts) // 2              # c1: 45 LinkedIn, then 45 Indeed
     if plan == "linkedin":
-        scripts, sites = scripts[:len(scripts) // 2], ("linkedin",)
+        scripts, sites = scripts[:n_linkedin], ("linkedin",)
+    elif plan == "default":
+        import config
+        places = {"linkedin": list(DEFAULT_LINKEDIN_PLACES),
+                  "indeed": list(config.SEARCH["locations"])}
+        n_linkedin = len(overhead.KEYWORDS) * len(DEFAULT_LINKEDIN_PLACES)
     if wait == "scaled":
         draw = random.Random(7)
-        for script in scripts:
-            runtime = draw.choice(RUNTIMES_S)
+        for i, script in enumerate(scripts):
+            runtime = draw.choice(RUNTIMES_S if i < n_linkedin else indeed_runtimes)
             script.polls = math.ceil(runtime / POLL_S)
             script.run_time = float(runtime)
             script.delay = {"start": START_S / scale, "get": POLL_S / scale,
@@ -136,15 +172,18 @@ def arm(mode, plan, wait, scale):
     finalize = {"calls": 0, "cpu_s": 0.0, "wall_s": 0.0}
     write = {"calls": 0, "cpu_s": 0.0, "wall_s": 0.0}
     account = [round(i * 0.03, 5) for i in range(len(scripts) + 1)]
+    old = mode.startswith("old")
+    workers = c2.SERIAL if mode == "serial" else int(mode.removeprefix("old"))
+    patches = [mock.patch.object(scraper, "finalize", timed(scraper, "finalize", finalize)),
+               mock.patch.object(scraper, "write_outputs",
+                                 timed(scraper, "write_outputs", write))]
+    if old:
+        patches.append(mock.patch.object(scraper, "ACTOR_CHARGE_MODEL", {
+            k: v for k, v in scraper.ACTOR_CHARGE_MODEL.items() if k != "indeed"}))
     wall, cpu = time.perf_counter(), time.process_time()
     got = c2.c2_sweep(
-        scripts, workers=c2.SERIAL if mode == "serial" else int(mode),
-        keywords=overhead.KEYWORDS, locations=overhead.PLACES, sites=sites,
-        account=account,
-        patches=[mock.patch.object(scraper, "finalize",
-                                   timed(scraper, "finalize", finalize)),
-                 mock.patch.object(scraper, "write_outputs",
-                                   timed(scraper, "write_outputs", write))])
+        scripts, workers=workers, keywords=overhead.KEYWORDS, locations=overhead.PLACES,
+        site_locations=places, sites=sites, account=account, patches=patches)
     wall, cpu = time.perf_counter() - wall, time.process_time() - cpu
     after = calibration(scraper, probe_rows)
     record = got.telemetry or {}
@@ -171,10 +210,87 @@ def arm(mode, plan, wait, scale):
         "peak_buffered": ex.get("peak_buffered"),
         "buffered_wait_ms": ex.get("buffered_wait_ms"),
         "committed_usd": (ex.get("exposure") or {}).get("committed_usd"),
+        "pending_peak_usd": (ex.get("exposure") or {}).get("pending_peak_usd"),
+        "checkpoint": ex.get("checkpoint"),
+        "segments": [{k: s[k] for k in ("provider", "bounded", "workers", "wall_ms")}
+                     for s in ex.get("segments") or []],
+        "modelled_wait_s": (modelled_wait_s(scripts, n_linkedin, workers, not old)
+                            if wait == "scaled" else None),
         "record_bytes": len(got.telemetry_text or ""),
         "calibration_before": before, "calibration_after": after,
         "user_interactive_qos": qos,
     }))
+
+
+def public_cap():
+    """V2-C3.5: the public app's spend cap (sweep.app.spend_cap_for — 1.25 x
+    the estimate, floored at $0.50) against every provider ceiling, for the
+    plans V2-C3 audited, and the starts C2 admits under it in plan order. A
+    bounded start must fit its full ceiling (PaidExposure.reserve); an
+    unbounded one is admitted while the view is under the cap and then adds its
+    ESTIMATED cost — optimistic, since a real reading lags and admits more. The
+    serial loop stops once the estimated spend reaches the cap. Arithmetic
+    through the real functions: no sweep, no client, no network."""
+    from collections import Counter
+    from decimal import Decimal
+
+    import config
+    import scraper
+    from bench import search_v2_paid_compaction as c3
+    from sweep.app import SPEND_CAP_HEADROOM, spend_cap_for
+    from sweep.plan import cost
+    c3.deny_network()
+    rows = []
+    for name, case in c3.cases():
+        with c3.lowered(scraper, config, case):
+            units = c3.current_plan(scraper)
+        raw = {"profile": name, "sites": {}, "max_results": {}}
+        for u in units:
+            raw["sites"].setdefault(u["site"], []).append(u)
+            raw["max_results"][u["site"]] = u["depth"]
+        costed = cost(raw, config.SITE_RATES, config.SITE_RATE_BASIS)
+        rate = {line["site"]: line["rate"] for line in costed["lines"]}
+        cap = Decimal(str(spend_cap_for(costed["total"])))
+
+        def admitted(indeed_bounded):
+            exposure, n = scraper.PaidExposure(cap), Counter()
+            for u in units:
+                if u["ceiling"] is not None and (indeed_bounded or u["site"] != "indeed"):
+                    if not exposure.reserve(u["index"], u["ceiling"]):
+                        break
+                    exposure.commit(u["index"])
+                else:
+                    if not exposure.admit(u["index"]):
+                        break
+                    exposure.observe(0, unbounded_delta=rate[u["site"]])
+                n[u["site"]] += 1
+            return dict(n)
+        spent, serial = 0.0, Counter()
+        for u in units:
+            if spent >= float(cap):
+                break
+            spent += rate[u["site"]]
+            serial[u["site"]] += 1
+        ceilings = {s: us[0]["ceiling"] for s, us in raw["sites"].items()}
+        every = sum((u["ceiling"] for u in units if u["ceiling"] is not None), Decimal(0))
+        rows.append({
+            "plan": name, "estimate_usd": costed["total"], "cap_usd": str(cap),
+            "searches": {s: len(us) for s, us in raw["sites"].items()},
+            "estimate_per_search_usd": {s: round(r, 5) for s, r in rate.items()},
+            "cap_allowance_per_search_usd": {s: round(r * SPEND_CAP_HEADROOM, 5)
+                                             for s, r in rate.items()},
+            "ceiling_per_search_usd": {s: None if c is None else str(c)
+                                       for s, c in ceilings.items()},
+            "all_ceilings_usd": str(every),
+            "unbounded_searches": sum(1 for u in units if u["ceiling"] is None),
+            "cap_holds_every_ceiling": every <= cap,
+            "admitted_c2_indeed_unbounded_as_before": admitted(False),
+            "admitted_c2_indeed_bounded_c35": admitted(True),
+            "admitted_serial_flag_off": dict(serial)})
+    return {"status": "DERIVED OFFLINE through the real spend_cap_for, plan.cost, "
+                      "max_charge_usd and PaidExposure; arithmetic, not a sweep",
+            "measured_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "code_revision": revision(), "plans": rows}
 
 
 def revision():
@@ -221,17 +337,31 @@ def main():
     ap.add_argument("--repeats-none", type=int, default=2)
     ap.add_argument("--repeats-scaled", type=int, default=1)
     ap.add_argument("--repeats-scaled-linkedin", type=int, default=2)
+    ap.add_argument("--indeed-runtimes",
+                    help="V2-C3.5: Indeed's per-run seconds, comma-separated")
+    ap.add_argument("--indeed-runtimes-source", default="synthetic: LinkedIn's")
+    ap.add_argument("--public-cap", action="store_true")
     ap.add_argument("--output")
     args = ap.parse_args()
+    indeed_runtimes = (tuple(float(s) for s in args.indeed_runtimes.split(","))
+                       if args.indeed_runtimes else RUNTIMES_S)
     if args.arm:
-        return arm(args.arm, args.plan, args.wait, args.scale)
+        return arm(args.arm, args.plan, args.wait, args.scale, indeed_runtimes)
+    if args.public_cap:
+        out = public_cap()
+        if args.output:
+            Path(args.output).write_text(json.dumps(out, indent=2) + "\n")
+        print(json.dumps(out["plans"], indent=1))
+        return
 
     arms = args.arms.split(",")
     seen = [child(["--arm", "calibrate"])["calibration_before"] for _ in range(3)]
 
     def run_arm(a, plan, wait):
         run = child(["--arm", a, "--plan", plan, "--wait", wait,
-                     "--scale", str(args.scale)])
+                     "--scale", str(args.scale),
+                     *(["--indeed-runtimes", args.indeed_runtimes]
+                       if args.indeed_runtimes else [])])
         seen.extend([run["calibration_before"], run["calibration_after"]])
         print(f"{plan:<8} {wait:<6} {a:<6} {run['wall_s']:>8.2f}s wall "
               f"{run['cpu_s']:>8.2f}s cpu  host {run['calibration_before']['cpu_ms_per_row']}"
@@ -294,7 +424,12 @@ def main():
                 "finalize_row_equivalents": med(a, "cpu_row_equivalents", "finalize"),
                 "paid_phase_s": med(a, "paid_phase_s"),
                 "peak_rss_kb": med(a, "peak_rss_kb"),
-                "speedup_vs_serial": round(base / med(a, "wall_s"), 3) if base else None}
+                "speedup_vs_serial": round(base / med(a, "wall_s"), 3) if base else None,
+                # V2-C3.5: an arm against the same worker count with Indeed
+                # unbounded, as C2 ran it before.
+                "speedup_vs_old_same_workers": (
+                    round(med(f"old{a}", "wall_s") / med(a, "wall_s"), 3)
+                    if f"old{a}" in runs else None)}
                 for a in arms},
         })
     out = {
@@ -305,15 +440,19 @@ def main():
         "host_slow_threshold": f"a before/after calibration above {SLOW} x the best "
                                f"seen; such an arm is measured again up to "
                                f"{RETRIES} times and every attempt kept",
-        "runtimes_s": RUNTIMES_S, "start_s": START_S, "dataset_s": DATASET_S,
+        "runtimes_s": RUNTIMES_S, "indeed_runtimes_s": indeed_runtimes,
+        "indeed_runtimes_source": (args.indeed_runtimes_source if args.indeed_runtimes
+                                   else "synthetic: LinkedIn's distribution"),
+        "start_s": START_S, "dataset_s": DATASET_S,
         "poll_s": POLL_S, "groups": groups,
         "limits": [
             "Synthetic rows (V2-C1's generator); scoring cost grows with real "
             "descriptions, which are longer.",
             "Scaled waits divide provider time by --scale but not CPU, so local "
             "work is --scale times heavier against the wait than in a real sweep.",
-            "Indeed runtimes are LinkedIn's distribution by assumption: no Indeed "
-            "run has been timed (UNKNOWN).",
+            "Indeed runtimes: " + (args.indeed_runtimes_source if args.indeed_runtimes
+                                   else "LinkedIn's distribution by assumption "
+                                        "(synthetic)") + ".",
             "One laptop; Oracle's cores and quota differ. A first run on "
             "2026-09-24 was discarded when its later arms slowed ~2.8x per row "
             "under host contention; the calibration exists because of it.",

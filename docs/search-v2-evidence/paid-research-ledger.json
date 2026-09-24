@@ -6,6 +6,7 @@
     "C1",
     "C2",
     "C3",
+    "C3.5",
     "C4"
   ],
   "counting": "Running totals include C0's run. The shared C1-C4 ceiling is checked against the all-inclusive total, which is stricter than required, never looser. Free metadata and account GETs are not paid exposure and are not entries.",
@@ -91,6 +92,38 @@
       "status": "completed, no engine anomaly: one start carried both URLs, 15/15 per source, every item named its own source in inputUrl, provider-recorded ceiling 0.092, 0 SDK retries or 429s. CONTRACT FINDING: the actor dedupes jobs ACROSS sources within one run and back-fills the source that lost one (Backend position 7 absent, 16 present; the job both queries shared in C1 and C2 went only to the later-planned source), so batching is not semantics-preserving \u2014 see c3-linkedin-contract.json. No further batching research.",
       "cumulative_intended_usd": "0.368",
       "cumulative_known_actual_usd": 0.24035
+    },
+    {
+      "stage": "C3.5",
+      "at": "2026-09-24T07:55:51.624+00:00",
+      "provider": "indeed",
+      "actor": "misceres/indeed-scraper",
+      "purpose": "C3.5 Phase 1 Indeed contract canary: ONE misceres/indeed-scraper start through the SERIAL engine path (SWEEP_PAID_CONCURRENCY unset: production's path) carrying the new B1-style provider ceiling maxTotalChargeUsd 0.135 (15 x $0.006 FREE-tier result price x 1.5; no start event; no provider minimum). Questions only the provider can answer: does the actor accept, and does Apify record, maxTotalChargeUsd; does maxItemsPerSearch=15 bound the rows; which events are charged and how many; is the settled charge exactly result count x the tier price (no start fee, no platform usage billed to the user); build, runtime, memory; 429s. Generic synthetic query Software Engineer @ Bengaluru (IN), default config, no resume.",
+      "actor_starts": 1,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": "0.135",
+      "intended_max_usd": "0.135",
+      "actual_final_usd": 0.09,
+      "evidence": "c35-indeed-contract.json",
+      "status": "completed, no anomaly",
+      "cumulative_intended_usd": "0.503",
+      "cumulative_known_actual_usd": 0.33035
+    },
+    {
+      "stage": "C3.5",
+      "at": "2026-09-24T08:03:00.792+00:00",
+      "provider": "indeed",
+      "actor": "misceres/indeed-scraper",
+      "purpose": "C3.5 Phase 2 Indeed concurrency canary: TWO misceres/indeed-scraper starts at once through the C2 reservation scheduler (SWEEP_PAID_CONCURRENCY=1, 2 workers; engine cap max_spend_usd 0.27 = exactly two Indeed ceilings), each carrying maxTotalChargeUsd 0.135. Only after Phase 1 validated the contract. Questions only the provider can answer: does this account accept two simultaneous 4096 MB Indeed runs (8 of its 16 GB actor RAM); does each run carry and the provider record its own ceiling; is there throttling (HTTP 429 / SDK retries); how much do the runs overlap; Indeed runtime at two more points; does real concurrency create a reservation or accounting anomaly (committed must hold 0.270 throughout, whatever the lagging readings say). Generic synthetic queries Backend Developer and Full Stack Developer @ Bengaluru (IN), default config, no resume.",
+      "actor_starts": 2,
+      "requested_depth": 15,
+      "ceiling_usd_per_start": "0.135",
+      "intended_max_usd": "0.270",
+      "actual_final_usd": 0.18,
+      "evidence": "c35-indeed-concurrency-canary.json",
+      "status": "completed, no anomaly",
+      "cumulative_intended_usd": "0.773",
+      "cumulative_known_actual_usd": 0.51035
     }
   ]
 }

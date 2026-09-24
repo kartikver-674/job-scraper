@@ -684,10 +684,11 @@ class Summary(unittest.TestCase):
             self.assertEqual(p["final"], sum(u["funnel"]["final"] for u in mine
                                              if u["funnel"]))
         self.assertEqual(s["by_provider"]["linkedin"]["planned"], 2)
-        self.assertEqual(s["planned_unbounded_units"], 2)             # indeed
-        self.assertEqual(s["planned_bounded_exposure_usd"], "0.092")
+        # V2-C3.5: Indeed is provider-bounded too, 2 x $0.046 + 2 x $0.135.
+        self.assertEqual(s["planned_unbounded_units"], 0)
+        self.assertEqual(s["planned_bounded_exposure_usd"], "0.362")
         indeed = [u for u in plan if u["provider"] == "indeed"][0]
-        self.assertIsNone(indeed["charge_ceiling_usd"])
+        self.assertEqual(indeed["charge_ceiling_usd"], "0.135")
 
 
 # ===========================================================================

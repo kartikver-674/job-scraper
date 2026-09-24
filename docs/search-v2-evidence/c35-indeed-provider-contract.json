@@ -1,0 +1,318 @@
+{
+  "status": "VERIFIED from the provider's public records (free, unauthenticated GETs) and Apify's documentation; the three canary run records are MEASURED (a free GET on the probe's own run)",
+  "read_at": "2026-09-24T07:55:19Z (actor record re-read immediately before Phase 1; build, pricing and schema first read ~07:20Z, unchanged)",
+  "actor": {
+    "id": "hMvNSpz3JnHgl5jkh",
+    "name": "misceres/indeed-scraper",
+    "is_deprecated": false,
+    "latest_build": {
+      "buildId": "QCL4zRJXp3sSD0xkl",
+      "finishedAt": "2026-09-22T13:27:45.471Z",
+      "buildNumberInt": 111,
+      "buildNumber": "0.0.111"
+    },
+    "default_run_options": {
+      "build": "latest",
+      "timeoutSecs": 604800,
+      "memoryMbytes": 4096
+    },
+    "max_memory_mbytes": 4096,
+    "build_status": "SUCCEEDED",
+    "build_finished_at": "2026-09-22T13:27:45.471Z",
+    "sweep_runs": "latest (unpinned)"
+  },
+  "pricing": {
+    "current": {
+      "pricing_model": "PAY_PER_EVENT",
+      "started_at": "2026-03-26T11:34:26.075Z",
+      "minimal_max_total_charge_usd": null,
+      "events": {
+        "result": {
+          "title": "Job listing",
+          "description": "Cost per every job listing returned.",
+          "one_time": false,
+          "primary": true,
+          "tiered_usd": {
+            "FREE": 0.006,
+            "BRONZE": 0.005,
+            "SILVER": 0.004,
+            "GOLD": 0.003,
+            "PLATINUM": 0.002,
+            "DIAMOND": 0.001
+          }
+        }
+      },
+      "custom_event": "result is not a synthetic apify-* event: the actor's own code charges it"
+    },
+    "history": [
+      {
+        "pricing_model": "PRICE_PER_DATASET_ITEM",
+        "started_at": "2023-03-14T14:50:38.821Z",
+        "reason": null,
+        "minimal_max_total_charge_usd": null,
+        "events": null,
+        "price_per_unit_usd": 0.005
+      },
+      {
+        "pricing_model": "PAY_PER_EVENT",
+        "started_at": "2026-03-16T11:30:06.094Z",
+        "reason": "Migration from Pay Per Result to Pay Per Event with apify-default-dataset-item event",
+        "minimal_max_total_charge_usd": null,
+        "events": {
+          "apify-default-dataset-item": {
+            "title": "result",
+            "free_tier_usd": 0.005,
+            "one_time": null
+          }
+        },
+        "price_per_unit_usd": null
+      },
+      {
+        "pricing_model": "PAY_PER_EVENT",
+        "started_at": "2026-03-16T11:37:54.646Z",
+        "reason": null,
+        "minimal_max_total_charge_usd": null,
+        "events": {
+          "apify-default-dataset-item": {
+            "title": "Position",
+            "free_tier_usd": 0.006,
+            "one_time": false
+          }
+        },
+        "price_per_unit_usd": null
+      },
+      {
+        "pricing_model": "PAY_PER_EVENT",
+        "started_at": "2026-03-17T13:53:01.628Z",
+        "reason": null,
+        "minimal_max_total_charge_usd": null,
+        "events": {
+          "result": {
+            "title": "Position",
+            "free_tier_usd": 0.006,
+            "one_time": false
+          }
+        },
+        "price_per_unit_usd": null
+      },
+      {
+        "pricing_model": "PAY_PER_EVENT",
+        "started_at": "2026-03-17T14:00:08.027Z",
+        "reason": null,
+        "minimal_max_total_charge_usd": null,
+        "events": {
+          "apify-default-dataset-item": {
+            "title": "Position",
+            "free_tier_usd": 0.006,
+            "one_time": true
+          }
+        },
+        "price_per_unit_usd": null
+      },
+      {
+        "pricing_model": "PAY_PER_EVENT",
+        "started_at": "2026-03-17T17:10:01.719Z",
+        "reason": null,
+        "minimal_max_total_charge_usd": null,
+        "events": {
+          "apify-default-dataset-item": {
+            "title": "Position",
+            "free_tier_usd": 0.006,
+            "one_time": true
+          },
+          "result": {
+            "title": "Position",
+            "free_tier_usd": 0.006,
+            "one_time": false
+          }
+        },
+        "price_per_unit_usd": null
+      },
+      {
+        "pricing_model": "PAY_PER_EVENT",
+        "started_at": "2026-03-17T18:42:22.147Z",
+        "reason": null,
+        "minimal_max_total_charge_usd": null,
+        "events": {
+          "result": {
+            "title": "Position",
+            "free_tier_usd": 0.006,
+            "one_time": false
+          }
+        },
+        "price_per_unit_usd": null
+      },
+      {
+        "pricing_model": "PAY_PER_EVENT",
+        "started_at": "2026-03-26T11:34:26.075Z",
+        "reason": null,
+        "minimal_max_total_charge_usd": null,
+        "events": {
+          "result": {
+            "title": "Job listing",
+            "free_tier_usd": 0.006,
+            "one_time": false
+          }
+        },
+        "price_per_unit_usd": null
+      }
+    ],
+    "store_page": {
+      "url": "https://apify.com/misceres/indeed-scraper/pricing",
+      "job_listing_per_1000_free_starter_scale_business": [
+        "$6.00 / 1,000",
+        "$5.00 / 1,000",
+        "$4.00 / 1,000",
+        "$3.00 / 1,000"
+      ],
+      "platform_usage_by_plan": [
+        "Included",
+        "Included",
+        "Included",
+        "Included"
+      ],
+      "isUserPayingForPlatformUsage": false
+    }
+  },
+  "input_schema_fields_sweep_sends": {
+    "position": {
+      "type": "string",
+      "default": null,
+      "description": "Any combination of positions or keywords for search. Can be used together with Start URLs - both will be scraped independently, each limited by Max job listings per search."
+    },
+    "location": {
+      "type": "string",
+      "default": null,
+      "description": "Any combination of city, zip code or locality for search. Used together with position/keywords."
+    },
+    "country": {
+      "type": "string",
+      "default": "US",
+      "description": "Country for job search."
+    },
+    "maxItemsPerSearch": {
+      "type": "integer",
+      "default": null,
+      "description": "Maximum number of job listings to scrape for each keyword search and each Start URL. When both are used together, each is limited independently by this value."
+    },
+    "parseCompanyDetails": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, each job also includes company details: description, website URL, logo, company size and rating. These come from the same API response as the job itself, so turning this on costs no extra requests."
+    },
+    "saveOnlyUniqueItems": {
+      "type": "boolean",
+      "default": true,
+      "description": "If true, only unique job listings will be scraped."
+    },
+    "followApplyRedirects": {
+      "type": "boolean",
+      "default": false,
+      "description": "Has no effect. `externalApplyLink` is now always the employer's own apply URL, because it comes resolved from Indeed's API instead of being followed by the scraper. Left in place so existing runs keep working."
+    }
+  },
+  "input_schema_fields_sweep_does_not_send": [
+    "startUrls"
+  ],
+  "readme_error_items": "When the scraper cannot retrieve data for a given input \u2014 for example no jobs are found for the given search \u2014 it pushes an error item to the dataset instead of silently skipping it. Error code FOUND_NO_RESULTS.",
+  "apify_enforcement": [
+    {
+      "source": "https://docs.apify.com/platform/actors/running/actors-in-store (Pay per event)",
+      "text": "When starting a run, you can define a maximum charge limit. The Actor terminates gracefully when it reaches that limit - and even if it does not stop immediately, you are never charged for produced events over the defined limit."
+    },
+    {
+      "source": "https://docs.apify.com/platform/actors/publishing/monetize/pay-per-event (Respect user spending limits)",
+      "text": "They won't be billed beyond the limit. The Apify platform enforces this limit. Once it's reached, Actor.charge() stop charging and Actor.pushData() stops pushing data over the limit. The platform then aborts the run automatically."
+    },
+    {
+      "source": "https://docs.apify.com/api/v2/post-charge-run (Status 201)",
+      "text": "Above the limit, the charges reported as successful in API will not be added to your payouts, but you will still bear the associated costs."
+    },
+    {
+      "source": "https://docs.apify.com/platform/actors/running/actors-in-store (Post-run storage costs)",
+      "text": "After a run finishes, any interactions with the dataset - such as reading or writing additional data - incur standard platform usage costs. This applies to all pricing models."
+    }
+  ],
+  "account_plan_limits": {
+    "source": "https://apify.com/pricing",
+    "free_plan_actor_ram_gb": 16,
+    "free_plan_max_concurrent_runs": 5,
+    "rule": "The sum of memory allocated for all running Actors and builds needs to be within this limit, otherwise the user cannot start a new Actor (docs.apify.com/platform/actors/running/usage-and-resources)"
+  },
+  "phase1_run_record": {
+    "run_id": "vqb8iBDFe9hw1qbXx",
+    "event_price_usd_applied": {
+      "result": 0.006
+    },
+    "usage_total_usd": 0.09,
+    "usage_usd": null,
+    "platform_usage_billing_model": "DEVELOPER",
+    "options": {
+      "build": "latest",
+      "timeout_secs": 300,
+      "memory_mbytes": 4096,
+      "disk_mbytes": 8192,
+      "max_items": null,
+      "max_total_charge_usd": 0.135,
+      "isMaxTotalChargeUsdSetByUser": true
+    },
+    "compute_units": 0.004593,
+    "note": "compute billed to the developer, not in usage_total_usd"
+  },
+  "changelog_max_items_lines": {
+    "overshoot_fixes": [
+      "- Fixed `maxItemsPerSearch` exceeding the specified limit per start URL",
+      "- Fixed slight overflows for max items limits"
+    ],
+    "other": [
+      "- Added prefill value (100) for `maxItemsPerSearch` input",
+      "- Keyword search and Start URLs now execute simultaneously - each limited independently by `maxItemsPerSearch`",
+      "- Removed `maxItems` from UI, please use `maxItemsPerSearch` now (still supported for backward compatibility)",
+      "- Added `maxItemsPerSearch` input field that limits results for each URL in `startUrls`"
+    ]
+  },
+  "phase2_run_records": [
+    {
+      "run_id": "C42sLRdkZOdkNB9kC",
+      "event_price_usd_applied": {
+        "result": 0.006
+      },
+      "usage_total_usd": 0.09,
+      "usage_usd": null,
+      "platform_usage_billing_model": "DEVELOPER",
+      "charged_event_counts": {
+        "result": 15
+      },
+      "options": {
+        "build": "latest",
+        "timeout_secs": 300,
+        "memory_mbytes": 4096,
+        "disk_mbytes": 8192,
+        "max_items": null,
+        "max_total_charge_usd": 0.135,
+        "isMaxTotalChargeUsdSetByUser": true
+      }
+    },
+    {
+      "run_id": "b2gcIv8yxgGe1jQfC",
+      "event_price_usd_applied": {
+        "result": 0.006
+      },
+      "usage_total_usd": 0.09,
+      "usage_usd": null,
+      "platform_usage_billing_model": "DEVELOPER",
+      "charged_event_counts": {
+        "result": 15
+      },
+      "options": {
+        "build": "latest",
+        "timeout_secs": 300,
+        "memory_mbytes": 4096,
+        "disk_mbytes": 8192,
+        "max_items": null,
+        "max_total_charge_usd": 0.135,
+        "isMaxTotalChargeUsdSetByUser": true
+      }
+    }
+  ]
+}
