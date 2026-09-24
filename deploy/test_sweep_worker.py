@@ -211,7 +211,7 @@ class TestTheApifyToken(Harness):
         run = self.post_run(client, free_only=False,
                             apify_token=APIFY).get_json()["run_id"]
         # The child got it...
-        self.assertEqual(self.spawned[0]["token"], APIFY)
+        self.assertEqual(self.spawned[0]["token"], [APIFY])
         # ... and nothing on disk has it.
         for root in (self.runs, self.checkout):
             for dirpath, _dirs, files in os.walk(root):
@@ -314,7 +314,7 @@ class TestTheApifyToken(Harness):
         # Ada's does.
         ok = self.post_run(client, owner="ada", free_only=False)
         self.assertEqual(ok.status_code, 201)
-        self.assertEqual(self.spawned[-1]["token"], APIFY)
+        self.assertEqual(self.spawned[-1]["token"], [APIFY])
         # And it is spent: a second run needs it pasted again.
         self.assertIsNone(queue.held_token("ada"))
         self.assertEqual(self.post_run(client, owner="ada",

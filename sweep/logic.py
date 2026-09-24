@@ -534,11 +534,12 @@ SECTION_CAP = 25
 # Every way a sweep can be sitting when the child is no longer running.
 # One name per state, decided in one place, because the screen, the SSE
 # payload and the tests each used to re-derive "is it finished" from counts.
-SWEEP_STATES = ("running", "finished", "stopped", "out_of_credit", "halted")
+SWEEP_STATES = ("running", "finished", "stopped", "out_of_credit", "halted",
+                "credit_changed", "partial")
 
 
 def sweep_state(running, outstanding, stopped_by_user=False,
-                credit_left=None, cheapest_search=None):
+                credit_left=None, cheapest_search=None, authorization=None):
     """Which of SWEEP_STATES this sweep is in.
 
     "halted" is the honest default and it exists on purpose: a sweep that
@@ -547,11 +548,24 @@ def sweep_state(running, outstanding, stopped_by_user=False,
     recorded when they do, and there is not enough credit left to buy even
     the cheapest search still outstanding, which is a comparison of two
     figures rather than a guess about a crash.
+
+    V2-D1 adds two more, each claimed only on the engine's own record
+    (`authorization`, scraper.AUTH_RECORD): "credit_changed" — the accounts
+    no longer covered the full sweep when it came to start, so nothing ran —
+    and "partial" — the visitor chose to run what their credit covered, and
+    the searches left over are exactly the ones that choice left out.
     """
+    outcome = (authorization or {}).get("outcome")
     if running:
         return "running"
+    if outcome == "refused":
+        return "credit_changed"
     if outstanding == 0:
         return "finished"
+    if outcome == "partial" and outstanding <= (
+            (authorization.get("skipped_insufficient_capacity") or 0)
+            + (authorization.get("skipped_budget") or 0)):
+        return "partial"
     if stopped_by_user:
         return "stopped"
     if (credit_left is not None and cheapest_search is not None
@@ -572,7 +586,8 @@ _WORKER_PHASE = {"queued": "queued", "running": "running", "done": "finished",
                  "interrupted": "failed"}
 _SNAPSHOT_PHASE = {"running": "running", "finished": "finished",
                    "stopped": "stopped", "out_of_credit": "failed",
-                   "halted": "failed"}
+                   "halted": "failed", "credit_changed": "failed",
+                   "partial": "finished"}
 
 
 def run_phase(state, queued=False):

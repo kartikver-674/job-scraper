@@ -1085,7 +1085,8 @@ def render(name, data, prefs):
                    "max_results"],
         "SETTINGS": ["max_experience_years", "candidate_experience_months",
                      "min_comp_usd", "max_age_days",
-                     "remote_scopes", "max_spend_usd", "work_scope"],
+                     "remote_scopes", "max_spend_usd", "work_scope",
+                     "allow_partial_paid_sweep"],
         "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
                     "backend_terms", "fullstack_title_terms", "fullstack_bonus",
                     "hard_drop_terms"],
@@ -1130,6 +1131,12 @@ def render(name, data, prefs):
     if prefs.get("max_spend_usd") is not None:
         extra_settings += (
             f'    "max_spend_usd": {float(prefs["max_spend_usd"])!r},\n')
+    # V2-D1: the user's own "run with my available credit anyway", from
+    # Confirm. Written only when they gave an answer, so an unset one inherits
+    # config's False: a full sweep that can never silently become partial.
+    if prefs.get("allow_partial_paid_sweep") is not None:
+        extra_settings += (f'    "allow_partial_paid_sweep": '
+                           f'{bool(prefs["allow_partial_paid_sweep"])!r},\n')
     if prefs.get("max_age_days") is not None:
         extra_settings += f'    "max_age_days": {int(prefs["max_age_days"])!r},\n'
     if prefs.get("remote_scopes") is not None:

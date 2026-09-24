@@ -1662,11 +1662,48 @@ def pool_tokens(env=None):
     return [(n, t) for n, t in apify_tokens(env) if _POOL_SLOT_RE.fullmatch(n)]
 
 
+# V2-D1: where a sweep's keys come from. Two sources feed the one pool (and
+# _require_token), and they never mix:
+#   developer  APIFY_TOKEN, APIFY_TOKEN_<n>, from the environment and .env
+#   public     a visitor's own keys (BYOK), piped to this process's stdin by
+#              deploy/sweep_worker.py, which sets SWEEP_BYOK_CREDENTIALS=stdin
+# A BYOK run never reads .env or an APIFY_TOKEN* variable — a key that happens
+# to be on the box must not join a visitor's pool, or pay for it — and never
+# the developer clamp. Its keys are in no variable, argument or file.
+BYOK_ENV = "SWEEP_BYOK_CREDENTIALS"
+BYOK_MAX_KEYS = 20          # deploy/sweep_worker.MAX_KEYS: the same limit
+_byok = None                # the keys, once read
+
+
+def byok_tokens(stream=None):
+    """The visitor's keys, in the order they added them, or None when this is
+    not a BYOK run. Read once; anything malformed refuses the paid phase
+    without echoing what was sent."""
+    global _byok
+    if (os.environ.get(BYOK_ENV) or "").strip() != "stdin":
+        return None
+    if _byok is None:
+        try:
+            keys = json.load(stream or sys.stdin)["apify_tokens"]
+            ok = (isinstance(keys, list) and 0 < len(keys) <= BYOK_MAX_KEYS
+                  and all(isinstance(k, str) and k.strip() for k in keys))
+        except Exception:
+            ok = False
+        if not ok:
+            sys.exit("Refusing to start: the visitor's Apify keys could not be read.")
+        _byok = list(dict.fromkeys(k.strip() for k in keys))
+    return list(_byok)
+
+
 def _require_token_pool():
     """The pool's credential step, as _require_token is the single account's —
     the developer guard wraps both, so an unauthorised developer run reaches
     neither. Every configured slot; which account runs what is decided on
-    facts read afterwards, never on a variable's name."""
+    facts read afterwards, never on a variable's name. A BYOK run's slots are
+    key_1, key_2, ... in the order the visitor added them."""
+    byok = byok_tokens()
+    if byok is not None:
+        return [(f"key_{i}", token) for i, token in enumerate(byok, 1)]
     from dotenv import load_dotenv
     load_dotenv()
     tokens = pool_tokens()
@@ -1698,7 +1735,7 @@ class PoolAccount:
         self.headroom = reading["headroom_usd"]
         self.baseline = reading["used_usd"]
         self.memory_mb, self.run_slots = reading["memory_mb"], reading["run_slots"]
-        self.real_capacity = max(Decimal(0), self.headroom - ACCOUNT_BUFFER_USD)
+        self.real_capacity = usable_capacity(self.headroom)
         self.cap = cap
         self.exposure = PaidExposure(self.real_capacity if cap is None
                                      else min(self.real_capacity, cap))
@@ -1714,6 +1751,12 @@ class PoolAccount:
     def client(self):
         """A new client per search on this account, as C2 builds them."""
         return self._make_client(self._token)
+
+
+def usable_capacity(headroom):
+    """An account's real usable capacity: its headroom less ACCOUNT_BUFFER_USD,
+    never below zero. The one formula the pool and the public screens share."""
+    return max(Decimal(0), Decimal(headroom) - ACCOUNT_BUFFER_USD)
 
 
 def _account_reading(me, limits):
@@ -1866,6 +1909,36 @@ def place_units(units, accounts):
         quota[k][size] -= 1
         out[unit_id] = accounts[order[k]][0]
     return out
+
+
+def placeable_prefix(units, placed, budget=None):
+    """V2-D1: how many of `units` — [(unit_id, ceiling)] in plan order, ceiling
+    None where the provider has none — can run before the first that cannot:
+    one with no ceiling, one not in `placed` (the unit ids with an account able
+    to run them), or one whose ceiling would take the plan's held total past
+    `budget`. A partial sweep is exactly that prefix: a later search never runs
+    because it happens to fit where an earlier one did not."""
+    budget = None if budget is None else Decimal(str(budget))
+    held = Decimal(0)
+    for k, (unit_id, ceiling) in enumerate(units):
+        if (ceiling is None or unit_id not in placed
+                or (budget is not None and held + ceiling > budget)):
+            return k
+        held += ceiling
+    return len(units)
+
+
+def plan_estimate(entries):
+    """The estimate for exactly these searches, by sweep/plan.cost — the pricing
+    contract the screens quote — never a pro-rata share of a larger plan's."""
+    from sweep import plan as plan_mod
+    sites = {}
+    for e in entries:
+        sites.setdefault(e.site_key, []).append(e.search)
+    raw = {"profile": config.PROFILE or "", "sites": sites,
+           "max_results": {s: effective_search(s, q[0])["max_results"]
+                           for s, q in sites.items()}}
+    return plan_mod.cost(raw, config.SITE_RATES, config.SITE_RATE_BASIS)["total"]
 
 
 def project_assignment(units, accounts):
@@ -2036,11 +2109,15 @@ class AccountPool:
         self.accounts, self.excluded, self.ledger = accounts, excluded, ledger
         self.assignment, self.memory, self.report = {}, {}, None
         self.dispatched = []
+        self.authorization, self.runnable, self.skipped = None, None, []
+        self.stop_reason = None
         self._lock = threading.Lock()
 
     @classmethod
     def open(cls, output_dir, make_client):
-        cap = paid_account_cap()                     # a bad clamp stops it here
+        # A bad clamp stops it here. Never on a visitor's keys (V2-D1): their
+        # capacity is what their own accounts report, whatever this box's env.
+        cap = None if byok_tokens() is not None else paid_account_cap()
         ledger = AccountLedger.open(output_dir)      # before any credential
         accounts, excluded = discover_accounts(_require_token_pool(), make_client, cap)
         pool = cls(accounts, excluded, ledger)
@@ -2082,6 +2159,52 @@ class AccountPool:
     def _mb(self, e, acct):
         mb = self.memory.get(e.site_key)
         return acct.memory_mb if mb is None else mb
+
+    def authorize(self, site_entries, done, budget, partial):
+        """V2-D1: may this plan run, and how much of it. Decided on the readings
+        this sweep took just now (open); whatever a screen showed earlier is
+        never consulted. FULL, the default, needs every search not already done
+        bounded, placed on an account that can run it, and inside the sweep's
+        budget — short of that NOTHING starts. PARTIAL, only when the user
+        chose it, runs the longest prefix that can, in plan order. A prefix of
+        nothing is refused either way: there is nothing to run."""
+        todo = [e for entries in site_entries.values() for e in entries
+                if e.combo_key not in done]
+        can_run = {e.unit_id for e in todo if e.unit_id in self.assignment
+                   and self.assignment[e.unit_id].run_slots >= 1
+                   and self._mb(e, self.assignment[e.unit_id])
+                   <= self.assignment[e.unit_id].memory_mb}
+        k = placeable_prefix([(e.unit_id, e.ceiling) for e in todo], can_run, budget)
+        full = k == len(todo)
+        outcome = "full" if full else ("partial" if partial and k else "refused")
+        self.runnable = {e.unit_id for e in todo[:k]} if outcome != "refused" else set()
+        self.skipped = [e.unit_id for e in todo[len(self.runnable):]]
+        # Why the prefix ends where it does: the accounts (an unplaced search,
+        # or one its account can never run), a search with no ceiling to hold,
+        # or the sweep's own budget.
+        stop = None if full else todo[k]
+        self.stop_reason = (None if stop is None else "unbounded" if stop.ceiling is None
+                            else "insufficient_capacity" if stop.unit_id not in can_run
+                            else "budget")
+        self.authorization = {
+            "full_plan_requested": not partial,
+            "partial_authorized_by_user": bool(partial),
+            "full_plan_placeable": full,
+            "outcome": outcome,
+            "stop_reason": self.stop_reason,
+            "total_planned_paid_units": len(todo),
+            "placeable_paid_units": k,
+            "skipped_insufficient_capacity": (0 if self.stop_reason == "budget"
+                                              else len(self.skipped)),
+            "skipped_budget": len(self.skipped) if self.stop_reason == "budget" else 0,
+            "total_planned_bounded_exposure_usd": str(sum(
+                (e.ceiling for e in todo if e.ceiling is not None), Decimal(0))),
+            "placeable_bounded_exposure_usd": str(sum(
+                (e.ceiling for e in todo[:k]), Decimal(0))),
+            "full_estimate_usd": plan_estimate(todo),
+            "partial_estimate_usd": plan_estimate(todo[:k]),
+            "budget_usd": None if budget is None else str(budget)}
+        return self.authorization
 
     def verdict(self, e):
         """"go" | "wait" (its account's earlier run still holds what it needs)
@@ -2231,8 +2354,29 @@ def _paid_worker(entry, make_client, exposure, results, hooks=None):
                                time.monotonic(), sdk))
 
 
+class PaidPlanRefused(Exception):
+    """V2-D1: the full plan cannot be safely placed on the connected accounts
+    and a partial sweep was not chosen (or nothing at all can run). Raised
+    before any start: nothing was sent, nothing can have been charged."""
+
+
+# How main() exits on PaidPlanRefused, so the worker and the screens can tell
+# "the credit no longer covers the full sweep" from a crash.
+PAID_REFUSED_EXIT = 3
+# The authorization outcome beside the outputs, for the worker to report: counts
+# and amounts only, rewritten with what executed once the paid phase ends.
+AUTH_RECORD = "paid_authorization.json"
+
+
+def write_authorization(output_dir, record):
+    with contextlib.suppress(OSError):
+        with _replaced(os.path.join(output_dir, AUTH_RECORD), encoding="utf-8") as fh:
+            json.dump(record, fh, indent=1)
+
+
 def paid_phase_c2(plans, make_client, account_client, baseline, budget,
-                  raw_rows, done, done_path, today, emit, failures, pool=None):
+                  raw_rows, done, done_path, today, emit, failures, pool=None,
+                  partial=False):
     """The paid phase under SWEEP_PAID_CONCURRENCY. Returns (spent,
     stopped_early, site_key) as main()'s serial loop leaves them.
 
@@ -2288,8 +2432,38 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
                 max_charge_usd(site_key, depth)))
             n += 1
     site_key = None
+    limit = None                    # V2-D1: a partial sweep's runnable units
     if pool is not None:
         pool.plan(site_entries, done)
+        auth = pool.authorize(site_entries, done, budget, partial)
+        write_authorization(os.path.dirname(pool.ledger.path), auth)
+        print(f"  authorization: {auth['outcome']} — {auth['placeable_paid_units']} of "
+              f"{auth['total_planned_paid_units']} paid search(es) can be safely placed")
+        # Every search this authorization leaves out, labelled now: not run
+        # for capacity (or the budget) — never failed, never done.
+        for u in pool.skipped:
+            telemetry.paid_status(u, "skipped_budget" if pool.stop_reason == "budget"
+                                  else "skipped_insufficient_capacity")
+        if auth["outcome"] == "refused":
+            pool.ledger.doc["authorization"] = auth
+            pool.ledger.finish()
+            telemetry.paid_execution({"mode": "reservation_scheduler", "workers": workers,
+                                      "authorization": auth, "accounts": pool.snapshot(),
+                                      "units": []})
+            covers = (f"{auth['placeable_paid_units']} of the "
+                      f"{auth['total_planned_paid_units']} paid searches")
+            raise PaidPlanRefused(
+                (f"The spend cap ${budget:.2f} holds {covers}"
+                 if pool.stop_reason == "budget" else
+                 f"The connected Apify accounts can safely cover {covers} right now")
+                + ", so " + ("nothing could run" if partial else
+                             "the full sweep was not started")
+                + " and nothing was charged."
+                + ("" if pool.stop_reason == "budget" else
+                   " Add another key" + ("." if partial else
+                                         ", or choose to run with the available credit.")))
+        if auth["outcome"] == "partial":
+            limit = pool.runnable
 
     def integrate(e, r):
         nonlocal spent
@@ -2418,6 +2592,9 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
                     waiting[sent] = None                     # integrated in order
                     sent += 1
                     continue
+                if limit is not None and e.unit_id not in limit:
+                    refused, refusal = e, "insufficient_capacity"
+                    continue
                 if running < width:
                     verdict = "go" if pool is None else pool.verdict(e)
                     if verdict not in ("go", "wait"):
@@ -2471,7 +2648,18 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
                            f"paid phase; nothing was retried on another account.")
             telemetry.paid_unvisited("skipped_account")
             stopped_early = True
-        if refused is not None and refusal is not None:
+        if refused is not None and refusal == "insufficient_capacity":
+            visited.append({"unit_id": refused.unit_id, "provider": site_key,
+                            "bounded": refused.ceiling is not None,
+                            "reservation": "none", "reason": pool.stop_reason})
+            print(f"  partial sweep: {refused.unit_id} and every search after it do not "
+                  f"run — "
+                  + (f"the spend cap ${budget:.2f} cannot hold them"
+                     if pool.stop_reason == "budget" else
+                     "the connected accounts cannot safely hold them")
+                  + ", and running what can was chosen.")
+            stopped_early = True
+        elif refused is not None and refusal is not None:
             visited.append({"unit_id": refused.unit_id, "provider": site_key,
                             "bounded": refused.ceiling is not None,
                             "reservation": "blocked_account", "reason": refusal})
@@ -2504,6 +2692,11 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
         "checkpoint": checkpoint, "segments": segments, "units": visited}
     if pool is not None:
         section["accounts"] = pool.snapshot()
+        section["authorization"] = dict(
+            pool.authorization, executed_paid_units=held["committed_starts"],
+            executed_bounded_exposure_usd=held["committed_usd"])
+        write_authorization(os.path.dirname(pool.ledger.path), section["authorization"])
+        pool.ledger.doc["authorization"] = section["authorization"]
         pool.ledger.finish()
     telemetry.paid_execution(section)
     return spent, stopped_early, site_key
@@ -3034,6 +3227,16 @@ def _require_token():
     enough whenever one account's headroom covers the plan — check --dry-run
     against the numbers below if it might not.
     """
+    byok = byok_tokens()
+    if byok is not None:
+        # V2-D1: a visitor's run. Their keys only, never .env's — and one
+        # account needs one key: several can only be spent by the pool.
+        if len(byok) > 1:
+            sys.exit(f"Refusing to start: {len(byok)} Apify keys were given, and only "
+                     f"the account pool ({PAID_MULTI_ACCOUNT_FLAG} under "
+                     f"{PAID_CONCURRENCY_FLAG}) spends across accounts. Nothing was "
+                     f"started.")
+        return byok[0]
     from dotenv import load_dotenv
     load_dotenv()
     tokens = {token: name for name, token in apify_tokens()}
@@ -3570,6 +3773,11 @@ def main():
                     site_key, effective_search(site_key, plan[0])["max_results"]))
                 for site_key, plan in plans.items()},
             "free_sources": n_boards + n_feeds + n_optum + n_ent,
+            # V2-D1: whether this engine, in this environment, spends through
+            # the account pool — the only mode that can use several accounts
+            # and authorise a plan by exact placement. Read by the public app,
+            # whose worker runs this dry run with its own flags.
+            "account_pool": paid_concurrency() and paid_multi_account(),
         }))
         return
 
@@ -3723,9 +3931,22 @@ def main():
             # V2-C2: the same plan through the reservation scheduler. The
             # token was chosen once, above; each worker gets its own client
             # on it, and never chooses an account itself.
-            spent, stopped_early, site_key = paid_phase_c2(
-                plans, lambda: ApifyClient(token), client, baseline, budget,
-                raw_rows, done, done_path, today, emit, failures, pool=pool)
+            try:
+                spent, stopped_early, site_key = paid_phase_c2(
+                    plans, lambda: ApifyClient(token), client, baseline, budget,
+                    raw_rows, done, done_path, today, emit, failures, pool=pool,
+                    partial=bool(SETTINGS.get("allow_partial_paid_sweep")))
+            except PaidPlanRefused as exc:
+                # V2-D1: nothing started, nothing charged, nothing written — a
+                # full sweep never silently becomes a smaller one, and a
+                # free-only result would be exactly that.
+                print(f"\n⚠ {exc}")
+                telemetry.note(f"V2-D1: {exc}")
+                telemetry.mark("paid_phase_done")
+                written = telemetry.finish()
+                if written:
+                    print(f"  telemetry: {written}")
+                sys.exit(PAID_REFUSED_EXIT)
         else:
             for site_key, plan in plans.items():
                 if stopped_early:

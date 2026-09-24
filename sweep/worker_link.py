@@ -150,9 +150,12 @@ def injections(app):
         # The visitor's key, if they chose to use one, is already held by
         # the worker — it never came back to Render to be kept.
         free_only = bool(app.state.get("free_only"))
-        run_id = worker_client.create_run(app.state.get("derived") or {},
-                                          _prefs_of(app.state),
-                                          free_only=free_only)
+        # V2-D1: exactly the held keys POST /run chose — the accounts the
+        # visitor confirmed — and the worker freezes them for this run.
+        run_id = worker_client.create_run(
+            app.state.get("derived") or {}, _prefs_of(app.state),
+            free_only=free_only,
+            key_ids=None if free_only else app.state.get("run_key_ids"))
         public.remember_run(run_id)
         return RemoteRun(run_id)
 
@@ -221,6 +224,19 @@ def injections(app):
         except worker_client.WorkerError:
             return False
 
+    def read_authorization():
+        """The engine's own record of how much of the paid plan it could
+        authorise when it came to start (V2-D1), or None: no run, the worker
+        not answering, or a run that has not got that far. From the cached
+        status the poll already reads, so it costs no extra call."""
+        run_id = public.current_run_id()
+        if not run_id:
+            return None
+        try:
+            return _status(run_id).get("paid_authorization")
+        except worker_client.WorkerError:
+            return None
+
     def read_spend():
         # Never called on the free path (snapshot() returns early), and
         # there is no account to poll if it were.
@@ -233,6 +249,7 @@ def injections(app):
             "read_live": read_live, "read_rows": read_rows,
             "read_done": read_done, "read_spend": read_spend,
             "read_queue": read_queue, "read_ready": read_ready,
+            "read_authorization": read_authorization,
             "list_sweeps": list_sweeps}
 
 

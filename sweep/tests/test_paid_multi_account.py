@@ -234,10 +234,14 @@ def forbid_single():
     raise AssertionError("the pool must never fall back to _require_token")
 
 
-def pooled(scripts, accts, *, env=None, patches=(), memory=None, **kw):
+def pooled(scripts, accts, *, env=None, patches=(), memory=None, partial=False, **kw):
     """c2.c2_sweep with the pool on over `accts` (a list of Acct, slot order),
-    each on its own SECRET token. Returns (Swept, {token: Acct})."""
+    each on its own SECRET token. Returns (Swept, {token: Acct}). `partial`:
+    the user's own "run with my available credit anyway" (V2-D1)."""
     accounts = {SECRETS[i]: a for i, a in enumerate(accts)}
+    if partial:
+        patches = (mock.patch.dict(scraper.SETTINGS, allow_partial_paid_sweep=True),
+                   *patches)
     tokens = [(slot(i), t) for i, t in enumerate(accounts)]
 
     def factory(by_input, account=None):
@@ -695,9 +699,16 @@ class Execution(unittest.TestCase):
                                  by[row["account"]] * LI)
 
     def test_the_sweep_budget_still_binds_however_much_the_pool_holds(self):
-        """Mutation H's test: $49.90 across ten accounts, a $0.10 sweep."""
+        """Mutation H's test: $49.90 across ten accounts, a $0.10 sweep. V2-D1:
+        a full sweep the budget cannot hold does not start at all; a partial
+        one runs what the budget holds."""
+        full, _ = pooled(li_units(3), [Acct(f"u{i}") for i in range(10)],
+                         keywords=KW[:3], budget=0.10, workers=4)
+        self.assertEqual(full.client.kinds("start"), [])
+        self.assertEqual(full.status(), ["skipped_budget"] * 3)
+        self.assertIn("The spend cap $0.10 holds 2 of the 3", full.log)
         got, _ = pooled(li_units(3), [Acct(f"u{i}") for i in range(10)],
-                        keywords=KW[:3], budget=0.10, workers=4)
+                        keywords=KW[:3], budget=0.10, workers=4, partial=True)
         self.assertEqual(len(got.client.kinds("start")), 2)
         ex = got.execution["exposure"]
         self.assertEqual(Decimal(ex["committed_usd"]), 2 * LI)
@@ -735,9 +746,9 @@ class Execution(unittest.TestCase):
         # A seventh search has nowhere to go, although every run cost nothing.
         got7, _ = pooled([Script(c2.solo(u), usage=0.0) for u in range(6)]
                          + [Script(c2.solo(6))], three_accounts(),
-                         keywords=(*KW, "K6 Engineer"), workers=4)
+                         keywords=(*KW, "K6 Engineer"), workers=4, partial=True)
         self.assertEqual(len(got7.client.kinds("start")), 6)
-        self.assertEqual(got7.status()[-1], "skipped_account")
+        self.assertEqual(got7.status()[-1], "skipped_insufficient_capacity")
 
     def test_a_busy_account_waits_it_is_not_a_budget_failure(self):
         """Memory for one 4096 MB run: three Indeed searches on it run one at
@@ -762,17 +773,22 @@ class Execution(unittest.TestCase):
             self.assertLessEqual(got.client.peak_mb[token], 4096)
 
     def test_an_account_that_can_never_fit_the_run_stops_the_phase(self):
-        got, _ = pooled(indeed_units(2), [Acct("u1", mem_gb=2)], keywords=KW[:2],
-                        sites=("indeed",), workers=2)
-        self.assertEqual(got.client.kinds("start"), [])
-        self.assertEqual(got.status(), ["skipped_account"] * 2)
-        self.assertIn("account_resources", got.log)
+        """V2-D1: known before the first start, so the plan is not authorised."""
+        for partial in (False, True):
+            got, _ = pooled(indeed_units(2), [Acct("u1", mem_gb=2)], keywords=KW[:2],
+                            sites=("indeed",), workers=2, partial=partial)
+            self.assertEqual(got.client.kinds("start"), [])
+            self.assertEqual(got.status(), ["skipped_insufficient_capacity"] * 2)
+            self.assertIn("can safely cover 0 of the 2 paid searches", got.log)
 
     def test_unplaced_searches_stop_at_the_first_one_as_the_cap_does(self):
-        got, _ = pooled(li_units(4), [Acct("u1", capacity="0.092")], keywords=KW[:4])
+        """V2-D1: only when the user chose a partial sweep; see D1FullOrPartial."""
+        got, _ = pooled(li_units(4), [Acct("u1", capacity="0.092")], keywords=KW[:4],
+                        partial=True)
         self.assertEqual(len(got.client.kinds("start")), 2)
-        self.assertEqual(got.status(), ["completed", "completed", "skipped_account",
-                                        "skipped_account"])
+        self.assertEqual(got.status(), ["completed", "completed",
+                                        "skipped_insufficient_capacity",
+                                        "skipped_insufficient_capacity"])
         self.assertFalse(section(got)["allocation_feasible"])
 
     def test_no_batching_one_logical_search_one_start(self):
@@ -889,10 +905,11 @@ class Failures(unittest.TestCase):
         accts = [Acct("uA", capacity="0.046", active=5)]
         with mock.patch.object(scraper.PoolAccount, "__init__",
                                _with_slots(scraper.PoolAccount.__init__, 5)):
-            got, _ = pooled(li_units(2), accts, keywords=KW[:2], workers=1)
+            got, _ = pooled(li_units(2), accts, keywords=KW[:2], workers=1,
+                            partial=True)
         u = self.unit(got, "paid_000")
         self.assertEqual(u["account_refusal"], "ACCOUNT_RESOURCE")
-        self.assertEqual(got.status(), ["failed", "skipped_account"])
+        self.assertEqual(got.status(), ["failed", "skipped_insufficient_capacity"])
 
     def test_an_account_read_failure_after_a_run_falls_back_as_c2_does(self):
         with mock.patch.object(scraper, "account_usage_usd", return_value=None):
@@ -1448,7 +1465,7 @@ class AccountCap(unittest.TestCase):
     def test_7_the_sweep_budget_is_untouched(self):
         """Mutation E's test."""
         got, _ = pooled(li_units(3), [Acct(f"u{i}") for i in range(3)], keywords=KW[:3],
-                        workers=2, budget=0.092, env={CAP: "0.046"})
+                        workers=2, budget=0.092, env={CAP: "0.046"}, partial=True)
         self.assertEqual(len(got.client.kinds("start")), 2)
         self.assertEqual(got.execution["exposure"]["budget_usd"], "0.092")
         self.assertEqual(got.status()[-1], "skipped_budget")

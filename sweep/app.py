@@ -1,6 +1,8 @@
 """Routes. Business logic lives in sweep.plan and sweep.runs."""
 
 import contextlib
+import hashlib
+import hmac
 import os
 import re
 import sys
@@ -99,6 +101,10 @@ SPEND_CAP_HEADROOM = 1.25
 # Naukri alone is $0.50 per run minimum (config.SITE_RATES), so a cap below
 # that would stop the sweep before its first search could finish.
 SPEND_CAP_FLOOR_USD = 0.50
+# How many of their own Apify accounts a visitor may connect to one sweep
+# (V2-D1): the worker's own limit (deploy/sweep_worker.MAX_KEYS), checked here
+# first so the refusal is a sentence on the screen rather than a 400.
+MAX_PUBLIC_KEYS = 20
 _CENT = Decimal("0.01")
 
 
@@ -234,7 +240,8 @@ def create_app(state=None, extract=None, resume_dir=None,
                read_done=None, now=None, read_rows=None, read_live=None,
                start_rescore=None, hour_now=None, profile_exists=None,
                wall_now=None, list_sweeps=None, start_merge=None,
-               read_queue=None, read_ready=None):
+               read_queue=None, read_ready=None, read_account=None,
+               read_authorization=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes
     app.state = state if state is not None else {}
@@ -311,6 +318,7 @@ def create_app(state=None, extract=None, resume_dir=None,
         list_sweeps = list_sweeps or remote["list_sweeps"]
         read_queue = read_queue or remote["read_queue"]
         read_ready = read_ready or remote["read_ready"]
+        read_authorization = read_authorization or remote["read_authorization"]
 
     # Public mode: every extraction is two GPU calls on the operator's
     # Modal account, so the daily limit wraps the CALL, not the route —
@@ -332,6 +340,34 @@ def create_app(state=None, extract=None, resume_dir=None,
         # when its child exits, exactly as before.
         def read_ready():
             return False
+
+    if read_authorization is None:
+        # The console reads its own terminal; only a public run reports the
+        # engine's paid authorization (V2-D1) back to a screen.
+        def read_authorization():
+            return None
+
+    if read_account is None:
+        def read_account(token):
+            """(account, error) for a visitor's key (V2-D1): WHICH account it
+            is and what that account can hold — users/me and users/me/limits,
+            the same two free reads and the same arithmetic the engine's pool
+            uses (scraper._account_reading), so a screen and the engine never
+            disagree about a balance. `id` is the provider's account id; the
+            caller keeps only a keyed digest of it."""
+            from apify_client import ApifyClient
+            try:
+                client = ApifyClient(token)
+                me = client.user().get()
+                reading = scraper._account_reading(
+                    me, client.user().limits().model_dump())
+                ident = getattr(me, "id", None)
+            except Exception:
+                return None, "That token was rejected by Apify. Check and retry."
+            if not ident:
+                return None, ("Apify did not say which account this key belongs "
+                              "to, so Sweep cannot count its credit safely.")
+            return dict(reading, id=ident), None
 
     if profile_exists is None:
         def profile_exists(name):
@@ -845,7 +881,9 @@ def create_app(state=None, extract=None, resume_dir=None,
             # ran out needs a key that is actually spent.
             credit_left=(None if free_only() or not app.state.get("key_credit")
                          else app.state.get("credit_total_usd")),
-            cheapest_search=cheapest_rate(p["tiles"], rates))
+            cheapest_search=cheapest_rate(p["tiles"], rates),
+            authorization=None if free_only() else read_authorization())
+        p["authorization"] = None if free_only() else read_authorization()
 
         # A free sweep has no per-search progress to count: the free sources
         # are one pass inside the engine, so "0 searches left" — literally
@@ -857,7 +895,9 @@ def create_app(state=None, extract=None, resume_dir=None,
             {"finished": "finished",
              "stopped": "stopped by you",
              "out_of_credit": "out of credit",
-             "halted": "stopped early"}[p["state"]])
+             "halted": "stopped early",
+             "credit_changed": "not started — your Apify credit changed",
+             "partial": "finished the part your credit covers"}[p["state"]])
 
         # The persistent status strip, built by the SAME function the server
         # render uses (logic.run_banner) and carried in the poll payload —
@@ -1055,6 +1095,22 @@ def create_app(state=None, extract=None, resume_dir=None,
         # engine enforces cannot be two different numbers.
         out["spend_cap"] = (0.0 if free_only()
                             else spend_cap_for(out))
+        # V2-D1: a public sweep whose worker spends through the account pool
+        # (its own dry run says so) is authorised by EXACT PLACEMENT of every
+        # search's provider ceiling on the visitor's connected accounts —
+        # never by the estimate against a balance, never by balances summed.
+        # Advisory here: the engine re-reads every account just before its
+        # first start and decides again on what it finds.
+        out["coverage"] = None
+        if (app.config.get("PUBLIC_MODE") and not free_only() and out["lines"]
+                and raw.get("account_pool")):
+            keys = app.state.get("byok_keys") or []
+            cov = plan_mod.coverage(priced, [Decimal(k["capacity_usd"]) for k in keys],
+                                    out["spend_cap"])
+            part = plan_mod.cost(cov.pop("prefix"), config.SITE_RATES,
+                                 config.SITE_RATE_BASIS)
+            out["coverage"] = dict(cov, partial_estimate=part["total"])
+            out["over_cap"] = not cov["full"]
         app.state["plan"] = out
         return out
 
@@ -1292,6 +1348,9 @@ def create_app(state=None, extract=None, resume_dir=None,
                     resume_name=os.path.basename(
                         app.state.get("resume_path") or ""),
                     credit_total_usd=app.state.get("credit_total_usd"),
+                    # V2-D1: the visitor's connected accounts, as figures and
+                    # worker ids — never a token, never an account's name.
+                    byok_keys=(app.state.get("byok_keys") or []) if public_mode else [],
                     **kw)
 
     # The public sweep screens (sweep/public_sweep.py) render the same
@@ -1855,43 +1914,101 @@ def create_app(state=None, extract=None, resume_dir=None,
             return key_screen(error=error), 500
         return redirect(url_for("configure"))
 
+    # Where adding a key may return to (V2-D1): the key step itself sends a
+    # visitor on to Configure; Confirm's "Add another Apify key" comes back.
+    KEY_ADD_RETURN = {"configure", "confirm"}
+
+    def _account_digest(ident):
+        """A visitor's Apify account, as this session knows it: a keyed
+        digest of the provider's id — enough to see that two keys are one
+        account, useless for naming it, and never shown."""
+        secret = app.secret_key
+        secret = secret.encode() if isinstance(secret, str) else secret
+        return hmac.new(secret or b"", b"sweep-apify-account|" + str(ident).encode(),
+                        hashlib.sha256).hexdigest()
+
+    def _byok_totals():
+        """cap_usd and credit_total_usd from the visitor's connected accounts:
+        the best single one and all of them together, as the console's
+        sweep_budget() reports its keys — display figures. Whether a plan
+        fits is the allocator's question (plan.coverage), never this sum."""
+        heads = [float(k["headroom_usd"]) for k in app.state.get("byok_keys") or ()]
+        app.state["cap_usd"] = max(heads) if heads else None
+        app.state["credit_total_usd"] = round(sum(heads), 4) if heads else None
+
+    def _public_key(token, back):
+        """POST /key in public mode: one more of the visitor's own accounts.
+
+        The key funds their own sweep and nothing else. It is not written to
+        .env, not put in os.environ, not kept on this session and not
+        returned to the browser: it goes to the worker, which holds it in
+        memory until their run starts, and this request forgets it. What
+        stays here is its id at the worker, a keyed digest of its ACCOUNT
+        (so a second key to the same account is refused rather than counted
+        twice), and the figures the screens show — numbers, not credentials.
+        """
+        def refuse(message, status=400):
+            if back == "confirm" and app.state.get("plan"):
+                return _confirm_page(error=message, status=status)
+            return key_screen(error=message), status
+
+        account, error = read_account(token)
+        if error:
+            # Never render the token back into the page.
+            return refuse(error)
+        keys = list(app.state.get("byok_keys") or ())
+        digest = _account_digest(account["id"])
+        if any(k["account"] == digest for k in keys):
+            return refuse("This key belongs to an Apify account already added.")
+        if len(keys) >= MAX_PUBLIC_KEYS:
+            return refuse(f"Sweep can use up to {MAX_PUBLIC_KEYS} Apify accounts "
+                          f"for one search.")
+        from sweep import worker_client
+        try:
+            key_id = worker_client.hold_token(token)
+        except worker_client.WorkerError as exc:
+            return refuse(f"That key is fine, but the sweep service could not "
+                          f"take it just now: {exc}.", 502)
+        del token
+        entry = {"id": key_id, "account": digest,
+                 "headroom_usd": str(account["headroom_usd"]),
+                 "capacity_usd": str(scraper.usable_capacity(account["headroom_usd"]))}
+        # A worker older than V2-D1 holds ONE key per visitor and names none:
+        # the newest replaces the rest, as it always did there.
+        app.state["byok_keys"] = keys + [entry] if key_id else [entry]
+        _byok_totals()
+        error = _apply_choice(free=False)
+        if error:
+            return key_screen(error=error), 500
+        return redirect(url_for(back))
+
     @app.post("/key")
     def key_post():
         token = (request.form.get("token") or "").strip()
+        back = request.form.get("back") or "configure"
+        if back not in KEY_ADD_RETURN:
+            back = "configure"
+        public_confirm = (app.config.get("PUBLIC_MODE") and back == "confirm"
+                          and app.state.get("plan"))
         if not token:
+            if public_confirm:
+                return _confirm_page(error="Paste your Apify token.", status=400)
             return key_screen(error="Paste your Apify token."), 400
         if not _ENV_VALUE_RE.fullmatch(token):
             # Never echo the token back — say what's wrong, not what it was.
-            return key_screen(
-                error="That doesn't look like a token — remove any extra "
-                      "characters and paste it again."), 400
+            message = ("That doesn't look like a token — remove any extra "
+                       "characters and paste it again.")
+            if public_confirm:
+                return _confirm_page(error=message, status=400)
+            return key_screen(error=message), 400
+
+        if app.config.get("PUBLIC_MODE"):
+            return _public_key(token, back)
 
         available, error = check_token(token)
         if error:
             # Never render the token back into the page.
             return key_screen(error=error), 400
-
-        if app.config.get("PUBLIC_MODE"):
-            # A visitor's own key funds their own sweep and nothing else.
-            # It is not written to .env, not put in os.environ, not kept on
-            # this session and not returned to the browser: it goes to the
-            # worker, which holds it in memory until their run starts, and
-            # this request forgets it. What stays here is the credit figure
-            # the screens show, which is a number, not a credential.
-            from sweep import worker_client
-            try:
-                worker_client.hold_token(token)
-            except worker_client.WorkerError as exc:
-                return key_screen(
-                    error=f"That key is fine, but the sweep service could "
-                          f"not take it just now: {exc}."), 502
-            del token
-            app.state["cap_usd"] = available
-            app.state["credit_total_usd"] = available
-            error = _apply_choice(free=False)
-            if error:
-                return key_screen(error=error), 500
-            return redirect(url_for("configure"))
 
         app.write_env("APIFY_TOKEN", token)
         os.environ["APIFY_TOKEN"] = token
@@ -1904,6 +2021,30 @@ def create_app(state=None, extract=None, resume_dir=None,
         if error:
             return key_screen(error=error), 500
         return redirect(url_for("configure"))
+
+    @app.post("/key/forget")
+    def key_forget():
+        """V2-D1, public only: stop using one of the visitor's accounts before
+        the sweep starts. Dropped here and released at the worker; a run
+        already started keeps the keys it was given, which the worker froze
+        when it created the run. Idempotent, like the console's key_remove."""
+        if not app.config.get("PUBLIC_MODE"):
+            abort(404)
+        key_id = request.form.get("key") or ""
+        back = request.form.get("back") or "confirm"
+        if back not in KEY_ADD_RETURN:
+            back = "confirm"
+        keys = app.state.get("byok_keys") or []
+        if any(k["id"] == key_id for k in keys):
+            from sweep import worker_client
+            # A release the worker misses is harmless: a run names the keys
+            # it may use (key_ids), and this one is no longer among them.
+            with contextlib.suppress(worker_client.WorkerError):
+                worker_client.release_token(key_id)
+            app.state["byok_keys"] = [k for k in keys if k["id"] != key_id]
+            _byok_totals()
+        return redirect(url_for(back if app.state.get("cap_usd") is not None
+                                else "key"))
 
     @app.errorhandler(PlanUnavailable)
     def plan_unavailable(exc):
@@ -2173,6 +2314,16 @@ def create_app(state=None, extract=None, resume_dir=None,
                 error="This sweep is set to free sources only, but the plan "
                       "now prices paid searches. Connect a key, or switch "
                       "the paid boards back off.", status=400)
+        if (plan_now.get("over_cap") and plan_now.get("coverage")
+                and not request.form.get("over_cap_ack")):
+            # V2-D1: the connected accounts cannot safely hold the whole
+            # plan. A full sweep never quietly becomes a smaller one: nothing
+            # starts until the visitor adds a key or chooses the part their
+            # credit covers, with the same box the console has always used.
+            return _confirm_page(
+                error="Your connected Apify accounts can't safely cover the "
+                      "full Sweep. Add another Apify key, or tick \"Run with my "
+                      "available credit anyway\".", status=400)
         if plan_now.get("over_cap") and not request.form.get("over_cap_ack"):
             # No longer a refusal: it is the user's account and the sweep is
             # recoverable — the engine stops when the account is spent, and
@@ -2220,6 +2371,21 @@ def create_app(state=None, extract=None, resume_dir=None,
                           "running screen, or stop it before starting "
                           "another.", status=409)
             app.state["max_spend_usd"] = plan_now["spend_cap"]
+            # V2-D1: the ONE place a partial paid sweep is authorised — the
+            # ticked box on an over-cap plan, written into the profile the
+            # engine reads (SETTINGS["allow_partial_paid_sweep"]). Reset on
+            # every run, so an earlier yes never carries into a later sweep;
+            # unset means config's False: the whole plan or none of it.
+            app.state["allow_partial_paid_sweep"] = (
+                True if plan_now.get("over_cap") and request.form.get("over_cap_ack")
+                else None)
+            # Which of a visitor's held keys fund this run: every connected
+            # account where the pool spends across them, else the one with
+            # the most credit, as the single-account engine would choose.
+            keys = app.state.get("byok_keys") or []
+            if not plan_now.get("coverage") and keys:
+                keys = [max(keys, key=lambda k: float(k["headroom_usd"]))]
+            app.state["run_key_ids"] = [k["id"] for k in keys if k.get("id")] or None
             app.write_profile(app.state["profile"], make_profile.render(
                 app.state["profile"], app.state["derived"], _prefs(app.state)))
             # baseline_usd may be None (see read_spend's docstring) —
@@ -2243,6 +2409,12 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state.pop("stopped_by_user", None)
             app.state.pop("interrupt_credit_read", None)
             app.state["proc"] = start_sweep(app.state["profile"])
+            # V2-D1: the worker spent every held key on this run (they are
+            # used once), so the accounts listed here are gone too — kept, a
+            # re-pasted key would be refused as "already added" to nothing.
+            if app.config.get("PUBLIC_MODE"):
+                app.state.pop("byok_keys", None)
+                app.state.pop("run_key_ids", None)
             # The console's own crash-recovery note, for a child on THIS
             # machine. A public run is recorded on the worker instead, and
             # writing it here would put one visitor's state on a shared
@@ -2865,4 +3037,7 @@ def _prefs(state):
         # other optional key here — never {} , which would render an overlay
         # switching every paid site off.
         "sites_enabled": state.get("sites_enabled"),
+        # Set by POST /run only (V2-D1): True when the user ticked "run with
+        # my available credit anyway"; unset inherits config's False.
+        "allow_partial_paid_sweep": state.get("allow_partial_paid_sweep"),
     }

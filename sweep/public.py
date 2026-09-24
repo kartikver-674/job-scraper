@@ -76,6 +76,10 @@ PUBLIC_ENDPOINTS = frozenset({
     # screen silently stops saving anything, which is the exact failure this
     # route was added to end.
     "key", "key_free", "key_post", "configure", "configure_post", "estimate",
+    # V2-D1: stop using one of the visitor's OWN connected Apify accounts
+    # before their sweep starts. Public-only; the console's key_remove, which
+    # edits the operator's .env, stays below.
+    "key_forget",
     "confirm", "run", "running", "progress", "stop", "results", "export",
     # The one status endpoint the global activity strip polls, for the
     # résumé half and the sweep half alike. Read-only, and answers only
@@ -606,6 +610,11 @@ def harden(app, env=None, store=None, limit=None):
         needs_key = isinstance(exc, worker_client.NeedsKey)
         gone = isinstance(exc, worker_client.RunNotFound)
         if needs_key:
+            # V2-D1: nothing the worker still holds for them; the accounts this
+            # session lists must go with it, or pasting a key again would be
+            # refused as a duplicate of one that no longer exists.
+            app.state.pop("byok_keys", None)
+            app.state.pop("run_key_ids", None)
             message = (
                 "Your Apify key is not held any more — it is used for one "
                 "sweep and never saved. Paste it again to search the paid "

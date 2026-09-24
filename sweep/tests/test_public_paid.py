@@ -490,25 +490,37 @@ class TestWhoseKeyPaysForWhat(unittest.TestCase):
         only the key its own visitor pasted."""
         captured = {}
 
+        class Pipe(io.BytesIO):
+            def close(self):
+                captured["stdin"] = self.getvalue()
+
         class FakePopen:
-            def __init__(self, argv, cwd=None, env=None, stdout=None,
-                         stderr=None):
+            def __init__(self, argv, cwd=None, env=None, stdin=None,
+                         stdout=None, stderr=None):
                 captured["env"], captured["argv"] = env, argv
+                self.stdin = Pipe() if stdin is not None else None
 
         import tempfile
         run_dir = tempfile.mkdtemp()
         self.addCleanup(lambda: None)
+        # Sealed: a failure message quotes this environment, and nothing real
+        # may be in it.
         with mock.patch.dict(os.environ, {"APIFY_TOKEN": OPERATOR_KEY,
                                           "APIFY_TOKEN_2": OPERATOR_KEY},
-                             clear=False):
+                             clear=True):
             with mock.patch.object(sweep_worker.subprocess, "Popen", FakePopen):
                 _child, closer = sweep_worker.default_spawn(
-                    "abc", run_dir, "beta_abc", REPO_ROOT, VISITOR_KEY)
+                    "abc", run_dir, "beta_abc", REPO_ROOT, [VISITOR_KEY, OTHER_KEY])
         if closer:
             closer.close()
-        self.assertEqual(captured["env"]["APIFY_TOKEN"], VISITOR_KEY)
-        self.assertNotIn("APIFY_TOKEN_2", captured["env"])
+        # V2-D1: no key in the environment at all — the visitor's keys go
+        # down the child's stdin, and the operator's go nowhere.
+        self.assertFalse([n for n in captured["env"] if n.startswith("APIFY_TOKEN")])
+        self.assertEqual(captured["env"]["SWEEP_BYOK_CREDENTIALS"], "stdin")
+        self.assertEqual(json.loads(captured["stdin"]),
+                         {"apify_tokens": [VISITOR_KEY, OTHER_KEY]})
         self.assertNotIn(OPERATOR_KEY, json.dumps(captured["env"]))
+        self.assertNotIn(VISITOR_KEY, json.dumps(captured["env"]))
         self.assertNotIn(VISITOR_KEY, " ".join(captured["argv"]))
 
 

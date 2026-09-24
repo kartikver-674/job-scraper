@@ -319,6 +319,33 @@
     </div>
   </div>
 
+  {# V2-D1, each claimed only on the engine's own authorization record. #}
+  <div class="banner warn" {{ ending('credit_changed') }}>
+    <div>
+      <b>Your Apify credit changed</b>
+      <span>When the Sweep came to start, your connected Apify accounts could
+        no longer safely cover the full plan, so no paid search ran and
+        nothing was charged. Add another Apify key, or choose to run with your
+        available credit, and start it again.</span>
+    </div>
+    <div class="actions">
+      <a class="primary" href="{{ url_for('confirm') }}">Back to Confirm</a>
+    </div>
+  </div>
+
+  <div class="banner ok" {{ ending('partial') }}>
+    <div>
+      <b>The part your credit covers ran</b>
+      <span x-text="p.done + ' of ' + p.planned + ' paid searches ran, as you chose. '
+              + 'The other ' + p.outstanding + ' were left out because your '
+              + 'connected Apify accounts could not safely cover them — they did '
+              + 'not fail, and nothing was charged for them.'"></span>
+    </div>
+    <div class="actions">
+      <a class="primary" href="{{ url_for('results') }}">See the results</a>
+    </div>
+  </div>
+
   <div class="banner warn" {{ ending('halted') }}>
     <div>
       <b>The reason is not recorded</b>

@@ -615,7 +615,9 @@ def _paid_plan(units, budget_usd):
 
 
 def paid_status(unit_id, status):
-    """completed | failed | skipped_done | skipped_budget, from the paid loop."""
+    """completed | failed | skipped_done | skipped_budget, from the paid loop;
+    V2-D1: skipped_insufficient_capacity — not run because the connected
+    accounts could not safely hold it (never a failure, never done)."""
     if _run is not None:
         entry = _run.get("_paid_ix", {}).get(unit_id)
         if entry is not None:
@@ -887,7 +889,7 @@ def _paid_summary(record, executed):
         ex, f = executed.get(u["unit_id"]) or {}, u.get("funnel") or {}
         p = providers.setdefault(u["provider"], dict.fromkeys((
             "planned", "completed", "failed", "skipped_done", "skipped_budget",
-            "actor_starts", "unit_wall_ms", "wait_ms", "dataset_ms",
+            "skipped_insufficient_capacity", "actor_starts", "unit_wall_ms", "wait_ms", "dataset_ms",
             "checkpoint_ms", "actor_run_time_s", "raw", "eligible",
             "eligible_positive", "final", "final_positive", "final_marginal"), 0))
         p["planned"] += 1
@@ -918,6 +920,7 @@ def _paid_summary(record, executed):
         "failed": status["failed"],
         "skipped_done": status["skipped_done"],
         "skipped_budget": status["skipped_budget"],
+        "skipped_insufficient_capacity": status["skipped_insufficient_capacity"],
         "unvisited": status["planned"],
         "actor_starts": sum(p["actor_starts"] for p in providers.values()),
         "planned_bounded_exposure_usd": planned_usd,

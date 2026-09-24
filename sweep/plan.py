@@ -87,3 +87,53 @@ def cost(raw, rates, basis=None):
         "unbounded_estimate": round(sum(l["subtotal"] for l in unbounded), 4),
         "unbounded_searches": sum(l["searches"] for l in unbounded),
     }
+
+
+def units(raw):
+    """[(unit_id, site, ceiling)] for every paid search in `raw`, in the
+    engine's plan order and under its ids (scraper.paid_unit_id): ceiling a
+    Decimal, or None where the provider enforces none."""
+    ceilings = raw.get("charge_ceiling_usd") or {}
+    out = []
+    for site, searches in raw["sites"].items():
+        ceiling = ceilings.get(site)
+        for _ in searches:
+            out.append((f"paid_{len(out):03d}", site,
+                        None if ceiling is None else Decimal(ceiling)))
+    return out
+
+
+def prefix(raw, n):
+    """`raw` with only its first n paid searches, in plan order — what a
+    partial sweep of n searches runs, for cost() to price exactly."""
+    sites, left = {}, n
+    for site, searches in raw["sites"].items():
+        if left <= 0:
+            break
+        sites[site] = list(searches[:left])
+        left -= len(sites[site])
+    return dict(raw, sites=sites)
+
+
+def coverage(raw, capacities, budget=None):
+    """V2-D1: how much of this plan the connected accounts can safely hold,
+    by the engine's own allocator — never by adding balances up, because two
+    accounts with $0.10 each hold no $0.135 search. `capacities`: each
+    account's real usable capacity (scraper.usable_capacity), a Decimal.
+
+    Advisory: the engine re-reads every account just before the first start
+    and decides again on what it finds. Returns the counts, the partial
+    prefix's estimate, and the capacity figures a screen shows."""
+    import scraper
+    plan = units(raw)
+    placed = scraper.place_units(
+        [(u, c) for u, _s, c in plan if c is not None],
+        [(f"account_{i:03d}", c) for i, c in enumerate(capacities)])
+    k = scraper.placeable_prefix([(u, c) for u, _s, c in plan], placed, budget)
+    return {"total_units": len(plan), "placeable_units": k,
+            "full": k == len(plan),
+            "accounts": len(capacities),
+            "available_usd": float(sum(capacities, Decimal(0))),
+            "bounded_exposure_usd": float(sum((c for _u, _s, c in plan
+                                               if c is not None), Decimal(0))),
+            "prefix": prefix(raw, k)}

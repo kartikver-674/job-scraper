@@ -1035,6 +1035,12 @@ SETTINGS = {
     # below stops launching new runs once the run's cumulative cost hits it, so a
     # sweep self-limits well under the free tier.
     "max_spend_usd": None,          # None = no cap (cost headroom + backup API key available); set a $ value to self-limit
+    # V2-D1, account pool only: False (the default) runs the WHOLE paid plan or
+    # none of it — if the connected accounts cannot safely hold every search,
+    # nothing starts. True is the user's explicit "run with my available credit
+    # anyway": the longest prefix of the plan they can hold runs, in plan
+    # order, and the rest is recorded as skipped for capacity (never as done).
+    "allow_partial_paid_sweep": False,
     "max_searches_per_site": None,  # cap (keyword x location) combos per site (None = full sweep; --limit overrides)
     "confirm_above_runs": 12,       # if planned actor runs exceed this, ask before spending (skip with --yes)
     "test_max_results": 5,          # max_results used by --test

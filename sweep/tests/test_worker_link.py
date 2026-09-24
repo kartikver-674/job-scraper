@@ -75,6 +75,23 @@ def worker_on_a_socket():
         shutil.rmtree(checkout, ignore_errors=True)
 
 
+def account_reader(check_token, same_account=None):
+    """A public app's read_account (V2-D1) from a check_token fake: the
+    figure it reports becomes the account's headroom, and every distinct key
+    is its own account unless `same_account` maps keys to one name. Offline,
+    like the fake it wraps."""
+    from decimal import Decimal
+
+    def read(token):
+        available, error = check_token(token)
+        if error:
+            return None, error
+        return {"id": (same_account or {}).get(token, f"acct-{token}"),
+                "plan": "FREE", "used_usd": 0.0, "memory_mb": 8192, "run_slots": 5,
+                "headroom_usd": Decimal(str(available)).quantize(Decimal("0.001"))}, None
+    return read
+
+
 def render_app(worker_url, **injected):
     """A Render process: public mode, the shared SECRET_KEY, empty memory.
 
@@ -85,6 +102,8 @@ def render_app(worker_url, **injected):
     """
     env = {**BETA_ENV, worker_client.URL_ENV: worker_url,
            worker_client.TOKEN_ENV: WORKER_TOKEN}
+    if "check_token" in injected and "read_account" not in injected:
+        injected["read_account"] = account_reader(injected["check_token"])
     injected.setdefault("extract", lambda path: "Ada Okonkwo, React Native dev")
     injected.setdefault("derive", lambda text, prefs: dict(DERIVED))
     with mock.patch.dict(os.environ, env, clear=False):

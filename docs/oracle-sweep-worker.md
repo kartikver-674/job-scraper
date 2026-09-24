@@ -51,8 +51,12 @@ sudo -u sweepworker git -C /opt/sweep-worker/app checkout main
 
 **Do not copy a `.env` into the checkout.** The worker must hold no Apify
 token of its own: a public run is funded by the visitor who asked for it, or
-it does not happen. The worker also strips `APIFY_TOKEN*` out of every child's
-environment, so an accidental one would be ignored — but do not put it there.
+it does not happen. The worker strips `APIFY_TOKEN*` out of every child's
+environment and, since V2-D1, hands a paid run its visitor's keys on stdin
+(`SWEEP_BYOK_CREDENTIALS=stdin`), on which the engine never calls
+`load_dotenv()` or reads an `APIFY_TOKEN*` variable — so an accidental `.env`
+is ignored by a visitor's run. (Before V2-D1 it was not: stripping the
+environment did not stop the engine's own `load_dotenv()`.) Do not put one there.
 
 ## 2. Python
 

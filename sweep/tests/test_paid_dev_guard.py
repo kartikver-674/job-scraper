@@ -524,9 +524,14 @@ class ProductionIsolation(unittest.TestCase):
         from sweep import runs
         seen = {}
 
+        class Pipe(io.BytesIO):
+            def close(self):
+                seen["stdin"] = self.getvalue()
+
         class FakePopen:
             def __init__(self, argv, cwd=None, env=None, **kw):
                 seen["argv"], seen["env"] = argv, env
+                self.stdin = Pipe() if kw.get("stdin") is not None else None
         run_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, run_dir, True)
         with mock.patch.object(sweep_worker.subprocess, "Popen", FakePopen), \
@@ -534,7 +539,10 @@ class ProductionIsolation(unittest.TestCase):
             os.environ.pop(paid_guard.FLAG, None)
             sweep_worker.default_spawn("abc", run_dir, "beta_abc", str(ROOT), TOKEN)
         self.assertEqual(seen["argv"][1:], ["scraper.py", "--profile", "beta_abc", "--yes"])
-        self.assertEqual(seen["env"]["APIFY_TOKEN"], TOKEN)     # BYOK, as before
+        # BYOK: the visitor's key on the child's stdin (V2-D1), never its env.
+        self.assertNotIn("APIFY_TOKEN", seen["env"])
+        self.assertEqual(seen["env"]["SWEEP_BYOK_CREDENTIALS"], "stdin")
+        self.assertEqual(json.loads(seen["stdin"]), {"apify_tokens": [TOKEN]})
         self.assertNotIn(paid_guard.FLAG, seen["env"])
         runs.start("someone", env={}, popen=FakePopen)
         self.assertEqual(seen["argv"][1:], ["scraper.py", "--profile", "someone", "--yes"])

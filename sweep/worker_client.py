@@ -85,16 +85,21 @@ def _call(method, path, body=None, url=None, token=None, owner=None):
         raise WorkerError("the sweep worker did not answer") from None
 
 
-def create_run(profile, prefs, free_only=True, apify_token=None, **kw):
+def create_run(profile, prefs, free_only=True, apify_token=None, key_ids=None,
+               **kw):
     """Start a sweep. Returns the opaque run id.
 
     `apify_token` passes straight through to the worker and is not held
     here — not in a variable that outlives this call, not in a log line.
+    `key_ids` (V2-D1) names which of the visitor's held keys fund it: the
+    accounts they confirmed, and no others.
     """
     body = {"profile": profile, "prefs": prefs, "free_only": free_only,
             "owner": kw.pop("owner", None) or public.owner_for_session()}
     if apify_token:
         body["apify_token"] = apify_token
+    if key_ids:
+        body["key_ids"] = list(key_ids)
     answer = _call("POST", "/v1/runs", body, **kw)
     return answer["run_id"]
 
@@ -106,10 +111,17 @@ def hold_token(apify_token, **kw):
     this call is the only place it exists here. The worker holds it in
     memory against the same owner these calls already carry.
     """
-    _call("POST", "/v1/tokens",
-          {"owner": kw.pop("owner", None) or public.owner_for_session(),
-           "apify_token": apify_token}, **kw)
-    return True
+    answer = _call("POST", "/v1/tokens",
+                   {"owner": kw.pop("owner", None) or public.owner_for_session(),
+                    "apify_token": apify_token}, **kw)
+    # The worker's name for this key: all Render ever keeps of it. None from
+    # a worker older than V2-D1, which holds one key per visitor.
+    return answer.get("key_id")
+
+
+def release_token(key_id, **kw):
+    """Tell the worker to forget one held key (the visitor removed it)."""
+    return _call("DELETE", f"/v1/tokens/{key_id}", **kw)
 
 
 def plan(profile, prefs, free_only=True, **kw):
