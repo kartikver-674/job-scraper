@@ -85,6 +85,9 @@ PUBLIC_ENDPOINTS = frozenset({
     # résumé half and the sweep half alike. Read-only, and answers only
     # about the caller's own session and their own run.
     "activity",
+    # The header's feedback form (sweep/feedback.py): emails the operator
+    # and keeps nothing. Behind the beta code like every screen it sits on.
+    "feedback",
 })
 
 # Reachable locally, never here. Each one either spends the OPERATOR's

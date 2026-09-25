@@ -79,6 +79,9 @@ Set in Render → Environment. Never commit values.
 | `SWEEP_TRUSTED_PROXIES` | `2` — Cloudflare, then Render's load balancer |
 | `SWEEP_WORKER_URL` | the Oracle worker behind Caddy (`docs/oracle-sweep-worker.md`) |
 | `SWEEP_WORKER_TOKEN` | the worker's bearer token — server-side only, never rendered |
+| `SWEEP_FEEDBACK_EMAIL` | where feedback is delivered — the operator's inbox, never rendered |
+| `SWEEP_FEEDBACK_FROM` | the sender, on a domain verified in Resend, e.g. `Sweep Feedback <feedback@your-domain>` |
+| `RESEND_API_KEY` | a Resend API key with sending access only — server-side only, never rendered |
 
 Public mode **refuses to start** without `SECRET_KEY` and `SWEEP_BETA_CODE`.
 That is deliberate: a public app with an unstable session key cannot isolate
@@ -132,6 +135,37 @@ If a future front end has a different number of hops, change the variable —
 too low and every visitor shares one quota, too high and a client-supplied
 entry becomes their identity.
 
+## Feedback
+
+A **Feedback** button in the shared header (`base.html`, public mode only)
+opens a `<dialog>` on every screen behind the beta code: Résumé, Profile,
+Search, Running, Jobs. It asks for an email, a type, an optional subject and
+the message. Nothing else is attached except a short, fixed context block:
+the page path, its stage, Free/Paid/Partial, the opaque run id, the browser's
+user agent, the build (`RENDER_GIT_COMMIT`) and the time. No résumé, profile,
+query, job, key or account detail is sent — `sweep/feedback.py:context`
+names every field it sends rather than copying state.
+
+- **Delivery.** `POST /feedback` (JSON) sends one email through **Resend's
+  HTTPS API**, using the standard library. Not SMTP: Render Free blocks
+  outbound ports 25/465/587. The message goes **to** `SWEEP_FEEDBACK_EMAIL`,
+  **from** `SWEEP_FEEDBACK_FROM` and has the visitor's address as
+  **Reply-To**. Hitting Reply answers them, and SPF/DMARC stay intact
+  because Sweep never sends as the visitor.
+- **No persistence.** Received, emailed, discarded: no database, no disk, no
+  session field. Logs carry only "delivery failed: HTTP 422" or "not
+  configured: X unset" — never the email, the subject or the message.
+- **Abuse.** Behind the beta code and the same-origin check like every POST.
+  A JSON body is required, a honeypot field silently swallows form bots, and
+  a limit of **5 per IP per hour, 30 in total per hour** applies (in memory,
+  like the derivation limit, so a restart resets it).
+- **Unconfigured.** If any of the three variables is missing, the button
+  still shows, and sending answers "Feedback isn't available right now". The
+  log names the missing variable. The app does not refuse to start, because
+  feedback is not what the beta is for.
+- **Provider.** `send_with_resend` is the only function that knows about
+  Resend. Replacing it replaces the provider.
+
 ## After deploying
 
 Public URL shape: `https://sweep-beta.onrender.com` (Render appends a suffix
@@ -151,6 +185,9 @@ if the name is taken — the dashboard shows the real one).
 10. From a second network (phone on mobile data), confirm you get your own
     quota rather than sharing the first one — that is `SWEEP_TRUSTED_PROXIES`
     being right for how Render actually forwards.
+11. Header → **Feedback** → send one. It arrives at `SWEEP_FEEDBACK_EMAIL`,
+    from `SWEEP_FEEDBACK_FROM`. Reply goes to the address you typed, and the
+    Page, Stage and Version lines are filled in.
 
 **First request after idle:** Render Free spins down after 15 minutes, so the
 first visitor waits ~1 minute for the app, plus up to ~150 s if Modal also has

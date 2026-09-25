@@ -111,7 +111,135 @@
        named, because that is where it decides something. #}
     <span class="credit">Credit left ${{ '%.2f'|format(credit_left) }}</span>
   {% endif %}
+  {# Public only: the operator has no one to send feedback to. Hidden until
+     the script below finds <dialog> support, so it is never a dead button. #}
+  {% if public_mode %}
+  <button type="button" class="feedback-open" data-feedback-open
+          aria-haspopup="dialog" aria-controls="feedback" hidden>
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M2.5 2.5h11v8h-6l-3 3v-3h-2z" fill="none" stroke="currentColor"
+            stroke-width="1.4" stroke-linejoin="round"/>
+    </svg>
+    <span class="feedback-label">Feedback</span>
+  </button>
+  {% endif %}
 </header>
+
+{% if public_mode %}
+{# Native <dialog>: showModal() makes the page behind it inert, traps focus,
+   closes on Escape and gives focus back — no modal library to vendor. It sits
+   outside every screen's own form, so opening it touches nothing on the page. #}
+<dialog id="feedback" class="feedback" aria-labelledby="feedback-title"
+        aria-describedby="feedback-lede">
+  <form action="{{ url_for('feedback') }}" method="post" data-feedback-form>
+    <h2 id="feedback-title">Share feedback</h2>
+    <div class="stack-tight" data-feedback-fields>
+      <p id="feedback-lede" class="muted">Help make Sweep better. Bug reports, suggestions and ideas are all welcome.</p>
+      <label>Your email <span aria-hidden="true">*</span>
+        <input type="email" name="email" required maxlength="254"
+               autocomplete="email" placeholder="you@example.com" autofocus></label>
+      <label>What is this about? <span aria-hidden="true">*</span>
+        <select name="type" required>
+          <option value="" selected disabled>Choose one</option>
+          <option value="bug">Bug</option>
+          <option value="search">Search results</option>
+          <option value="feature">Feature request</option>
+          <option value="ui">UI / usability</option>
+          <option value="other">Other</option>
+        </select></label>
+      <label>Subject
+        <input type="text" name="subject" maxlength="150" placeholder="Short summary"></label>
+      <label>Your feedback <span aria-hidden="true">*</span>
+        <textarea name="feedback" required minlength="10" maxlength="5000" rows="6"
+                  placeholder="Tell me what happened or what you'd like to see..."></textarea></label>
+      {# The honeypot. Off-screen and out of the tab order; a person never
+         fills it, a form bot fills everything. #}
+      <div class="feedback-hp" aria-hidden="true">
+        <label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+      </div>
+      <p class="error" role="alert" data-feedback-error hidden></p>
+      <div class="actions">
+        <button type="submit" class="primary" data-feedback-send>Send feedback</button>
+        <button type="button" class="secondary" data-feedback-close>Cancel</button>
+      </div>
+    </div>
+    <div class="stack-tight" data-feedback-done hidden>
+      <p class="lede" tabindex="-1" data-feedback-thanks>Thanks — feedback sent.</p>
+      <p class="muted">I read every message during the beta.</p>
+      <div class="actions">
+        <button type="button" class="secondary" data-feedback-close>Close</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+{# Plain script for the same reason as the run strip below: Alpine is
+   deferred behind the font stylesheet, and this is chrome, not a screen. #}
+<script>
+  (function () {
+    var dlg = document.getElementById("feedback"),
+        opener = document.querySelector("[data-feedback-open]");
+    if (!dlg || !opener || typeof dlg.showModal !== "function") return;
+    var form = dlg.querySelector("[data-feedback-form]"),
+        fields = dlg.querySelector("[data-feedback-fields]"),
+        done = dlg.querySelector("[data-feedback-done]"),
+        error = dlg.querySelector("[data-feedback-error]"),
+        send = dlg.querySelector("[data-feedback-send]"),
+        FAILED = "Couldn't send your feedback right now. Please try again.",
+        sending = false, downOutside = false;
+    opener.hidden = false;
+
+    opener.addEventListener("click", function () {
+      fields.hidden = false; done.hidden = true; error.hidden = true;
+      dlg.showModal();
+    });
+    dlg.querySelectorAll("[data-feedback-close]").forEach(function (b) {
+      b.addEventListener("click", function () { dlg.close(); });
+    });
+    /* The dialog has no padding of its own, so a click whose target is the
+       dialog itself landed on the backdrop. Pressed AND released there: a
+       text selection dragged out of the textarea must not close it. */
+    dlg.addEventListener("pointerdown", function (e) { downOutside = e.target === dlg; });
+    dlg.addEventListener("click", function (e) {
+      if (downOutside && e.target === dlg) dlg.close();
+    });
+    /* Closing never clears anything: what was typed is still there on reopen. */
+    dlg.addEventListener("close", function () { opener.focus(); });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (sending) return;
+      sending = true; send.disabled = true; send.textContent = "Sending…";
+      error.hidden = true;
+      var data = Object.fromEntries(new FormData(form));
+      data.page = location.pathname;
+      fetch(form.action, {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (b) {
+            if (!r.ok || !b.ok) throw { shown: b.error || FAILED };
+          });
+        })
+        .then(function () {
+          form.reset();
+          fields.hidden = true; done.hidden = false;
+          /* Focus the sentence, so a screen reader says it; Tab reaches Close. */
+          done.querySelector("[data-feedback-thanks]").focus();
+        })
+        /* Only our own copy is ever shown — a network error's text is not. */
+        .catch(function (x) {
+          error.textContent = (x && x.shown) || FAILED;
+          error.hidden = false;
+        })
+        .finally(function () {
+          sending = false; send.disabled = false; send.textContent = "Send feedback";
+        });
+    });
+  })();
+</script>
+{% endif %}
 
 {# Between the header and the page, so it is the first thing under the
    journey on every screen and above whatever that screen is about. Not on

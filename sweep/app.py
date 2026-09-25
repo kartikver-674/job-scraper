@@ -3015,6 +3015,9 @@ def create_app(state=None, extract=None, resume_dir=None,
                 app.state["profile"], hours)
         return redirect(_results_url())
 
+    from sweep import feedback
+    feedback.register(app)
+
     # Last, so it overrides what create_app just built: the allowlist,
     # per-session state, the beta door and the profile hand-off.
     if public.enabled():

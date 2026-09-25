@@ -184,6 +184,61 @@ header {
   font-size: 11px; font-weight: 500; color: var(--warm);
 }
 
+/* ---- Feedback ----------------------------------------------------------- */
+/* Quiet on purpose: chrome, not a call to action. Amber stays "you are here"
+   and "paid"; the focus ring is the only accent it gets. The tracker's
+   margin-right:auto (or .credit's margin-left) already pushes it right. */
+.feedback-open {
+  display: inline-flex; align-items: center; gap: var(--s2); flex: none;
+  padding: var(--s2) var(--s3);
+  font: 500 12px/1 var(--text); color: var(--warm);
+  background: transparent; border: 1px solid var(--rule); border-radius: var(--radius);
+  cursor: pointer;
+}
+.feedback-open:hover { color: var(--chalk); border-color: var(--slate); background: var(--surface-high); }
+/* A class that sets display beats the UA's [hidden] rule, so both of the
+   things this feature hides by attribute say it again. */
+.feedback-open[hidden], .feedback [hidden] { display: none; }
+/* The tracker needs the width on a phone; the icon keeps its name for
+   screen readers. */
+@media (max-width: 40rem) {
+  /* When it wraps onto a row of its own it stays on the right, where it is
+     on a wide screen; beside the credit figure, that figure's auto margin
+     already carries both. */
+  .feedback-open { padding: var(--s2) var(--s3); margin-left: auto; }
+  .credit ~ .feedback-open { margin-left: 0; }
+  .feedback-label {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+}
+/* A phone. Most screens already give the tracker a row of its own, and in the
+   flow the button would wrap under it into a third row. So the brand row
+   becomes a row of its own too, and the button sits at its right end, out of
+   the flow — measured on /review at 390px: 117px of header either way,
+   instead of 169. Keyed on the button being shown, so the console, and a
+   browser without <dialog>, keep the header they had. */
+@media (max-width: 30rem) {
+  header:has(> .feedback-open:not([hidden])) .brand { flex-basis: 100%; }
+  .feedback-open { position: absolute; top: var(--s3); right: var(--s5); }
+}
+@media (pointer: coarse) { .feedback-open { min-height: 44px; min-width: 44px; justify-content: center; } }
+
+/* No padding on the dialog itself, so a click whose target IS the dialog
+   can only have landed on the backdrop — that is how it closes. */
+dialog.feedback {
+  width: min(34rem, calc(100vw - 2 * var(--s5)));
+  max-height: calc(100dvh - 2 * var(--s5));
+  padding: 0; overflow: auto;
+  color: var(--chalk); background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+dialog.feedback::backdrop { background: rgba(0, 16, 23, 0.75); }
+.feedback form { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s5); }
+.feedback .stack-tight { gap: var(--s4); }
+.feedback textarea { resize: vertical; min-height: 7rem; }
+.feedback-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+
 /* ---- The meter ---------------------------------------------------------- */
 /* One per screen, always this screen's own state. */
 

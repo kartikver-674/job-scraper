@@ -86,3 +86,13 @@ services:
       # the visitor's address unspoofable — see sweep/public.py.
       - key: SWEEP_TRUSTED_PROXIES
         value: "2"
+      # The header's Feedback form (sweep/feedback.py): one email per
+      # message, sent through Resend's HTTPS API because Render Free blocks
+      # outbound SMTP. Unset, the form answers "not available right now"
+      # and the app still starts.
+      - key: SWEEP_FEEDBACK_EMAIL
+        sync: false
+      - key: SWEEP_FEEDBACK_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
