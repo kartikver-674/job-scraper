@@ -145,14 +145,16 @@
               {% endfor %}
             </ul>
           {% endif %}
+          {# The three numbers a visitor reasons with. The generated hard cap
+             (plan.spend_cap) is NOT one of them: it holds every search's
+             provider ceiling, so it reads far above what a sweep usually
+             costs. It is still computed, written into the profile and
+             enforced by the engine; it is just not a figure to quote here. #}
           <table class="lines">
-            <tr><td>Full Sweep</td><td>{{ cov.total_units }} paid
-              search{{ '' if cov.total_units == 1 else 'es' }}</td></tr>
             <tr><td>Estimated cost</td><td>${{ '%.2f'|format(plan.total) }}</td></tr>
-            <tr><td>Safety cap</td><td>${{ '%.2f'|format(plan.spend_cap) }}</td></tr>
             <tr><td>Available Apify credit</td><td>${{ '%.2f'|format(cov.available_usd) }}
               across {{ cov.accounts }} account{{ '' if cov.accounts == 1 else 's' }}</td></tr>
-            <tr><td>Safely covered</td><td>{{ cov.placeable_units }} of
+            <tr><td>Searches covered</td><td>{{ cov.placeable_units }} of
               {{ cov.total_units }} paid searches</td></tr>
           </table>
           {% if cov.single_account and byok_keys|length > 1 %}
@@ -162,17 +164,34 @@
           {% endif %}
           {% if cov.full %}
             <p>Your connected Apify accounts can cover the full Sweep.</p>
-          {% else %}
+          {% elif cov.available_usd < plan.total %}
             <p><b>Your connected Apify accounts don't currently have enough
-              available capacity for the complete Sweep.</b>
-              Your current credit safely covers {{ cov.placeable_units }} of
-              {{ cov.total_units }} paid searches{% if cov.placeable_units %},
-              an estimated ${{ '%.2f'|format(cov.partial_estimate) }}{% endif %}.
+              available credit for the estimated cost of the complete
+              Sweep.</b>
+              Your current accounts can safely cover {{ cov.placeable_units }}
+              of {{ cov.total_units }} paid searches{% if cov.placeable_units %},
+              estimated at ${{ '%.2f'|format(cov.partial_estimate) }}{% endif %}.
               Add another Apify key for the full Sweep{% if cov.placeable_units %},
-              or run the safely covered portion{% endif %}.</p>
-            <p class="muted">Each search needs its whole safety allowance on
-              one account, so credit spread thinly across several accounts can
-              cover less than its total suggests.</p>
+              or run the covered portion{% endif %}.</p>
+          {% else %}
+            {# The estimate fits, the plan does not: placement is what
+               decides, and its reason (every search must fit whole on one
+               account, at its provider's worst case) is not a number to
+               show. Neutral, and never a full Run. #}
+            <p><b>Your current Apify accounts don't have enough available
+              provider capacity to safely run every search in this
+              Sweep.</b>
+              They can safely cover {{ cov.placeable_units }} of
+              {{ cov.total_units }} paid searches{% if cov.placeable_units %},
+              estimated at ${{ '%.2f'|format(cov.partial_estimate) }}{% endif %}.
+              Add another Apify key for the complete Sweep{% if cov.placeable_units %},
+              or run the portion your current accounts can cover{% endif %}.</p>
+          {% endif %}
+          {% if not cov.full and cov.accounts > 1 %}
+            <p class="muted">Each search has to fit entirely within one
+              account's available credit, so credit spread thinly across
+              several accounts can cover fewer searches than its total
+              suggests.</p>
           {% endif %}
           <h3>Add another Apify key</h3>
           <form method="post" action="{{ url_for('key') }}">
@@ -291,10 +310,9 @@
           <p class="muted">Nothing in this sweep is metered, so there is no cap
             to set and no account to read.</p>
         {% else %}
-          <p class="muted">{% if public_mode %}Sweep stops at
-            ${{ '%.2f'|format(plan.spend_cap) }} whatever happens, even if
-            searches are left — so a wrong estimate cannot overspend your
-            account.{% else %}Hard stop at ${{ '%.2f'|format(plan.spend_cap) }}. The sweep
+          <p class="muted">{% if public_mode %}Billed to your own Apify
+            account. Sweep only starts the searches your connected accounts
+            can safely cover.{% else %}Hard stop at ${{ '%.2f'|format(plan.spend_cap) }}. The sweep
             is told to stop spending there and will, even if searches are left.{% endif %}</p>
         {% endif %}
         {# _run_lock already refuses a second concurrent sweep server-side;

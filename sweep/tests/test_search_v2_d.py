@@ -19,6 +19,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import tempfile
 import threading
@@ -66,6 +67,11 @@ def started(got):
 
 def done_lines(got):
     return [line for line in got.done if line.strip()]
+
+
+def text(page):
+    """A page as a visitor reads it: tags out, whitespace folded."""
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
 
 
 def refused(got):
@@ -604,7 +610,7 @@ class PublicMultiKey(PublicSockets):
             app, client = self.visitor(url)
             client.post("/key", data={"token": KEY_A})
             page = client.get("/confirm").get_data(as_text=True)
-            self.assertIn("safely covers 2 of", page)
+            self.assertIn("Searches covered 2 of 4 paid searches", text(page))
             self.assertIn("Run with my available credit anyway", page)
             # 7: no silent partial — refused, nothing created.
             refused_run = client.post("/run")
@@ -641,7 +647,7 @@ class PublicMultiKey(PublicSockets):
             app, client = self.visitor(url)
             client.post("/key", data={"token": "apify_api_VISITOR_CCCC_ESTIMATE_ONLY"})
             page = client.get("/confirm").get_data(as_text=True)
-            self.assertIn("safely covers 3 of", page)
+            self.assertIn("Searches covered 3 of 4 paid searches", text(page))
             self.assertEqual(client.post("/run").status_code, 400)
             self.assertEqual(store.all(), [])
 
@@ -668,8 +674,8 @@ class PublicMultiKey(PublicSockets):
             ids = [k["id"] for k in next(iter(app.session_store._rooms.values()))
                    ["data"]["byok_keys"]]
             client.post("/key/forget", data={"key": ids[1], "back": "confirm"})
-            self.assertIn("safely covers 2 of",
-                          client.get("/confirm").get_data(as_text=True))
+            self.assertIn("Searches covered 2 of 4 paid searches",
+                          text(client.get("/confirm").get_data(as_text=True)))
             owner = next(iter(queue._held))
             self.assertEqual(queue.held_tokens(owner), [KEY_A])
 
@@ -721,7 +727,7 @@ class PublicMultiKey(PublicSockets):
             client.post("/key", data={"token": KEY_A})
             client.post("/key", data={"token": KEY_B, "back": "confirm"})
             page = client.get("/confirm").get_data(as_text=True)
-            self.assertIn("safely covers 3 of", page)
+            self.assertIn("Searches covered 3 of 4 paid searches", text(page))
             self.assertIn("can use one Apify account", page)
             self.assertNotIn("Start it anyway", page)
             self.assertEqual(client.post("/run").status_code, 400)
@@ -902,6 +908,124 @@ class Rollback(unittest.TestCase):
         got = c2.c2_sweep(li(2), keywords=KW[:2], workers=2)  # C2, one account
         self.assertEqual(started(got), 2)
         self.assertNotIn("accounts", got.execution)
+
+
+# ===========================================================================
+# What a visitor is shown: the estimate, their credit, the searches covered —
+# never the generated hard cap, which the engine still enforces
+# ===========================================================================
+KEY_5, KEY_750, KEY_11 = ("apify_api_VISITOR_FIVE_DOLLARS_000",
+                          "apify_api_VISITOR_SEVEN_FIFTY_0000",
+                          "apify_api_VISITOR_ELEVEN_DOLLARS_0")
+
+
+def c5_pool_plan():
+    """C5's plan shape as the worker's dry run gives it: 18 LinkedIn + 72
+    Indeed at depth 15 — $10.548 of ceilings, a $10.55 generated cap."""
+    return {"profile": "beta",
+            "sites": {"linkedin": [dict(SEARCH, location=f"L{i}") for i in range(18)],
+                      "indeed": [dict(SEARCH, location=f"I{i}") for i in range(72)]},
+            "max_results": {"linkedin": 15, "indeed": 15},
+            "charge_ceiling_usd": {"linkedin": "0.046", "indeed": "0.135"},
+            "free_sources": 5, "public_paid": "multi"}
+
+
+ESTIMATE = plan_mod.cost(c5_pool_plan(), config.SITE_RATES, config.SITE_RATE_BASIS)["total"]
+NEVER_SHOWN = ("Safety cap", "10.55", "Sweep stops at", "whatever happens", "bounded",
+               "ceiling", "exposure")
+
+
+class PublicMoney(PublicSockets):
+
+    def visitor(self, url, credit):
+        CREDIT.update({KEY_5: 5.0, KEY_750: 7.50, KEY_11: 11.0})
+        self.addCleanup(lambda: [CREDIT.pop(k, None) for k in (KEY_5, KEY_750, KEY_11)])
+        app = render_app(url, read_account=account_reader(lambda t: (CREDIT[t], None)))
+        client = reviewed(app, "beta_user")
+        plan = mock.patch.object(worker_client, "plan", lambda *a, **kw: c5_pool_plan())
+        plan.start()
+        self.addCleanup(plan.stop)
+        client.post("/key", data={"token": credit})
+        return app, client
+
+    def profile_of(self, store):
+        run = store.all()[-1]
+        with open(os.path.join(store.dir(run["run_id"]), "profile.py"),
+                  encoding="utf-8") as fh:
+            return fh.read()
+
+    def assert_no_cap(self, page):
+        for words in NEVER_SHOWN:
+            self.assertNotIn(words, page, words)
+
+    def test_1_to_5_the_estimate_credit_and_coverage_never_the_cap(self):
+        with recording_worker() as (url, store, queue, spawned):
+            app, client = self.visitor(url, KEY_5)
+            page = text(client.get("/confirm").get_data(as_text=True))
+            self.assertEqual(ESTIMATE, 6.966)
+            self.assertIn(f"Estimated cost ${ESTIMATE:.2f}", page)
+            self.assertIn("Available Apify credit $4.99 across 1 account", page)
+            self.assertIn("Searches covered 48 of 90 paid searches", page)
+            self.assertIn("enough available credit for the estimated cost of the "
+                          "complete Sweep", page)
+            self.assertIn("Add another Apify key", page)
+            self.assertIn("Run with my available credit anyway", page)
+            self.assert_no_cap(page)
+
+    def test_6_7_the_estimate_fits_but_the_plan_does_not(self):
+        """$7.49 usable is more than the $6.97 estimate; the plan's 90 searches
+        still do not all place (67 do). Neutral copy, no cap figure, and no
+        full Run — only the explicit partial choice."""
+        with recording_worker() as (url, store, queue, spawned):
+            app, client = self.visitor(url, KEY_750)
+            raw = client.get("/confirm").get_data(as_text=True)
+            page = text(raw)
+            self.assertIn("Searches covered 67 of 90 paid searches", page)
+            self.assertIn("don't have enough available provider capacity to safely "
+                          "run every search in this Sweep", page)
+            self.assertNotIn("for the estimated cost", page)
+            self.assertIn(':disabled="sent || !ack"', raw)
+            self.assert_no_cap(page)
+            self.assertEqual(client.post("/run").status_code, 400)
+            self.assertEqual((store.all(), spawned), ([], []))
+            # 8: the ticked box is the partial setting; the engine runs the prefix.
+            self.assertEqual(client.post("/run", data={"over_cap_ack": "yes"}).status_code,
+                             302)
+            self.assertIn('"allow_partial_paid_sweep": True', self.profile_of(store))
+
+    def test_9_a_funded_run_still_carries_the_cap_to_the_engine(self):
+        """Hidden from the page, not from the engine: the profile the worker
+        runs still has max_spend_usd = the generated $10.55."""
+        with recording_worker() as (url, store, queue, spawned):
+            app, client = self.visitor(url, KEY_11)
+            page = text(client.get("/confirm").get_data(as_text=True))
+            self.assertIn("can cover the full Sweep", page)
+            self.assert_no_cap(page)
+            self.assertEqual(client.post("/run").status_code, 302)
+            source = self.profile_of(store)
+            self.assertIn('"max_spend_usd": 10.55', source)
+            self.assertNotIn('"allow_partial_paid_sweep": True', source)
+            self.assertEqual(spawned, [[KEY_11]])
+
+    def test_the_running_page_says_the_estimate_and_how_much_of_the_plan_runs(self):
+        with recording_worker() as (url, store, queue, spawned):
+            app, client = self.visitor(url, KEY_5)
+            client.get("/confirm")
+            client.post("/run", data={"over_cap_ack": "yes"})
+            page = text(client.get("/running").get_data(as_text=True))
+            self.assertIn(f"Estimated cost ${ESTIMATE:.2f}", page)
+            self.assert_no_cap(page)
+            run_id = store.all()[-1]["run_id"]
+            with open(os.path.join(store.output_dir(run_id), scraper.AUTH_RECORD), "w",
+                      encoding="utf-8") as fh:
+                json.dump({"outcome": "partial", "placeable_paid_units": 48,
+                           "total_planned_paid_units": 90, "partial_estimate_usd": 3.192,
+                           "skipped_insufficient_capacity": 42,
+                           "total_planned_bounded_exposure_usd": "10.548"}, fh)
+            page = text(client.get("/running").get_data(as_text=True))
+            self.assertIn("Running the 48 of 90 paid searches your Apify credit covers, "
+                          "estimated at $3.19.", page)
+            self.assert_no_cap(page)
 
 
 class States(unittest.TestCase):

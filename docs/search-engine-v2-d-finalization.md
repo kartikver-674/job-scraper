@@ -162,6 +162,21 @@ estimate (mutation A) or summed balances (mutation B). Every start still needs
 its full ceiling in the global PaidExposure **and** its own account's, plus the
 account's memory and a run slot — C2/C4.5 unchanged.
 
+**What a visitor is shown** (VERIFIED, `PublicMoney` tests): the estimated
+cost, their available Apify credit across N accounts, and *searches covered X
+of N* — the allocator's exact count, never credit ÷ estimate. The generated
+hard cap is **not** shown publicly (no "Safety cap" row, no "Sweep stops at
+$X"): it holds every search's provider ceiling, so it reads far above what a
+sweep usually costs. It is still computed, written into the profile as
+`max_spend_usd` and enforced by the engine, and the bounded-exposure fields stay
+in telemetry and the authorization record. When the full plan does not place,
+Confirm says either that the accounts lack credit for the estimated cost, or —
+when the estimate fits but placement does not — that they lack the provider
+capacity to safely run every search; either way no full Run, and "Run with my
+available credit anyway" for the covered part. The running page shows the
+estimate and, for a partial run, "Running X of N paid searches your Apify
+credit covers". The console keeps its "Hard stop at $X".
+
 Searches a partial sweep leaves out are `skipped_insufficient_capacity` (or
 `skipped_budget` when the sweep's own cap is what ends the prefix) — never
 `failed`, never written to `.done_combos`. So a **same-day rerun** on more

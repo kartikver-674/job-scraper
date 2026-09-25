@@ -155,6 +155,24 @@
          signed cookie rather than in this process. No duration figure — it
          is titles x locations x depth and nobody has measured it per sweep. #}
       {% if not free_only %}
+      {# What this sweep is expected to cost — the estimate, never the
+         generated hard cap — and, when the visitor chose to run the part
+         their credit covers, how much of the plan that is (the engine's own
+         authorization record). #}
+      <p class="muted" x-show="!(p.authorization && p.authorization.outcome === 'partial')"
+         {% if (progress.authorization or {}).outcome == 'partial' %}style="display:none"{% endif %}>
+        Estimated cost ${{ '%.2f'|format(plan.total) }}.</p>
+      <p class="muted" x-show="p.authorization && p.authorization.outcome === 'partial'" x-cloak
+         x-text="p.authorization ? 'Running the ' + p.authorization.placeable_paid_units
+                 + ' of ' + p.authorization.total_planned_paid_units
+                 + ' paid searches your Apify credit covers, estimated at $'
+                 + Number(p.authorization.partial_estimate_usd).toFixed(2) + '.' : ''"
+         {% if (progress.authorization or {}).outcome != 'partial' %}style="display:none"{% endif %}>{%
+        if (progress.authorization or {}).outcome == 'partial' %}Running the {{
+        progress.authorization.placeable_paid_units }} of {{
+        progress.authorization.total_planned_paid_units }} paid searches your
+        Apify credit covers, estimated at ${{ '%.2f'|format(
+        progress.authorization.partial_estimate_usd|float) }}.{% endif %}</p>
       <p class="muted" x-show="p.state === 'running' || p.queued" x-cloak>
         This can take a few minutes to a few tens of minutes, depending on how
         wide your search is. <b>You can close this tab</b> — Sweep keeps
