@@ -1,0 +1,375 @@
+{
+ "cost": {
+  "golden_ada_india": {
+   "cost": {
+    "profile": "golden_ada_india",
+    "lines": [
+     {
+      "site": "linkedin",
+      "searches": 60,
+      "results": 15,
+      "rate": 0.026999999999999996,
+      "subtotal": 1.62,
+      "free": false,
+      "ceiling": "0.046"
+     },
+     {
+      "site": "indeed",
+      "searches": 60,
+      "results": 15,
+      "rate": 0.09,
+      "subtotal": 5.4,
+      "free": false,
+      "ceiling": "0.135"
+     }
+    ],
+    "total": 7.02,
+    "total_searches": 120,
+    "free_sources": 133,
+    "bounded_exposure": "10.860",
+    "unbounded_estimate": 0,
+    "unbounded_searches": 0
+   },
+   "spend_cap": 10.86
+  },
+  "golden_ada_india_naukri": {
+   "cost": {
+    "profile": "golden_ada_india_naukri",
+    "lines": [
+     {
+      "site": "linkedin",
+      "searches": 60,
+      "results": 15,
+      "rate": 0.026999999999999996,
+      "subtotal": 1.62,
+      "free": false,
+      "ceiling": "0.046"
+     },
+     {
+      "site": "indeed",
+      "searches": 60,
+      "results": 15,
+      "rate": 0.09,
+      "subtotal": 5.4,
+      "free": false,
+      "ceiling": "0.135"
+     },
+     {
+      "site": "naukri",
+      "searches": 20,
+      "results": 50,
+      "rate": 0.5,
+      "subtotal": 10.0,
+      "free": false,
+      "ceiling": null
+     }
+    ],
+    "total": 17.02,
+    "total_searches": 140,
+    "free_sources": 133,
+    "bounded_exposure": "10.860",
+    "unbounded_estimate": 10.0,
+    "unbounded_searches": 20
+   },
+   "spend_cap": 23.36
+  }
+ },
+ "cases": {
+  "full": {
+   "coverage": {
+    "total_units": 120,
+    "placeable_units": 120,
+    "full": true,
+    "accounts": 1,
+    "available_usd": 50.0,
+    "bounded_exposure_usd": 10.86,
+    "prefix_sites": [
+     [
+      "linkedin",
+      60
+     ],
+     [
+      "indeed",
+      60
+     ]
+    ]
+   },
+   "engine": {
+    "authorization": {
+     "full_plan_requested": true,
+     "partial_authorized_by_user": false,
+     "full_plan_placeable": true,
+     "outcome": "full",
+     "stop_reason": null,
+     "total_planned_paid_units": 120,
+     "placeable_paid_units": 120,
+     "skipped_insufficient_capacity": 0,
+     "skipped_budget": 0,
+     "total_planned_bounded_exposure_usd": "10.860",
+     "placeable_bounded_exposure_usd": "10.860",
+     "full_estimate_usd": 7.02,
+     "partial_estimate_usd": 7.02,
+     "budget_usd": null
+    },
+    "runnable_is_plan_prefix": true,
+    "runnable_sites": [
+     [
+      "linkedin",
+      60
+     ],
+     [
+      "indeed",
+      60
+     ]
+    ]
+   }
+  },
+  "partial_not_chosen": {
+   "coverage": {
+    "total_units": 120,
+    "placeable_units": 21,
+    "full": false,
+    "accounts": 1,
+    "available_usd": 1.0,
+    "bounded_exposure_usd": 10.86,
+    "prefix_sites": [
+     [
+      "linkedin",
+      21
+     ]
+    ]
+   },
+   "engine": {
+    "authorization": {
+     "full_plan_requested": true,
+     "partial_authorized_by_user": false,
+     "full_plan_placeable": false,
+     "outcome": "refused",
+     "stop_reason": "insufficient_capacity",
+     "total_planned_paid_units": 120,
+     "placeable_paid_units": 21,
+     "skipped_insufficient_capacity": 120,
+     "skipped_budget": 0,
+     "total_planned_bounded_exposure_usd": "10.860",
+     "placeable_bounded_exposure_usd": "0.966",
+     "full_estimate_usd": 7.02,
+     "partial_estimate_usd": 0.567,
+     "budget_usd": null
+    },
+    "runnable_is_plan_prefix": true,
+    "runnable_sites": []
+   }
+  },
+  "partial_chosen": {
+   "coverage": {
+    "total_units": 120,
+    "placeable_units": 21,
+    "full": false,
+    "accounts": 1,
+    "available_usd": 1.0,
+    "bounded_exposure_usd": 10.86,
+    "prefix_sites": [
+     [
+      "linkedin",
+      21
+     ]
+    ]
+   },
+   "engine": {
+    "authorization": {
+     "full_plan_requested": false,
+     "partial_authorized_by_user": true,
+     "full_plan_placeable": false,
+     "outcome": "partial",
+     "stop_reason": "insufficient_capacity",
+     "total_planned_paid_units": 120,
+     "placeable_paid_units": 21,
+     "skipped_insufficient_capacity": 99,
+     "skipped_budget": 0,
+     "total_planned_bounded_exposure_usd": "10.860",
+     "placeable_bounded_exposure_usd": "0.966",
+     "full_estimate_usd": 7.02,
+     "partial_estimate_usd": 0.567,
+     "budget_usd": null
+    },
+    "runnable_is_plan_prefix": true,
+    "runnable_sites": [
+     [
+      "linkedin",
+      21
+     ]
+    ]
+   }
+  },
+  "two_accounts_partial": {
+   "coverage": {
+    "total_units": 120,
+    "placeable_units": 20,
+    "full": false,
+    "accounts": 2,
+    "available_usd": 1.0,
+    "bounded_exposure_usd": 10.86,
+    "prefix_sites": [
+     [
+      "linkedin",
+      20
+     ]
+    ]
+   },
+   "engine": {
+    "authorization": {
+     "full_plan_requested": false,
+     "partial_authorized_by_user": true,
+     "full_plan_placeable": false,
+     "outcome": "partial",
+     "stop_reason": "insufficient_capacity",
+     "total_planned_paid_units": 120,
+     "placeable_paid_units": 20,
+     "skipped_insufficient_capacity": 100,
+     "skipped_budget": 0,
+     "total_planned_bounded_exposure_usd": "10.860",
+     "placeable_bounded_exposure_usd": "0.920",
+     "full_estimate_usd": 7.02,
+     "partial_estimate_usd": 0.54,
+     "budget_usd": null
+    },
+    "runnable_is_plan_prefix": true,
+    "runnable_sites": [
+     [
+      "linkedin",
+      20
+     ]
+    ]
+   }
+  },
+  "nothing_placeable": {
+   "coverage": {
+    "total_units": 120,
+    "placeable_units": 0,
+    "full": false,
+    "accounts": 1,
+    "available_usd": 0.04,
+    "bounded_exposure_usd": 10.86,
+    "prefix_sites": []
+   },
+   "engine": {
+    "authorization": {
+     "full_plan_requested": false,
+     "partial_authorized_by_user": true,
+     "full_plan_placeable": false,
+     "outcome": "refused",
+     "stop_reason": "insufficient_capacity",
+     "total_planned_paid_units": 120,
+     "placeable_paid_units": 0,
+     "skipped_insufficient_capacity": 120,
+     "skipped_budget": 0,
+     "total_planned_bounded_exposure_usd": "10.860",
+     "placeable_bounded_exposure_usd": "0",
+     "full_estimate_usd": 7.02,
+     "partial_estimate_usd": 0,
+     "budget_usd": null
+    },
+    "runnable_is_plan_prefix": true,
+    "runnable_sites": []
+   }
+  },
+  "budget_bound": {
+   "coverage": {
+    "total_units": 120,
+    "placeable_units": 61,
+    "full": false,
+    "accounts": 1,
+    "available_usd": 50.0,
+    "bounded_exposure_usd": 10.86,
+    "prefix_sites": [
+     [
+      "linkedin",
+      60
+     ],
+     [
+      "indeed",
+      1
+     ]
+    ]
+   },
+   "engine": {
+    "authorization": {
+     "full_plan_requested": false,
+     "partial_authorized_by_user": true,
+     "full_plan_placeable": false,
+     "outcome": "partial",
+     "stop_reason": "budget",
+     "total_planned_paid_units": 120,
+     "placeable_paid_units": 61,
+     "skipped_insufficient_capacity": 0,
+     "skipped_budget": 59,
+     "total_planned_bounded_exposure_usd": "10.860",
+     "placeable_bounded_exposure_usd": "2.895",
+     "full_estimate_usd": 7.02,
+     "partial_estimate_usd": 1.71,
+     "budget_usd": "3.00"
+    },
+    "runnable_is_plan_prefix": true,
+    "runnable_sites": [
+     [
+      "linkedin",
+      60
+     ],
+     [
+      "indeed",
+      1
+     ]
+    ]
+   }
+  },
+  "unbounded_naukri": {
+   "coverage": {
+    "total_units": 140,
+    "placeable_units": 120,
+    "full": false,
+    "accounts": 1,
+    "available_usd": 50.0,
+    "bounded_exposure_usd": 10.86,
+    "prefix_sites": [
+     [
+      "linkedin",
+      60
+     ],
+     [
+      "indeed",
+      60
+     ]
+    ]
+   },
+   "engine": {
+    "authorization": {
+     "full_plan_requested": false,
+     "partial_authorized_by_user": true,
+     "full_plan_placeable": false,
+     "outcome": "partial",
+     "stop_reason": "unbounded",
+     "total_planned_paid_units": 140,
+     "placeable_paid_units": 120,
+     "skipped_insufficient_capacity": 20,
+     "skipped_budget": 0,
+     "total_planned_bounded_exposure_usd": "10.860",
+     "placeable_bounded_exposure_usd": "10.860",
+     "full_estimate_usd": 17.02,
+     "partial_estimate_usd": 7.02,
+     "budget_usd": null
+    },
+    "runnable_is_plan_prefix": true,
+    "runnable_sites": [
+     [
+      "linkedin",
+      60
+     ],
+     [
+      "indeed",
+      60
+     ]
+    ]
+   }
+  }
+ }
+}

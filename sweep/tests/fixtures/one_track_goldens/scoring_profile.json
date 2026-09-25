@@ -1,0 +1,29 @@
+{
+ "_about": "SYNTHETIC, hand-written for the one-track scoring goldens. Not a real person. Shaped like a derivation: every spelling of one concept carries that concept's weight, as reweight_from_evidence writes it (auto-apply/make_profile.py:342-346), so v1 (per term) and v2 (per concept) scoring are both exercised. Domain halves are filled, as the Gemini engine fills them, so the full-stack bonus path is frozen too.",
+ "derived": {
+  "candidate_name": "Golden Fixture",
+  "field_summary": "Synthetic MERN profile used only by the one-track golden tests.",
+  "years_experience": 3,
+  "experience_months": 40,
+  "role_keywords": ["react developer", "node.js developer"],
+  "skill_weights": [
+   {"term": "react", "weight": 5},
+   {"term": "react.js", "weight": 5},
+   {"term": "reactjs", "weight": 5},
+   {"term": "react native", "weight": 4},
+   {"term": "node.js", "weight": 4},
+   {"term": "node", "weight": 4},
+   {"term": "mongodb", "weight": 3},
+   {"term": "typescript", "weight": 3},
+   {"term": "rest api", "weight": 2}
+  ],
+  "penalty_terms": [{"term": "salesforce", "weight": 8}],
+  "domain_half_a": ["react"],
+  "domain_half_b": ["node.js", "mongodb"],
+  "domain_title_terms": ["mern"],
+  "domain_bonus": 4,
+  "title_hints": ["react", "node"],
+  "title_exclude": ["data engineer"],
+  "notes": "Clearly synthetic fixture for the Multi-Track Phase 0a goldens."
+ }
+}

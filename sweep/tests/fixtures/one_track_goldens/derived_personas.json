@@ -1,0 +1,1550 @@
+{
+ "_about": "SYNTHETIC. Current local-engine (v2) derivations of three bench personas (bench/people.py: ada = control, chen = 11 years, bhaskar = fresher), replayed offline from the committed model captures bench/results/qwen3_8b.json and bench/results/dates-qwen3_8b.json with the frozen corpora; no model or network call. INPUTS to the one-track goldens: frozen here so a derivation change cannot move a render/plan golden.",
+ "personas": {
+  "ada-plain": {
+   "candidate_name": "Ada Okonkwo",
+   "canonical_guard_record": null,
+   "domain_bonus": 0,
+   "domain_half_a": [],
+   "domain_half_b": [],
+   "domain_title_terms": [],
+   "experience_months": 67,
+   "field_summary": "software engineering — 5 years of relevant experience, 8 skills read from the résumé.",
+   "hard_drop_record": null,
+   "hard_drop_restored": [],
+   "local_decision": "corrected",
+   "local_from_orphans": [
+    "node.js developer"
+   ],
+   "local_ranking": [
+    [
+     "backend engineer",
+     1,
+     "held: a title from this person's own employment"
+    ],
+    [
+     "back end developer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "data scientist",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "mobile developer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "node.js developer",
+     2,
+     "anchored: recovered from 'redis' (evidence 1.31)"
+    ],
+    [
+     "full stack ai engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "gen ai engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "professional services consultant",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "ai ml engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     ".net developer ai-assisted development",
+     3,
+     "corpus: ranked by market lift"
+    ]
+   ],
+   "notes": "Generated locally — no API key, no data left this machine. Target field read as 'software engineering'; years_experience COMPUTED from the extracted employment dates, not asked for. years_experience: the model said 4, the dates say 5 — summed from the extracted date ranges. Added 1 keyword(s) for a specialist skill nothing else was searching for: node.js developer. The two domain halves, the title-alone promoters and title_exclude are empty on purpose — see auto-apply/local_profile.py.",
+   "orphan_guard_record": null,
+   "penalty_terms": [],
+   "role_evidence": null,
+   "role_gate_rejected": [],
+   "role_keywords": [
+    "backend engineer",
+    "back end developer",
+    "data scientist",
+    "mobile developer",
+    "node.js developer",
+    "full stack ai engineer",
+    "gen ai engineer",
+    "professional services consultant",
+    "ai ml engineer",
+    ".net developer ai-assisted development"
+   ],
+   "role_signals": {
+    "employment_titles": [
+     "Senior Backend Engineer",
+     "Backend Engineer"
+    ],
+    "grounded": {
+     "employment_titles": true,
+     "target_field": false,
+     "titles": true
+    },
+    "target_field": "software engineering",
+    "titles": [
+     "Senior Backend Engineer",
+     "Backend Engineer"
+    ]
+   },
+   "skill_importance": [
+    {
+     "display": "celery",
+     "evidence_strength": "INCIDENTAL_USE",
+     "id": "celery",
+     "independent_entries": 1,
+     "market": {
+      "considered": [
+       "celery"
+      ],
+      "hits": null,
+      "id": "celery",
+      "key": null,
+      "seen": null,
+      "separation": null
+     },
+     "market_separation": null,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "b43f844783e5",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        150,
+        156
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "work",
+       "sha": "54e40863c8aa",
+       "shape": "INCIDENTAL_USE",
+       "span": [
+        502,
+        508
+       ],
+       "status": "USED"
+      }
+     ],
+     "sections": [
+      "skills",
+      "work"
+     ],
+     "status_counts": {
+      "MENTIONED": 1,
+      "USED": 1
+     },
+     "tier": "CORE",
+     "weight": 5,
+     "why": "used at Senior Backend Engineer Fettle Health Manchester, UK Apr 2023"
+    },
+    {
+     "display": "django",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "django",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "django"
+      ],
+      "hits": null,
+      "id": "django",
+      "key": null,
+      "seen": null,
+      "separation": null
+     },
+     "market_separation": null,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "b43f844783e5",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        103,
+        109
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "work",
+       "sha": "d485cd671ee0",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        257,
+        263
+       ],
+       "status": "USED"
+      }
+     ],
+     "sections": [
+      "skills",
+      "work"
+     ],
+     "status_counts": {
+      "MENTIONED": 1,
+      "USED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 3,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "Docker",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "docker",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "docker"
+      ],
+      "hits": 1637,
+      "id": "docker",
+      "key": "docker",
+      "seen": 11451,
+      "separation": 2
+     },
+     "market_separation": 2,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "b43f844783e5",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        130,
+        136
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "GraphQL",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "graphql",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "graphql"
+      ],
+      "hits": 53,
+      "id": "graphql",
+      "key": "graphql",
+      "seen": 1458,
+      "separation": 4
+     },
+     "market_separation": 4,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "b43f844783e5",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        158,
+        165
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "work",
+       "sha": "d485cd671ee0",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        299,
+        306
+       ],
+       "status": "USED"
+      }
+     ],
+     "sections": [
+      "skills",
+      "work"
+     ],
+     "status_counts": {
+      "MENTIONED": 1,
+      "USED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 3,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "Kubernetes",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "kubernetes",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "kubernetes",
+       "k8s"
+      ],
+      "hits": 385,
+      "id": "kubernetes",
+      "key": "kubernetes",
+      "seen": 1464,
+      "separation": 1
+     },
+     "market_separation": 1,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "b43f844783e5",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        138,
+        148
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "PostgreSQL",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "postgresql",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "postgresql",
+       "postgres",
+       "psql",
+       "post gres"
+      ],
+      "hits": 704,
+      "id": "postgresql",
+      "key": "postgresql",
+      "seen": 6314,
+      "separation": 2
+     },
+     "market_separation": 2,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "b43f844783e5",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        111,
+        121
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "Python",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "python",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "python",
+       "python3"
+      ],
+      "hits": 5153,
+      "id": "python",
+      "key": "python",
+      "seen": 14298,
+      "separation": 1
+     },
+     "market_separation": 1,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "b43f844783e5",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        95,
+        101
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "Redis",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "redis",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "redis"
+      ],
+      "hits": 691,
+      "id": "redis",
+      "key": "redis",
+      "seen": 11588,
+      "separation": 3
+     },
+     "market_separation": 3,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "b43f844783e5",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        123,
+        128
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 3,
+     "why": "listed under skills only"
+    }
+   ],
+   "skill_weights": [
+    {
+     "term": "celery",
+     "weight": 5
+    },
+    {
+     "term": "django",
+     "weight": 3
+    },
+    {
+     "term": "docker",
+     "weight": 2
+    },
+    {
+     "term": "graphql",
+     "weight": 3
+    },
+    {
+     "term": "kubernetes",
+     "weight": 2
+    },
+    {
+     "term": "postgresql",
+     "weight": 2
+    },
+    {
+     "term": "python",
+     "weight": 2
+    },
+    {
+     "term": "redis",
+     "weight": 3
+    }
+   ],
+   "skills_split": [],
+   "title_exclude": [],
+   "title_hints": [
+    "stack ai engineer",
+    "full stack ai engineer",
+    "consultant ai",
+    "gen ai engineer",
+    "services consultant",
+    "professional services consultant",
+    "associate ai ml",
+    "mobile developer",
+    "engineer java",
+    "data scientist",
+    "engineer ui",
+    "back end developer",
+    "ai ml engineer",
+    "developer ai",
+    ".net developer ai-assisted development",
+    "stack engineer",
+    "full stack engineer",
+    "associate engineer",
+    "software engineer ii",
+    "software engineering",
+    "software engineering professional",
+    "fullstack developer",
+    "python developer",
+    "software engineer -python developer",
+    "software engineer python",
+    "applied ai",
+    "applied ai architect, education",
+    "engineer applied",
+    "engineer ai",
+    "ai agentic",
+    "ai agentic prompt engineer",
+    "application developer",
+    "mobile application developer",
+    "machine learning",
+    "machine learning engineer",
+    "java react",
+    "python react",
+    "systems engineer",
+    "business systems engineer",
+    "platform engineer"
+   ],
+   "unknown_family_record": null,
+   "years_experience": 5
+  },
+  "bhaskar-plain": {
+   "candidate_name": "Bhaskar Nair",
+   "canonical_guard_record": null,
+   "domain_bonus": 0,
+   "domain_half_a": [],
+   "domain_half_b": [],
+   "domain_title_terms": [],
+   "experience_months": 0,
+   "field_summary": "software engineering — no completed professional years yet, 6 skills read from the résumé.",
+   "hard_drop_record": null,
+   "hard_drop_restored": [],
+   "local_decision": "accept",
+   "local_from_orphans": [
+    "software engineer -python developer",
+    "flutter developer"
+   ],
+   "local_ranking": [
+    [
+     "full stack web developer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "flutter developer",
+     2,
+     "anchored: recovered from 'git' (evidence 1.85)"
+    ],
+    [
+     "associate engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "ai solutions engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "software engineer -python developer",
+     2,
+     "anchored: recovered from 'git' (evidence 2.58)"
+    ],
+    [
+     "associate ai data engineer",
+     3,
+     "corpus: ranked by market lift"
+    ]
+   ],
+   "notes": "Generated locally — no API key, no data left this machine. Target field read as 'software engineering'; years_experience COMPUTED from the extracted employment dates, not asked for. Added 2 keyword(s) for a specialist skill nothing else was searching for: software engineer -python developer, flutter developer. The two domain halves, the title-alone promoters and title_exclude are empty on purpose — see auto-apply/local_profile.py.",
+   "orphan_guard_record": null,
+   "penalty_terms": [],
+   "role_evidence": null,
+   "role_gate_rejected": [],
+   "role_keywords": [
+    "full stack web developer",
+    "flutter developer",
+    "associate engineer",
+    "ai solutions engineer",
+    "software engineer -python developer",
+    "associate ai data engineer"
+   ],
+   "role_signals": {
+    "employment_titles": [
+     "Software Engineering Intern"
+    ],
+    "grounded": {
+     "employment_titles": true,
+     "target_field": false,
+     "titles": true
+    },
+    "target_field": "software engineering",
+    "titles": []
+   },
+   "skill_importance": [
+    {
+     "display": "CSS",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "css",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "css",
+       "css3"
+      ],
+      "hits": 1340,
+      "id": "css",
+      "key": "css",
+      "seen": 11588,
+      "separation": 2
+     },
+     "market_separation": 2,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "f8911c0e1d79",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        169,
+        172
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "Git",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "git",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "git"
+      ],
+      "hits": 957,
+      "id": "git",
+      "key": "git",
+      "seen": 8290,
+      "separation": 2
+     },
+     "market_separation": 2,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "f8911c0e1d79",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        158,
+        161
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "HTML",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "html",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "html",
+       "html5"
+      ],
+      "hits": 1138,
+      "id": "html",
+      "key": "html",
+      "seen": 11588,
+      "separation": 3
+     },
+     "market_separation": 3,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "f8911c0e1d79",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        163,
+        167
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 3,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "Java",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "java",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "java"
+      ],
+      "hits": 1023,
+      "id": "java",
+      "key": "java",
+      "seen": 4840,
+      "separation": 1
+     },
+     "market_separation": 1,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "f8911c0e1d79",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        132,
+        136
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "MySQL",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "mysql",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "mysql",
+       "my sql"
+      ],
+      "hits": 1313,
+      "id": "mysql",
+      "key": "mysql",
+      "seen": 16444,
+      "separation": 3
+     },
+     "market_separation": 3,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "f8911c0e1d79",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        151,
+        156
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "project",
+       "sha": "5cd33c0a9e0a",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        447,
+        452
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "project",
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 2
+     },
+     "tier": "SUPPORTING",
+     "weight": 3,
+     "why": "named in a project's stack"
+    },
+    {
+     "display": "spring boot",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "spring boot",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "spring boot"
+      ],
+      "hits": 24,
+      "id": "spring boot",
+      "key": "spring boot",
+      "seen": 2163,
+      "separation": 4
+     },
+     "market_separation": 4,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "f8911c0e1d79",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        138,
+        149
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "project",
+       "sha": "5cd33c0a9e0a",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        434,
+        445
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "project",
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 2
+     },
+     "tier": "SUPPORTING",
+     "weight": 3,
+     "why": "named in a project's stack"
+    }
+   ],
+   "skill_weights": [
+    {
+     "term": "css",
+     "weight": 2
+    },
+    {
+     "term": "git",
+     "weight": 2
+    },
+    {
+     "term": "html",
+     "weight": 3
+    },
+    {
+     "term": "java",
+     "weight": 2
+    },
+    {
+     "term": "mysql",
+     "weight": 3
+    },
+    {
+     "term": "spring boot",
+     "weight": 3
+    }
+   ],
+   "skills_split": [],
+   "title_exclude": [],
+   "title_hints": [
+    "java stack",
+    "software engineer grad",
+    "software developer stack",
+    "ai data",
+    "associate ai data engineer",
+    "engineer software",
+    "stack web developer",
+    "full stack web developer",
+    "ai solutions",
+    "ai solutions engineer",
+    "engineer java",
+    "engineer node.js",
+    "stack developer ai",
+    "engineer ii stack",
+    "associate engineer",
+    "development engineer ii",
+    "software development engineer ii",
+    "stack engineer",
+    "full stack engineer",
+    "application developer",
+    "mobile application developer",
+    "applied ai",
+    "applied ai architect, education",
+    "back end developer",
+    "backend developer",
+    "f d",
+    "sf data cloud consultant",
+    "m f",
+    "aem full stack developer",
+    "software engineer ii",
+    "associate software",
+    "associate software engineer",
+    "associate java",
+    "associate java developer",
+    "java react",
+    "m d",
+    "aem developer",
+    "on rails",
+    "ruby on rails developer",
+    "ruby on"
+   ],
+   "unknown_family_record": null,
+   "years_experience": 0
+  },
+  "chen-plain": {
+   "candidate_name": "Chen Wei-Lin",
+   "canonical_guard_record": null,
+   "domain_bonus": 0,
+   "domain_half_a": [],
+   "domain_half_b": [],
+   "domain_title_terms": [],
+   "experience_months": 135,
+   "field_summary": "software engineering — 11 years of relevant experience, 9 skills read from the résumé.",
+   "hard_drop_record": null,
+   "hard_drop_restored": [],
+   "local_decision": "corrected",
+   "local_from_orphans": [],
+   "local_ranking": [
+    [
+     "platform engineer",
+     1,
+     "held: a title from this person's own employment"
+    ],
+    [
+     "full stack engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "data scientist",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "artificial intelligence engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "site reliability engineer",
+     1,
+     "held: a title from this person's own employment"
+    ],
+    [
+     "infrastructure engineer",
+     1,
+     "held: a title from this person's own employment"
+    ],
+    [
+     "full stack ai engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "gen ai engineer",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "software engineer-platform engineering (l3)",
+     3,
+     "corpus: ranked by market lift"
+    ],
+    [
+     "ai ml engineer",
+     3,
+     "corpus: ranked by market lift"
+    ]
+   ],
+   "notes": "Generated locally — no API key, no data left this machine. Target field read as 'software engineering'; years_experience COMPUTED from the extracted employment dates, not asked for. years_experience: the model said 7, the dates say 11 — summed from the extracted date ranges. The two domain halves, the title-alone promoters and title_exclude are empty on purpose — see auto-apply/local_profile.py.",
+   "orphan_guard_record": null,
+   "penalty_terms": [],
+   "role_evidence": null,
+   "role_gate_rejected": [],
+   "role_keywords": [
+    "platform engineer",
+    "full stack engineer",
+    "data scientist",
+    "artificial intelligence engineer",
+    "site reliability engineer",
+    "infrastructure engineer",
+    "full stack ai engineer",
+    "gen ai engineer",
+    "software engineer-platform engineering (l3)",
+    "ai ml engineer"
+   ],
+   "role_signals": {
+    "employment_titles": [
+     "Staff Platform Engineer",
+     "Senior Platform Engineer",
+     "Site Reliability Engineer",
+     "Infrastructure Engineer"
+    ],
+    "grounded": {
+     "employment_titles": true,
+     "target_field": false,
+     "titles": true
+    },
+    "target_field": "software engineering",
+    "titles": [
+     "Staff Platform Engineer",
+     "Senior Platform Engineer",
+     "Site Reliability Engineer",
+     "Infrastructure Engineer"
+    ]
+   },
+   "skill_importance": [
+    {
+     "display": "AWS",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "aws",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "aws",
+       "amazon web services"
+      ],
+      "hits": 729,
+      "id": "aws",
+      "key": "aws",
+      "seen": 3605,
+      "separation": 1
+     },
+     "market_separation": 1,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        119,
+        122
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "certification",
+       "sha": "b04b6f958237",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        940,
+        943
+       ],
+       "status": "LEARNING_OR_COURSEWORK"
+      },
+      {
+       "section": "certification",
+       "sha": "b04b6f958237",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        981,
+        984
+       ],
+       "status": "LEARNING_OR_COURSEWORK"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "LEARNING_OR_COURSEWORK": 2,
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "bazel",
+     "evidence_strength": "SUBSTANTIVE_USE",
+     "id": "bazel",
+     "independent_entries": 1,
+     "market": {
+      "considered": [
+       "bazel"
+      ],
+      "hits": 16,
+      "id": "bazel",
+      "key": "bazel",
+      "seen": 2132,
+      "separation": 5
+     },
+     "market_separation": 5,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        162,
+        167
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "work",
+       "sha": "2f0775b3b2ed",
+       "shape": "SUBSTANTIVE_USE",
+       "span": [
+        353,
+        358
+       ],
+       "status": "USED"
+      }
+     ],
+     "sections": [
+      "skills",
+      "work"
+     ],
+     "status_counts": {
+      "MENTIONED": 1,
+      "USED": 1
+     },
+     "tier": "CORE",
+     "weight": 5,
+     "why": "used at Staff Platform Engineer Meridian Pay Singapore Jun 2022"
+    },
+    {
+     "display": "envoy",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "envoy",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "envoy"
+      ],
+      "hits": null,
+      "id": "envoy",
+      "key": null,
+      "seen": null,
+      "separation": null
+     },
+     "market_separation": null,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        136,
+        141
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 3,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "go",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "go",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "go"
+      ],
+      "hits": null,
+      "id": "go",
+      "key": null,
+      "seen": null,
+      "separation": null
+     },
+     "market_separation": null,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        92,
+        94
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 3,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "kafka",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "kafka",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "kafka"
+      ],
+      "hits": 165,
+      "id": "kafka",
+      "key": "kafka",
+      "seen": 1447,
+      "separation": 2
+     },
+     "market_separation": 2,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        143,
+        148
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "work",
+       "sha": "59ca18d84da8",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        679,
+        684
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills",
+      "work"
+     ],
+     "status_counts": {
+      "MENTIONED": 2
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "Kubernetes",
+     "evidence_strength": "SUBSTANTIVE_USE",
+     "id": "kubernetes",
+     "independent_entries": 1,
+     "market": {
+      "considered": [
+       "kubernetes",
+       "k8s"
+      ],
+      "hits": 385,
+      "id": "kubernetes",
+      "key": "kubernetes",
+      "seen": 1464,
+      "separation": 1
+     },
+     "market_separation": 1,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        107,
+        117
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "work",
+       "sha": "3228f2dada7c",
+       "shape": "SUBSTANTIVE_USE",
+       "span": [
+        436,
+        446
+       ],
+       "status": "USED"
+      },
+      {
+       "section": "certification",
+       "sha": "b04b6f958237",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        898,
+        908
+       ],
+       "status": "LEARNING_OR_COURSEWORK"
+      }
+     ],
+     "sections": [
+      "skills",
+      "work"
+     ],
+     "status_counts": {
+      "LEARNING_OR_COURSEWORK": 1,
+      "MENTIONED": 1,
+      "USED": 1
+     },
+     "tier": "CORE",
+     "weight": 4,
+     "why": "used at Staff Platform Engineer Meridian Pay Singapore Jun 2022"
+    },
+    {
+     "display": "PostgreSQL",
+     "evidence_strength": "CLAIM_ONLY",
+     "id": "postgresql",
+     "independent_entries": 0,
+     "market": {
+      "considered": [
+       "postgresql",
+       "postgres",
+       "psql",
+       "post gres"
+      ],
+      "hits": 704,
+      "id": "postgresql",
+      "key": "postgresql",
+      "seen": 6314,
+      "separation": 2
+     },
+     "market_separation": 2,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        150,
+        160
+       ],
+       "status": "MENTIONED"
+      }
+     ],
+     "sections": [
+      "skills"
+     ],
+     "status_counts": {
+      "MENTIONED": 1
+     },
+     "tier": "SUPPORTING",
+     "weight": 2,
+     "why": "listed under skills only"
+    },
+    {
+     "display": "prometheus",
+     "evidence_strength": "SUBSTANTIVE_USE",
+     "id": "prometheus",
+     "independent_entries": 1,
+     "market": {
+      "considered": [
+       "prometheus"
+      ],
+      "hits": null,
+      "id": "prometheus",
+      "key": null,
+      "seen": null,
+      "separation": null
+     },
+     "market_separation": null,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        124,
+        134
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "work",
+       "sha": "16e98686702f",
+       "shape": "SUBSTANTIVE_USE",
+       "span": [
+        580,
+        590
+       ],
+       "status": "USED"
+      }
+     ],
+     "sections": [
+      "skills",
+      "work"
+     ],
+     "status_counts": {
+      "MENTIONED": 1,
+      "USED": 1
+     },
+     "tier": "CORE",
+     "weight": 5,
+     "why": "used at Staff Platform Engineer Meridian Pay Singapore Jun 2022"
+    },
+    {
+     "display": "terraform",
+     "evidence_strength": "SUBSTANTIVE_USE",
+     "id": "terraform",
+     "independent_entries": 1,
+     "market": {
+      "considered": [
+       "terraform"
+      ],
+      "hits": null,
+      "id": "terraform",
+      "key": null,
+      "seen": null,
+      "separation": null
+     },
+     "market_separation": null,
+     "occurrences": [
+      {
+       "section": "skills",
+       "sha": "9b340cba53f7",
+       "shape": "CLAIM_ONLY",
+       "span": [
+        96,
+        105
+       ],
+       "status": "MENTIONED"
+      },
+      {
+       "section": "work",
+       "sha": "2f0775b3b2ed",
+       "shape": "SUBSTANTIVE_USE",
+       "span": [
+        339,
+        348
+       ],
+       "status": "USED"
+      }
+     ],
+     "sections": [
+      "skills",
+      "work"
+     ],
+     "status_counts": {
+      "MENTIONED": 1,
+      "USED": 1
+     },
+     "tier": "CORE",
+     "weight": 5,
+     "why": "used at Staff Platform Engineer Meridian Pay Singapore Jun 2022"
+    }
+   ],
+   "skill_weights": [
+    {
+     "term": "aws",
+     "weight": 2
+    },
+    {
+     "term": "bazel",
+     "weight": 5
+    },
+    {
+     "term": "envoy",
+     "weight": 3
+    },
+    {
+     "term": "go",
+     "weight": 3
+    },
+    {
+     "term": "kafka",
+     "weight": 2
+    },
+    {
+     "term": "kubernetes",
+     "weight": 4
+    },
+    {
+     "term": "postgresql",
+     "weight": 2
+    },
+    {
+     "term": "prometheus",
+     "weight": 5
+    },
+    {
+     "term": "terraform",
+     "weight": 5
+    }
+   ],
+   "skills_split": [],
+   "title_exclude": [],
+   "title_hints": [
+    "stack ai engineer",
+    "full stack ai engineer",
+    "gen ai engineer",
+    "associate ai ml",
+    "engineer java",
+    "platform engineer",
+    "software engineer-platform engineering (l3)",
+    "java react",
+    "engineer fullstack",
+    "engineer ui",
+    "data scientist",
+    "artificial intelligence",
+    "artificial intelligence engineer",
+    "ai ml engineer",
+    "stack engineer",
+    "full stack engineer",
+    "application developer",
+    "mobile application developer",
+    "software engineer i",
+    "software engineer ii",
+    "software engineering",
+    "software engineering professional",
+    "engineer ii",
+    "machine learning",
+    "machine learning engineer",
+    "associate software",
+    "associate software engineer",
+    "engineer python",
+    "engineer cloud"
+   ],
+   "unknown_family_record": null,
+   "years_experience": 11
+  }
+ }
+}

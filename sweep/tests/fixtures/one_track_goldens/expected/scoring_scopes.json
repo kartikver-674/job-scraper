@@ -1,0 +1,442 @@
+{
+ "v1": {
+  "golden_scoring_remote": {
+   "stages": [
+    [
+     "observed_normalized",
+     18
+    ],
+    [
+     "post_hard_filter_and_score",
+     15
+    ],
+    [
+     "post_recency",
+     14
+    ],
+    [
+     "post_salary_reachability_visa_eor",
+     1
+    ],
+    [
+     "post_location_eligible",
+     1
+    ]
+   ],
+   "stats": {
+    "stale": 1,
+    "low_salary": 0,
+    "unreachable": 13,
+    "rescued": 0,
+    "no_visa": 0,
+    "no_eor": 0,
+    "wrong_arrangement": 0,
+    "off_geography": 0
+   },
+   "eligible_urls": [
+    "https://example.test/jobs/12"
+   ],
+   "final": [
+    [
+     "https://example.test/jobs/12",
+     17,
+     "worldwide"
+    ]
+   ],
+   "last_stats": {
+    "stale": 1,
+    "low_salary": 0,
+    "kept": 1,
+    "unreachable": 13,
+    "rescued": 0,
+    "no_visa": 0,
+    "no_eor": 0,
+    "wrong_arrangement": 0,
+    "off_geography": 0
+   },
+   "sections": [
+    [
+     "india",
+     []
+    ],
+    [
+     "remote",
+     [
+      "https://example.test/jobs/12"
+     ]
+    ],
+    [
+     "abroad",
+     []
+    ]
+   ]
+  },
+  "golden_scoring_global": {
+   "stages": [
+    [
+     "observed_normalized",
+     18
+    ],
+    [
+     "post_hard_filter_and_score",
+     15
+    ],
+    [
+     "post_recency",
+     14
+    ],
+    [
+     "post_salary_reachability_visa_eor",
+     13
+    ],
+    [
+     "post_arrangement",
+     12
+    ],
+    [
+     "post_location_eligible",
+     12
+    ]
+   ],
+   "stats": {
+    "stale": 1,
+    "low_salary": 1,
+    "unreachable": 0,
+    "rescued": 0,
+    "no_visa": 0,
+    "no_eor": 0,
+    "wrong_arrangement": 1,
+    "off_geography": 0
+   },
+   "eligible_urls": [
+    "https://example.test/jobs/01",
+    "https://example.test/jobs/02",
+    "https://example.test/jobs/03",
+    "https://example.test/jobs/04",
+    "https://example.test/jobs/05",
+    "https://example.test/jobs/06",
+    "https://example.test/jobs/08",
+    "https://example.test/jobs/10",
+    "https://example.test/jobs/11",
+    "https://example.test/jobs/13",
+    "https://example.test/jobs/16",
+    "https://example.test/jobs/18"
+   ],
+   "final": [
+    [
+     "https://example.test/jobs/01",
+     35,
+     ""
+    ],
+    [
+     "https://example.test/jobs/11",
+     23,
+     ""
+    ],
+    [
+     "https://example.test/jobs/03",
+     20,
+     ""
+    ],
+    [
+     "https://example.test/jobs/02",
+     12,
+     ""
+    ],
+    [
+     "https://example.test/jobs/04",
+     5,
+     ""
+    ],
+    [
+     "https://example.test/jobs/08",
+     5,
+     ""
+    ],
+    [
+     "https://example.test/jobs/13",
+     5,
+     "onsite"
+    ],
+    [
+     "https://example.test/jobs/06",
+     4,
+     ""
+    ],
+    [
+     "https://example.test/jobs/18",
+     4,
+     ""
+    ],
+    [
+     "https://example.test/jobs/16",
+     0,
+     ""
+    ],
+    [
+     "https://example.test/jobs/05",
+     -4,
+     ""
+    ]
+   ],
+   "last_stats": {
+    "stale": 1,
+    "low_salary": 1,
+    "kept": 11,
+    "unreachable": 0,
+    "rescued": 0,
+    "no_visa": 0,
+    "no_eor": 0,
+    "wrong_arrangement": 1,
+    "off_geography": 0
+   },
+   "sections": [
+    [
+     "india",
+     [
+      "https://example.test/jobs/01",
+      "https://example.test/jobs/11",
+      "https://example.test/jobs/03",
+      "https://example.test/jobs/02",
+      "https://example.test/jobs/04",
+      "https://example.test/jobs/08",
+      "https://example.test/jobs/06",
+      "https://example.test/jobs/18",
+      "https://example.test/jobs/16",
+      "https://example.test/jobs/05"
+     ]
+    ],
+    [
+     "remote",
+     []
+    ],
+    [
+     "abroad",
+     [
+      "https://example.test/jobs/13"
+     ]
+    ]
+   ]
+  }
+ },
+ "v2": {
+  "golden_scoring_remote": {
+   "stages": [
+    [
+     "observed_normalized",
+     18
+    ],
+    [
+     "post_hard_filter_and_score",
+     15
+    ],
+    [
+     "post_recency",
+     14
+    ],
+    [
+     "post_salary_reachability_visa_eor",
+     1
+    ],
+    [
+     "post_location_eligible",
+     1
+    ]
+   ],
+   "stats": {
+    "stale": 1,
+    "low_salary": 0,
+    "unreachable": 13,
+    "rescued": 0,
+    "no_visa": 0,
+    "no_eor": 0,
+    "wrong_arrangement": 0,
+    "off_geography": 0
+   },
+   "eligible_urls": [
+    "https://example.test/jobs/12"
+   ],
+   "final": [
+    [
+     "https://example.test/jobs/12",
+     13,
+     "worldwide"
+    ]
+   ],
+   "last_stats": {
+    "stale": 1,
+    "low_salary": 0,
+    "kept": 1,
+    "unreachable": 13,
+    "rescued": 0,
+    "no_visa": 0,
+    "no_eor": 0,
+    "wrong_arrangement": 0,
+    "off_geography": 0
+   },
+   "sections": [
+    [
+     "india",
+     []
+    ],
+    [
+     "remote",
+     [
+      "https://example.test/jobs/12"
+     ]
+    ],
+    [
+     "abroad",
+     []
+    ]
+   ]
+  },
+  "golden_scoring_global": {
+   "stages": [
+    [
+     "observed_normalized",
+     18
+    ],
+    [
+     "post_hard_filter_and_score",
+     15
+    ],
+    [
+     "post_recency",
+     14
+    ],
+    [
+     "post_salary_reachability_visa_eor",
+     13
+    ],
+    [
+     "post_arrangement",
+     12
+    ],
+    [
+     "post_location_eligible",
+     12
+    ]
+   ],
+   "stats": {
+    "stale": 1,
+    "low_salary": 1,
+    "unreachable": 0,
+    "rescued": 0,
+    "no_visa": 0,
+    "no_eor": 0,
+    "wrong_arrangement": 1,
+    "off_geography": 0
+   },
+   "eligible_urls": [
+    "https://example.test/jobs/01",
+    "https://example.test/jobs/02",
+    "https://example.test/jobs/03",
+    "https://example.test/jobs/04",
+    "https://example.test/jobs/05",
+    "https://example.test/jobs/06",
+    "https://example.test/jobs/08",
+    "https://example.test/jobs/10",
+    "https://example.test/jobs/11",
+    "https://example.test/jobs/13",
+    "https://example.test/jobs/16",
+    "https://example.test/jobs/18"
+   ],
+   "final": [
+    [
+     "https://example.test/jobs/01",
+     21,
+     ""
+    ],
+    [
+     "https://example.test/jobs/11",
+     19,
+     ""
+    ],
+    [
+     "https://example.test/jobs/03",
+     16,
+     ""
+    ],
+    [
+     "https://example.test/jobs/02",
+     7,
+     ""
+    ],
+    [
+     "https://example.test/jobs/08",
+     5,
+     ""
+    ],
+    [
+     "https://example.test/jobs/13",
+     5,
+     "onsite"
+    ],
+    [
+     "https://example.test/jobs/06",
+     4,
+     ""
+    ],
+    [
+     "https://example.test/jobs/04",
+     1,
+     ""
+    ],
+    [
+     "https://example.test/jobs/16",
+     0,
+     ""
+    ],
+    [
+     "https://example.test/jobs/18",
+     0,
+     ""
+    ],
+    [
+     "https://example.test/jobs/05",
+     -8,
+     ""
+    ]
+   ],
+   "last_stats": {
+    "stale": 1,
+    "low_salary": 1,
+    "kept": 11,
+    "unreachable": 0,
+    "rescued": 0,
+    "no_visa": 0,
+    "no_eor": 0,
+    "wrong_arrangement": 1,
+    "off_geography": 0
+   },
+   "sections": [
+    [
+     "india",
+     [
+      "https://example.test/jobs/01",
+      "https://example.test/jobs/11",
+      "https://example.test/jobs/03",
+      "https://example.test/jobs/02",
+      "https://example.test/jobs/08",
+      "https://example.test/jobs/06",
+      "https://example.test/jobs/04",
+      "https://example.test/jobs/16",
+      "https://example.test/jobs/18",
+      "https://example.test/jobs/05"
+     ]
+    ],
+    [
+     "remote",
+     []
+    ],
+    [
+     "abroad",
+     [
+      "https://example.test/jobs/13"
+     ]
+    ]
+   ]
+  }
+ }
+}

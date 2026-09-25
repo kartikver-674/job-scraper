@@ -1,0 +1,5102 @@
+{
+ "golden_ada_india": {
+  "dry_run": {
+   "profile": "golden_ada_india",
+   "sites": {
+    "linkedin": [
+     {
+      "keywords": "backend engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ],
+    "indeed": [
+     {
+      "keywords": "backend engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ]
+   },
+   "max_results": {
+    "linkedin": 15,
+    "indeed": 15
+   },
+   "charge_ceiling_usd": {
+    "linkedin": "0.046",
+    "indeed": "0.135"
+   },
+   "free_sources": 133,
+   "public_paid": "single"
+  },
+  "units": {
+   "linkedin": {
+    "count": 60,
+    "first": {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=backend+engineer&geoId=106187582&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=.net+developer+ai-assisted+development&geoId=106164952&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    "sha256": "e4867b259cfdeebff7fc68ba04a2622873c0cc17797b56f86c3f3acd5c56df4f"
+   },
+   "indeed": {
+    "count": 60,
+    "first": {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "backend engineer",
+      "location": "Delhi",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    "sha256": "db68873282e2b8864252f9ecbeb332e5a6313dd469520a338a0a6eaeabecc344"
+   }
+  },
+  "combo_keys": {
+   "count": 120,
+   "first": "2026-01-01|linkedin|backend engineer|Delhi|",
+   "last": "2026-01-01|indeed|.net developer ai-assisted development|Mumbai|",
+   "sha256": "9d77e9a1997a3015cfae310a6316f8e0a9b43c8d9ff321639b07e86899087aa5"
+  },
+  "search_count": 120,
+  "profile_changed": [
+   "SEARCH",
+   "SITES",
+   "SCORING",
+   "SETTINGS",
+   "FEEDS",
+   "LOCATION_HINTS",
+   "ATS_TITLE_HINTS",
+   "ATS_TITLE_EXCLUDE"
+  ]
+ },
+ "golden_ada_remote": {
+  "dry_run": {
+   "profile": "golden_ada_remote",
+   "sites": {
+    "linkedin": [
+     {
+      "keywords": "backend engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Remote",
+      "company": ""
+     }
+    ],
+    "indeed": [
+     {
+      "keywords": "backend engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Remote",
+      "company": ""
+     }
+    ]
+   },
+   "max_results": {
+    "linkedin": 15,
+    "indeed": 15
+   },
+   "charge_ceiling_usd": {
+    "linkedin": "0.046",
+    "indeed": "0.135"
+   },
+   "free_sources": 133,
+   "public_paid": "single"
+  },
+  "units": {
+   "linkedin": [
+    {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=backend+engineer&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "back end developer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=back+end+developer&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "data scientist",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=data+scientist&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "mobile developer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=mobile+developer&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "full stack ai engineer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=full+stack+ai+engineer&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "gen ai engineer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=gen+ai+engineer&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "professional services consultant",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=professional+services+consultant&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "ai ml engineer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=ai+ml+engineer&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=.net+developer+ai-assisted+development&geoId=102713980&f_WT=2&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    }
+   ],
+   "indeed": [
+    {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "backend engineer",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "back end developer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "back end developer",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "data scientist",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "data scientist",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "mobile developer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "mobile developer",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "full stack ai engineer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "full stack ai engineer",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "gen ai engineer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "gen ai engineer",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "professional services consultant",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "professional services consultant",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "ai ml engineer",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "ai ml engineer",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": ".net developer ai-assisted development",
+      "location": "Remote",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    }
+   ]
+  },
+  "combo_keys": [
+   "2026-01-01|linkedin|backend engineer|Remote|",
+   "2026-01-01|linkedin|back end developer|Remote|",
+   "2026-01-01|linkedin|data scientist|Remote|",
+   "2026-01-01|linkedin|mobile developer|Remote|",
+   "2026-01-01|linkedin|node.js developer|Remote|",
+   "2026-01-01|linkedin|full stack ai engineer|Remote|",
+   "2026-01-01|linkedin|gen ai engineer|Remote|",
+   "2026-01-01|linkedin|professional services consultant|Remote|",
+   "2026-01-01|linkedin|ai ml engineer|Remote|",
+   "2026-01-01|linkedin|.net developer ai-assisted development|Remote|",
+   "2026-01-01|indeed|backend engineer|Remote|",
+   "2026-01-01|indeed|back end developer|Remote|",
+   "2026-01-01|indeed|data scientist|Remote|",
+   "2026-01-01|indeed|mobile developer|Remote|",
+   "2026-01-01|indeed|node.js developer|Remote|",
+   "2026-01-01|indeed|full stack ai engineer|Remote|",
+   "2026-01-01|indeed|gen ai engineer|Remote|",
+   "2026-01-01|indeed|professional services consultant|Remote|",
+   "2026-01-01|indeed|ai ml engineer|Remote|",
+   "2026-01-01|indeed|.net developer ai-assisted development|Remote|"
+  ],
+  "search_count": 20,
+  "profile_changed": [
+   "SEARCH",
+   "SITES",
+   "SCORING",
+   "SETTINGS",
+   "FEEDS",
+   "ATS_TITLE_HINTS",
+   "ATS_TITLE_EXCLUDE"
+  ]
+ },
+ "golden_ada_global_custom": {
+  "dry_run": {
+   "profile": "golden_ada_global_custom",
+   "sites": {
+    "linkedin": [
+     {
+      "keywords": "backend engineer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "company": ""
+     }
+    ],
+    "indeed": [
+     {
+      "keywords": "backend engineer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "United Kingdom",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "company": ""
+     }
+    ]
+   },
+   "max_results": {
+    "linkedin": 25,
+    "indeed": 25
+   },
+   "charge_ceiling_usd": {
+    "linkedin": "0.076",
+    "indeed": "0.225"
+   },
+   "free_sources": 133,
+   "public_paid": "single"
+  },
+  "units": {
+   "linkedin": [
+    {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=backend+engineer&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=backend+engineer&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "back end developer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=back+end+developer&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "back end developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=back+end+developer&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "data scientist",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=data+scientist&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=data+scientist&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "mobile developer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=mobile+developer&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "mobile developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=mobile+developer&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "full stack ai engineer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=full+stack+ai+engineer&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=full+stack+ai+engineer&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "gen ai engineer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=gen+ai+engineer&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=gen+ai+engineer&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "professional services consultant",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=professional+services+consultant&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "professional services consultant",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=professional+services+consultant&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "ai ml engineer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=ai+ml+engineer&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=ai+ml+engineer&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=.net+developer+ai-assisted+development&geoId=101165590&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=.net+developer+ai-assisted+development&geoId=105214831&f_E=4&f_TPR=r604800"
+      ],
+      "limitPerSource": 25,
+      "count": 25,
+      "scrapeCompany": false
+     }
+    }
+   ],
+   "indeed": [
+    {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "backend engineer",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "backend engineer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "back end developer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "back end developer",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "back end developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "back end developer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "data scientist",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "data scientist",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "data scientist",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "mobile developer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "mobile developer",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "mobile developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "mobile developer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "full stack ai engineer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "full stack ai engineer",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "full stack ai engineer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "gen ai engineer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "gen ai engineer",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "gen ai engineer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "professional services consultant",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "professional services consultant",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "professional services consultant",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "professional services consultant",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "ai ml engineer",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "ai ml engineer",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": "ai ml engineer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "United Kingdom",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": ".net developer ai-assisted development",
+      "location": "United Kingdom",
+      "country": "GB",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 25
+     },
+     "input": {
+      "position": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 25,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    }
+   ]
+  },
+  "combo_keys": [
+   "2026-01-01|linkedin|backend engineer|United Kingdom|",
+   "2026-01-01|linkedin|backend engineer|Bengaluru|",
+   "2026-01-01|linkedin|back end developer|United Kingdom|",
+   "2026-01-01|linkedin|back end developer|Bengaluru|",
+   "2026-01-01|linkedin|data scientist|United Kingdom|",
+   "2026-01-01|linkedin|data scientist|Bengaluru|",
+   "2026-01-01|linkedin|mobile developer|United Kingdom|",
+   "2026-01-01|linkedin|mobile developer|Bengaluru|",
+   "2026-01-01|linkedin|node.js developer|United Kingdom|",
+   "2026-01-01|linkedin|node.js developer|Bengaluru|",
+   "2026-01-01|linkedin|full stack ai engineer|United Kingdom|",
+   "2026-01-01|linkedin|full stack ai engineer|Bengaluru|",
+   "2026-01-01|linkedin|gen ai engineer|United Kingdom|",
+   "2026-01-01|linkedin|gen ai engineer|Bengaluru|",
+   "2026-01-01|linkedin|professional services consultant|United Kingdom|",
+   "2026-01-01|linkedin|professional services consultant|Bengaluru|",
+   "2026-01-01|linkedin|ai ml engineer|United Kingdom|",
+   "2026-01-01|linkedin|ai ml engineer|Bengaluru|",
+   "2026-01-01|linkedin|.net developer ai-assisted development|United Kingdom|",
+   "2026-01-01|linkedin|.net developer ai-assisted development|Bengaluru|",
+   "2026-01-01|indeed|backend engineer|United Kingdom|",
+   "2026-01-01|indeed|backend engineer|Bengaluru|",
+   "2026-01-01|indeed|back end developer|United Kingdom|",
+   "2026-01-01|indeed|back end developer|Bengaluru|",
+   "2026-01-01|indeed|data scientist|United Kingdom|",
+   "2026-01-01|indeed|data scientist|Bengaluru|",
+   "2026-01-01|indeed|mobile developer|United Kingdom|",
+   "2026-01-01|indeed|mobile developer|Bengaluru|",
+   "2026-01-01|indeed|node.js developer|United Kingdom|",
+   "2026-01-01|indeed|node.js developer|Bengaluru|",
+   "2026-01-01|indeed|full stack ai engineer|United Kingdom|",
+   "2026-01-01|indeed|full stack ai engineer|Bengaluru|",
+   "2026-01-01|indeed|gen ai engineer|United Kingdom|",
+   "2026-01-01|indeed|gen ai engineer|Bengaluru|",
+   "2026-01-01|indeed|professional services consultant|United Kingdom|",
+   "2026-01-01|indeed|professional services consultant|Bengaluru|",
+   "2026-01-01|indeed|ai ml engineer|United Kingdom|",
+   "2026-01-01|indeed|ai ml engineer|Bengaluru|",
+   "2026-01-01|indeed|.net developer ai-assisted development|United Kingdom|",
+   "2026-01-01|indeed|.net developer ai-assisted development|Bengaluru|"
+  ],
+  "search_count": 40,
+  "profile_changed": [
+   "SEARCH",
+   "SITES",
+   "SCORING",
+   "SETTINGS",
+   "FEEDS",
+   "LOCATION_HINTS",
+   "ATS_TITLE_HINTS",
+   "ATS_TITLE_EXCLUDE"
+  ]
+ },
+ "golden_ada_india_naukri": {
+  "dry_run": {
+   "profile": "golden_ada_india_naukri",
+   "sites": {
+    "linkedin": [
+     {
+      "keywords": "backend engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ],
+    "indeed": [
+     {
+      "keywords": "backend engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ],
+    "naukri": [
+     {
+      "keywords": "backend engineer",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "backend engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "back end developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "mobile developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "professional services consultant",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Remote",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Delhi / NCR",
+      "company": ""
+     },
+     {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Remote",
+      "company": ""
+     }
+    ]
+   },
+   "max_results": {
+    "linkedin": 15,
+    "indeed": 15,
+    "naukri": 50
+   },
+   "charge_ceiling_usd": {
+    "linkedin": "0.046",
+    "indeed": "0.135",
+    "naukri": null
+   },
+   "free_sources": 133,
+   "public_paid": "single"
+  },
+  "units": {
+   "linkedin": {
+    "count": 60,
+    "first": {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=backend+engineer&geoId=106187582&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=.net+developer+ai-assisted+development&geoId=106164952&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    "sha256": "e4867b259cfdeebff7fc68ba04a2622873c0cc17797b56f86c3f3acd5c56df4f"
+   },
+   "indeed": {
+    "count": 60,
+    "first": {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "backend engineer",
+      "location": "Delhi",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": ".net developer ai-assisted development",
+      "location": "Mumbai",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    "sha256": "db68873282e2b8864252f9ecbeb332e5a6313dd469520a338a0a6eaeabecc344"
+   },
+   "naukri": {
+    "count": 20,
+    "first": {
+     "search": {
+      "keywords": "backend engineer",
+      "location": "Delhi / NCR",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "keyword": "backend engineer",
+      "maxJobs": 50,
+      "fetchDetails": true,
+      "sortBy": "relevance",
+      "freshness": "15",
+      "cities": [
+       "9508"
+      ],
+      "experience": "5"
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": ".net developer ai-assisted development",
+      "location": "Remote",
+      "company": null,
+      "country": "IN",
+      "experience_years": 5,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "keyword": ".net developer ai-assisted development",
+      "maxJobs": 50,
+      "fetchDetails": true,
+      "sortBy": "relevance",
+      "freshness": "15",
+      "workMode": [
+       "remote"
+      ],
+      "experience": "5"
+     }
+    },
+    "sha256": "57940ebae3c5b4a995274f947d65ae99867ab03b6f39e82a9af2f79b6ce2e562"
+   }
+  },
+  "combo_keys": {
+   "count": 140,
+   "first": "2026-01-01|linkedin|backend engineer|Delhi|",
+   "last": "2026-01-01|naukri|.net developer ai-assisted development|Remote|",
+   "sha256": "fbd5b6a0c597435fe0aac89abd051849d0a5cb2c933cdfce382aa79eb5971b21"
+  },
+  "search_count": 140,
+  "profile_changed": [
+   "SEARCH",
+   "SITES",
+   "SCORING",
+   "SETTINGS",
+   "FEEDS",
+   "LOCATION_HINTS",
+   "ATS_TITLE_HINTS",
+   "ATS_TITLE_EXCLUDE"
+  ]
+ },
+ "golden_ada_free_only": {
+  "dry_run": {
+   "profile": "golden_ada_free_only",
+   "sites": {},
+   "max_results": {},
+   "charge_ceiling_usd": {},
+   "free_sources": 133,
+   "public_paid": "single"
+  },
+  "units": {},
+  "combo_keys": [],
+  "search_count": 0,
+  "profile_changed": [
+   "SEARCH",
+   "SITES",
+   "SCORING",
+   "SETTINGS",
+   "FEEDS",
+   "LOCATION_HINTS",
+   "ATS_TITLE_HINTS",
+   "ATS_TITLE_EXCLUDE"
+  ]
+ },
+ "golden_chen_india": {
+  "dry_run": {
+   "profile": "golden_chen_india",
+   "sites": {
+    "linkedin": [
+     {
+      "keywords": "platform engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ],
+    "indeed": [
+     {
+      "keywords": "platform engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "platform engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "data scientist",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "artificial intelligence engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "site reliability engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "infrastructure engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "gen ai engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer-platform engineering (l3)",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "ai ml engineer",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ]
+   },
+   "max_results": {
+    "linkedin": 15,
+    "indeed": 15
+   },
+   "charge_ceiling_usd": {
+    "linkedin": "0.046",
+    "indeed": "0.135"
+   },
+   "free_sources": 133,
+   "public_paid": "single"
+  },
+  "units": {
+   "linkedin": {
+    "count": 60,
+    "first": {
+     "search": {
+      "keywords": "platform engineer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 11,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=platform+engineer&geoId=106187582&f_E=5&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": "ai ml engineer",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 11,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=ai+ml+engineer&geoId=106164952&f_E=5&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    "sha256": "2008249bbd1e21cadca0a49bb4a1b6d89fee9be43f56af02e541e78767bc07e2"
+   },
+   "indeed": {
+    "count": 60,
+    "first": {
+     "search": {
+      "keywords": "platform engineer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 11,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "platform engineer",
+      "location": "Delhi",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": "ai ml engineer",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 11,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "ai ml engineer",
+      "location": "Mumbai",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    "sha256": "6fbe9e77a85fafb610a8b4d05fc1bc9fe839ba40967c8aa32aefbab087db6d27"
+   }
+  },
+  "combo_keys": {
+   "count": 120,
+   "first": "2026-01-01|linkedin|platform engineer|Delhi|",
+   "last": "2026-01-01|indeed|ai ml engineer|Mumbai|",
+   "sha256": "f992cf8291b6d8fa158fc0ce48d916a01bdbf1399222f4846b627b231d51e38b"
+  },
+  "search_count": 120,
+  "profile_changed": [
+   "SEARCH",
+   "SITES",
+   "SCORING",
+   "SETTINGS",
+   "FEEDS",
+   "LOCATION_HINTS",
+   "ATS_TITLE_HINTS",
+   "ATS_TITLE_EXCLUDE"
+  ]
+ },
+ "golden_bhaskar_india": {
+  "dry_run": {
+   "profile": "golden_bhaskar_india",
+   "sites": {
+    "linkedin": [
+     {
+      "keywords": "full stack web developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ],
+    "indeed": [
+     {
+      "keywords": "full stack web developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "full stack web developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "flutter developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "associate engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "ai solutions engineer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "software engineer -python developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "associate ai data engineer",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ]
+   },
+   "max_results": {
+    "linkedin": 15,
+    "indeed": 15
+   },
+   "charge_ceiling_usd": {
+    "linkedin": "0.046",
+    "indeed": "0.135"
+   },
+   "free_sources": 133,
+   "public_paid": "single"
+  },
+  "units": {
+   "linkedin": {
+    "count": 36,
+    "first": {
+     "search": {
+      "keywords": "full stack web developer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 0,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=full+stack+web+developer&geoId=106187582&f_E=2&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": "associate ai data engineer",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 0,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=associate+ai+data+engineer&geoId=106164952&f_E=2&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    "sha256": "644d3cd20c926c6aa5ecec32d15df48cfe54f07c81d4500218d6312ef3279eba"
+   },
+   "indeed": {
+    "count": 36,
+    "first": {
+     "search": {
+      "keywords": "full stack web developer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 0,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "full stack web developer",
+      "location": "Delhi",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    "last": {
+     "search": {
+      "keywords": "associate ai data engineer",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 0,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "associate ai data engineer",
+      "location": "Mumbai",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    "sha256": "1f623718c50af00122725eff6350217da8c6cf86d711f50bab98e43493d7aacc"
+   }
+  },
+  "combo_keys": {
+   "count": 72,
+   "first": "2026-01-01|linkedin|full stack web developer|Delhi|",
+   "last": "2026-01-01|indeed|associate ai data engineer|Mumbai|",
+   "sha256": "67300906a482c7ae78807e8d66c4642906b960b2852fcbe61b7e06a9f52d64c1"
+  },
+  "search_count": 72,
+  "profile_changed": [
+   "SEARCH",
+   "SITES",
+   "SCORING",
+   "SETTINGS",
+   "FEEDS",
+   "LOCATION_HINTS",
+   "ATS_TITLE_HINTS",
+   "ATS_TITLE_EXCLUDE"
+  ]
+ },
+ "golden_scoring": {
+  "dry_run": {
+   "profile": "golden_scoring",
+   "sites": {
+    "linkedin": [
+     {
+      "keywords": "react developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ],
+    "indeed": [
+     {
+      "keywords": "react developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "react developer",
+      "location": "Mumbai",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Delhi",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Gurgaon",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Hyderabad",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Pune",
+      "company": ""
+     },
+     {
+      "keywords": "node.js developer",
+      "location": "Mumbai",
+      "company": ""
+     }
+    ]
+   },
+   "max_results": {
+    "linkedin": 15,
+    "indeed": 15
+   },
+   "charge_ceiling_usd": {
+    "linkedin": "0.046",
+    "indeed": "0.135"
+   },
+   "free_sources": 133,
+   "public_paid": "single"
+  },
+  "units": {
+   "linkedin": [
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=react+developer&geoId=106187582&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Gurgaon",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=react+developer&geoId=115884833&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=react+developer&geoId=105214831&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Hyderabad",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=react+developer&geoId=105556991&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Pune",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=react+developer&geoId=114806696&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=react+developer&geoId=106164952&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=106187582&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Gurgaon",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=115884833&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=105214831&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Hyderabad",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=105556991&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Pune",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=114806696&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "urls": [
+       "https://www.linkedin.com/jobs/search/?keywords=node.js+developer&geoId=106164952&f_E=4&f_TPR=r1209600"
+      ],
+      "limitPerSource": 15,
+      "count": 15,
+      "scrapeCompany": false
+     }
+    }
+   ],
+   "indeed": [
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "react developer",
+      "location": "Delhi",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Gurgaon",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "react developer",
+      "location": "Gurgaon",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "react developer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Hyderabad",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "react developer",
+      "location": "Hyderabad",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Pune",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "react developer",
+      "location": "Pune",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "react developer",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "react developer",
+      "location": "Mumbai",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Delhi",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "Delhi",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Gurgaon",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "Gurgaon",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Bengaluru",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "Bengaluru",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Hyderabad",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "Hyderabad",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Pune",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "Pune",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    },
+    {
+     "search": {
+      "keywords": "node.js developer",
+      "location": "Mumbai",
+      "company": null,
+      "country": "IN",
+      "experience_years": 3,
+      "salary_min": null,
+      "max_results": 15
+     },
+     "input": {
+      "position": "node.js developer",
+      "location": "Mumbai",
+      "country": "IN",
+      "maxItemsPerSearch": 15,
+      "parseCompanyDetails": false,
+      "saveOnlyUniqueItems": true,
+      "followApplyRedirects": false
+     }
+    }
+   ]
+  },
+  "combo_keys": [
+   "2026-01-01|linkedin|react developer|Delhi|",
+   "2026-01-01|linkedin|react developer|Gurgaon|",
+   "2026-01-01|linkedin|react developer|Bengaluru|",
+   "2026-01-01|linkedin|react developer|Hyderabad|",
+   "2026-01-01|linkedin|react developer|Pune|",
+   "2026-01-01|linkedin|react developer|Mumbai|",
+   "2026-01-01|linkedin|node.js developer|Delhi|",
+   "2026-01-01|linkedin|node.js developer|Gurgaon|",
+   "2026-01-01|linkedin|node.js developer|Bengaluru|",
+   "2026-01-01|linkedin|node.js developer|Hyderabad|",
+   "2026-01-01|linkedin|node.js developer|Pune|",
+   "2026-01-01|linkedin|node.js developer|Mumbai|",
+   "2026-01-01|indeed|react developer|Delhi|",
+   "2026-01-01|indeed|react developer|Gurgaon|",
+   "2026-01-01|indeed|react developer|Bengaluru|",
+   "2026-01-01|indeed|react developer|Hyderabad|",
+   "2026-01-01|indeed|react developer|Pune|",
+   "2026-01-01|indeed|react developer|Mumbai|",
+   "2026-01-01|indeed|node.js developer|Delhi|",
+   "2026-01-01|indeed|node.js developer|Gurgaon|",
+   "2026-01-01|indeed|node.js developer|Bengaluru|",
+   "2026-01-01|indeed|node.js developer|Hyderabad|",
+   "2026-01-01|indeed|node.js developer|Pune|",
+   "2026-01-01|indeed|node.js developer|Mumbai|"
+  ],
+  "search_count": 24,
+  "profile_changed": [
+   "SEARCH",
+   "SITES",
+   "SCORING",
+   "SETTINGS",
+   "FEEDS",
+   "LOCATION_HINTS",
+   "ATS_TITLE_HINTS",
+   "ATS_TITLE_EXCLUDE"
+  ]
+ }
+}
