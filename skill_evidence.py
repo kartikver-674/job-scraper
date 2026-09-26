@@ -92,6 +92,11 @@ CERTIFICATION = "certification"
 SUMMARY = "summary"
 OTHER = "other"
 
+# The words a "Currently Learning" / "Studying" / "In Progress" heading
+# starts with. A LINE that starts with them but goes on ("Learning React and
+# TypeScript") is not that heading; see _leads_pedagogy.
+_PEDAGOGICAL_LEAD = r"(currently\s+)?(learning|studying)|in\s+progress"
+
 # Matched against a whole line, so a bullet mentioning "projects" does not
 # open a section. Ordered: the first pattern that matches wins, and
 # "technical skills" must be tried before the bare "experience" in
@@ -128,7 +133,7 @@ _HEADINGS = (
     # had its coursework tiered as professional work.
     (EDUCATION, r"(relevant|related|academic|additional|selected)?\s*"
                 r"(coursework|course\s*work)"),
-    (EDUCATION, r"(currently\s+)?(learning|studying)|in\s+progress|"
+    (EDUCATION, _PEDAGOGICAL_LEAD + r"|"
                 r"(professional|continuing)\s+(development|education)"),
     (EDUCATION, r"(education|academics?|qualifications?)"),
     (CERTIFICATION, r"(certifications?|licen[cs]es?|courses?|training)"),
@@ -139,7 +144,14 @@ _HEADINGS = (
 _HEADING_LINE = re.compile(
     r"^\s*(?:" + "|".join(p for _k, p in _HEADINGS) + r")\s*:?\s*$", re.I)
 
-_MATCHERS = tuple((kind, re.compile(r"^\s*" + pattern + r"\s*:?\s*$", re.I))
+# Each row is GROUPED before it is anchored. A row with a top-level "|" —
+# the EDUCATION "learning|studying|in progress|..." row — compiled as
+# "^\s*A|B|C\s*:?\s*$", so "^" held only its first branch and "$" only its
+# last, and ANY line that began "Learning", "Studying" or "In progress" was a
+# heading: "Learning React and TypeScript" opened an EDUCATION section and
+# made everything after it coursework. Rows without a top-level "|" compile
+# to the same language either way.
+_MATCHERS = tuple((kind, re.compile(r"^\s*(?:" + pattern + r")\s*:?\s*$", re.I))
                   for kind, pattern in _HEADINGS)
 
 # A heading a PDF has broken — "T echnical Skills", "F rontend:", "T ools
@@ -148,9 +160,31 @@ _MATCHERS = tuple((kind, re.compile(r"^\s*" + pattern + r"\s*:?\s*$", re.I))
 # against the line with every non-alphanumeric stripped, recognises them
 # without a second table to keep in step.
 _SPACELESS = tuple(
-    (kind, re.compile(r"^" + pattern.replace(r"\s*", "").replace(r"\s+", "")
-                      + r"$", re.I))
+    (kind, re.compile(r"^(?:" + pattern.replace(r"\s*", "").replace(r"\s+", "")
+                      + r")$", re.I))
     for kind, pattern in _HEADINGS)
+
+# A line that STARTS the way a learning heading does and goes on —
+# "Learning React and TypeScript", "Studying AWS for the exam", "Learning:
+# Rust, Go", "In progress building a Go service" — is content, and it is its
+# own sentence. While the row above was mis-anchored, _heading() took exactly
+# these lines (the heading length limit, the row's lead words) for headings,
+# and a heading is always a hard break, so the line never shared a sentence
+# with its neighbours. Kept on purpose, now without opening a section: in a
+# skills list, whose lines have no sentence end, one "Learning React" must
+# not make the skills above or below it coursework. Matched as the row used
+# to match — a prefix, so "Learnings from scaling Kafka" stands alone too —
+# because a boundary can only ever isolate a line, never make anything
+# learning. (Not mirrored: a letter-broken "L earning ..." line, which only
+# the spaceless matcher ever took for a heading.)
+_PEDAGOGICAL_LINE = re.compile(r"(?:" + _PEDAGOGICAL_LEAD + r")", re.I)
+
+
+def _leads_pedagogy(line):
+    """Is this line a pedagogical content line that must stand alone?"""
+    text = str(line).strip()
+    return (len(text) <= 60 and bool(_PEDAGOGICAL_LINE.match(text))
+            and _heading(text) is None)
 
 _FOLD = re.compile(r"[^a-z0-9]+")
 
@@ -470,7 +504,9 @@ def _soft_newlines(text):
         if (before and after.strip()
                 and not _ENDS_SENTENCE.search(before)
                 and not _BULLET.match(after)
-                and _heading(after) is None):
+                and _heading(after) is None
+                and not _leads_pedagogy(before)
+                and not _leads_pedagogy(after)):
             soft.add(at)
         at = closed
     return frozenset(soft)

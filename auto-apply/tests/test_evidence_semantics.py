@@ -457,17 +457,18 @@ class LearningAsAFieldIsNotLearning(unittest.TestCase):
             self.assert_claimed(text, ["python", "fastapi"])
 
     def test_known_limit_a_field_split_by_a_line_wrap(self):
-        """KNOWN LIMITATION, pinned, not intended — unchanged by this fix.
+        """KNOWN LIMITATION, pinned, not intended.
 
         A PDF that wraps "Machine\nLearning" leaves a line that STARTS with
-        "Learning", and `_heading` reads any such line as an EDUCATION
-        heading: the "(currently )?(learning|studying)|in progress|..." row
-        has an ungrouped alternation, so its first branch is anchored at the
-        start only. What follows the wrap becomes coursework. A separate,
-        pre-existing heading defect (P0_MACHINE_LEARNING_EVIDENCE_FIX_HANDOFF
-        §O); fixing it would flip this test."""
+        "Learning". Since the heading fix it is no longer an EDUCATION
+        heading, but it is still a pedagogical lead line (its own sentence),
+        and `_LEARNING` never treats a newline as a modifier join — so
+        "Learning" reads as the verb and FastAPI on that line reads as
+        learning, as before. Python and SQL above it stay claims. Fixing it
+        needs a soft-wrap-aware `_LEARNING` rule (P0_HEADING_DETECTION_FIX
+        _HANDOFF §J, §P), which would flip this test."""
         text = HEAD + "Skills\nPython, SQL, Machine\nLearning, FastAPI\n"
-        self.assertEqual(se._heading("Learning, FastAPI"), se.EDUCATION)
+        self.assertIsNone(se._heading("Learning, FastAPI"))
         got = statuses_of(text, ["python", "fastapi"])
         self.assertEqual(got, {"python": [se.MENTIONED], "fastapi": [se.LEARNING]})
 
@@ -620,6 +621,129 @@ class LearningAsPedagogyIsKept(unittest.TestCase):
                 "- Currently learning Rust in my own time.\n")
         got = statuses_of(text, ["python", "rust"])
         self.assertEqual(got, {"python": [se.USED], "rust": [se.LEARNING]})
+
+
+# --------------------------------------------------------------------------
+# The "currently learning / studying / in progress" heading row
+# --------------------------------------------------------------------------
+
+def sections_of(text):
+    return [kind for kind, _entry, _s, _e in se.sections(text)]
+
+
+def occurrences_of(text, terms):
+    """{term: [(section, status), ...]}, every concept assessed together."""
+    rows = se.assess_all(sc.from_weights({t: 3 for t in terms}), text)
+    return {r["id"]: [(o["section"], o["status"]) for o in r["occurrences"]]
+            for r in rows}
+
+
+# That row was the one heading row with a top-level "|": anchored as
+# "^\s*A|B|C\s*:?\s*$", its first two branches matched any line that merely
+# BEGAN with "learning", "studying" or "in progress".
+REAL_HEADINGS = ("Learning", "Learning:", "LEARNING", "Currently Learning",
+                 "Currently Learning:", "currently learning", "Studying", "Studying:",
+                 "STUDYING", "Currently Studying", "In Progress", "In Progress:",
+                 "In Progress :", "  In Progress  ", "Professional Development",
+                 "Continuing Education", "C urrently Learning")
+CONTENT_LINES = ("Learning React, TypeScript and Next.js", "Learning React and TypeScript",
+                 "Learning Kubernetes for CKAD", "Studying AWS for the exam",
+                 "Studying distributed systems independently",
+                 "In progress with Terraform training", "In progress building a Go service",
+                 "Learnings from scaling Kafka", "Learning: Rust, Go", "Studying: AWS SAA",
+                 "Learning, FastAPI")
+
+
+class TheLearningHeadingRowIsAnchored(unittest.TestCase):
+    """P0. A line that begins like a heading is not one."""
+
+    def test_real_headings_still_open_education(self):
+        for line in REAL_HEADINGS:
+            self.assertEqual(se._heading(line), se.EDUCATION, line)
+
+    def test_content_that_begins_the_same_way_is_not_a_heading(self):
+        for line in CONTENT_LINES:
+            self.assertIsNone(se._heading(line), line)
+
+    def test_the_other_education_and_certification_headings_are_separate(self):
+        for line, kind in (("Relevant Coursework", se.EDUCATION),
+                           ("RELEVANT COURSEWORK", se.EDUCATION),
+                           ("Education", se.EDUCATION), ("Courses", se.CERTIFICATION),
+                           ("Training", se.CERTIFICATION),
+                           ("Certifications", se.CERTIFICATION)):
+            self.assertEqual(se._heading(line), kind, line)
+
+    def test_no_content_line_opens_a_section(self):
+        for line in CONTENT_LINES:
+            text = HEAD + f"Skills\nPython\n{line}\nPostgreSQL\n"
+            self.assertEqual(sections_of(text), [se.OTHER, se.SKILLS], line)
+            got = occurrences_of(text, ["python", "postgresql"])
+            self.assertEqual(got, {"python": [(se.SKILLS, se.MENTIONED)],
+                                   "postgresql": [(se.SKILLS, se.MENTIONED)]}, line)
+
+    def test_a_learning_line_contaminates_neither_side(self):
+        """Compatibility boundary: the pedagogical line is its own sentence,
+        exactly as it was when the malformed row took it for a heading — but
+        it no longer opens a section."""
+        cases = (
+            ("Skills\nPython\nLearning React and TypeScript\nFastAPI\nPostgreSQL\n",
+             {"python": se.MENTIONED, "react": se.LEARNING, "typescript": se.LEARNING,
+              "fastapi": se.MENTIONED, "postgresql": se.MENTIONED}),
+            ("Skills\nPython, SQL\nLearning: Rust, Go\nDocker\n",
+             {"python": se.MENTIONED, "sql": se.MENTIONED, "rust": se.LEARNING,
+              "go": se.LEARNING, "docker": se.MENTIONED}),
+            ("Skills\nPython\nStudying AWS for the exam\nPostgreSQL\n",
+             {"python": se.MENTIONED, "aws": se.LEARNING, "postgresql": se.MENTIONED}),
+            # Not learning at all ("Learnings" = lessons), and alone like the
+            # rest: its own verb governs only its own line.
+            ("Skills\nPython\nLearnings from scaling Kafka\nPostgreSQL\n",
+             {"python": se.MENTIONED, "kafka": se.USED, "postgresql": se.MENTIONED}))
+        for body, want in cases:
+            text = HEAD + body
+            self.assertEqual(sections_of(text), [se.OTHER, se.SKILLS], body)
+            got = occurrences_of(text, list(want))
+            self.assertEqual({t: [(se.SKILLS, s)] for t, s in want.items()}, got, body)
+
+    def test_work_after_an_in_progress_line_stays_work(self):
+        for line in ("In progress building a Go service",
+                     "In progress with Terraform training"):
+            text = (HEAD + "Professional Experience\nAcme Corp\n"
+                    "Backend Engineer  Jan 2022 - Present\n- Built APIs in Python.\n"
+                    f"{line}\n- Deployed services with Docker.\n")
+            self.assertNotIn(se.EDUCATION, sections_of(text), line)
+            got = occurrences_of(text, ["python", "docker"])
+            self.assertEqual(got, {"python": [(se.WORK, se.USED)],
+                                   "docker": [(se.WORK, se.USED)]}, line)
+            self.assertEqual(tiers_of(text, ["docker"])["docker"], se.CORE, line)
+
+    def test_a_studying_line_in_a_summary_keeps_the_summary(self):
+        text = (HEAD + "Summary\nStudying AWS for the exam\n"
+                "Built APIs in Go and PostgreSQL.\nSkills\nPython\n")
+        self.assertEqual(sections_of(text), [se.OTHER, se.SUMMARY, se.SKILLS])
+        got = occurrences_of(text, ["aws", "go", "python"])
+        self.assertEqual(got, {"aws": [(se.SUMMARY, se.LEARNING)],
+                               "go": [(se.SUMMARY, se.USED)],
+                               "python": [(se.SKILLS, se.MENTIONED)]})
+
+    def test_a_real_heading_still_changes_the_section(self):
+        for heading in ("Currently Learning", "STUDYING", "In Progress:"):
+            text = HEAD + f"Skills\nPython\n\n{heading}\nRust\nKubernetes\n"
+            self.assertEqual(sections_of(text), [se.OTHER, se.SKILLS, se.EDUCATION],
+                             heading)
+            got = occurrences_of(text, ["python", "rust", "kubernetes"])
+            self.assertEqual(got, {"python": [(se.SKILLS, se.MENTIONED)],
+                                   "rust": [(se.EDUCATION, se.LEARNING)],
+                                   "kubernetes": [(se.EDUCATION, se.LEARNING)]}, heading)
+
+    def test_a_long_learning_sentence_still_wraps(self):
+        """Only a line the malformed row could have taken for a heading (at
+        most 60 characters) is a boundary; a longer sentence the PDF wrapped
+        keeps its continuation, as before."""
+        text = (HEAD + "Summary\nLearning React, TypeScript and Next.js by building "
+                "two side projects\nwith Tailwind CSS in my own time.\n")
+        got = occurrences_of(text, ["react", "tailwind css"])
+        self.assertEqual(got, {"react": [(se.SUMMARY, se.LEARNING)],
+                               "tailwind css": [(se.SUMMARY, se.LEARNING)]})
 
 
 if __name__ == "__main__":
