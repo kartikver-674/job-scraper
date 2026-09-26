@@ -19,6 +19,7 @@ no LLM call anywhere in this path.
 import os
 import sys
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 AUTO_APPLY = os.path.dirname(HERE)
@@ -28,6 +29,7 @@ for path in (REPO_ROOT, AUTO_APPLY):
         sys.path.insert(0, path)
 
 import make_profile  # noqa: E402
+import semantic_scope  # noqa: E402
 import skill_concepts as sc  # noqa: E402
 import skill_evidence as se  # noqa: E402
 
@@ -379,6 +381,23 @@ class Invariance(unittest.TestCase):
 # "Machine Learning" is a field, not a confession
 # --------------------------------------------------------------------------
 
+# `classify` picks its path per call from SWEEP_SEMANTIC_SCOPE, and Render
+# runs it scoped. So no test below inherits the caller's shell: each class
+# pins the unscoped default, and a test whose answer differs by path pins
+# each path's answer itself.
+UNSCOPED = {semantic_scope.FLAG: "0"}
+SCOPED = {semantic_scope.FLAG: "1", semantic_scope.FLAG + "_NEGATION_VERBS": "0"}  # as on Render
+PATHS = (("unscoped", UNSCOPED), ("scoped", SCOPED))
+
+
+class Unscoped(unittest.TestCase):
+
+    def setUp(self):
+        pin = mock.patch.dict(os.environ, UNSCOPED)
+        pin.start()
+        self.addCleanup(pin.stop)
+
+
 def statuses_of(text, terms):
     """{term: [status, ...]} for several concepts, assessed together."""
     rows = se.assess_all(sc.from_weights({t: 3 for t in terms}), text)
@@ -401,7 +420,7 @@ HEAD = "Dana Reed\ndana@example.com\n"
 WORK = HEAD + "Professional Experience\nAcme Corp\nML Engineer  Jan 2023 - Present\n"
 
 
-class LearningAsAFieldIsNotLearning(unittest.TestCase):
+class LearningAsAFieldIsNotLearning(Unscoped):
     """P0. `_LEARNING` held a bare "learning", and a skills section has no
     sentence end, so one "Machine Learning" in it made EVERY skill there
     LEARNING_OR_COURSEWORK: unclaimed, and down to BACKGROUND. So did the
@@ -457,20 +476,26 @@ class LearningAsAFieldIsNotLearning(unittest.TestCase):
             self.assert_claimed(text, ["python", "fastapi"])
 
     def test_known_limit_a_field_split_by_a_line_wrap(self):
-        """KNOWN LIMITATION, pinned, not intended.
+        """KNOWN LIMITATION of the unscoped path, pinned, not intended.
 
         A PDF that wraps "Machine\nLearning" leaves a line that STARTS with
         "Learning". Since the heading fix it is no longer an EDUCATION
-        heading, but it is still a pedagogical lead line (its own sentence),
-        and `_LEARNING` never treats a newline as a modifier join — so
-        "Learning" reads as the verb and FastAPI on that line reads as
-        learning, as before. Python and SQL above it stay claims. Fixing it
-        needs a soft-wrap-aware `_LEARNING` rule (P0_HEADING_DETECTION_FIX
-        _HANDOFF §J, §P), which would flip this test."""
+        heading on either path, and Python and SQL above it stay claims on
+        both. Unscoped, it is still a pedagogical lead line (its own
+        sentence), and `_LEARNING` never treats a newline as a modifier join
+        — so "Learning" reads as the verb and FastAPI on that line reads as
+        learning, as before. Fixing it needs a soft-wrap-aware `_LEARNING`
+        rule (P0_HEADING_DETECTION_FIX_HANDOFF §J, §P), which would flip
+        this test. Scoped (production), a cue governs only the comma item it
+        leads, so FastAPI stays MENTIONED, as on d1c44bc."""
         text = HEAD + "Skills\nPython, SQL, Machine\nLearning, FastAPI\n"
         self.assertIsNone(se._heading("Learning, FastAPI"))
-        got = statuses_of(text, ["python", "fastapi"])
-        self.assertEqual(got, {"python": [se.MENTIONED], "fastapi": [se.LEARNING]})
+        for (path, env), fastapi in zip(PATHS, (se.LEARNING, se.MENTIONED)):
+            with self.subTest(path=path), mock.patch.dict(os.environ, env):
+                self.assertEqual(sections_of(text), [se.OTHER, se.SKILLS])
+                self.assertEqual(statuses_of(text, ["python", "sql", "fastapi"]),
+                                 {"python": [se.MENTIONED], "sql": [se.MENTIONED],
+                                  "fastapi": [fastapi]})
 
     def test_any_modified_learning_is_a_field(self):
         """Not a three-item exception list: every "<modifier> Learning" is a
@@ -501,9 +526,8 @@ class LearningAsAFieldIsNotLearning(unittest.TestCase):
             self.assertIsNotNone(se._LEARNING.search(phrase), phrase)
 
     def test_semantic_scope_agrees(self):
-        """The same fix reaches V3 Step 8's scoped path (default off)."""
-        from unittest import mock
-        with mock.patch.dict(os.environ, {"SWEEP_SEMANTIC_SCOPE": "1"}):
+        """The same fix reaches V3 Step 8's scoped path (production)."""
+        with mock.patch.dict(os.environ, SCOPED):
             self.test_one_field_does_not_unclaim_its_neighbours_on_separate_lines()
             self.test_building_machine_learning_models_is_work()
             got = statuses_of(HEAD + "Summary\nLearning React, TypeScript and Next.js\n",
@@ -511,7 +535,7 @@ class LearningAsAFieldIsNotLearning(unittest.TestCase):
             self.assertEqual({s for v in got.values() for s in v}, {se.LEARNING})
 
 
-class LearningAsPedagogyIsKept(unittest.TestCase):
+class LearningAsPedagogyIsKept(Unscoped):
     """Control. The genuine learning and coursework cues keep working —
     including when the thing being learned is itself "Machine Learning"."""
 
@@ -566,9 +590,9 @@ class LearningAsPedagogyIsKept(unittest.TestCase):
                 self.assert_learning(HEAD + "Summary\n" + body + "\n", [field.lower()])
 
     def test_a_completed_course_is_learning(self):
-        """Regression: "Completed a machine learning course." was LEARNING on
-        d1c44bc only through the word inside the field name. The explicit
-        course language is the cue now."""
+        """Regression, unscoped path: "Completed a machine learning course."
+        was LEARNING on d1c44bc only through the word inside the field name.
+        The explicit course language is the cue now."""
         for body in ("Completed a machine learning course.",
                      "Took a machine learning course.",
                      "Completed a course in machine learning.",
@@ -581,6 +605,31 @@ class LearningAsPedagogyIsKept(unittest.TestCase):
         self.assert_learning(WORK + "- Completed a machine learning course.\n",
                              ["machine learning"])
         self.assert_learning(HEAD + "Summary\nCompleted a React course.\n", ["react"])
+
+    def test_known_scoped_limit_a_course_cue_around_its_field(self):
+        """KNOWN PRE-EXISTING SEMANTIC-SCOPE LIMITATION, not introduced by the
+        P0 release, accepted for it. On the scoped path (production) a cue
+        whose span contains the concept cannot govern it, so "Completed a
+        machine learning course." leaves the field MENTIONED — exactly as on
+        d1c44bc. A course cue AFTER the field still governs, and the year
+        forms ("course, 2025", "course (2025)") are new with this release
+        (MENTIONED on d1c44bc)."""
+        with mock.patch.dict(os.environ, SCOPED):
+            for text, term in (
+                    (HEAD + "Summary\nCompleted a machine learning course.\n",
+                     "machine learning"),
+                    (HEAD + "Summary\nTook a machine learning course.\n",
+                     "machine learning"),
+                    (WORK + "- Completed a machine learning course.\n", "machine learning"),
+                    (HEAD + "Summary\nCompleted a React course.\n", "react")):
+                self.assertEqual(statuses_of(text, [term]), {term: [se.MENTIONED]}, text)
+            for body in ("Completed a course in machine learning.",
+                         "Completed an online machine learning course on Coursera.",
+                         "Finished a deep learning course in 2024.",
+                         "Machine learning course, 2025.",
+                         "Machine learning course (2025)."):
+                field = "deep learning" if "deep" in body else "machine learning"
+                self.assert_learning(HEAD + "Summary\n" + body + "\n", [field])
 
     def test_course_as_a_product_is_not_learning(self):
         """Control. An e-learning engineer builds courses; "course" followed by
@@ -605,14 +654,17 @@ class LearningAsPedagogyIsKept(unittest.TestCase):
         self.assertEqual(got, {"deep learning": [se.MENTIONED]})
 
     def test_known_ambiguity_a_clause_initial_learning_noun(self):
-        """KNOWN AMBIGUITY, pinned, unchanged from d1c44bc: a noun phrase that
-        STARTS with "Learning" ("Learning Management Systems") has the shape of
-        the verb ("Learning React"), so it still fires and still takes its
-        sentence with it. Telling them apart needs the concept spans the
-        document names (§O of the handoff), not a longer regex."""
+        """KNOWN AMBIGUITY of the unscoped path, pinned, unchanged from
+        d1c44bc: a noun phrase that STARTS with "Learning" ("Learning
+        Management Systems") has the shape of the verb ("Learning React"), so
+        it still fires and still takes its sentence with it. Telling them
+        apart needs the concept spans the document names (§O of the handoff),
+        not a longer regex. Scoped (production), a cue governs only the comma
+        item it leads, so Moodle stays MENTIONED, as on d1c44bc."""
         text = HEAD + "Skills\nLearning Management Systems, Moodle, SCORM\n"
-        self.assertEqual(statuses_of(text, ["moodle"]),
-                         {"moodle": [se.LEARNING]})
+        for (path, env), moodle in zip(PATHS, (se.LEARNING, se.MENTIONED)):
+            with self.subTest(path=path), mock.patch.dict(os.environ, env):
+                self.assertEqual(statuses_of(text, ["moodle"]), {"moodle": [moodle]})
 
     def test_a_learning_cue_still_governs_its_own_sentence_only(self):
         text = (HEAD + "Professional Experience\nAcme Corp\n"
@@ -654,7 +706,7 @@ CONTENT_LINES = ("Learning React, TypeScript and Next.js", "Learning React and T
                  "Learning, FastAPI")
 
 
-class TheLearningHeadingRowIsAnchored(unittest.TestCase):
+class TheLearningHeadingRowIsAnchored(Unscoped):
     """P0. A line that begins like a heading is not one."""
 
     def test_real_headings_still_open_education(self):
@@ -682,27 +734,34 @@ class TheLearningHeadingRowIsAnchored(unittest.TestCase):
                                    "postgresql": [(se.SKILLS, se.MENTIONED)]}, line)
 
     def test_a_learning_line_contaminates_neither_side(self):
-        """Compatibility boundary: the pedagogical line is its own sentence,
-        exactly as it was when the malformed row took it for a heading — but
-        it no longer opens a section."""
-        cases = (
+        """Compatibility boundary, on both paths: the pedagogical line is its
+        own sentence, exactly as it was when the malformed row took it for a
+        heading — but it no longer opens a section, and no neighbour above
+        or below it turns into learning. The line's own items follow each
+        path's rule: unscoped, its cue takes the whole line; scoped, a cue
+        governs only the comma item it leads, so Go after "Learning: Rust,"
+        stays MENTIONED (as on d1c44bc)."""
+        M, L = se.MENTIONED, se.LEARNING
+        cases = (   # (body, neighbours, the line's own items as (unscoped, scoped))
             ("Skills\nPython\nLearning React and TypeScript\nFastAPI\nPostgreSQL\n",
-             {"python": se.MENTIONED, "react": se.LEARNING, "typescript": se.LEARNING,
-              "fastapi": se.MENTIONED, "postgresql": se.MENTIONED}),
+             {"python": M, "fastapi": M, "postgresql": M},
+             {"react": (L, L), "typescript": (L, L)}),
             ("Skills\nPython, SQL\nLearning: Rust, Go\nDocker\n",
-             {"python": se.MENTIONED, "sql": se.MENTIONED, "rust": se.LEARNING,
-              "go": se.LEARNING, "docker": se.MENTIONED}),
+             {"python": M, "sql": M, "docker": M}, {"rust": (L, L), "go": (L, M)}),
             ("Skills\nPython\nStudying AWS for the exam\nPostgreSQL\n",
-             {"python": se.MENTIONED, "aws": se.LEARNING, "postgresql": se.MENTIONED}),
+             {"python": M, "postgresql": M}, {"aws": (L, L)}),
             # Not learning at all ("Learnings" = lessons), and alone like the
             # rest: its own verb governs only its own line.
             ("Skills\nPython\nLearnings from scaling Kafka\nPostgreSQL\n",
-             {"python": se.MENTIONED, "kafka": se.USED, "postgresql": se.MENTIONED}))
-        for body, want in cases:
-            text = HEAD + body
-            self.assertEqual(sections_of(text), [se.OTHER, se.SKILLS], body)
-            got = occurrences_of(text, list(want))
-            self.assertEqual({t: [(se.SKILLS, s)] for t, s in want.items()}, got, body)
+             {"python": M, "postgresql": M}, {"kafka": (se.USED, se.USED)}))
+        for i, (path, env) in enumerate(PATHS):
+            for body, neighbours, line in cases:
+                with self.subTest(path=path, body=body), mock.patch.dict(os.environ, env):
+                    text = HEAD + body
+                    self.assertEqual(sections_of(text), [se.OTHER, se.SKILLS])
+                    want = dict(neighbours, **{t: s[i] for t, s in line.items()})
+                    self.assertEqual(occurrences_of(text, list(want)),
+                                     {t: [(se.SKILLS, s)] for t, s in want.items()})
 
     def test_work_after_an_in_progress_line_stays_work(self):
         for line in ("In progress building a Go service",
