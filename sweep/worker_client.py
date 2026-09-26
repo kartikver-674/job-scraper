@@ -52,6 +52,23 @@ class RunNotFound(WorkerError):
     distinguish the two, and neither should anything here."""
 
 
+class EngineMismatch(WorkerError):
+    """The worker priced a profile stamped with a different scoring engine
+    than the one that derived this résumé (Phase 0b), or did not say which.
+    Nothing may run on that plan: it would score the visitor's jobs with an
+    engine their profile was not built for."""
+
+
+def check_engine(raw, engine):
+    """`raw`, the worker's dry run, when its profile_engine is `engine`;
+    otherwise EngineMismatch. Only for a plan that was asked for with an
+    explicit engine — a legacy request is not attested at all."""
+    if raw.get("profile_engine") != engine:
+        raise EngineMismatch("the sweep worker did not use this résumé's "
+                             "scoring engine")
+    return raw
+
+
 def base_url(url=None):
     return (url or os.environ.get(URL_ENV) or "").strip().rstrip("/")
 
@@ -93,13 +110,15 @@ def _call(method, path, body=None, url=None, token=None, owner=None):
 
 
 def create_run(profile, prefs, free_only=True, apify_token=None, key_ids=None,
-               **kw):
+               engine=None, **kw):
     """Start a sweep. Returns the opaque run id.
 
     `apify_token` passes straight through to the worker and is not held
     here — not in a variable that outlives this call, not in a log line.
     `key_ids` (V2-D1) names which of the visitor's held keys fund it: the
-    accounts they confirmed, and no others.
+    accounts they confirmed, and no others. `engine` (Phase 0b) is the
+    engine that derived the résumé; omitted, the body is exactly what it
+    was before the field existed.
     """
     body = {"profile": profile, "prefs": prefs, "free_only": free_only,
             "owner": kw.pop("owner", None) or public.owner_for_session()}
@@ -107,6 +126,8 @@ def create_run(profile, prefs, free_only=True, apify_token=None, key_ids=None,
         body["apify_token"] = apify_token
     if key_ids:
         body["key_ids"] = list(key_ids)
+    if engine is not None:
+        body["engine"] = engine
     answer = _call("POST", "/v1/runs", body, **kw)
     return answer["run_id"]
 
@@ -131,17 +152,20 @@ def release_token(key_id, **kw):
     return _call("DELETE", f"/v1/tokens/{key_id}", **kw)
 
 
-def plan(profile, prefs, free_only=True, **kw):
+def plan(profile, prefs, free_only=True, engine=None, **kw):
     """What this profile would search, priced by the engine's own dry run.
 
     Costs nothing and runs nothing; it is the number a visitor approves
     before spending their own money, so it comes from the engine rather
-    than from arithmetic repeated here.
+    than from arithmetic repeated here. With `engine`, the worker renders
+    with that stamp and its dry run reports profile_engine (check_engine);
+    without it, the request is exactly what it always was.
     """
-    return _call("POST", "/v1/plans",
-                 {"profile": profile, "prefs": prefs, "free_only": free_only,
-                  "owner": kw.pop("owner", None) or public.owner_for_session()},
-                 **kw)
+    body = {"profile": profile, "prefs": prefs, "free_only": free_only,
+            "owner": kw.pop("owner", None) or public.owner_for_session()}
+    if engine is not None:
+        body["engine"] = engine
+    return _call("POST", "/v1/plans", body, **kw)
 
 
 def run_status(run_id, **kw):

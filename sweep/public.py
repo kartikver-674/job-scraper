@@ -586,6 +586,8 @@ def harden(app, env=None, store=None, limit=None):
         """
         import make_profile
         import skill_concepts
+
+        from sweep import worker_link
         effective = skill_concepts.effective()
         return {"status": "ok", "mode": "public-beta",
                 "sessions": len(store),
@@ -595,6 +597,10 @@ def harden(app, env=None, store=None, limit=None):
                 "derivation_engine": effective["version"],
                 "engine_source": effective["source"],
                 "role_families": effective["roles"],
+                # Phase 0b: whether the worker is told that engine (on) or
+                # stamps its own default (off) — so activating or rolling back
+                # the v1 -> v2 switch can be confirmed, not assumed.
+                "engine_propagation": worker_link.sends_engine(),
                 "profile_schema": make_profile.PROFILE_SCHEMA}
 
     @app.errorhandler(worker_client.WorkerError)

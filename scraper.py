@@ -3851,6 +3851,12 @@ def parse_args():
     p.add_argument("--only-new", action="store_true",
                    help="Report only postings no earlier run reported "
                         "(uses output/[profile/]seen.tsv).")
+    # Phase 0b. Opt-in, so every existing --dry-run --json caller gets the
+    # same bytes it always has: only the worker asks, and only for a request
+    # that named an engine.
+    p.add_argument("--attest-engine", action="store_true",
+                   help="With --dry-run --json, add profile_engine: the engine "
+                        "the loaded profile's stamp binds for scoring.")
     args = p.parse_args()
     # --json only ever changes --dry-run's output. On its own it was accepted
     # and silently did nothing, so a caller expecting machine-readable output
@@ -3858,6 +3864,8 @@ def parse_args():
     if args.json and not args.dry_run:
         p.error("--json only applies with --dry-run. "
                 "Use: --dry-run --json to print the plan as JSON.")
+    if args.attest_engine and not args.json:
+        p.error("--attest-engine only applies with --dry-run --json.")
     return args
 
 
@@ -4508,6 +4516,11 @@ def main():
                 for entry, search in zip(doc["sites"][site_key], plan):
                     entry.update(tracks=list(search[PAID_TRACKS]), ledger=search[DONE_ID])
             doc.update(plan_version=PLAN_VERSION, plan_hash=plan_hash(plans, TRACK_CONTEXTS))
+        elif args.attest_engine:
+            # Phase 0b: what THIS process read from the file's stamp — the
+            # engine bound above for scoring — so Render can check the worker
+            # honoured the engine it sent. Never the request's own word for it.
+            doc["profile_engine"] = config.PROFILE_ENGINE
         print(json.dumps(doc))
         return
 
