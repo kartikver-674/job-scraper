@@ -375,5 +375,252 @@ class Invariance(unittest.TestCase):
         self.assertEqual(answers, {se.NEGATED})
 
 
+# --------------------------------------------------------------------------
+# "Machine Learning" is a field, not a confession
+# --------------------------------------------------------------------------
+
+def statuses_of(text, terms):
+    """{term: [status, ...]} for several concepts, assessed together."""
+    rows = se.assess_all(sc.from_weights({t: 3 for t in terms}), text)
+    return {r["id"]: [o["status"] for o in r["occurrences"]] for r in rows}
+
+
+def tiers_of(text, terms):
+    rows = se.assess_all(sc.from_weights({t: 3 for t in terms}), text)
+    return {r["id"]: r["tier"] for r in rows}
+
+
+FIELDS = ("Machine Learning", "Deep Learning", "Reinforcement Learning")
+# Open-ended on purpose: the rule is about grammar, so any modifier works.
+MORE_FIELDS = ("Transfer Learning", "Federated Learning", "Representation Learning",
+               "Statistical Learning", "Active Learning", "Self-Supervised Learning",
+               "Online Learning", "Contrastive Learning", "Few-Shot Learning",
+               "Q-Learning", "Meta-Learning", "Imitation Learning",
+               "Continual Learning", "Unsupervised Learning")
+HEAD = "Dana Reed\ndana@example.com\n"
+WORK = HEAD + "Professional Experience\nAcme Corp\nML Engineer  Jan 2023 - Present\n"
+
+
+class LearningAsAFieldIsNotLearning(unittest.TestCase):
+    """P0. `_LEARNING` held a bare "learning", and a skills section has no
+    sentence end, so one "Machine Learning" in it made EVERY skill there
+    LEARNING_OR_COURSEWORK: unclaimed, and down to BACKGROUND. So did the
+    work bullet "Built machine learning models using Python". "Learning" is
+    pedagogy only as a verb — never as the head of a compound noun."""
+
+    def assert_claimed(self, text, terms, status=se.MENTIONED):
+        got = statuses_of(text, terms)
+        for term in terms:
+            self.assertTrue(got[term], (term, text))
+            self.assertEqual(set(got[term]), {status}, (term, text, got))
+
+    def test_each_field_in_a_comma_skills_list_is_a_claim(self):
+        for field in FIELDS:
+            text = HEAD + f"Technical Skills\nPython, {field}, FastAPI\n"
+            self.assert_claimed(text, ["python", field.lower(), "fastapi"])
+
+    def test_one_field_does_not_unclaim_its_neighbours_on_separate_lines(self):
+        for field in FIELDS:
+            text = (HEAD + f"Skills\nPython\n{field}\nFastAPI\nPostgreSQL\n"
+                    "Docker\n")
+            terms = ["python", "fastapi", "postgresql", "docker"]
+            self.assert_claimed(text, terms + [field.lower()])
+            self.assertEqual(set(tiers_of(text, terms).values()),
+                             {se.SUPPORTING}, field)
+
+    def test_one_field_does_not_unclaim_its_neighbours_in_a_comma_list(self):
+        text = HEAD + "Skills\nPython, Machine Learning, FastAPI, PostgreSQL, Docker\n"
+        terms = ["python", "fastapi", "postgresql", "docker"]
+        self.assert_claimed(text, terms)
+        self.assertEqual(set(tiers_of(text, terms).values()), {se.SUPPORTING})
+
+    def test_a_labelled_skills_group(self):
+        terms = ["pytorch", "scikit-learn", "mlflow", "python", "sql"]
+        for group in ("Machine Learning: PyTorch, scikit-learn, MLflow\n",
+                      "Machine Learning:\nPyTorch, scikit-learn, MLflow\n",
+                      "Deep Learning / Reinforcement Learning: PyTorch, "
+                      "scikit-learn, MLflow\n"):
+            text = HEAD + "Skills\n" + group + "Languages: Python, SQL\n"
+            self.assert_claimed(text, terms)
+
+    def test_building_machine_learning_models_is_work(self):
+        text = (HEAD + "Professional Experience\nAcme Corp\n"
+                "ML Engineer  Jan 2023 - Present\n"
+                "- Built machine learning models using Python.\n")
+        self.assert_claimed(text, ["machine learning", "python"], se.USED)
+        self.assertEqual(tiers_of(text, ["python"])["python"], se.CORE)
+
+    def test_a_field_hyphenated_or_double_spaced(self):
+        for field in ("Machine  Learning", "Machine\tLearning",
+                      "machine-learning", "e-learning"):
+            text = HEAD + f"Skills\nPython, {field}, FastAPI\n"
+            self.assert_claimed(text, ["python", "fastapi"])
+
+    def test_known_limit_a_field_split_by_a_line_wrap(self):
+        """KNOWN LIMITATION, pinned, not intended — unchanged by this fix.
+
+        A PDF that wraps "Machine\nLearning" leaves a line that STARTS with
+        "Learning", and `_heading` reads any such line as an EDUCATION
+        heading: the "(currently )?(learning|studying)|in progress|..." row
+        has an ungrouped alternation, so its first branch is anchored at the
+        start only. What follows the wrap becomes coursework. A separate,
+        pre-existing heading defect (P0_MACHINE_LEARNING_EVIDENCE_FIX_HANDOFF
+        §O); fixing it would flip this test."""
+        text = HEAD + "Skills\nPython, SQL, Machine\nLearning, FastAPI\n"
+        self.assertEqual(se._heading("Learning, FastAPI"), se.EDUCATION)
+        got = statuses_of(text, ["python", "fastapi"])
+        self.assertEqual(got, {"python": [se.MENTIONED], "fastapi": [se.LEARNING]})
+
+    def test_any_modified_learning_is_a_field(self):
+        """Not a three-item exception list: every "<modifier> Learning" is a
+        claim, and so are its neighbours."""
+        for field in MORE_FIELDS:
+            text = HEAD + f"Skills\nPython, {field}, Docker\n"
+            self.assert_claimed(text, ["python", field.lower(), "docker"])
+            self.assertIsNone(se._LEARNING.search(field), field)
+
+    def test_substantive_use_of_a_field(self):
+        for body, terms in (
+                ("- Built a federated learning system in Python.",
+                 ["federated learning", "python"]),
+                ("- Implemented federated learning with PyTorch.",
+                 ["federated learning", "pytorch"]),
+                ("- Applied transfer learning with PyTorch.", ["transfer learning", "pytorch"]),
+                ("- Trained reinforcement learning agents with Ray.",
+                 ["reinforcement learning", "ray"])):
+            self.assert_claimed(WORK + body + "\n", terms, se.USED)
+
+    def test_the_pattern_itself(self):
+        for field in ("Machine Learning", "deep learning", "Reinforcement Learning",
+                      "machine-learning", "Transfer Learning"):
+            self.assertIsNone(se._LEARNING.search(field), field)
+        for phrase in ("Learning React", "currently learning Rust",
+                       "I am learning Go", "I'm learning Go", "was learning React",
+                       "self-learning Rust", "interested in learning Rust"):
+            self.assertIsNotNone(se._LEARNING.search(phrase), phrase)
+
+    def test_semantic_scope_agrees(self):
+        """The same fix reaches V3 Step 8's scoped path (default off)."""
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"SWEEP_SEMANTIC_SCOPE": "1"}):
+            self.test_one_field_does_not_unclaim_its_neighbours_on_separate_lines()
+            self.test_building_machine_learning_models_is_work()
+            got = statuses_of(HEAD + "Summary\nLearning React, TypeScript and Next.js\n",
+                              ["react", "typescript", "next.js"])
+            self.assertEqual({s for v in got.values() for s in v}, {se.LEARNING})
+
+
+class LearningAsPedagogyIsKept(unittest.TestCase):
+    """Control. The genuine learning and coursework cues keep working —
+    including when the thing being learned is itself "Machine Learning"."""
+
+    def assert_learning(self, text, terms):
+        got = statuses_of(text, terms)
+        for term in terms:
+            self.assertEqual(set(got[term]), {se.LEARNING}, (term, text, got))
+
+    def test_verb_forms_of_learning(self):
+        work = HEAD + "Professional Experience\nAcme Corp\nEngineer  Jan 2023 - Present\n"
+        for body, terms in (
+                ("- Currently learning Rust in my own time.", ["rust"]),
+                ("- Learning Kubernetes", ["kubernetes"]),
+                ("- I am learning Go on weekends.", ["go"]),
+                ("- Self-learning Rust.", ["rust"]),
+                ("- Built Python services. Learning Rust in my own time.", ["rust"]),
+                ("- Currently learning Machine Learning with PyTorch.",
+                 ["machine learning", "pytorch"])):
+            self.assert_learning(work + body + "\n", terms)
+
+    def test_summary_forms(self):
+        for body, terms in (
+                ("In 2024 I was learning React, TypeScript and Next.js",
+                 ["react", "typescript", "next.js"]),
+                ("Studying AWS for the associate exam.", ["aws"]),
+                ("Coursework in Machine Learning and Python.",
+                 ["machine learning", "python"]),
+                ("Interested in learning Rust and Go.", ["rust", "go"])):
+            self.assert_learning(HEAD + "Summary\n" + body + "\n", terms)
+
+    def test_a_section_that_opens_with_the_verb(self):
+        """The line break after a heading is not a modifier."""
+        for heading in ("Summary", "SUMMARY", "Profile"):
+            self.assert_learning(
+                HEAD + f"{heading}\nLearning React, TypeScript and Next.js\n",
+                ["react", "typescript", "next.js"])
+        self.assert_learning(HEAD + "Summary\nBuilt services in Go.\n"
+                             "Learning Rust in my own time.\n", ["rust"])
+
+    def test_coursework_and_currently_learning_sections(self):
+        for heading in ("Relevant Coursework", "Currently Learning"):
+            self.assert_learning(HEAD + f"{heading}\nMachine Learning, Python\n",
+                                 ["machine learning", "python"])
+
+    def test_pedagogical_context_wins_for_any_field(self):
+        """The field name never decides: the context around it does."""
+        for field in ("Transfer Learning", "Federated Learning", "Reinforcement Learning",
+                      "Machine Learning"):
+            for body in (f"Currently learning {field}.",
+                         f"Completed a course in {field}.",
+                         f"Studying {field.lower()}."):
+                self.assert_learning(HEAD + "Summary\n" + body + "\n", [field.lower()])
+
+    def test_a_completed_course_is_learning(self):
+        """Regression: "Completed a machine learning course." was LEARNING on
+        d1c44bc only through the word inside the field name. The explicit
+        course language is the cue now."""
+        for body in ("Completed a machine learning course.",
+                     "Took a machine learning course.",
+                     "Completed a course in machine learning.",
+                     "Completed an online machine learning course on Coursera.",
+                     "Finished a deep learning course in 2024.",
+                     "Machine learning course, 2025.",
+                     "Machine learning course (2025)."):
+            field = "deep learning" if "deep" in body else "machine learning"
+            self.assert_learning(HEAD + "Summary\n" + body + "\n", [field])
+        self.assert_learning(WORK + "- Completed a machine learning course.\n",
+                             ["machine learning"])
+        self.assert_learning(HEAD + "Summary\nCompleted a React course.\n", ["react"])
+
+    def test_course_as_a_product_is_not_learning(self):
+        """Control. An e-learning engineer builds courses; "course" followed by
+        another noun, or not taken, is the product, not the pedagogy."""
+        for body, term in (("- Built the course catalogue service in Go.", "go"),
+                           ("- Completed the course-catalog migration to Kubernetes.",
+                            "kubernetes"),
+                           ("- Completed the course migration to PostgreSQL.",
+                            "postgresql"),
+                           ("- Designed course recommendations with Python.", "python")):
+            got = statuses_of(WORK + body + "\n", [term])
+            self.assertNotIn(se.LEARNING, got[term], (body, got))
+
+    def test_a_specialization_is_learning_only_under_a_certifications_heading(self):
+        """"Specialization" is no cue anywhere (it also means a focus area).
+        The bench's own "Deep Learning Specialisation" sits under
+        Certifications, which is structural and still LEARNING."""
+        self.assert_learning(HEAD + "Certifications\nDeep Learning Specialization, "
+                             "Coursera, 2024\n", ["deep learning"])
+        got = statuses_of(HEAD + "Summary\nDeep Learning Specialization, 2024.\n",
+                          ["deep learning"])
+        self.assertEqual(got, {"deep learning": [se.MENTIONED]})
+
+    def test_known_ambiguity_a_clause_initial_learning_noun(self):
+        """KNOWN AMBIGUITY, pinned, unchanged from d1c44bc: a noun phrase that
+        STARTS with "Learning" ("Learning Management Systems") has the shape of
+        the verb ("Learning React"), so it still fires and still takes its
+        sentence with it. Telling them apart needs the concept spans the
+        document names (§O of the handoff), not a longer regex."""
+        text = HEAD + "Skills\nLearning Management Systems, Moodle, SCORM\n"
+        self.assertEqual(statuses_of(text, ["moodle"]),
+                         {"moodle": [se.LEARNING]})
+
+    def test_a_learning_cue_still_governs_its_own_sentence_only(self):
+        text = (HEAD + "Professional Experience\nAcme Corp\n"
+                "Engineer  Jan 2023 - Present\n"
+                "- Built machine learning models using Python.\n"
+                "- Currently learning Rust in my own time.\n")
+        got = statuses_of(text, ["python", "rust"])
+        self.assertEqual(got, {"python": [se.USED], "rust": [se.LEARNING]})
+
+
 if __name__ == "__main__":
     unittest.main()

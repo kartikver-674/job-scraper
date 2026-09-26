@@ -324,8 +324,55 @@ _NEGATED = re.compile(
     r"but\s+(chose|went\s+with|picked|selected|shipped\s+with|"
     r"settled\s+on|used)\b)", re.I)
 
+# "Learning" is pedagogy as a VERB — "Learning React and TypeScript",
+# "Currently learning Rust", "I was learning Next.js" — and never as the head
+# of a compound noun: "Machine Learning", "Deep Learning", "Reinforcement
+# Learning" name a field someone works in. The bare word used to match both,
+# and a skills section has no sentence end, so a single "Machine Learning"
+# made EVERY skill listed beside it LEARNING_OR_COURSEWORK — unclaimed, down
+# to BACKGROUND — and "Built machine learning models using Python" stopped
+# being Python work. So the word counts only where nothing modifies it: it
+# opens its clause, or follows a function word (an auxiliary, an adverb of
+# time, a phase verb, a preposition). Any other word directly before it ON
+# THE SAME LINE is a modifier. A line break is not: "Summary\nLearning React"
+# opens its section with the verb, so a line-initial "Learning" reads exactly
+# as it always has (the one known gap: a compound a PDF wraps across two
+# lines, "Machine\nLearning", still fires, as before). Only ever NARROWS what
+# fires; every other cue is unchanged, and "Coursework in Machine Learning"
+# still fires on "coursework".
+_LEARNING_LEADS = (
+    "am", "is", "are", "was", "were", "be", "been", "being", "i'm", "i’m",
+    "im", "we're", "we’re", "currently", "actively", "still", "now", "also",
+    "always", "constantly", "continuously", "presently", "recently", "start",
+    "starts", "started", "starting", "began", "begun", "begin", "beginning",
+    "continue", "continues", "continued", "continuing", "keep", "keeps",
+    "kept", "keeping", "enjoy", "enjoys", "enjoyed", "enjoying", "love",
+    "loves", "loved", "loving", "about", "in", "on", "of", "for", "by",
+    "and", "while", "then", "self")
+_LEARNING_VERB = (   # (?=learning) first, so no other position pays for the lookbehinds
+    r"(?=learning)(?:(?<![a-z0-9][ \t-])(?<![a-z0-9][ \t]{2})|"
+    + "|".join(rf"(?<=\b{re.escape(w)}[\s-])" for w in _LEARNING_LEADS)
+    + r")learning")
+
+# A course the candidate TOOK. "Completed a machine learning course." used to
+# be caught only by the "learning" inside the field's name, which the rule
+# above rightly stopped reading; the pedagogy was always the course. So:
+# "course" after a verb of taking it (completed, took, finished, attended,
+# passed, audited) in the same sentence, or dated ("course, 2025"). Either
+# way it must END its noun phrase — followed by punctuation, a preposition or
+# the date — so the product an e-learning engineer builds ("the course
+# catalogue service", "the course migration") is never read as study.
+_COURSE_END = (r"(?=[ \t]*(?:[.,;:!?)\n]|$)"
+               r"|[ \t]+(?:on|in|at|from|by|with|through|via|about|for)\b"
+               r"|[ \t]*[,(]?[ \t]*(?:19|20)\d\d\b)")
+_COURSE_TAKEN = (
+    r"(?:complet(?:ed|ing|e)|finish(?:ed|ing)?|took|tak(?:e|es|ing)|"
+    r"attend(?:ed|ing|s)?|pass(?:ed|ing)|audit(?:ed|ing))\b[^.;!?\n]{0,60}?"
+    r"\bcourses?" + _COURSE_END + r"|courses?(?=[ \t]*[,(]?[ \t]*(?:19|20)\d\d\b)")
+
 _LEARNING = re.compile(
-    r"\b(learning|studying|self[\s-]?taught|tutorial|bootcamp|"
+    r"\b(" + _LEARNING_VERB + r"|" + _COURSE_TAKEN + r"|studying|self[\s-]?taught|"
+    r"tutorial|bootcamp|"
     r"course\s+(on|in)|working\s+through|enrolled|coursework|"
     r"familiaris\w+|familiariz\w+|reading\s+about|getting\s+up\s+to\s+"
     r"speed|beginner|exploring\s+in\s+my\s+own\s+time)\b", re.I)
