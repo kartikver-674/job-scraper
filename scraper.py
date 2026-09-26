@@ -235,10 +235,16 @@ def is_dev_title(title):
     Substring, not word-boundary (unlike location_allowed): real titles run the
     words together — "ReactJS", "AI/ML", "Devops", "Java FSD".
     """
+    return title_admits(title, ATS_TITLE_HINTS, ATS_TITLE_EXCLUDE)
+
+
+def title_admits(title, hints, excludes):
+    """is_dev_title's rule over any gate: excludes win, then any hint admits.
+    A multi-track Sweep asks it of each track's own gate."""
     low = (title or "").lower()
-    if any(x in low for x in ATS_TITLE_EXCLUDE):
+    if any(x in low for x in excludes):
         return False
-    return any(h in low for h in ATS_TITLE_HINTS)
+    return any(h in low for h in hints)
 
 
 def is_home_location(loc):
@@ -709,13 +715,15 @@ def default_context():
     A schema-2 Sweep has no default context. Its globals hold the Sweep and
     config's defaults, not any track, so one-profile scoring there would
     score every row against somebody else's tables — refused rather than
-    quietly run, and never answered with one of the tracks.
+    quietly run, and never answered with one of the tracks. Its rows are
+    finalized by finalize_multi, against every track.
     """
     if config.TRACKS:
         raise RuntimeError(
-            f"multi-context finalization not enabled: {config.PROFILE!r} is a "
-            f"Multi-Track Sweep with {len(config.TRACKS)} tracks, and one-profile "
-            f"scoring would read config's defaults rather than any track")
+            f"multi-context finalization not enabled through one-profile scoring: "
+            f"{config.PROFILE!r} is a Multi-Track Sweep with {len(config.TRACKS)} "
+            f"tracks, and one-profile scoring would read config's defaults rather "
+            f"than any track; its rows go through finalize_multi(rows, TRACK_CONTEXTS)")
     return ScoringContext(
         engine="v2" if skill_concepts.enabled() else "v1",
         skill_terms=tuple((t, w, p) for t, (w, p) in SKILL_PATTERNS.items()),
@@ -3114,7 +3122,14 @@ def score_and_filter(raw_rows, stage=None, memo=False):
     # counts the list finalize is holding at that instant, and is a single
     # `is None` test when the flag is off.
     stage("post_hard_filter_and_score", scored)
+    return _sweep_filters(scored, stage)
 
+
+def _sweep_filters(scored, stage):
+    """Every Sweep-preference filter score_and_filter applies after scoring, in
+    its order and with its stage counts: (the rows still eligible, the filter
+    counts). The preferences are the Sweep's, never a résumé's, so a
+    multi-track Sweep runs them once per copy through this same function."""
     # Freshness: drop jobs older than max_age_days.
     stale = 0
     if SETTINGS["max_age_days"] is not None:
@@ -3221,6 +3236,228 @@ def finalize(raw_rows, memo=False):
                       wrong_arrangement=stats["wrong_arrangement"],
                       off_geography=stats["off_geography"])
     return [to_output(r) for r in unique]
+
+
+# ===========================================================================
+# Multi-Track results (schema 2). main() still refuses to run a schema-2
+# Sweep: nothing yet produces the provenance below, so these run only on rows
+# a caller attributes explicitly.
+# ===========================================================================
+# Provenance, required on every acquired copy of a multi-track Sweep, exactly
+# one of:
+#   PAID_TRACKS  the ids of the tracks whose paid request fetched this copy,
+#                in requesting order (repeats ignored; never empty)
+#   FREE         True — a free source's copy, which answers no track's query
+# Neither, both, or an id no track of this Sweep owns is refused. Nothing is
+# guessed from Source, the URL or an empty search_query, and a missing value
+# never means "every track" or "the first".
+PAID_TRACKS = "_tracks"
+FREE = "_free"
+FACTS = "_facts"      # the copy's JobFacts, computed once for every track and pass
+
+# Appended, never inserted, and only on multi-track rows.
+MULTI_COLUMNS = ["best_track", "track_evals", "found_by"]
+MULTI_OUTPUT_COLUMNS = OUTPUT_COLUMNS + MULTI_COLUMNS
+
+# finalize_multi's per-track bookkeeping, beside the job-level LAST_STATS it
+# also fills. Track ids only.
+LAST_TRACK_STATS = {}
+
+# One physical job in a multi-track result.
+#   best      the track whose chosen copy scores highest (ties: track order)
+#   chosen    {track id: (arrival index, row, Evaluation)} for every eligible
+#             track, in track order — each track's own best copy
+#   found_by  acquisition provenance: the track ids whose paid requests fetched
+#             ANY acquired copy of this job — kept, dropped, filtered or
+#             beaten — in track order, then "free" if a free source did. It says
+#             which searches surfaced the job, never which tracks it suits:
+#             that is `chosen`.
+Cluster = namedtuple("Cluster", "best chosen found_by")
+
+
+def provenance(row, tracks):
+    """(paid track ids, free) for one acquired copy — or a ValueError when it
+    carries neither PAID_TRACKS nor FREE, both, or anything malformed."""
+    paid, free = row.get(PAID_TRACKS), row.get(FREE)
+    where = f"copy {row.get('Job URL')!r}"
+    if (paid is None) == (free is None):
+        raise ValueError(f"{where}: needs exactly one of {PAID_TRACKS} (paid) "
+                         f"or {FREE} (free) provenance")
+    if free is not None:
+        if free is not True:
+            raise ValueError(f"{where}: {FREE} must be True, got {free!r}")
+        return frozenset(), True
+    if (not isinstance(paid, (list, tuple)) or not paid
+            or not all(isinstance(i, str) for i in paid)):
+        raise ValueError(f"{where}: {PAID_TRACKS} must be a non-empty list of "
+                         f"track ids, got {paid!r}")
+    unknown = sorted(set(paid) - {t.id for t in tracks})
+    if unknown:
+        raise ValueError(f"{where}: {PAID_TRACKS} names no track of this "
+                         f"Sweep: {unknown}")
+    return frozenset(paid), False
+
+
+def relevant_tracks(row, tracks):
+    """The tracks this copy may be judged for, in track order.
+
+    A paid copy is relevant only to the tracks that asked for it — what a
+    one-track Sweep does implicitly, since all its paid rows answer its own
+    queries. A free copy is relevant to each track whose own title gate admits
+    it, as a one-track Sweep's free rows passed that track's gate. Relevance is
+    not eligibility: a relevant copy can still be dropped by the track.
+    """
+    paid, free = provenance(row, tracks)
+    if free:
+        return [t for t in tracks
+                if title_admits(row.get("Title"), t.title_hints, t.title_exclude)]
+    return [t for t in tracks if t.id in paid]
+
+
+def _facts(row):
+    facts = row.get(FACTS)
+    if facts is None:
+        facts = row[FACTS] = job_facts(row)
+    return facts
+
+
+def score_and_filter_multi(raw_rows, tracks, stage=None):
+    """score_and_filter for a multi-track Sweep: ([(arrival index, row,
+    {track id: Evaluation})], filter counts) — the copies eligible for at
+    least one track that clear the Sweep's filters, in arrival order.
+
+    Per copy: its relevant tracks; each one's evaluation, from one JobFacts
+    and memoised on the copy per context (EVALS); eligibility, including
+    SETTINGS['min_score'] as a per-track test; the copy kept if any track is
+    eligible. Then the Sweep's filters, once, by the function score_and_filter
+    runs. The filters are conjunctive, so running them after evaluation
+    changes counts, never the survivors. For one track this is
+    score_and_filter, decision for decision.
+    """
+    stage = stage or telemetry.stage
+    stage("observed_normalized", raw_rows)
+    floor = SETTINGS["min_score"]
+    by_row, kept = {}, []
+    by_track = {t.id: 0 for t in tracks}
+    for index, row in enumerate(raw_rows):
+        eligible = {}
+        for track in relevant_tracks(row, tracks):
+            memo = row.setdefault(EVALS, {})
+            if track.scoring.key not in memo:
+                got = memo[track.scoring.key] = evaluate(row, track.scoring, _facts(row))
+                # Recorded once, when first reached, and labelled with its
+                # track: unlabelled, it would read as the one profile's.
+                if got.exp_verdict is not None:
+                    experience_guard.record(dict(got.exp_verdict, track=track.id),
+                                            row.get("Title") or "")
+            got = memo[track.scoring.key]
+            if got.eligible and (floor is None or got.score >= floor):
+                eligible[track.id] = got
+                by_track[track.id] += 1
+        if eligible:
+            # Job-level facts, identical for every track, onto the copy: the
+            # Sweep's filters and to_output read them from the row.
+            facts = _facts(row)
+            row["years_required"] = facts.years_required
+            row.update(facts.enrichment)
+            by_row[id(row)] = (index, eligible)
+            kept.append(row)
+    stage("post_hard_filter_and_score", kept)
+    survivors, stats = _sweep_filters(kept, stage)
+    stats.update(eligible_copies=len(kept), eligible_by_track=by_track)
+    return [(by_row[id(r)][0], r, by_row[id(r)][1]) for r in survivors], stats
+
+
+def rank_clusters(copies, tracks, acquired):
+    """rank_rows for a multi-track Sweep: one Cluster per physical job, best
+    first.
+
+    Copies group by job_key; a copy with no key is a job of its own, as in
+    dedupe. Each track's chosen copy is its highest-scoring eligible copy,
+    ties to the earliest arrival — today's survivor rule, per track, so no
+    track's choice is made by another's score. The best track is the one whose
+    chosen copy scores highest, ties to track order, and its chosen copy is
+    the representative. Clusters sort by that score, then by the
+    representative's arrival. For one track this is rank_rows exactly.
+
+    `acquired` is every copy the Sweep acquired, `copies` the survivors among
+    them. A cluster's found_by is the provenance of every acquired copy with
+    its job_key, whatever became of that copy; a keyless copy's is its own.
+    Only surviving copies make a cluster, so provenance alone never does.
+    """
+    order = [t.id for t in tracks]
+    found = {}
+    for row in acquired:
+        key = job_key(row)
+        if key is not None:
+            paid, free = provenance(row, tracks)
+            ids, any_free = found.get(key, (frozenset(), False))
+            found[key] = (ids | paid, any_free or free)
+    groups = {}
+    for copy_ in copies:
+        key = job_key(copy_[1])
+        groups.setdefault(("key", key) if key is not None else ("copy", copy_[0]),
+                          []).append(copy_)
+    clusters = []
+    for (kind, key), members in groups.items():
+        chosen = {}
+        for tid in order:
+            mine = [(i, r, e[tid]) for i, r, e in members if tid in e]
+            if mine:
+                chosen[tid] = min(mine, key=lambda c: (-c[2].score, c[0]))
+        best = min(chosen, key=lambda tid: (-chosen[tid][2].score, order.index(tid)))
+        paid, any_free = (found[key] if kind == "key"
+                          else provenance(members[0][1], tracks))
+        found_by = [tid for tid in order if tid in paid] + (["free"] if any_free else [])
+        clusters.append(Cluster(best, chosen, found_by))
+    clusters.sort(key=lambda c: (-c.chosen[c.best][2].score, c.chosen[c.best][0]))
+    return clusters
+
+
+def finalize_multi(raw_rows, tracks):
+    """finalize for a multi-track Sweep: one output row per physical job, best
+    first, every eligible track's evaluation on it.
+
+    The row's own columns come from the best track's chosen copy, with that
+    track's score and skills; MULTI_COLUMNS add best_track, track_evals
+    (compact JSON {track id: {"s": score, "m": matched skills}} for each
+    eligible track, each from its own chosen copy) and found_by (";"-joined
+    acquisition provenance of every acquired copy of the job; see Cluster).
+    Track ids only: no name, file or description. score_job has no answer
+    here — "which track?" is undefined — so it keeps refusing.
+    """
+    if not tracks:
+        raise ValueError("finalize_multi needs the Sweep's tracks")
+    copies, stats = score_and_filter_multi(raw_rows, tracks)
+    clusters = rank_clusters(copies, tracks, raw_rows)
+    telemetry.stage("final_after_dedupe", [c.chosen[c.best][1] for c in clusters])
+    telemetry.counts(normalized_rows=len(raw_rows), eligible_rows=len(copies),
+                     final_rows=len(clusters))
+    telemetry.eligible_progress(len(clusters))
+    LAST_STATS.update(stale=stats["stale"], low_salary=stats["low_salary"],
+                      kept=len(clusters),
+                      unreachable=stats["unreachable"], rescued=stats["rescued"],
+                      no_visa=stats["no_visa"], no_eor=stats["no_eor"],
+                      wrong_arrangement=stats["wrong_arrangement"],
+                      off_geography=stats["off_geography"])
+    LAST_TRACK_STATS.clear()
+    LAST_TRACK_STATS.update(copies=len(raw_rows), eligible_copies=stats["eligible_copies"],
+                            eligible_by_track=stats["eligible_by_track"],
+                            clusters=len(clusters))
+    out = []
+    for cluster in clusters:
+        _index, representative, got = cluster.chosen[cluster.best]
+        row = to_output(dict(representative, score=got.score,
+                             matched_skills=got.matched_skills,
+                             is_fullstack=got.is_fullstack))
+        row["best_track"] = cluster.best
+        row["track_evals"] = json.dumps(
+            {tid: {"s": e.score, "m": e.matched_skills}
+             for tid, (_i, _r, e) in cluster.chosen.items()},
+            ensure_ascii=False, separators=(",", ":"))
+        row["found_by"] = ";".join(cluster.found_by)
+        out.append(row)
+    return out
 
 
 def shadow_engine(final_rows, production_rows):
