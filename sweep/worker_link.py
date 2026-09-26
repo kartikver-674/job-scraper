@@ -25,9 +25,38 @@ id does, in the signed cookie, so `rehydrate` puts back the few facts the
 screens need to show a sweep this process never started.
 """
 
+import os
 import time
 
 from sweep import public, worker_client
+
+# Phase 0b's activation switch, and the ONLY one. Render has recorded the
+# engine that derived each résumé (state["derived_engine"]) since Phase 0b-A,
+# but tells the worker only when this is on. Off — the default, and what
+# every deploy before sign-off runs — every plan and run request is byte for
+# byte what it was before Phase 0b, and the worker stamps its own default
+# (v1). On, the worker stamps the derivation's engine (v2 on Render), which
+# changes public scoring from v1 to v2: so this is switched on only after the
+# offline v1-vs-v2 comparison is signed off, and switching it off again is
+# the rollback.
+ENGINE_FLAG = "SWEEP_SEND_PROFILE_ENGINE"
+
+
+def sends_engine(env=None):
+    """Is engine propagation on? Anything but a clear yes is no."""
+    raw = ((os.environ if env is None else env).get(ENGINE_FLAG) or "").strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
+def engine_for(state, env=None):
+    """The engine this visitor's plan and run must be rendered with: the one
+    recorded when their résumé was derived, while propagation is on. None
+    otherwise — including a derivation with no recorded engine, which is
+    then rendered exactly as before Phase 0b."""
+    if not sends_engine(env):
+        return None
+    return state.get("derived_engine")
+
 
 # What a free sweep's plan looks like: no paid searches at all. The shape
 # is plan.fetch()'s, so plan.cost() prices it the same way it prices a
@@ -130,9 +159,11 @@ def injections(app):
         if not app.state.get("derived"):
             return free_plan(profile)
         free_only = bool(app.state.get("free_only"))
+        engine = engine_for(app.state)
         try:
             raw = worker_client.plan(app.state["derived"], _prefs_of(app.state),
-                                     free_only=free_only)
+                                     free_only=free_only,
+                                     **({"engine": engine} if engine is not None else {}))
         except worker_client.WorkerError:
             # A free sweep can still be configured and started while the
             # plan service is unreachable: there is nothing to price. A paid
@@ -140,6 +171,13 @@ def injections(app):
             if free_only:
                 return free_plan(profile)
             raise
+        if engine is not None:
+            # Outside the fallback on purpose. An unreachable worker may still
+            # start a free sweep; a worker that ANSWERED with a profile stamped
+            # for another engine (or no attestation at all) starts nothing,
+            # free or paid — never a silent run on the old engine. /run re-
+            # prices through here immediately before every start.
+            worker_client.check_engine(raw, engine)
         # The worker names the plan after its own throwaway profile; the
         # screens read this one back as the profile they are configuring.
         raw["profile"] = profile
@@ -152,10 +190,13 @@ def injections(app):
         free_only = bool(app.state.get("free_only"))
         # V2-D1: exactly the held keys POST /run chose — the accounts the
         # visitor confirmed — and the worker freezes them for this run.
+        # Phase 0b: the same recorded engine the plan was attested with.
+        engine = engine_for(app.state)
         run_id = worker_client.create_run(
             app.state.get("derived") or {}, _prefs_of(app.state),
             free_only=free_only,
-            key_ids=None if free_only else app.state.get("run_key_ids"))
+            key_ids=None if free_only else app.state.get("run_key_ids"),
+            **({"engine": engine} if engine is not None else {}))
         public.remember_run(run_id)
         return RemoteRun(run_id)
 

@@ -1068,7 +1068,24 @@ def check_module(source):
     return source
 
 
-def render(name, data, prefs):
+def stamp_engine(engine=None):
+    """The engine render() writes into PROFILE_SCHEMA.
+
+    None is what render() has always done: the rendering process's own
+    skill_concepts.engine_version(). Anything else is the caller naming the
+    engine that DERIVED the résumé (Phase 0b), so the stamp no longer
+    depends on which machine renders it — and it must be v1 or v2 through
+    the same check a loaded stamp gets. "mixed", "", a non-string: refused,
+    never quietly replaced by this process's own answer.
+    """
+    if engine is None:
+        return skill_concepts.engine_version()
+    if not isinstance(engine, str) or not engine.strip():
+        raise ValueError(f"engine must be one of {', '.join(skill_concepts.VERSIONS)}")
+    return skill_concepts.engine_version(engine)
+
+
+def render(name, data, prefs, engine=None):
     """Render profiles/<name>.py source from the model's JSON and the preferences.
 
     max_spend_usd / max_results / max_age_days / remote_scopes /
@@ -1079,6 +1096,10 @@ def render(name, data, prefs):
     one-level-deep profile merge in config.py's PROFILES section. A profile
     must never widen the sweep by accident, so "not set" has to mean
     "inherit", not "reset to some default picked here".
+
+    `engine` is the stamp (see stamp_engine): None keeps this process's
+    own, byte for byte as before; "v1"/"v2" is the derivation's engine,
+    whatever this process's environment says.
     """
     sections = {
         "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min",
@@ -1094,7 +1115,7 @@ def render(name, data, prefs):
     }
     config = validate_keys(sections)
 
-    engine = skill_concepts.engine_version()
+    engine = stamp_engine(engine)
     years = _years(data["years_experience"])
     # experience_months is what local_extract computed and what the review
     # screen collects; `years` is that same figure floored. Absent, this stays

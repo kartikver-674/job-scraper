@@ -31,6 +31,7 @@ if REPO_ROOT not in sys.path:
 import inference  # noqa: E402
 import local_profile  # noqa: E402
 import make_profile  # noqa: E402
+import skill_concepts  # noqa: E402
 
 # Needed by snapshot() below (site free/paid classification) on every SSE
 # tick — imported once here, at module load, rather than inside snapshot()
@@ -1506,8 +1507,8 @@ def create_app(state=None, extract=None, resume_dir=None,
         # cities, pay floor and depth, while their avoid-list — which lived
         # inside `derived` — was reset with it. Half kept and half discarded,
         # with nothing on screen saying which. A new résumé is a new search.
-        for stale in PREFERENCE_KEYS + ("derived", "profile", "profile_source",
-                                        "plan", "raw_plan"):
+        for stale in PREFERENCE_KEYS + ("derived", "derived_engine", "profile",
+                                        "profile_source", "plan", "raw_plan"):
             app.state.pop(stale, None)
         return redirect(url_for("review"))
 
@@ -1566,6 +1567,10 @@ def create_app(state=None, extract=None, resume_dir=None,
                 raise ParseInFlight
             app.state["parse"] = {"state": "reading", "at": wall_now()}
         try:
+            # Phase 0b: the engine this derivation runs under, recorded WITH
+            # it and never re-read — the worker must stamp what derived the
+            # résumé, not what this process happens to say later.
+            engine = skill_concepts.engine_version()
             derived = derive(app.state["resume_text"], _prefs(app.state))
         except Exception:
             # Marked, not cleared: "we tried and it did not work" is a state
@@ -1574,6 +1579,7 @@ def create_app(state=None, extract=None, resume_dir=None,
             app.state["parse"] = {"state": "failed", "at": wall_now()}
             raise
         app.state["derived"] = derived
+        app.state["derived_engine"] = engine
         app.state.pop("parse", None)
         return derived
 

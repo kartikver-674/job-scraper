@@ -175,7 +175,7 @@ def _checked(payload):
     if not isinstance(payload, dict):
         raise Refused(400, "the request body must be an object")
     unknown = set(payload) - {"profile", "prefs", "free_only", "apify_token",
-                              "owner", "key_ids"}
+                              "owner", "key_ids", "engine"}
     if unknown:
         raise Refused(400, f"unknown field(s): {', '.join(sorted(unknown))}")
 
@@ -204,6 +204,28 @@ def _checked(payload):
     return profile, prefs, bool(free_only), token, owner, key_ids
 
 
+def _requested_engine(payload, checkout):
+    """The scoring engine the caller named (Phase 0b), or None.
+
+    None — absent, or null like the other optional fields — renders exactly
+    as before this field existed: the renderer's own default, which on this
+    box is v1. Otherwise it must be one of the engine versions the checkout
+    knows ("mixed" is not one), and render() stamps it whatever this
+    process's environment says. The refusal names the type or the allowed
+    values, never what was sent.
+    """
+    engine = payload.get("engine")
+    if engine is None:
+        return None
+    if not isinstance(engine, str):
+        raise Refused(400, "engine must be a string when given")
+    _import_make_profile(checkout)
+    import skill_concepts
+    if engine not in skill_concepts.VERSIONS:
+        raise Refused(400, f"engine must be one of {', '.join(skill_concepts.VERSIONS)}")
+    return engine
+
+
 def paid_sites(checkout=None):
     """The sites that bill. Read from the live config, never a list typed
     here — a site added there must not quietly become free."""
@@ -230,10 +252,13 @@ def free_prefs(prefs, checkout=None):
                                       for site in paid_sites(checkout)})
 
 
-def render_profile(make_profile, name, profile, prefs, output_dir):
-    """Rendered profile source for one run, proven to be data."""
+def render_profile(make_profile, name, profile, prefs, output_dir, engine=None):
+    """Rendered profile source for one run, proven to be data. `engine`, when
+    the caller named one, is the stamp; otherwise render() is called exactly
+    as it always was."""
     try:
-        source = make_profile.render(name, profile, prefs)
+        source = (make_profile.render(name, profile, prefs) if engine is None
+                  else make_profile.render(name, profile, prefs, engine=engine))
     except Refused:
         raise
     except Exception as exc:
@@ -783,8 +808,9 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
         comes from the same --dry-run the console uses. Nothing is run and
         nothing is billed.
         """
-        profile, prefs, free_only, _token, _owner, _key_ids = _checked(
-            request.get_json(silent=True))
+        payload = request.get_json(silent=True)
+        profile, prefs, free_only, _token, _owner, _key_ids = _checked(payload)
+        engine = _requested_engine(payload, checkout)
         make_profile = _import_make_profile(checkout)
         name = f"plan_{secrets.token_hex(8)}"
         path = os.path.join(checkout, "profiles", f"{name}.py")
@@ -792,11 +818,15 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
             fh.write(render_profile(
                 make_profile, name, profile,
                 free_prefs(prefs, checkout) if free_only else prefs,
-                os.path.join(store.root, "_plans", name)))
+                os.path.join(store.root, "_plans", name), engine))
         try:
             out = subprocess.run(
                 [sys.executable, "scraper.py", "--profile", name,
-                 "--dry-run", "--json"],
+                 "--dry-run", "--json"]
+                # A caller that named an engine is told which one the engine
+                # actually bound, from the file it loaded; one that did not
+                # gets today's dry run, byte for byte.
+                + (["--attest-engine"] if engine is not None else []),
                 cwd=checkout, capture_output=True, text=True, timeout=120,
                 # A dry run prices; it must not be able to reach an account.
                 env={k: v for k, v in os.environ.items()
@@ -813,8 +843,9 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
 
     @app.post("/v1/runs")
     def create_run():
-        profile, prefs, free_only, token, owner, key_ids = _checked(
-            request.get_json(silent=True))
+        payload = request.get_json(silent=True)
+        profile, prefs, free_only, token, owner, key_ids = _checked(payload)
+        engine = _requested_engine(payload, checkout)
         if not free_only and not public_paid_enabled():
             raise Refused(503, "paid sweeps are temporarily unavailable")
         tokens = [token] if token else None
@@ -837,7 +868,7 @@ def create_app(store=None, queue=None, accepted=None, checkout=None,
 
         source = render_profile(make_profile, profile_name, profile,
                                 free_prefs(prefs, checkout) if free_only
-                                else prefs, output_dir)
+                                else prefs, output_dir, engine)
         # Into the checkout's profiles/ package, because that is how the
         # engine selects one. Named by run id, so two visitors cannot
         # collide and neither can reach the operator's own profiles.
