@@ -292,29 +292,31 @@ def timezone_gap(regions_text, tz_text, home_offset):
 
 
 # --- one call for the pipeline ---------------------------------------------
-def enrich(row, home_offset=None):
-    """Add the signal fields to a normalized row, in place. Returns it."""
+def signals(row, home_offset=None):
+    """The signal fields for a normalized row, as a new dict in the order
+    enrich() writes them. Reads the row, never writes it."""
     location = row.get("Location") or ""
     title = row.get("Title") or ""
     description = row.get("Description") or ""
     body = f"{location}\n{title}\n{description}"
     scope = remote_scope(location, title, description)
-    row["remote_scope"] = scope
     # Description-derived regions are only reported when the role might actually
     # be gated. On an explicitly worldwide role they are market or benefits
     # trivia, and "worldwide" next to "regions: UK" just reads as a contradiction.
-    row["remote_regions"] = eligibility_regions(f"{location} {title}") or (
+    regions_ = eligibility_regions(f"{location} {title}") or (
         "" if scope == "worldwide" else eligibility_regions(description))
-    row["visa"] = visa(body)
-    row["eor"] = eor(body)
     # A source that ships real timezone data (Himalayas reports UTC offsets)
     # beats anything read out of prose, so never overwrite what it set.
-    row["timezones"] = row.get("timezones") or timezones(description)
-    row["tz_gap"] = ("" if home_offset is None else
-                     timezone_gap(row["remote_regions"], row["timezones"] + " " + location,
-                                  home_offset))
-    if row["tz_gap"] is None:
-        row["tz_gap"] = ""
+    zones = row.get("timezones") or timezones(description)
+    gap = ("" if home_offset is None else
+           timezone_gap(regions_, zones + " " + location, home_offset))
+    return {"remote_scope": scope, "remote_regions": regions_, "visa": visa(body),
+            "eor": eor(body), "timezones": zones, "tz_gap": "" if gap is None else gap}
+
+
+def enrich(row, home_offset=None):
+    """Add the signal fields to a normalized row, in place. Returns it."""
+    row.update(signals(row, home_offset))
     return row
 
 

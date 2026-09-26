@@ -554,7 +554,7 @@
   "score_once_keeps": true,
   "score_once_flag": true,
   "score_once_flag_key": "_scored",
-  "score_once_honours_a_stale_false_flag": true,
+  "score_once_honours_a_stale_false_flag": false,
   "stale_flag_row_would_be_kept_by_score_job": true
  },
  "score_and_filter": {

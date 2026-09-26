@@ -44,6 +44,7 @@ Flags:
 import argparse
 import contextlib
 import csv
+import functools
 import hashlib
 import inspect
 import json
@@ -55,6 +56,7 @@ import threading
 import time
 import urllib.parse
 from collections import Counter, namedtuple
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, InvalidOperation
 
@@ -628,33 +630,170 @@ def extract_contacts(text):
     return "; ".join(emails), "; ".join(phones)
 
 
-def score_job(row):
-    """Attach score/matched_skills/is_fullstack/remote? to a normalized row.
+@dataclass(frozen=True)
+class ScoringContext:
+    """Everything scoring reads that a profile sets, compiled once.
 
-    Returns the row, or None if it's hard-filtered (wrong seniority / too much
-    experience and SETTINGS['drop_excluded'] is True).
+    Exactly the SCORING and SETTINGS keys make_profile.render() writes for a
+    résumé — skill_weights, penalty_terms, the domain halves and bonus,
+    hard_drop_terms; max_experience_years, candidate_experience_months — plus
+    the engine that decides how skills count. The rest of what scoring reads
+    (soft_drop_terms, the soft/drop/experience-gap/timezone penalties,
+    company_blocklist, drop_excluded, experience_aggregate, home_utc_offset)
+    is never rendered, so it stays in config: one value per Sweep.
+
+    Frozen, so nothing evaluated under one context can change another.
     """
+    engine: str                  # "v1": every matching term; "v2": each concept once
+    skill_terms: tuple           # ((term, weight, pattern), ...)
+    concepts: tuple              # skill_concepts.Concept, ...
+    penalties: tuple             # ((term, penalty, pattern), ...)
+    frontend: tuple              # patterns
+    backend: tuple
+    fullstack_title: tuple
+    fullstack_bonus: float
+    hard_drop: tuple             # patterns
+    max_experience_years: float
+    candidate_experience_months: object   # int, or None
+
+    def __post_init__(self):
+        if self.engine not in skill_concepts.VERSIONS:
+            raise ValueError(f"unknown scoring engine {self.engine!r}")
+
+    @functools.cached_property
+    def key(self):
+        """A digest of what this context scores with — the memo key. Contexts
+        share it only when they would evaluate every row identically, so no
+        name, and nothing about who asked, can make two of them collide."""
+        return hashlib.sha256(json.dumps([
+            self.engine,
+            [[t, w, p.pattern] for t, w, p in self.skill_terms],
+            [[c.id, c.weight, list(c.aliases)] for c in self.concepts],
+            [[t, w, p.pattern] for t, w, p in self.penalties],
+            [p.pattern for p in self.frontend], [p.pattern for p in self.backend],
+            [p.pattern for p in self.fullstack_title], self.fullstack_bonus,
+            [p.pattern for p in self.hard_drop],
+            self.max_experience_years, self.candidate_experience_months,
+        ], ensure_ascii=False, default=str).encode("utf-8")).hexdigest()
+
+
+def scoring_context(scoring, settings, engine):
+    """A context compiled from SCORING- and SETTINGS-shaped dicts, the way this
+    module compiles the loaded profile's tables at import."""
+    return ScoringContext(
+        engine=engine,
+        skill_terms=tuple((t, w, _compile(t)) for t, w in scoring["skill_weights"].items()),
+        concepts=tuple(skill_concepts.from_weights(scoring["skill_weights"])),
+        penalties=tuple((t, p, _compile(t)) for t, p in scoring["penalty_terms"].items()),
+        frontend=tuple(_compile(t) for t in scoring["frontend_terms"]),
+        backend=tuple(_compile(t) for t in scoring["backend_terms"]),
+        fullstack_title=tuple(_compile(t) for t in scoring["fullstack_title_terms"]),
+        fullstack_bonus=scoring["fullstack_bonus"],
+        hard_drop=tuple(_compile(t) for t in scoring["hard_drop_terms"]),
+        max_experience_years=settings["max_experience_years"],
+        candidate_experience_months=settings.get("candidate_experience_months"))
+
+
+def default_context():
+    """The loaded profile's context, read from this module's tables NOW.
+
+    Built per call rather than frozen at import, because the one-profile
+    callers have always read the live tables: merge_jobs.py and demo() swap
+    HARD_DROP_PATTERNS and SETTINGS in place, a test rebinds PENALTY_PATTERNS,
+    and a SWEEP_PROFILE_ENGINE_VERSION rollback takes effect on the very next
+    call (skill_concepts.enabled). The engine is the branch score_job has
+    always taken: whatever enabled() says, which is the profile's own stamp
+    once one is bound. A few tuples over compiled patterns, next to
+    milliseconds of regex per evaluation.
+    """
+    return ScoringContext(
+        engine="v2" if skill_concepts.enabled() else "v1",
+        skill_terms=tuple((t, w, p) for t, (w, p) in SKILL_PATTERNS.items()),
+        concepts=tuple(SKILL_CONCEPTS),
+        penalties=tuple((t, p, pat) for t, (p, pat) in PENALTY_PATTERNS.items()),
+        frontend=tuple(FRONTEND_PATTERNS),
+        backend=tuple(BACKEND_PATTERNS),
+        fullstack_title=tuple(FULLSTACK_TITLE_PATTERNS),
+        fullstack_bonus=SCORING["fullstack_bonus"],
+        hard_drop=tuple(HARD_DROP_PATTERNS.values()),
+        max_experience_years=SETTINGS["max_experience_years"],
+        candidate_experience_months=SETTINGS.get("candidate_experience_months"))
+
+
+@dataclass(frozen=True)
+class JobFacts:
+    """What scoring reads from one job copy that no profile changes.
+
+    The gate facts are computed up front. The enrichment waits until some
+    context keeps the row — which is when score_job has always computed it —
+    so a row every context drops costs what it always did.
+    """
+    title: str                   # lower-cased
+    text: str                    # lower-cased title, description and Experience
+    blocked: bool                # a repost farm (config company_blocklist)
+    years_required: object       # the experience floor the text states, or None
+    soft_seniority: bool         # a config soft_drop_terms word in the title
+    acquired: dict = field(repr=False, compare=False)   # a copy of the row as read
+
+    @functools.cached_property
+    def enrichment(self):
+        """The job-level fields a kept row gets, in the order score_job writes
+        them: enrich's remote/visa/eor/timezone signals, remote?, contacts."""
+        got = enrich.signals(self.acquired, SETTINGS["home_utc_offset"])
+        got["remote?"] = is_remote(got)
+        got["hr_email"], got["hr_phone"] = extract_contacts(
+            (self.acquired.get("Description") or "") + "\n"
+            + (self.acquired.get("Title") or ""))
+        return got
+
+
+def job_facts(row):
+    """JobFacts for a normalized row. Reads the row, never writes it."""
     title = (row.get("Title") or "").lower()
     # Include Experience (e.g. naukri's "2-4 Yrs") so the over-experience filter
     # sees it — it isn't always repeated in the description.
     text = (title + "\n" + (row.get("Description") or "") + "\n"
             + (row.get("Experience") or "")).lower()
+    return JobFacts(
+        title=title, text=text, blocked=blocked_company(row),
+        years_required=_required_experience_floor(text),
+        soft_seniority=any(pat.search(title) for pat in SOFT_DROP_PATTERNS.values()),
+        acquired=dict(row))
+
+
+# One context's verdict on one job copy. `reason` says why it is not eligible
+# ("blocked_company" or "excluded"); the scoring fields are None when it is not.
+# `exp_verdict` is experience_guard.assess()'s answer when that guard is on:
+# returned, not recorded, so evaluating twice can never record twice.
+Evaluation = namedtuple("Evaluation", "eligible reason score matched_skills "
+                                      "is_fullstack years_required exp_verdict",
+                        defaults=(None,) * 6)
+
+
+def evaluate(row, ctx, facts=None):
+    """ctx's verdict on this row. Pure: it reads the row, ctx and Sweep-level
+    config, and writes nothing — not the row, not experience_guard.DROPPED,
+    not skill_concepts' engine bind. score_job's rules, with every value a
+    profile sets read from ctx. `facts` lets several contexts share one
+    job_facts(row)."""
+    facts = job_facts(row) if facts is None else facts
+    title, text = facts.title, facts.text
 
     # --- Hard filter: repost farm ---------------------------------------------
     # Checked before scoring because these rank at the very top — they repost real
     # listings, so they match the résumé as well as the original does, and no
     # score threshold can separate them.
-    if blocked_company(row):
-        return None
+    if facts.blocked:
+        return Evaluation(False, "blocked_company")
 
     # --- Hard filters: unreachable title, or more experience than we have -----
     # A title is a LABEL; the years the text demands are the requirement. So only
     # hard_drop_terms (manager/principal/staff/...) and a stated experience floor
     # over the threshold remove a job. "Senior"/"Lead" are handled below as a
     # down-rank, because title inflation would otherwise delete reachable roles.
-    excluded = title_excluded(title)
-    floor = _required_experience_floor(text)
-    if floor is not None and floor > SETTINGS["max_experience_years"]:
+    excluded = any(pat.search(title) for pat in ctx.hard_drop)
+    floor = facts.years_required
+    if floor is not None and floor > ctx.max_experience_years:
         excluded = True
 
     # SWEEP_EXPERIENCE_MISMATCH_GUARD (default off). The gate above compares one
@@ -665,48 +804,43 @@ def score_job(row):
     # acts on a preference, and returns "none" for everything it cannot resolve.
     exp_verdict = None
     if experience_guard.enabled():
-        exp_verdict = experience_guard.record(
-            experience_guard.assess(text,
-                                    SETTINGS.get("candidate_experience_months")),
-            row.get("Title") or "")
+        exp_verdict = experience_guard.assess(text, ctx.candidate_experience_months)
         if exp_verdict["action"] == "hard_drop":
             excluded = True
 
     if excluded and SETTINGS["drop_excluded"]:
-        return None
-
-    soft_seniority = any(pat.search(title) for pat in SOFT_DROP_PATTERNS.values())
+        return Evaluation(False, "excluded", years_required=floor,
+                          exp_verdict=exp_verdict)
 
     # --- Positive skill matches ---
-    # v2 (SWEEP_SKILL_CONCEPTS): one technology contributes once however
-    # many ways the profile spells it, and matched_skills records the
-    # concept's display name rather than whichever alias happened to fire.
-    # v1 is the default and is unchanged — every term scores on its own.
-    if skill_concepts.enabled():
-        score, matched = skill_concepts.score(text, SKILL_CONCEPTS)
+    # v2: one technology contributes once however many ways the profile spells
+    # it, and matched_skills records the concept's display name rather than
+    # whichever alias happened to fire. v1: every term scores on its own.
+    if ctx.engine == "v2":
+        score, matched = skill_concepts.score(text, ctx.concepts)
     else:
         score = 0
         matched = []
-        for term, (weight, pat) in SKILL_PATTERNS.items():
+        for term, weight, pat in ctx.skill_terms:
             if pat.search(text):
                 score += weight
                 matched.append(term)
 
     # --- Full-stack detection + bonus ---
-    has_frontend = any(pat.search(text) for pat in FRONTEND_PATTERNS)
-    has_backend = any(pat.search(text) for pat in BACKEND_PATTERNS)
-    title_says_fullstack = any(pat.search(title) for pat in FULLSTACK_TITLE_PATTERNS)
+    has_frontend = any(pat.search(text) for pat in ctx.frontend)
+    has_backend = any(pat.search(text) for pat in ctx.backend)
+    title_says_fullstack = any(pat.search(title) for pat in ctx.fullstack_title)
     is_fullstack = (has_frontend and has_backend) or title_says_fullstack
     if is_fullstack:
-        score += SCORING["fullstack_bonus"]
+        score += ctx.fullstack_bonus
 
     # --- Penalties (off-stack + Salesforce/CRM) ---
-    for term, (penalty, pat) in PENALTY_PATTERNS.items():
+    for _term, penalty, pat in ctx.penalties:
         if pat.search(text):
             score += penalty
 
     # --- Down-ranks that keep the job in the list ---
-    if soft_seniority:
+    if facts.soft_seniority:
         score += SCORING["soft_penalty"]
     # A one-to-two-year shortfall sinks the row rather than removing it — the
     # same trade soft_drop_terms makes, and for the same reason: "5+ years" on
@@ -716,9 +850,55 @@ def score_job(row):
     if excluded:  # only reached when drop_excluded is False
         score += SCORING["drop_penalty"]
 
-    row["score"] = score
-    row["matched_skills"] = ", ".join(dict.fromkeys(matched))  # dedup, preserve order
-    row["is_fullstack"] = is_fullstack
+    # Timezone distance: a down-rank, not a filter. A 13.5h gap to US Pacific is
+    # a real cost to weigh against the role, not a disqualification. Rounded so
+    # the score column stays integral.
+    gap = facts.enrichment["tz_gap"]
+    if isinstance(gap, (int, float)):
+        over = gap - enrich.TZ_FREE_HOURS
+        if over > 0:
+            score = round(score + SCORING["timezone_gap_penalty"] * over)
+
+    return Evaluation(True, None, score,
+                      ", ".join(dict.fromkeys(matched)),  # dedup, preserve order
+                      is_fullstack, floor, exp_verdict)
+
+
+# The per-context memo on a row object: {ScoringContext.key: Evaluation}.
+EVALS = "_evals"
+
+
+def evaluate_once(row, ctx):
+    """evaluate(), at most once per row object and context. Keyed by ctx.key,
+    so one context never receives another's verdict. Writes only EVALS; it
+    is valid for the reason SCORED is (below): evaluate reads nothing a
+    score_job write changes."""
+    memo = row.setdefault(EVALS, {})
+    if ctx.key not in memo:
+        memo[ctx.key] = evaluate(row, ctx)
+    return memo[ctx.key]
+
+
+def score_job(row):
+    """Attach score/matched_skills/is_fullstack/remote? to a normalized row.
+
+    Returns the row, or None if it's hard-filtered (wrong seniority / too much
+    experience and SETTINGS['drop_excluded'] is True).
+
+    The one-profile API, unchanged for its callers: evaluate() under the loaded
+    profile's context, then the two effects evaluate() leaves out — the
+    experience guard's record, and the fields a kept row carries. A dropped row
+    is returned untouched.
+    """
+    facts = job_facts(row)
+    got = evaluate(row, default_context(), facts)
+    if got.exp_verdict is not None:
+        experience_guard.record(got.exp_verdict, row.get("Title") or "")
+    if not got.eligible:
+        return None
+    row["score"] = got.score
+    row["matched_skills"] = got.matched_skills
+    row["is_fullstack"] = got.is_fullstack
     # Keep the PARSED figure, not just the filtering decision it fed. The
     # experience_required column used to read row["Experience"], a raw field only
     # a couple of sources ever set (naukri's "2-4 Yrs", lever's commitment), so it
@@ -727,21 +907,8 @@ def score_job(row):
     # The number is already computed here for the over-experience gate; it's the
     # single most decision-relevant field for a candidate with a fixed number of
     # years, so it belongs in the output rather than being thrown away.
-    row["years_required"] = floor
-    enrich.enrich(row, SETTINGS["home_utc_offset"])   # remote/visa/eor/tz signals
-    row["remote?"] = is_remote(row)
-
-    # Timezone distance: a down-rank, not a filter. A 13.5h gap to US Pacific is
-    # a real cost to weigh against the role, not a disqualification. Rounded so
-    # the score column stays integral.
-    if isinstance(row.get("tz_gap"), (int, float)):
-        over = row["tz_gap"] - enrich.TZ_FREE_HOURS
-        if over > 0:
-            row["score"] = round(row["score"] + SCORING["timezone_gap_penalty"] * over)
-    email, phone = extract_contacts((row.get("Description") or "") + "\n"
-                                    + (row.get("Title") or ""))
-    row["hr_email"] = email
-    row["hr_phone"] = phone
+    row["years_required"] = got.years_required
+    row.update(facts.enrichment)   # remote/visa/eor/tz signals, remote?, contacts
     return row
 
 
@@ -2850,14 +3017,21 @@ LAST_STATS = {}
 # reads back, `timezones`, it rewrites to the same value), so a second call on
 # the same row changes nothing; this skips that call. to_output() never reads
 # the key, and nothing that keys, filters, ranks or dedupes a row looks at it.
+#
+# SCORED_BY is the ScoringContext.key the verdict was reached under, and a
+# verdict is reused only under that same context. SCORED alone used to be
+# trusted, so a verdict left by any other profile — a stale False included —
+# suppressed a real evaluation.
 SCORED = "_scored"
+SCORED_BY = "_scored_by"
 
 
-def _score_once(row):
-    kept = row.get(SCORED)
-    if kept is None:
-        kept = row[SCORED] = score_job(row) is not None
-    return row if kept else None
+def _score_once(row, ctx=None):
+    key = (ctx or default_context()).key
+    if row.get(SCORED_BY) != key:
+        row[SCORED] = score_job(row) is not None
+        row[SCORED_BY] = key
+    return row if row[SCORED] else None
 
 
 def score_and_filter(raw_rows, stage=None, memo=False):
@@ -2873,13 +3047,14 @@ def score_and_filter(raw_rows, stage=None, memo=False):
     production pass. A diagnostic pass passes its own collector, so it cannot
     overwrite the production funnel in the telemetry record.
 
-    `memo` scores each row object at most once across calls (SCORED). Only
-    main() under SWEEP_PAID_CONCURRENCY asks for it; every other caller
-    re-scores, as before.
+    `memo` scores each row object at most once across calls (SCORED), per
+    context. Only main() under SWEEP_PAID_CONCURRENCY asks for it; every other
+    caller re-scores, as before.
     """
     stage = stage or telemetry.stage
     stage("observed_normalized", raw_rows)
-    score = _score_once if memo else score_job
+    # One context for the whole pass, so its memo key is computed once.
+    score = functools.partial(_score_once, ctx=default_context()) if memo else score_job
     scored = [r for r in (score(row) for row in raw_rows) if r is not None]
     if SETTINGS["min_score"] is not None:
         scored = [r for r in scored if r["score"] >= SETTINGS["min_score"]]

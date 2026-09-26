@@ -647,9 +647,13 @@ class ScoreJobMutationContract(Golden):
                 self.assertTrue(m["score_once_keeps"])
                 self.assertIs(m["score_once_flag"], True)
                 self.assertEqual(m["score_once_flag_key"], "_scored")
-                # The hazard design §K removes: a False verdict left on a row
-                # is returned without re-scoring, even for a row score_job keeps.
-                self.assertTrue(m["score_once_honours_a_stale_false_flag"])
+                # CHANGED IN PHASE 1, on purpose (design §K; the only golden
+                # Phase 1 changes). Phase 0a froze a hazard: a False verdict
+                # left on a row was returned without re-scoring, even for a row
+                # score_job keeps. The memo is now keyed by context
+                # (scraper.SCORED_BY), so a verdict no context of this run
+                # reached is re-evaluated, and the row is kept.
+                self.assertFalse(m["score_once_honours_a_stale_false_flag"])
                 self.assertTrue(m["stale_flag_row_would_be_kept_by_score_job"])
                 rows = {r["url"]: r for r in scoring["score_job"]}
                 self.assertEqual(rows[_url("01")]["added_keys"], self.KEPT_ROW_ADDS)
