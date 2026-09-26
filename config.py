@@ -1082,6 +1082,7 @@ SETTINGS = {
 # not from parsed arguments. scraper.py precompiles its regex tables from SCORING
 # at module level, so a profile applied any later would be silently ignored by
 # the scoring layer. That is the one thing about this design worth remembering.
+import copy
 import os
 import sys
 
@@ -1169,19 +1170,41 @@ def load_profile_module(name):
         # understand must not be run, because running it spends money on a
         # search nobody configured.
         sys.exit(f"Cannot run profiles/{name}.py: {stamp['why']}")
+    try:
+        make_profile.check_loaded(module, stamp)
+    except ValueError as exc:
+        sys.exit(f"Cannot run profiles/{name}.py: {exc}")
     return module, stamp
 
+
+# The defaults exactly as this file writes them, before any profile touches
+# them. A schema-2 track is built on these, then on the Sweep's own SCORING,
+# then on its own values — never on the live globals, which the Sweep's
+# overlay has already changed, so nothing leaks from one track into another.
+# SCORING is the only section a track reads through: every SEARCH and
+# SETTINGS key a track needs, it carries itself.
+BASE_SCORING = copy.deepcopy(SCORING)
 
 PROFILE = _selected_profile()
 PROFILE_CHANGED = []
 # Which engine derived the loaded profile, so the machine SCORING it does
 # not have to be told separately. Two machines agreeing by coincidence is
 # not a contract: Render pins derivation, and the worker's scraper child
-# reads its own environment.
+# reads its own environment. None for a schema-2 Sweep: each track names
+# its own, and nothing is bound for the process.
 PROFILE_ENGINE = None
+# Schema 2 only — a Multi-Track Sweep. The tracks as the file wrote them and
+# the loader checked them, and the file's own Sweep-level SCORING. Neither is
+# overlaid: the globals hold the Sweep, and nothing of any track.
+TRACKS = ()
+SWEEP_SCORING = {}
 if PROFILE:
     _module, _stamp = load_profile_module(PROFILE)
-    PROFILE_ENGINE = _stamp.get("engine")
+    if hasattr(_module, "TRACKS"):          # the loader allows it in schema 2 only
+        TRACKS = tuple(copy.deepcopy(_module.TRACKS))
+        SWEEP_SCORING = copy.deepcopy(getattr(_module, "SCORING", {}))
+    else:
+        PROFILE_ENGINE = _stamp.get("engine")
     PROFILE_CHANGED = _overlay(_module)
     # Keep each person's sweeps apart unless the profile picks its own directory.
     if "SETTINGS" not in PROFILE_CHANGED or "output_dir" not in getattr(_module, "SETTINGS", {}):

@@ -251,7 +251,7 @@ class TestProfileSchemaCompatibility(unittest.TestCase):
 
     def test_a_future_schema_is_refused_with_an_explicit_message(self):
         got = make_profile.profile_schema(
-            self.stamped({"version": make_profile.PROFILE_SCHEMA + 1,
+            self.stamped({"version": make_profile.SWEEP_SCHEMA + 1,
                           "engine": "v9"}))
         self.assertFalse(got["readable"])
         self.assertIn("newer build", got["why"])

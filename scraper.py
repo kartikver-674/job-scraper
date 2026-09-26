@@ -705,7 +705,17 @@ def default_context():
     always taken: whatever enabled() says, which is the profile's own stamp
     once one is bound. A few tuples over compiled patterns, next to
     milliseconds of regex per evaluation.
+
+    A schema-2 Sweep has no default context. Its globals hold the Sweep and
+    config's defaults, not any track, so one-profile scoring there would
+    score every row against somebody else's tables — refused rather than
+    quietly run, and never answered with one of the tracks.
     """
+    if config.TRACKS:
+        raise RuntimeError(
+            f"multi-context finalization not enabled: {config.PROFILE!r} is a "
+            f"Multi-Track Sweep with {len(config.TRACKS)} tracks, and one-profile "
+            f"scoring would read config's defaults rather than any track")
     return ScoringContext(
         engine="v2" if skill_concepts.enabled() else "v1",
         skill_terms=tuple((t, w, p) for t, (w, p) in SKILL_PATTERNS.items()),
@@ -718,6 +728,47 @@ def default_context():
         hard_drop=tuple(HARD_DROP_PATTERNS.values()),
         max_experience_years=SETTINGS["max_experience_years"],
         candidate_experience_months=SETTINGS.get("candidate_experience_months"))
+
+
+@dataclass(frozen=True)
+class TrackContext:
+    """One résumé track of a schema-2 Sweep, as the engine holds it: an opaque
+    id, its search intent, its free-source title gate, and its ScoringContext,
+    which carries its engine. No display name, résumé text or credential."""
+    id: str
+    role_keywords: tuple
+    experience_years: int
+    title_hints: tuple
+    title_exclude: tuple
+    scoring: ScoringContext
+
+    @property
+    def engine(self):
+        return self.scoring.engine
+
+
+def track_context(track, sweep_scoring):
+    """A TrackContext from one checked TRACKS entry.
+
+    Its tables are config's pristine defaults, then the Sweep's own SCORING
+    (hard_drop_terms), then the track's own: the one-level merge
+    config._overlay gives a profile. Never the live globals — the Sweep's
+    overlay has already written those — so no other track's values are
+    reachable from this one. The engine is the track's, never the process's.
+    """
+    scoring = {**config.BASE_SCORING, **sweep_scoring, **track["SCORING"]}
+    return TrackContext(
+        id=track["id"],
+        role_keywords=tuple(track["SEARCH"]["role_keywords"]),
+        experience_years=track["SEARCH"]["experience_years"],
+        title_hints=tuple(track["ATS_TITLE_HINTS"]),
+        title_exclude=tuple(track["ATS_TITLE_EXCLUDE"]),
+        scoring=scoring_context(scoring, track["SETTINGS"], track["engine"]))
+
+
+# The loaded Sweep's tracks in the file's order; () for any schema-1 profile.
+# Loaded only: nothing plans, filters, scores or ranks through them yet.
+TRACK_CONTEXTS = tuple(track_context(t, config.SWEEP_SCORING) for t in config.TRACKS)
 
 
 @dataclass(frozen=True)
@@ -3937,6 +3988,13 @@ def main():
     if args.demo:
         demo()
         return
+    # A Multi-Track Sweep loads, but nothing here can plan, fetch or score one
+    # yet: every step below reads the one-profile globals, which for schema 2
+    # are config's defaults — another person's keywords and tables.
+    if config.TRACKS:
+        sys.exit(f"profiles/{config.PROFILE}.py is a Multi-Track Sweep "
+                 f"({len(config.TRACKS)} tracks). This build loads it but "
+                 f"cannot run it yet; nothing was searched or charged.")
     if config.PROFILE and not (args.dry_run and args.json):
         print(f"Profile:   {config.PROFILE} "
               f"(overrides {', '.join(config.PROFILE_CHANGED) or 'nothing'}) "

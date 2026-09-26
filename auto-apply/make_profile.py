@@ -945,6 +945,9 @@ PROFILE_NAMES = frozenset({
     # behaves — it is there so a reader, a rollback and a bug report can
     # all tell v1 output from v2 output without guessing.
     "PROFILE_SCHEMA",
+    # Schema 2 only: one entry per résumé in a Multi-Track Sweep. Never in
+    # config.OVERLAYABLE — no track is ever overlaid onto the globals.
+    "TRACKS",
 })
 
 # Bumped when the MEANING of a profile's fields changes, not when the
@@ -957,6 +960,27 @@ PROFILE_SCHEMA = 1
 # v1 output — absence IS the version, which is why nothing needs
 # migrating on disk.
 LEGACY_SCHEMA = 0
+
+# Schema 2, a Multi-Track Sweep, written only by render_sweep(): the Sweep's
+# own sections once, plus TRACKS — one to three résumés, each carrying its
+# own search intent, experience, scoring tables, free-source title gate and
+# the engine that derived it. It is the newest schema this build reads.
+# render() still writes schema 1 byte for byte, which is why PROFILE_SCHEMA
+# stays 1; a build older than this one refuses schema 2 as "newer".
+SWEEP_SCHEMA = 2
+SWEEP_ENGINE = "multi"      # a schema-2 stamp's engine; each track names its own
+MAX_TRACKS = 3
+TRACK_ID = re.compile(r"[0-9a-f]{8,32}")   # opaque (secrets.token_hex); never a name
+# Exactly what one track carries. Every key is required and nothing else is
+# allowed: a track holds one résumé's values, never a Sweep's.
+TRACK_SECTIONS = {
+    "SEARCH": ("role_keywords", "experience_years"),
+    "SETTINGS": ("max_experience_years", "candidate_experience_months"),
+    "SCORING": ("skill_weights", "penalty_terms", "frontend_terms", "backend_terms",
+                "fullstack_title_terms", "fullstack_bonus"),
+}
+TRACK_KEYS = ("id", "engine", "SEARCH", "SETTINGS", "SCORING",
+              "ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE")
 
 
 def profile_schema(module):
@@ -983,15 +1007,111 @@ def profile_schema(module):
                         f"version — this file was not written by "
                         f"make_profile.render()")}
     version = stamp["version"]
-    if version > PROFILE_SCHEMA:
+    if version > SWEEP_SCHEMA:
         return {"version": version, "engine": stamp.get("engine", "unknown"),
                 "readable": False,
                 "why": (f"profile schema {version} was written by a newer "
-                        f"build than this one (schema {PROFILE_SCHEMA}). "
+                        f"build than this one (schema {SWEEP_SCHEMA}). "
                         f"Upgrade, or regenerate the profile with this "
                         f"build — do not run it as-is.")}
+    if (version == SWEEP_SCHEMA) != (stamp.get("engine") == SWEEP_ENGINE):
+        return {"version": version, "engine": stamp.get("engine", "unknown"),
+                "readable": False,
+                "why": (f"a schema {SWEEP_SCHEMA} profile's engine is "
+                        f"{SWEEP_ENGINE!r} (each track names its own), and "
+                        f"only schema {SWEEP_SCHEMA} may say {SWEEP_ENGINE!r} "
+                        f"— this stamp says version {version}, engine "
+                        f"{stamp.get('engine')!r}")}
     return {"version": version, "engine": stamp.get("engine", "unknown"),
             "readable": True, "why": f"schema {version}"}
+
+
+def check_tracks(tracks):
+    """A schema-2 TRACKS value, or a ValueError naming what is wrong with it.
+
+    The one gate for track data, on the way out (render_sweep) and on the way
+    in (config.load_profile_module). Shapes and types only; the values were
+    range-checked when render_sweep built them from a derivation.
+    """
+    def fail(why):
+        raise ValueError(f"TRACKS: {why}")
+
+    def strings(value, label):
+        if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+            fail(f"{label} must be a list of strings")
+
+    def whole(value, label, allow_none=False):
+        if value is None and allow_none:
+            return
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            fail(f"{label} must be a whole number >= 0, got {value!r}")
+
+    if not isinstance(tracks, (list, tuple)) or not 1 <= len(tracks) <= MAX_TRACKS:
+        fail(f"a Sweep has 1 to {MAX_TRACKS} tracks")
+    seen = set()
+    for n, track in enumerate(tracks, 1):
+        where = f"track {n}"
+        if not isinstance(track, dict) or set(track) != set(TRACK_KEYS):
+            got = sorted(track) if isinstance(track, dict) else type(track).__name__
+            fail(f"{where} must have exactly {list(TRACK_KEYS)}, got {got}")
+        tid = track["id"]
+        if not isinstance(tid, str) or not TRACK_ID.fullmatch(tid):
+            fail(f"{where} id must be 8-32 lowercase hex characters, got {tid!r}")
+        if tid in seen:
+            fail(f"{where} repeats id {tid!r}")
+        seen.add(tid)
+        if track["engine"] not in skill_concepts.VERSIONS:
+            fail(f"{where} engine must be one of {skill_concepts.VERSIONS}, "
+                 f"got {track['engine']!r}")
+        for section, keys in TRACK_SECTIONS.items():
+            if not isinstance(track[section], dict) or set(track[section]) != set(keys):
+                fail(f"{where} {section} must have exactly {list(keys)}")
+        search, settings, scoring = track["SEARCH"], track["SETTINGS"], track["SCORING"]
+        strings(search["role_keywords"], f"{where} role_keywords")
+        whole(search["experience_years"], f"{where} experience_years")
+        whole(settings["max_experience_years"], f"{where} max_experience_years")
+        whole(settings["candidate_experience_months"],
+              f"{where} candidate_experience_months", allow_none=True)
+        for key in ("skill_weights", "penalty_terms"):
+            table = scoring[key]
+            if not isinstance(table, dict) or not all(
+                    isinstance(t, str) and isinstance(w, int) and not isinstance(w, bool)
+                    for t, w in table.items()):
+                fail(f"{where} {key} must map strings to whole numbers")
+        for key in ("frontend_terms", "backend_terms", "fullstack_title_terms"):
+            strings(scoring[key], f"{where} {key}")
+        if isinstance(scoring["fullstack_bonus"], bool) or not isinstance(
+                scoring["fullstack_bonus"], int):
+            fail(f"{where} fullstack_bonus must be a whole number")
+        strings(track["ATS_TITLE_HINTS"], f"{where} ATS_TITLE_HINTS")
+        strings(track["ATS_TITLE_EXCLUDE"], f"{where} ATS_TITLE_EXCLUDE")
+    return tracks
+
+
+def check_sweep(module):
+    """A loaded schema-2 module's TRACKS, checked, with the Sweep-level
+    sections checked to carry nothing a track owns. ValueError otherwise."""
+    for section, keys in TRACK_SECTIONS.items():
+        stray = sorted(set(getattr(module, section, None) or {}) & set(keys))
+        if stray:
+            raise ValueError(f"schema {SWEEP_SCHEMA}: {section} carries track "
+                             f"keys {stray}; they belong in TRACKS")
+    for name in ("ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE"):
+        if hasattr(module, name):
+            raise ValueError(f"schema {SWEEP_SCHEMA}: {name} is per track; "
+                             f"it belongs in TRACKS")
+    return check_tracks(getattr(module, "TRACKS", None))
+
+
+def check_loaded(module, stamp):
+    """What a loader checks after the stamp reads: a schema-2 file's Sweep and
+    tracks, and that no other schema carries TRACKS — a TRACKS nobody reads
+    would be a résumé silently left out of the search."""
+    if stamp["version"] == SWEEP_SCHEMA:
+        check_sweep(module)
+    elif hasattr(module, "TRACKS"):
+        raise ValueError(f"TRACKS is only valid in a schema {SWEEP_SCHEMA} "
+                         f"profile; this one is schema {stamp['version']}")
 
 
 def load_profile(name):
@@ -1008,6 +1128,10 @@ def load_profile(name):
     stamp = profile_schema(module)
     if not stamp["readable"]:
         raise ValueError(f"profiles/{name}.py: {stamp['why']}")
+    try:
+        check_loaded(module, stamp)
+    except ValueError as exc:
+        raise ValueError(f"profiles/{name}.py: {exc}") from exc
     return module, stamp
 
 
@@ -1068,34 +1192,8 @@ def check_module(source):
     return source
 
 
-def render(name, data, prefs):
-    """Render profiles/<name>.py source from the model's JSON and the preferences.
-
-    max_spend_usd / max_results / max_age_days / remote_scopes /
-    linkedin_locations are
-    optional overrides (from Sweep's Configure screen, sweep/app.py) —
-    omitted from `prefs` (None), they are left out of the rendered section
-    entirely so config.py's own default silently applies, per the
-    one-level-deep profile merge in config.py's PROFILES section. A profile
-    must never widen the sweep by accident, so "not set" has to mean
-    "inherit", not "reset to some default picked here".
-    """
-    sections = {
-        "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min",
-                   "max_results"],
-        "SETTINGS": ["max_experience_years", "candidate_experience_months",
-                     "min_comp_usd", "max_age_days",
-                     "remote_scopes", "max_spend_usd", "work_scope",
-                     "allow_partial_paid_sweep"],
-        "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
-                    "backend_terms", "fullstack_title_terms", "fullstack_bonus",
-                    "hard_drop_terms"],
-        "SITES": ["linkedin", "indeed", "naukri"],
-    }
-    config = validate_keys(sections)
-
-    engine = skill_concepts.engine_version()
-    years = _years(data["years_experience"])
+def _months(data):
+    """experience_months, or None."""
     # experience_months is what local_extract computed and what the review
     # screen collects; `years` is that same figure floored. Absent, this stays
     # None and experience_guard does not run at all — years * 12 would put a
@@ -1104,20 +1202,14 @@ def render(name, data, prefs):
     months = data.get("experience_months")
     if not isinstance(months, int) or isinstance(months, bool) or months < 0:
         months = None
-    skills = _weights(data["skill_weights"])
-    # The scanned terms and why each was kept, as a comment beside the
-    # weights they became. notes carries the count; this carries the
-    # reasons, where someone reviewing the profile can check them
-    # without them crowding the docstring.
-    added_block = ""
-    if data.get("skills_added"):
-        lines = "\n".join(f"    #   {term:<28} {why}"
-                           for term, why in sorted(data["skills_added"].items()))
-        added_block = (
-            "    # Found in the résumé and named by the market, added to what\n"
-            "    # the model reported. Each line says why it counted as a claim.\n"
-            f"{lines}\n")
+    return months
 
+
+def _sweep_blocks(prefs, config):
+    """The Sweep-level source fragments render() interpolates:
+    (extra SEARCH lines, extra SETTINGS lines, LOCATION_HINTS, SITES). They
+    come from the preferences alone — never from a résumé — so a Multi-Track
+    Sweep writes them once, exactly as a one-résumé profile does."""
     extra_search = (f'    "max_results": {int(prefs["max_results"])!r},\n'
                      if prefs.get("max_results") is not None else "")
     extra_settings = ""
@@ -1212,6 +1304,81 @@ def render(name, data, prefs):
         overlay.setdefault(site, dict(config.SITES[site]))["enabled"] = bool(on)
 
     extra_sites = _fmt_sites(overlay) if overlay else ""
+    return extra_search, extra_settings, extra_hints, extra_sites
+
+
+def _penalties(data, prefs):
+    """penalty_terms for one résumé: the model's, less the excluded levels,
+    plus the person's own avoid-list."""
+    # The model reliably copies the excluded seniority words into penalty_terms
+    # as well, even when told they are already handled. With drop_excluded True
+    # (the default) hard_drop_terms deletes those rows outright, so the penalty
+    # is dead weight — and if that flag is ever flipped off they would be
+    # penalized twice, once by drop_penalty and once here. Strip them.
+    excluded = set(prefs["exclude_levels"])
+    penalties = {term: weight
+                 for term, weight in _weights(data["penalty_terms"], sign=-1).items()
+                 if term not in excluded}
+    # The person's OWN avoid-list, kept separate from the model's all the way
+    # to here so it stays removable: it lives in prefs, not in `data`, so
+    # clearing the box on the Search-preferences screen clears it from the
+    # next render. Folding it into data["penalty_terms"] instead made it
+    # permanent — a term could be added and never taken back.
+    #
+    # Applied last and at the top of PENALTY_RANGE, so an explicit "I do not
+    # want this" outranks whatever the model happened to think of the same
+    # technology.
+    for term in prefs.get("avoid") or []:
+        term = str(term).strip().lower()
+        if term and term not in excluded:
+            penalties[term] = -PENALTY_RANGE[1]
+    return penalties
+
+
+def render(name, data, prefs):
+    """Render profiles/<name>.py source from the model's JSON and the preferences.
+
+    max_spend_usd / max_results / max_age_days / remote_scopes /
+    linkedin_locations are
+    optional overrides (from Sweep's Configure screen, sweep/app.py) —
+    omitted from `prefs` (None), they are left out of the rendered section
+    entirely so config.py's own default silently applies, per the
+    one-level-deep profile merge in config.py's PROFILES section. A profile
+    must never widen the sweep by accident, so "not set" has to mean
+    "inherit", not "reset to some default picked here".
+    """
+    sections = {
+        "SEARCH": ["role_keywords", "experience_years", "locations", "salary_min",
+                   "max_results"],
+        "SETTINGS": ["max_experience_years", "candidate_experience_months",
+                     "min_comp_usd", "max_age_days",
+                     "remote_scopes", "max_spend_usd", "work_scope",
+                     "allow_partial_paid_sweep"],
+        "SCORING": ["skill_weights", "penalty_terms", "frontend_terms",
+                    "backend_terms", "fullstack_title_terms", "fullstack_bonus",
+                    "hard_drop_terms"],
+        "SITES": ["linkedin", "indeed", "naukri"],
+    }
+    config = validate_keys(sections)
+
+    engine = skill_concepts.engine_version()
+    years = _years(data["years_experience"])
+    months = _months(data)
+    skills = _weights(data["skill_weights"])
+    # The scanned terms and why each was kept, as a comment beside the
+    # weights they became. notes carries the count; this carries the
+    # reasons, where someone reviewing the profile can check them
+    # without them crowding the docstring.
+    added_block = ""
+    if data.get("skills_added"):
+        lines = "\n".join(f"    #   {term:<28} {why}"
+                           for term, why in sorted(data["skills_added"].items()))
+        added_block = (
+            "    # Found in the résumé and named by the market, added to what\n"
+            "    # the model reported. Each line says why it counted as a claim.\n"
+            f"{lines}\n")
+
+    extra_search, extra_settings, extra_hints, extra_sites = _sweep_blocks(prefs, config)
     hints, excludes, gate_record = _title_gate(data, config)
     gate_note = _gate_note(gate_record)
     # The résumé's own role keywords are what himalayas is searched for; its
@@ -1240,28 +1407,7 @@ def render(name, data, prefs):
         "--dry-run first and read the cost."
     )
 
-    # The model reliably copies the excluded seniority words into penalty_terms
-    # as well, even when told they are already handled. With drop_excluded True
-    # (the default) hard_drop_terms deletes those rows outright, so the penalty
-    # is dead weight — and if that flag is ever flipped off they would be
-    # penalized twice, once by drop_penalty and once here. Strip them.
-    excluded = set(prefs["exclude_levels"])
-    penalties = {term: weight
-                 for term, weight in _weights(data["penalty_terms"], sign=-1).items()
-                 if term not in excluded}
-    # The person's OWN avoid-list, kept separate from the model's all the way
-    # to here so it stays removable: it lives in prefs, not in `data`, so
-    # clearing the box on the Search-preferences screen clears it from the
-    # next render. Folding it into data["penalty_terms"] instead made it
-    # permanent — a term could be added and never taken back.
-    #
-    # Applied last and at the top of PENALTY_RANGE, so an explicit "I do not
-    # want this" outranks whatever the model happened to think of the same
-    # technology.
-    for term in prefs.get("avoid") or []:
-        term = str(term).strip().lower()
-        if term and term not in excluded:
-            penalties[term] = -PENALTY_RANGE[1]
+    penalties = _penalties(data, prefs)
     # check_module wraps the return so no caller can forget it: the CLI and
     # Sweep's POST /review both come through here, and the file this builds
     # is imported by config.py.
@@ -1335,6 +1481,94 @@ SCORING = {{
 
 # Checked first, so it wins: different CAREERS that borrow the same words.
 ATS_TITLE_EXCLUDE = {_fmt(excludes, indent=4)}
+''')
+
+
+def _fmt_tracks(tracks):
+    """TRACKS as readable, deterministic Python source."""
+    out = "[\n"
+    for track in tracks:
+        out += (f'    {{\n        "id": {track["id"]!r},\n'
+                f'        "engine": {track["engine"]!r},\n')
+        for section in TRACK_SECTIONS:
+            out += f'        "{section}": {{\n'
+            for key, value in track[section].items():
+                shown = (_fmt(value, indent=16) if isinstance(value, (dict, list))
+                         else repr(value))
+                out += f'            "{key}": {shown},\n'
+            out += "        },\n"
+        for key in ("ATS_TITLE_HINTS", "ATS_TITLE_EXCLUDE"):
+            out += f'        "{key}": {_fmt(track[key], indent=12)},\n'
+        out += "    },\n"
+    return out + "]"
+
+
+def render_sweep(name, tracks, prefs):
+    """Render a schema-2 Multi-Track Sweep: the Sweep's own sections once, then
+    TRACKS, one entry per résumé.
+
+    `tracks` is [{"id", "engine", "derived"}] in the user's order. Each track
+    is built from its OWN derivation with the helpers render() uses, so its
+    values are what render() writes for that résumé under these preferences —
+    never taken from another track, and its engine is the one it names, never
+    the process's. Ids are opaque; nothing here names a person or a file.
+    """
+    if not isinstance(tracks, (list, tuple)) or not 1 <= len(tracks) <= MAX_TRACKS:
+        raise ValueError(f"a Sweep has 1 to {MAX_TRACKS} tracks")
+    config = validate_keys({
+        "SEARCH": ["locations", "salary_min", "max_results", *TRACK_SECTIONS["SEARCH"]],
+        "SETTINGS": ["min_comp_usd", "max_age_days", "remote_scopes", "max_spend_usd",
+                     "work_scope", "allow_partial_paid_sweep",
+                     *TRACK_SECTIONS["SETTINGS"]],
+        "SCORING": ["hard_drop_terms", *TRACK_SECTIONS["SCORING"]],
+        "SITES": ["linkedin", "indeed", "naukri"]})
+    extra_search, extra_settings, extra_hints, extra_sites = _sweep_blocks(prefs, config)
+    built = []
+    for track in tracks:
+        if not isinstance(track, dict) or set(track) != {"id", "engine", "derived"}:
+            raise ValueError("each track is {'id', 'engine', 'derived'}")
+        data = track["derived"]
+        years = _years(data["years_experience"])
+        hints, excludes, _record = _title_gate(data, config)
+        built.append({
+            "id": track["id"], "engine": track["engine"],
+            "SEARCH": {"role_keywords": list(data["role_keywords"]),
+                       "experience_years": years},
+            "SETTINGS": {"max_experience_years": years + 3,
+                         "candidate_experience_months": _months(data)},
+            "SCORING": {
+                "skill_weights": _weights(data["skill_weights"]),
+                "penalty_terms": _penalties(data, prefs),
+                "frontend_terms": [t.lower() for t in data["domain_half_a"]],
+                "backend_terms": [t.lower() for t in data["domain_half_b"]],
+                "fullstack_title_terms": [t.lower() for t in data["domain_title_terms"]],
+                "fullstack_bonus": int(data["domain_bonus"])},
+            "ATS_TITLE_HINTS": hints, "ATS_TITLE_EXCLUDE": excludes})
+    check_tracks(built)
+    return check_module(f'''"""{_prose(name)} — a Multi-Track Sweep generated by auto-apply/make_profile.py.
+
+{len(built)} résumé tracks, searched as one Sweep. The Sweep's own choices —
+locations, recency, depth, pay floor, sources, spend cap — are written once
+below; each TRACKS entry is one résumé's search intent, experience, scoring
+tables and free-source title gate, with the engine that derived it.
+"""
+
+PROFILE_SCHEMA = {{"version": {SWEEP_SCHEMA}, "engine": {SWEEP_ENGINE!r}}}
+
+{extra_hints}{extra_sites}SEARCH = {{
+    "locations": {_fmt(prefs["locations"])},
+    "salary_min": None,
+{extra_search}}}
+
+SETTINGS = {{
+    "min_comp_usd": {prefs["min_comp_usd"]!r},
+{extra_settings}}}
+
+SCORING = {{
+    "hard_drop_terms": {_fmt(prefs["exclude_levels"])},
+}}
+
+TRACKS = {_fmt_tracks(built)}
 ''')
 
 

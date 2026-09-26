@@ -189,7 +189,7 @@ class TestTheRealLoaderEnforcesTheSchema(Clean):
 
     def test_a_future_schema_is_refused_by_the_real_loader(self):
         self.module("futureprobe",
-                    PROFILE_SCHEMA={"version": make_profile.PROFILE_SCHEMA + 1,
+                    PROFILE_SCHEMA={"version": make_profile.SWEEP_SCHEMA + 1,
                                     "engine": "v9"})
         with self.assertRaises(SystemExit) as caught:
             self.load("futureprobe")
