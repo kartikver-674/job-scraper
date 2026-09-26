@@ -7,8 +7,8 @@ representative, and returns one row per job carrying every eligible track's
 evaluation. Relevance comes only from explicit provenance: PAID_TRACKS on a
 paid copy, FREE on a free one (each track's title gate decides).
 
-Nothing here runs a search. main() still refuses a schema-2 Sweep, and every
-row's provenance is attributed by hand, standing in for what Phase 3 stamps.
+Nothing here runs a search: every row's provenance is attributed by hand,
+standing in for what a Phase-3 run stamps (test_multi_plan runs main()).
 Offline, synthetic rows and tracks.
 """
 import copy
@@ -443,9 +443,13 @@ if mode == "one":
 else:
     scraper.score_and_filter_multi(copy.deepcopy(rows), scraper.TRACK_CONTEXTS, collect)
     out = scraper.finalize_multi(rows, scraper.TRACK_CONTEXTS)
+    import contextlib, io
+    printed = io.StringIO()
     try:
         sys.argv = ["scraper.py", "--profile", name, "--dry-run", "--json"]
-        scraper.main(); blocked = "ran"
+        with contextlib.redirect_stdout(printed):
+            scraper.main()
+        blocked = json.loads(printed.getvalue())["plan_version"]
     except SystemExit as exc:
         blocked = str(exc)
 print(json.dumps({"out": out, "stats": dict(scraper.LAST_STATS), "stages": stages,
@@ -509,8 +513,9 @@ class OneTrackParity(unittest.TestCase):
                 self.assertTrue(all(list(json.loads(r["track_evals"])) == [tid]
                                     for r in multi_out))
                 self.assertIn("free", {p for r in multi_out for p in r["found_by"].split(";")})
-                # main() still refuses a schema-2 Sweep, before any planning.
-                self.assertIn("cannot run it yet", got["multi"]["blocked"])
+                # Phase 3 lifted main()'s refusal: the same process now plans
+                # the Sweep (test_multi_plan runs it whole).
+                self.assertEqual(got["multi"]["blocked"], 2)
 
 
 class SchemaOneUntouched(unittest.TestCase):

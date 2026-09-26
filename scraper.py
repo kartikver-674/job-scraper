@@ -302,6 +302,41 @@ def fetch_free():
     return [_truncate_desc(r) for r in rows]
 
 
+def himalayas_queries(tracks):
+    """One Himalayas query list for every track of a schema-2 Sweep: their
+    role_keywords round-robin in track order, each track's own order kept,
+    an exact repeat once, blanks dropped as make_profile._fmt_feeds drops
+    them. Not cut here: feeds._himalayas_urls applies today's max_queries (8)
+    to the WHOLE list, so the cap is total, never 8 per track."""
+    return round_robin([[k for k in t.role_keywords if str(k).strip()] for t in tracks])
+
+
+def fetch_free_multi(tracks):
+    """fetch_free for a schema-2 Sweep: every board and feed fetched ONCE.
+
+    A title is kept when ANY track's own gate admits it — each track with its
+    own hints and its own excludes, never a union of excludes, which would
+    delete one track's roles for another's sake. The location gate is the
+    Sweep's, unchanged. Himalayas searches one list for all tracks. Every row
+    is stamped FREE: it answered no track's query, and finalize_multi asks
+    each track's gate about it again."""
+    def keep_title(title):
+        return any(title_admits(title, t.title_hints, t.title_exclude) for t in tracks)
+    feeds = dict(FEEDS)
+    queries = himalayas_queries(tracks)
+    if queries:
+        # The whole entry schema 1 renders for its keywords (_fmt_feeds), so a
+        # one-track Sweep sends exactly the requests its schema-1 profile does.
+        feeds["himalayas"] = {"enabled": True, "pages": 10, "queries": queries}
+    rows = sources.fetch_free(ATS_BOARDS, feeds, keep_title, location_allowed,
+                              is_home_location, optum_cfg=OPTUM,
+                              enterprise_cfg=ENTERPRISE)
+    for row in rows:
+        _truncate_desc(row)
+        row[FREE] = True
+    return rows
+
+
 # ===========================================================================
 # Resume-relevance scoring layer
 # ===========================================================================
@@ -775,7 +810,8 @@ def track_context(track, sweep_scoring):
 
 
 # The loaded Sweep's tracks in the file's order; () for any schema-1 profile.
-# Loaded only: nothing plans, filters, scores or ranks through them yet.
+# main() plans (multi_plans), fetches (fetch_free_multi) and finalizes
+# (finalize_multi) a schema-2 Sweep through them, and nothing else does.
 TRACK_CONTEXTS = tuple(track_context(t, config.SWEEP_SCORING) for t in config.TRACKS)
 
 
@@ -1303,6 +1339,156 @@ def plan_for_site(site_key, args):
     return plan
 
 
+# ---------------------------------------------------------------------------
+# Multi-Track (schema 2): one paid plan for every track
+# ---------------------------------------------------------------------------
+# A schema-1 profile never reaches anything here: main() plans it with
+# plan_for_site, as it always has. A schema-2 Sweep's tracks each get their
+# own units, built the way plan_for_site builds one profile's; each unit is
+# identified by the provider request it would send, so one request runs once
+# for every track that asked for it; and the units interleave fairly by
+# track within each site.
+REQUEST_KEY = "_request_key"    # the unit's execution identity, request_key()
+DONE_ID = "_ledger"             # its .done_combos identity, the date prepended at run time
+RUN_TIMEOUT_S = 300             # scrape_search's run_timeout, as request_key() binds it
+PLAN_VERSION = 2
+# The plan hash a run was priced with, set by whoever confirmed it (the worker,
+# from Phase 4). A schema-2 run whose rebuilt plan hashes differently exits
+# PLAN_CHANGED_EXIT before any account is read.
+PLAN_HASH_ENV = "SWEEP_EXPECTED_PLAN_HASH"
+PLAN_CHANGED_EXIT = 4
+
+
+def _sha256_json(obj):
+    """SHA-256 of canonical JSON: sorted keys, no spaces, UTF-8, unescaped."""
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":"),
+                                     ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def track_plan(site_key, args, track):
+    """plan_for_site for one track of a schema-2 Sweep, before the cap: the
+    track's own role_keywords, in the order it was derived (unless --keywords
+    or the site overrides them, exactly as for one profile) and its own
+    experience band, over the Sweep's locations, companies and depth.
+    build_search_plan builds the units, so the order is its keyword-major,
+    location, company order."""
+    locations = SITES[site_key].get("locations", SEARCH["locations"])
+    if args.keywords:
+        keywords = [k.strip() for k in args.keywords.split(",") if k.strip()]
+    else:
+        keywords = SITES[site_key].get("keywords", list(track.role_keywords))
+    plan = [dict(s, experience_years=track.experience_years) for s in
+            build_search_plan(keywords, locations, SITES[site_key].get("companies"))]
+    if args.test:
+        plan = plan[:1]
+        for s in plan:
+            s["max_results"] = SETTINGS["test_max_results"]
+    return plan
+
+
+def request_key(site_key, search):
+    """The provider request this unit would send, as one digest: the actor,
+    the built input, the charge ceiling and the run timeout — what
+    scrape_search sends, and nothing else (design §E.1).
+
+    Two units are one search if and only if their keys match, so the built
+    request decides, never a list of fields: a dimension an adapter ignores
+    (Indeed reads no experience, only LinkedIn reads a company) collapses,
+    and one it reads (f_E, recency, remote, geo, country, depth, actor,
+    ceiling) never does. No credential and no account state enters it."""
+    effective = effective_search(site_key, search)
+    ceiling = max_charge_usd(site_key, effective["max_results"])
+    return _sha256_json({"actor": SITES[site_key]["actor"],
+                         "input": build_input(site_key, effective),
+                         "ceiling": None if ceiling is None else str(ceiling),
+                         "timeout_s": RUN_TIMEOUT_S})
+
+
+def round_robin(seqs, key=lambda item: item):
+    """Merge sequences fairly: one item from each in turn, each in its own
+    order, skipping any whose key an earlier turn already placed. Every
+    sequence gains one NEW item per turn until it runs out, and a shared item
+    sits at the earliest slot any sequence reaches it."""
+    iters, placed, out = [iter(s) for s in seqs], set(), []
+    while iters:
+        for it in list(iters):
+            item = next((x for x in it if key(x) not in placed), None)
+            if item is None:
+                iters.remove(it)
+                continue
+            placed.add(key(item))
+            out.append(item)
+    return out
+
+
+def multi_plans(sites, args, tracks):
+    """Schema 2's paid plan, {site: [unit]}: the one plan the dry run prices,
+    the plan hash binds, and the account pool and scheduler execute.
+
+    Site-major in `sites` order, as for one profile. Within a site every
+    track's units get a request_key, and `requesters` lists, in track order,
+    every track that asked for each key — settled before the round-robin and
+    before the cap, so neither can drop a requester. Then the units
+    round-robin by track, each request once, and --limit /
+    max_searches_per_site cut the MERGED list, never one track's.
+
+    Each unit is today's dict plus REQUEST_KEY, PAID_TRACKS and DONE_ID, which
+    build_input ignores."""
+    cap = args.limit if args.limit is not None else SETTINGS["max_searches_per_site"]
+    plans = {}
+    # build_input notes an unmapped Naukri city on stdout, which here would
+    # land inside --dry-run --json. While keys are built it goes to stderr.
+    with contextlib.redirect_stdout(sys.stderr):
+        for site_key in sites:
+            seqs, requesters = [], {}
+            for track in tracks:
+                seq = [(request_key(site_key, s), s)
+                       for s in track_plan(site_key, args, track)]
+                for key, _search in seq:
+                    who = requesters.setdefault(key, [])
+                    if track.id not in who:
+                        who.append(track.id)
+                seqs.append(seq)
+            merged = [dict(s, **{REQUEST_KEY: key, PAID_TRACKS: list(requesters[key]),
+                                 DONE_ID: f"{site_key}|{s['keywords']}|{s['location']}|"
+                                         f"{s.get('company') or ''}|{key[:16]}"})
+                      for key, s in round_robin(seqs, key=lambda unit: unit[0])]
+            plans[site_key] = merged if cap is None else merged[:cap]
+    return plans
+
+
+def plan_hash(plans, tracks):
+    """What binds the plan Confirm priced to the plan that runs (design §G):
+    SHA-256 over the plan version, the tracks with their engines in order,
+    and every unit in plan order as [site, actor, request_key, ceiling,
+    requesting tracks]. Taken over the capped plan, before done-filtering.
+
+    Nothing name-, path-, account- or authorization-dependent enters it — no
+    profile or module name, output dir, run id, label or filename, no
+    balance or account assignment, no done state, spend cap or partial
+    approval — so the dry run that priced a plan and the run that executes it
+    agree whatever each was called and wherever it wrote."""
+    units = []
+    for site_key, plan in plans.items():
+        for s in plan:
+            ceiling = max_charge_usd(site_key, effective_search(site_key, s)["max_results"])
+            units.append([site_key, SITES[site_key]["actor"], s[REQUEST_KEY],
+                          None if ceiling is None else str(ceiling), list(s[PAID_TRACKS])])
+    return _sha256_json({"v": PLAN_VERSION, "tracks": [[t.id, t.engine] for t in tracks],
+                         "units": units})
+
+
+def done_key(today, site_key, search):
+    """A unit's line in .done_combos. A schema-2 unit carries DONE_ID — the
+    combo key plus its request_key's prefix, so two tracks' different
+    requests for one keyword and place never mark each other done. Every
+    other unit keeps today's combo key, byte for byte (sweep/runs.combo_key)."""
+    if DONE_ID in search:
+        return f"{today}|{search[DONE_ID]}"
+    return (f"{today}|{site_key}|{search['keywords']}|{search['location']}|"
+            f"{search.get('company') or ''}")
+
+
 # ===========================================================================
 # Running
 # ===========================================================================
@@ -1680,6 +1866,12 @@ def scrape_search(client, site_key, actor_id, search, before_start=None,
         # country), which is the distinction that decides reachability.
         for row in rows:
             row["Location"] = (row["Location"] + ", Remote").strip(", ")
+    if PAID_TRACKS in search:
+        # Multi-Track: each row answers every track that asked for this
+        # request — the unit's requesters. Stamped here, the one place every
+        # paid row is made, whichever loop runs it; its own list per row.
+        for row in rows:
+            row[PAID_TRACKS] = list(search[PAID_TRACKS])
     return rows, cost
 
 
@@ -2704,8 +2896,7 @@ def paid_phase_c2(plans, make_client, account_client, baseline, budget,
             entries.append(PaidEntry(
                 n, i, len(plan), paid_unit_id(n), site_key, actor_id, search,
                 f"{search['keywords'] or '(all)'}{who} @ {search['location']}",
-                f"{today}|{site_key}|{search['keywords']}|{search['location']}|"
-                f"{search.get('company') or ''}",
+                done_key(today, site_key, search),
                 max_charge_usd(site_key, depth)))
             n += 1
     site_key = None
@@ -3239,9 +3430,9 @@ def finalize(raw_rows, memo=False):
 
 
 # ===========================================================================
-# Multi-Track results (schema 2). main() still refuses to run a schema-2
-# Sweep: nothing yet produces the provenance below, so these run only on rows
-# a caller attributes explicitly.
+# Multi-Track results (schema 2). In a run, scrape_search stamps PAID_TRACKS on
+# every paid row and fetch_free_multi stamps FREE on every free one, and
+# main()'s checkpoints finalize through finalize_multi.
 # ===========================================================================
 # Provenance, required on every acquired copy of a multi-track Sweep, exactly
 # one of:
@@ -3558,10 +3749,12 @@ def _replaced(path, **open_kw):
         raise
 
 
-def write_outputs(out_rows, csv_path, json_path):
+def write_outputs(out_rows, csv_path, json_path, columns=None):
+    """`columns`: the CSV header, said by the caller — OUTPUT_COLUMNS unless
+    given; a multi-track Sweep passes MULTI_OUTPUT_COLUMNS."""
     os.makedirs(SETTINGS["output_dir"], exist_ok=True)
     with _replaced(csv_path, newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=OUTPUT_COLUMNS)
+        writer = csv.DictWriter(f, fieldnames=columns or OUTPUT_COLUMNS)
         writer.writeheader()
         writer.writerows(out_rows)
     with _replaced(json_path, encoding="utf-8") as f:
@@ -4225,21 +4418,33 @@ def main():
     if args.demo:
         demo()
         return
-    # A Multi-Track Sweep loads, but nothing here can plan, fetch or score one
-    # yet: every step below reads the one-profile globals, which for schema 2
-    # are config's defaults — another person's keywords and tables.
-    if config.TRACKS:
-        sys.exit(f"profiles/{config.PROFILE}.py is a Multi-Track Sweep "
-                 f"({len(config.TRACKS)} tracks). This build loads it but "
-                 f"cannot run it yet; nothing was searched or charged.")
     if config.PROFILE and not (args.dry_run and args.json):
         print(f"Profile:   {config.PROFILE} "
               f"(overrides {', '.join(config.PROFILE_CHANGED) or 'nothing'}) "
               f"-> {SETTINGS['output_dir']}/\n")
     enabled = resolve_sites(args)
 
-    plans = {site_key: plan_for_site(site_key, args) for site_key in enabled}
+    # A Multi-Track Sweep (schema 2) reads its tracks at the three places a
+    # track differs — this plan, the free title gate, finalize — and nowhere
+    # else. A schema-1 profile (TRACK_CONTEXTS == ()) takes today's path.
+    if TRACK_CONTEXTS:
+        try:
+            plans = multi_plans(enabled, args, TRACK_CONTEXTS)
+        except ValueError as exc:       # build_input's refusal, now at plan time
+            sys.exit(f"Refusing to run — this would spend money on bad data:\n\n  · {exc}")
+    else:
+        plans = {site_key: plan_for_site(site_key, args) for site_key in enabled}
     plans = {k: v for k, v in plans.items() if v}  # drop sites with empty plans
+    if TRACK_CONTEXTS and not args.dry_run:
+        # The engine's half of Confirm -> run (design §G): a plan that changed
+        # since it was priced runs nothing — refused before any account is
+        # read or any provider called. Unset means unbound (local and test
+        # runs); Phase 4's worker supplies it. Schema 1 never reads it.
+        expected = (os.environ.get(PLAN_HASH_ENV) or "").strip()
+        if expected and expected != plan_hash(plans, TRACK_CONTEXTS):
+            print("PLAN_CHANGED: this Sweep's plan is not the one that was priced; "
+                  "nothing was searched or charged.", file=sys.stderr)
+            sys.exit(PLAN_CHANGED_EXIT)
 
     # Free sources: on for full runs and for --site ats/feeds/free, unless
     # --no-free or a specific Apify --site was requested.
@@ -4266,7 +4471,7 @@ def main():
                  f"({', '.join(ENTERPRISE['employers'])})" if n_ent else "") + "\n")
 
     if args.dry_run and args.json:
-        print(json.dumps({
+        doc = {
             "profile": config.PROFILE,
             "sites": {site_key: [{"keywords": s["keywords"],
                                   "location": s["location"],
@@ -4295,7 +4500,15 @@ def main():
             # by the public app, whose worker runs this dry run with its own
             # flags; anything else there (an older engine) means unavailable.
             "public_paid": public_paid_mode(),
-        }))
+        }
+        if TRACK_CONTEXTS:
+            # Schema 2 only, and only additions: every search's requesting
+            # tracks and .done_combos line, and the hash a run is bound to.
+            for site_key, plan in plans.items():
+                for entry, search in zip(doc["sites"][site_key], plan):
+                    entry.update(tracks=list(search[PAID_TRACKS]), ledger=search[DONE_ID])
+            doc.update(plan_version=PLAN_VERSION, plan_hash=plan_hash(plans, TRACK_CONTEXTS))
+        print(json.dumps(doc))
         return
 
     if args.dry_run:
@@ -4373,14 +4586,20 @@ def main():
     def emit(rows):
         """finalize + optional new-only filter + write. Used for checkpoints too,
         so an interrupted sweep leaves a correct file behind."""
-        out = finalize(rows, memo=True) if score_once else finalize(rows)
+        if TRACK_CONTEXTS:
+            out = finalize_multi(rows, TRACK_CONTEXTS)
+        else:
+            out = finalize(rows, memo=True) if score_once else finalize(rows)
         if args.only_new:
             before = len(out)
             out = [r for r in out if _seen_key(r) not in seen]
             # Reported in the summary: without it, "0 jobs" reads as a broken
             # sweep rather than "everything here was already reviewed".
             LAST_STATS["already_seen"] = before - len(out)
-        write_outputs(out, csv_path, json_path)
+        if TRACK_CONTEXTS:
+            write_outputs(out, csv_path, json_path, MULTI_OUTPUT_COLUMNS)
+        else:
+            write_outputs(out, csv_path, json_path)     # today's call, byte for byte
         return out
 
     raw_rows = []
@@ -4415,8 +4634,12 @@ def main():
             telemetry.paid_plan(units, budget)
         # V2-C4, SWEEP_PAID_ADAPTIVE_MODE (default off; shadow needs telemetry).
         # Shadow records what candidate policies WOULD have decided; nothing is
-        # enforced, so the plan, the requests and every byte are as off.
-        if paid_adaptive.start(units, budget, job_key) == "enforce":
+        # enforced, so the plan, the requests and every byte are as off. A
+        # Multi-Track Sweep hands it no plan, which keeps it off: it observes
+        # finalize()'s one-survivor lists, which finalize_multi has no
+        # equivalent of (Phase 3 §O).
+        if (paid_adaptive.start(None if TRACK_CONTEXTS else units, budget, job_key)
+                == "enforce" and not TRACK_CONTEXTS):
             telemetry.note("SWEEP_PAID_ADAPTIVE_MODE=enforce: no policy has passed "
                            "the V2-C4 evidence gate, so it ran as shadow — the "
                            "full plan, nothing skipped or cut.")
@@ -4497,8 +4720,7 @@ def main():
                     # three of the four paid runs silently "skip (done)".
                     who = f" [{search['company']}]" if search.get("company") else ""
                     label = f"{search['keywords'] or '(all)'}{who} @ {search['location']}"
-                    combo_key = (f"{today}|{site_key}|{search['keywords']}|"
-                                 f"{search['location']}|{search.get('company') or ''}")
+                    combo_key = done_key(today, site_key, search)
                     if combo_key in done:
                         print(f"  [{i}/{len(plan)}] {label:<46} — skip (done)")
                         telemetry.paid_status(unit_id, "skipped_done")
@@ -4602,7 +4824,7 @@ def main():
     if run_free:
         print("\nfree sources (company boards + remote feeds)")
         telemetry.mark("free_phase_start")
-        raw_rows.extend(fetch_free())
+        raw_rows.extend(fetch_free_multi(TRACK_CONTEXTS) if TRACK_CONTEXTS else fetch_free())
         telemetry.mark("free_phase_done")
         emit(raw_rows)                                          # checkpoint
 
@@ -4649,7 +4871,9 @@ def main():
     # out_rows by this sweep's own rules, and only counts come back — into the
     # telemetry record; shadow.run returns None, so there is nothing here to
     # merge. Wrapped on top of shadow's own per-board and evaluation isolation.
-    if run_free and shadow.enabled():
+    # Never for a Multi-Track Sweep: the tranche judges with one profile's
+    # title gate and scoring, which a schema-2 Sweep does not have (design §I).
+    if run_free and shadow.enabled() and not TRACK_CONTEXTS:
         print("\nshadow tranche (diagnostic only — not in the results above)")
         telemetry.note("Shadow tranche fetched after the results were written "
                        "and judged in isolation; its rows never reach them and "

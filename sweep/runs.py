@@ -27,7 +27,14 @@ def combo_key(day, site_key, search):
     One function, because two places now build these — the progress grid and
     the price of what is left. A second copy that drifted would silently
     price searches the engine is about to skip.
+
+    A Multi-Track dry run gives each search its own `ledger` (scraper.done_key:
+    the same fields plus the request's key prefix). Where present it IS the
+    engine's line, so it is used as is. progress() reads the suffix as part
+    of the ignored company field.
     """
+    if search.get("ledger"):
+        return f"{day}|{search['ledger']}"
     return (f"{day}|{site_key}|{search['keywords']}|"
             f"{search['location']}|{search.get('company') or ''}")
 

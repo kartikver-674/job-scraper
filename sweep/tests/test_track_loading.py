@@ -426,8 +426,10 @@ class LoadedSweep(EngineIsolated):
         refusal = "multi-context finalization not enabled"
         for label in ("default_context", "score_job", "finalize"):
             self.assertIn(refusal, sweep[label], label)          # never run as track 0
-        self.assertIn("Multi-Track Sweep (3 tracks)", sweep["main"])
-        self.assertEqual(sweep["main_printed"], "")               # refused before planning
+        # Phase 3 lifted main()'s refusal: its dry run is now the unified plan
+        # (test_multi_plan). One-profile scoring above still refuses.
+        self.assertEqual(sweep["main"], "ran")
+        self.assertEqual(json.loads(sweep["main_printed"])["plan_version"], 2)
         for track in (A, B, C):
             one = self.probe(home, f"one_{track['id']}")
             with self.subTest(track=track["id"]):
